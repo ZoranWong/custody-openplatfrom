@@ -1,0 +1,146 @@
+# Sprint Status YAML
+# Generated: 2026-03-03
+
+generated: "2026-03-03"
+project: cregis-custody-openplatform
+project_key: CREGIS
+tracking_system: file-system
+story_location: docs/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+development_status:
+  # Epic 1 - Authorization SDK MVP (epic-auth-sdk-mvp.md)
+  epic-1: done
+  1-1-sdk-initialization: done
+  1-2-open-authorization: done
+  1-3-message-communication: done
+  2-1-login-page: done
+  2-2-password-login: done
+  2-3-totp-verification: done
+  2-4-authorization-confirm: done
+  3-1-token-validation: done
+  3-2-authorization-storage: done
+  3-3-authorization-id: done
+  epic-1-retrospective: done
+
+  # Epic 4 - Developer Portal (epics.md - Module A)
+  epic-4: done
+  4-1-1-landing-page: done
+  4-2-1-developer-registration: done
+  4-2-2-email-phone-verification: backlog
+  4-2-3-developer-login: done
+  4-2-4-password-reset: done
+  4-2-5-developer-profile: done
+  4-3-1-create-application: backlog
+  4-3-2-application-list: backlog
+  4-3-3-application-detail: backlog
+  4-3-4-regenerate-appsecret: backlog
+  4-3-5-update-application: backlog
+  4-3-6-delete-application: backlog
+  4-4-1-api-usage-statistics: backlog
+  4-4-2-invoice-generation: done
+  4-4-3-payment-history: done
+  epic-4-retrospective: optional
+
+  # Epic 5 - Admin Portal (epics.md - Module B)
+  epic-5: done
+  5-0-1-admin-login-page: done
+  5-0-2-admin-jwt-token-management: done
+  5-0-3-admin-auth-middleware: done
+  5-1-1-admin-dashboard-overview: done
+  5-2-1-isv-kyb-review: done
+  5-2-2-isv-kyb-history: done
+  5-2-3-isv-status-management: done
+  5-3-1-api-statistics-dashboard: done
+  5-3-2-revenue-analytics: done
+  5-3-3-system-health: done
+  epic-5-retrospective: optional
+
+  # Epic 6 - API Gateway (epics.md - Module C)
+  epic-6: done
+  6-1-1-hmac-signature-verification: done
+  6-1-2-jwt-token-management: done
+  6-1-3-oauth-token-endpoint: done
+  6-2-1-app-enterprise-binding-validation: done
+  6-2-2-permission-check-middleware: done
+  6-3-1-request-routing: done
+  6-3-2-request-validation: done
+  6-3-3-rate-limiting: done
+  6-4-1-webhook-push: done
+  6-4-2-webhook-configuration: done
+  6-4-3-webhook-event-types: done
+  6-5-1-request-logging: done
+  6-5-2-metrics-collection: done
+  6-5-3-tracing-support: done
+  epic-6-retrospective: optional
+
+  # Epic 7 - SDK (epics.md - Module D)
+  epic-7: backlog
+  7-1-1-token-management: backlog
+  7-1-2-request-signing: backlog
+  7-1-3-error-handling: backlog
+  7-2-1-create-enterprise: backlog
+  7-2-2-get-enterprise: backlog
+  7-3-1-create-treasury-unit: backlog
+  7-3-2-list-treasury-units: backlog
+  7-3-3-get-treasury-unit-detail: backlog
+  7-3-4-get-account-balance: backlog
+  7-3-5-list-accounts: backlog
+  7-4-1-create-payment-order: backlog
+  7-4-2-get-payment-order: backlog
+  7-4-3-confirm-payment: backlog
+  7-5-1-create-transfer: backlog
+  7-5-2-confirm-transfer: backlog
+  7-6-1-manual-pooling: backlog
+  7-6-2-get-pool-status: backlog
+  7-6-3-configure-auto-pooling: backlog
+  7-7-1-create-signature-task: backlog
+  7-7-2-get-signature-task: backlog
+  7-7-3-list-signature-tasks: backlog
+  7-8-1-list-transactions: backlog
+  7-8-2-get-transaction: backlog
+  7-8-3-list-webhook-events: backlog
+  7-9-1-authorization-page: backlog
+  7-9-2-task-signature-page: backlog
+  7-9-3-signature-display-page: backlog
+  7-9-4-event-handling: backlog
+  epic-7-retrospective: optional
+
+  # Epic 8 - Custody Message Forwarding Signature Verification (epic-e-custody-signature.md)
+  epic-8: done
+  8-1-1-resource-validation-middleware: done
+  8-2-1-signature-parameter-builder: done
+  8-2-2-json-serialization-utility: done
+  8-4-1-resource-authorization-service: done
+  8-4-2-authorization-cache-layer: done
+  8-5-1-authorization-forwarding-middleware: done
+  8-5-2-error-handling-and-logging: done
+  epic-8-retrospective: optional

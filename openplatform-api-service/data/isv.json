@@ -1,0 +1,326 @@
+{
+  "dev-001": {
+    "id": "dev-001",
+    "companyName": "TechCorp Inc.",
+    "creditCode": "91110000123456789A",
+    "website": "https://techcorp.com",
+    "industry": "fintech",
+    "contactEmail": "admin@techcorp.com",
+    "kybStatus": "approved",
+    "status": "active",
+    "kybReviewedAt": "2026-01-10T10:00:00.000Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "registeredAddress": "Beijing, China",
+    "createdAt": "2026-01-05T08:30:00.000Z",
+    "updatedAt": "2026-01-10T10:00:00.000Z"
+  },
+  "dev-002": {
+    "id": "dev-002",
+    "companyName": "CryptoExchange Ltd.",
+    "creditCode": "91110000987654321B",
+    "website": "https://cryptoex.com",
+    "industry": "exchange",
+    "contactEmail": "admin@cryptoex.com",
+    "kybStatus": "approved",
+    "status": "active",
+    "kybReviewedAt": "2026-01-18T14:20:00.000Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "registeredAddress": "Shanghai, China",
+    "createdAt": "2026-01-12T09:15:00.000Z",
+    "updatedAt": "2026-01-18:00.000Z"
+  },
+  "dev-003": {
+    "id": "dev-003",
+    "companyName": "FinTech Solutions",
+    "creditCode": "91310000111122223C",
+    "website": "https://fintech.io",
+    "industry": "fintech",
+    "contactEmail": "admin@fintech.io",
+    "kybStatus": "pending",
+    "status": "pending",
+    "createdAt": "2026-02-01T11:00:00.000Z",
+    "updatedAt": "2026-02-01T11:00:00.000Z"
+  },
+  "dev-004": {
+    "id": "dev-004",
+    "companyName": "BlockChain Labs",
+    "creditCode": "91310000444455556D",
+    "website": "https://blocklab.com",
+    "industry": "blockchain",
+    "contactEmail": "contact@blocklab.com",
+    "kybStatus": "rejected",
+    "status": "suspended",
+    "kybReviewedAt": "2026-01-25T16:30:00.000Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "rejectReason": "Incomplete documentation",
+    "registeredAddress": "Shenzhen, China",
+    "createdAt": "2026-01-20T13:45:00.000Z",
+    "updatedAt": "2026-01-25T16:30:00.000Z"
+  },
+  "dev-005": {
+    "id": "dev-005",
+    "companyName": "Digital Wallet Co.",
+    "creditCode": "91310000777788889E",
+    "website": "https://digitalwallet.io",
+    "industry": "payment",
+    "contactEmail": "support@digitalwallet.io",
+    "kybStatus": "approved",
+    "status": "active",
+    "kybReviewedAt": "2026-02-05T09:00:00.000Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "registeredAddress": "Hangzhou, China",
+    "createdAt": "2026-01-28T10:30:00.000Z",
+    "updatedAt": "2026-02-05T09:00:00.000Z"
+  },
+  "dev-006": {
+    "id": "dev-006",
+    "companyName": "AI Trading Platform",
+    "creditCode": "91310000123412345F",
+    "website": "https://aitrading.com",
+    "industry": "fintech",
+    "contactEmail": "hello@aitrading.com",
+    "kybStatus": "pending",
+    "status": "active",
+    "createdAt": "2026-02-08T15:00:00.000Z",
+    "updatedAt": "2026-02-08T15:00:00.000Z"
+  },
+  "dev-007": {
+    "id": "dev-007",
+    "companyName": "Web3 Gateway",
+    "creditCode": "91310000999900001G",
+    "website": "https://web3gateway.io",
+    "industry": "blockchain",
+    "contactEmail": "info@web3gateway.io",
+    "kybStatus": "approved",
+    "status": "active",
+    "kybReviewedAt": "2026-02-06T11:00:00.000Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "registeredAddress": "Chengdu, China",
+    "createdAt": "2026-02-02T08:00:00.000Z",
+    "updatedAt": "2026-02-06T11:00:00.000Z"
+  },
+  "dev-008": {
+    "id": "dev-008",
+    "companyName": "DeFi Protocol",
+    "creditCode": "91310000111133334H",
+    "website": "https://defiprotocol.xyz",
+    "industry": "defi",
+    "contactEmail": "contact@defiprotocol.xyz",
+    "kybStatus": "rejected",
+    "status": "banned",
+    "kybReviewedAt": "2026-02-07T14:00:00.000Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "rejectReason": "Failed compliance check",
+    "registeredAddress": "Singapore",
+    "createdAt": "2026-01-15T10:00:00.000Z",
+    "updatedAt": "2026-02-07T14:00:00.000Z"
+  },
+  "dev-009": {
+    "id": "dev-009",
+    "companyName": "NFT Marketplace",
+    "creditCode": "91310000222244445I",
+    "website": "https://nftmart.io",
+    "industry": "entertainment",
+    "contactEmail": "support@nftmart.io",
+    "kybStatus": "pending",
+    "status": "pending",
+    "createdAt": "2026-02-10T09:30:00.000Z",
+    "updatedAt": "2026-02-10T09:30:00.000Z"
+  },
+  "dev-010": {
+    "id": "dev-010",
+    "companyName": "Enterprise Solutions Ltd.",
+    "creditCode": "91310000333355556J",
+    "website": "https://enterprise.io",
+    "industry": "enterprise",
+    "contactEmail": "sales@enterprise.io",
+    "kybStatus": "approved",
+    "status": "active",
+    "kybReviewedAt": "2026-02-03T16:00:00.000Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "registeredAddress": "Guangzhou, China",
+    "createdAt": "2026-01-25T14:00:00.000Z",
+    "updatedAt": "2026-02-03T16:00:00.000Z"
+  },
+  "e678c0dd-a76f-4eaa-9d10-c1a76fc9c182": {
+    "id": "e678c0dd-a76f-4eaa-9d10-c1a76fc9c182",
+    "companyName": "Iron Stone",
+    "creditCode": "987665544444433333",
+    "website": "",
+    "industry": "payment",
+    "kybStatus": "approved",
+    "status": "active",
+    "createdAt": "2026-02-11T23:42:04.825Z",
+    "updatedAt": "2026-02-12T00:12:03.988Z",
+    "kybReviewedAt": "2026-02-12T00:12:03.988Z",
+    "kybReviewedBy": "admin@cregis.com"
+  },
+  "c285e2e8-2763-4342-8963-e23d4fa6c6ab": {
+    "id": "c285e2e8-2763-4342-8963-e23d4fa6c6ab",
+    "companyName": "测试02",
+    "creditCode": "098723423423343242",
+    "website": "",
+    "industry": "fintech",
+    "kybStatus": "approved",
+    "status": "active",
+    "createdAt": "2026-02-12T02:07:18.546Z",
+    "updatedAt": "2026-02-12T02:08:06.886Z",
+    "kybReviewedAt": "2026-02-12T02:08:06.881Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "statusHistory": [
+      {
+        "id": "1770862086884-me70qykm9",
+        "isvId": "c285e2e8-2763-4342-8963-e23d4fa6c6ab",
+        "type": "kyb_status",
+        "fromStatus": "pending",
+        "toStatus": "approved",
+        "operatedBy": "admin@cregis.com",
+        "operatedAt": "2026-02-12T02:08:06.884Z"
+      },
+      {
+        "id": "1770862086886-sw7pvp0z9",
+        "isvId": "c285e2e8-2763-4342-8963-e23d4fa6c6ab",
+        "type": "status",
+        "fromStatus": "active",
+        "toStatus": "active",
+        "reason": "KYB approved",
+        "operatedBy": "admin@cregis.com",
+        "operatedAt": "2026-02-12T02:08:06.886Z"
+      }
+    ]
+  },
+  "c5846367-518e-4a25-97af-950214d32965": {
+    "id": "c5846367-518e-4a25-97af-950214d32965",
+    "legalName": "测试",
+    "registrationNumber": "982142343233",
+    "jurisdiction": "VG",
+    "dateOfIncorporation": "2026-02-06",
+    "registeredAddress": "路德",
+    "website": "",
+    "kybStatus": "pending",
+    "status": "active",
+    "uboInfo": [
+      {
+        "name": "而223",
+        "idType": "passport",
+        "idNumber": "3333",
+        "nationality": "US",
+        "phone": "18729801212"
+      }
+    ],
+    "createdAt": "2026-02-12T02:46:41.574Z",
+    "updatedAt": "2026-02-12T02:46:41.574Z"
+  },
+  "35a27709-191e-4b48-8289-6e40c41c575b": {
+    "id": "35a27709-191e-4b48-8289-6e40c41c575b",
+    "legalName": "dddd",
+    "registrationNumber": "776666",
+    "jurisdiction": "KY",
+    "dateOfIncorporation": "2026-02-06",
+    "registeredAddress": "hhhh",
+    "website": "",
+    "kybStatus": "pending",
+    "status": "active",
+    "uboInfo": [
+      {
+        "name": "tttt",
+        "idType": "national_id",
+        "idNumber": "77777",
+        "nationality": "CN",
+        "phone": "15678909876"
+      }
+    ],
+    "createdAt": "2026-02-12T02:49:09.542Z",
+    "updatedAt": "2026-02-12T02:49:09.542Z"
+  },
+  "3b6b4637-3135-4aae-9710-56e66f1463b6": {
+    "id": "3b6b4637-3135-4aae-9710-56e66f1463b6",
+    "legalName": "测试002312",
+    "registrationNumber": "24123423",
+    "jurisdiction": "VG",
+    "dateOfIncorporation": "2026-02-13",
+    "registeredAddress": "23432412341",
+    "website": "",
+    "kybStatus": "approved",
+    "status": "active",
+    "uboInfo": [
+      {
+        "name": "32434",
+        "idType": "national_id",
+        "idNumber": "2342343",
+        "nationality": "US",
+        "phone": "18272933212"
+      }
+    ],
+    "createdAt": "2026-02-12T04:14:13.313Z",
+    "updatedAt": "2026-02-12T04:14:42.247Z",
+    "kybReviewedAt": "2026-02-12T04:14:42.236Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "statusHistory": [
+      {
+        "id": "1770869682245-609hw2snn",
+        "isvId": "3b6b4637-3135-4aae-9710-56e66f1463b6",
+        "type": "kyb_status",
+        "fromStatus": "pending",
+        "toStatus": "approved",
+        "operatedBy": "admin@cregis.com",
+        "operatedAt": "2026-02-12T04:14:42.245Z"
+      },
+      {
+        "id": "1770869682247-ggulxi8dg",
+        "isvId": "3b6b4637-3135-4aae-9710-56e66f1463b6",
+        "type": "status",
+        "fromStatus": "active",
+        "toStatus": "active",
+        "reason": "KYB approved",
+        "operatedBy": "admin@cregis.com",
+        "operatedAt": "2026-02-12T04:14:42.247Z"
+      }
+    ]
+  },
+  "4965aedd-4a5b-4058-9324-7c03eef8db4d": {
+    "id": "4965aedd-4a5b-4058-9324-7c03eef8db4d",
+    "legalName": "测试02342",
+    "registrationNumber": "224234",
+    "jurisdiction": "KY",
+    "dateOfIncorporation": "2026-02-06",
+    "registeredAddress": "翡翠路",
+    "website": "",
+    "kybStatus": "approved",
+    "status": "active",
+    "uboInfo": [
+      {
+        "name": "翔宇",
+        "idType": "national_id",
+        "idNumber": "23423432",
+        "nationality": "CN",
+        "phone": "18232323343"
+      }
+    ],
+    "createdAt": "2026-02-13T06:21:25.984Z",
+    "updatedAt": "2026-02-13T06:21:59.629Z",
+    "kybReviewedAt": "2026-02-13T06:21:59.621Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "statusHistory": [
+      {
+        "id": "1770963719625-9jdr0jqoz",
+        "isvId": "4965aedd-4a5b-4058-9324-7c03eef8db4d",
+        "type": "kyb_status",
+        "fromStatus": "pending",
+        "toStatus": "approved",
+        "operatedBy": "admin@cregis.com",
+        "operatedAt": "2026-02-13T06:21:59.625Z"
+      },
+      {
+        "id": "1770963719629-d2mn0kh60",
+        "isvId": "4965aedd-4a5b-4058-9324-7c03eef8db4d",
+        "type": "status",
+        "fromStatus": "active",
+        "toStatus": "active",
+        "reason": "KYB approved",
+        "operatedBy": "admin@cregis.com",
+        "operatedAt": "2026-02-13T06:21:59.629Z"
+      }
+    ]
+  }
+}

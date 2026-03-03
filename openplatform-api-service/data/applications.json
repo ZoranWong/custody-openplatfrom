@@ -1,0 +1,80 @@
+{
+  "378c7eb2-6742-488e-ad83-1170fa9756af": {
+    "id": "378c7eb2-6742-488e-ad83-1170fa9756af",
+    "isvId": "e678c0dd-a76f-4eaa-9d10-c1a76fc9c182",
+    "name": "hhh",
+    "appId": "ak_343e0b7c",
+    "description": "hhh",
+    "status": "pending_review",
+    "permittedUsers": [],
+    "createdAt": "2026-02-12T00:24:23.226Z",
+    "updatedAt": "2026-02-12T00:24:23.226Z"
+  },
+  "d71d4711-3cec-43c6-8556-76e188fe4f62": {
+    "id": "d71d4711-3cec-43c6-8556-76e188fe4f62",
+    "isvId": "e678c0dd-a76f-4eaa-9d10-c1a76fc9c182",
+    "name": "开发001",
+    "appId": "ak_0e367d0f",
+    "appSecret": "sk_mliq091b_79a12i4fvrn",
+    "description": "开发001",
+    "status": "pending_review",
+    "permittedUsers": [],
+    "createdAt": "2026-02-12T00:28:32.063Z",
+    "updatedAt": "2026-02-12T00:28:32.063Z"
+  },
+  "d1fcc021-6198-4c13-b0db-1a13391394ee": {
+    "id": "d1fcc021-6198-4c13-b0db-1a13391394ee",
+    "isvId": "e678c0dd-a76f-4eaa-9d10-c1a76fc9c182",
+    "name": "测试001",
+    "appId": "app_1311aefc_mliqaqd7",
+    "appSecret": "sk_mliqaqd7_7o843kf8bed",
+    "description": "测试001",
+    "callbackUrl": "https://test001.m/1111",
+    "status": "active",
+    "permittedUsers": [],
+    "createdAt": "2026-02-12T00:36:41.083Z",
+    "updatedAt": "2026-02-12T00:36:41.083Z"
+  },
+  "b4df9a92-01fd-4b58-ae6e-60fc8e45f314": {
+    "id": "b4df9a92-01fd-4b58-ae6e-60fc8e45f314",
+    "isvId": "c285e2e8-2763-4342-8963-e23d4fa6c6ab",
+    "name": "测试001",
+    "appId": "app_cffc3c58-7fd3-47",
+    "appSecret": "sk_cffc3c587fd347ccae470aaf6559743b",
+    "description": "打断点",
+    "callbackUrl": "https://ces.c/ddd",
+    "type": "payment",
+    "status": "active",
+    "permittedUsers": [],
+    "createdAt": "2026-02-12T02:08:45.367Z",
+    "updatedAt": "2026-02-12T02:08:45.367Z"
+  },
+  "0e3276c1-d59c-40fc-a56a-3993bbf43410": {
+    "id": "0e3276c1-d59c-40fc-a56a-3993bbf43410",
+    "isvId": "e678c0dd-a76f-4eaa-9d10-c1a76fc9c182",
+    "name": "ewverypay",
+    "appId": "app_d871206a-7477-4c",
+    "appSecret": "sk_d871206a74774ca4890d57eb0ddff009",
+    "description": "是的发送到发多少",
+    "callbackUrl": "http://dddd.com/ddd",
+    "type": "corporate",
+    "status": "active",
+    "permittedUsers": [],
+    "createdAt": "2026-02-12T04:15:37.831Z",
+    "updatedAt": "2026-02-12T04:15:37.831Z"
+  },
+  "55c01e56-2588-47fe-b21d-d0aeebd76092": {
+    "id": "55c01e56-2588-47fe-b21d-d0aeebd76092",
+    "isvId": "4965aedd-4a5b-4058-9324-7c03eef8db4d",
+    "name": "everypay",
+    "appId": "app_7c1f5151-c7ab-40",
+    "appSecret": "sk_7c1f5151c7ab4095ae47cc3d9ccc0e85",
+    "description": "测试托管",
+    "callbackUrl": "https://everypay.com/callback",
+    "type": "corporate",
+    "status": "active",
+    "permittedUsers": [],
+    "createdAt": "2026-02-13T06:22:38.363Z",
+    "updatedAt": "2026-02-13T06:22:38.363Z"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "f13cff05-c221-4563-aa85-6b45bea686aa": {
+    "id": "f13cff05-c221-4563-aa85-6b45bea686aa",
+    "isvId": "678dbb47-5f9b-4341-9971-9a284f895ce9",
+    "name": "Demo Application",
+    "appId": "ak_f13cff05",
+    "appSecret": "sk_f13cff05c22145",
+    "description": "Demo application for testing",
+    "status": "active",
+    "permittedUsers": [],
+    "createdAt": "2026-02-11T00:23:48.538Z",
+    "updatedAt": "2026-02-11T00:23:48.538Z"
+  }
+}

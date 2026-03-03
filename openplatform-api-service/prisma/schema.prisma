@@ -1,0 +1,271 @@
+// Prisma Schema for Cregis OpenPlatform
+// MySQL Database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ============================================
+// Developer - 开发者账号表
+// ============================================
+model Developer {
+  /// 开发者唯一标识 UUID
+  id           String   @id @default(uuid())
+  /// 开发者邮箱（唯一）
+  email        String   @unique
+  /// 密码哈希
+  passwordHash String   @map("password_hash")
+  /// 开发者姓名
+  name         String?
+  /// 公司名称
+  company      String?
+  /// 账号状态: active(正常), suspended(停用), deleted(已删除)
+  status       String   @default("active")
+  /// 创建时间
+  createdAt    DateTime @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  applications Application[]
+
+  @@map("developers")
+}
+
+// ============================================
+// Application - 应用信息表
+// ============================================
+model Application {
+  /// 应用唯一标识 UUID
+  id            String   @id @default(uuid())
+  /// 关联的开发者ID
+  developerId   String   @map("developer_id")
+  /// 应用名称
+  appName       String   @map("app_name")
+  /// 应用描述
+  appDescription String?  @map("app_description")
+  /// 应用密钥
+  appSecret     String   @map("app_secret")
+  /// 应用状态: active(正常), suspended(停用), deleted(已删除)
+  status        String   @default("active")
+  /// 创建时间
+  createdAt    DateTime @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  developer      Developer       @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  isvEnterprises IsvEnterprise[]
+  oauthResources OauthResource[]
+  webhooks       Webhook[]
+  apiLogs        ApiLog[]
+  metrics        Metric[]
+
+  @@index([developerId])
+  @@map("applications")
+}
+
+// ============================================
+// IsvEnterprise - ISV企业信息表
+// ============================================
+model IsvEnterprise {
+  /// 企业唯一标识 UUID
+  id              String   @id @default(uuid())
+  /// 关联的应用ID
+  appId           String   @map("app_id")
+  /// 企业名称
+  enterpriseName  String   @map("enterprise_name")
+  /// 企业标识ID（外部系统）
+  enterpriseId    String?  @map("enterprise_id")
+  /// 营业执照URL
+  businessLicense String?  @map("business_license_url")
+  /// 联系人姓名
+  contactName     String?  @map("contact_name")
+  /// 联系人邮箱
+  contactEmail    String?  @map("contact_email")
+  /// 联系人电话
+  contactPhone    String?  @map("contact_phone")
+  /// KYB审核状态: pending(待审核), approved(已通过), rejected(已拒绝)
+  kybStatus       String   @default("pending") @map("kyb_status")
+  /// KYB审核时间
+  kybReviewedAt  DateTime? @map("kyb_reviewed_at")
+  /// KYB审核人ID
+  kybReviewedBy   String?  @map("kyb_reviewed_by")
+  /// 企业状态: active(正常), suspended(停用), deleted(已删除)
+  status          String   @default("active")
+  /// 创建时间
+  createdAt       DateTime @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  application    Application     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  oauthResources OauthResource[]
+
+  @@index([appId])
+  @@index([kybStatus])
+  @@map("isv_enterprises")
+}
+
+// ============================================
+// OauthResource - OAuth资源授权表（替换原Authorization）
+// 用于存储用户对应用的授权信息，包括资源访问权限
+// ============================================
+model OauthResource {
+  /// 授权唯一标识 UUID
+  id           String   @id @default(uuid())
+  /// 关联的应用ID
+  appId       String   @map("app_id")
+  /// 用户ID
+  userId      String   @map("user_id")
+  /// 资源键（替换原enterpriseId），可关联企业或其他资源
+  resourceKey String?  @map("resource_key")
+  /// 授权时间
+  authorizedAt DateTime @default(now()) @map("authorized_at")
+  /// 授权过期时间
+  expiresAt   DateTime? @map("expires_at")
+  /// 授权状态: active(有效), revoked(已撤销), expired(已过期)
+  status      String   @default("active")
+  /// 创建时间
+  createdAt   DateTime @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  application Application    @relation(fields: [appId], references: [id], onDelete: Cascade)
+  enterprise  IsvEnterprise? @relation(fields: [resourceKey], references: [id], onDelete: SetNull)
+
+  @@unique([appId, userId])
+  @@index([resourceKey])
+  @@map("oauth_resources")
+}
+
+// ============================================
+// Webhook - Webhook配置表
+// ============================================
+model Webhook {
+  /// Webhook唯一标识 UUID
+  id          String   @id @default(uuid())
+  /// 关联的应用ID
+  appId       String   @map("app_id")
+  /// Webhook回调URL
+  url         String
+  /// Webhook密钥（用于签名验证）
+  secret      String?
+  /// 订阅的事件类型列表
+  eventTypes  Json     @map("event_types")
+  /// 是否启用
+  isActive    Boolean  @default(true) @map("is_active")
+  /// 创建时间
+  createdAt   DateTime @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId])
+  @@map("webhooks")
+}
+
+// ============================================
+// ApiLog - API调用日志表
+// ============================================
+model ApiLog {
+  /// 日志唯一标识 UUID
+  id              String   @id @default(uuid())
+  /// 分布式追踪ID
+  traceId         String?  @map("trace_id")
+  /// 关联的应用ID
+  appId           String   @map("app_id")
+  /// 请求端点
+  endpoint        String
+  /// 请求方法
+  method          String
+  /// 请求头JSON
+  requestHeaders  Json?    @map("request_headers")
+  /// 请求体JSON
+  requestBody    Json?    @map("request_body")
+  /// 响应状态码
+  responseStatus  Int?     @map("response_status")
+  /// 响应体JSON
+  responseBody    Json?    @map("response_body")
+  /// 响应时间（毫秒）
+  responseTime    Int?     @map("response_time")
+  /// 客户端IP地址
+  ipAddress       String?  @map("ip_address")
+  /// 客户端User-Agent
+  userAgent       String?  @map("user_agent")
+  /// 创建时间
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  application    Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId, createdAt])
+  @@index([traceId])
+  @@map("api_logs")
+}
+
+// ============================================
+// Metric - 指标数据表
+// ============================================
+model Metric {
+  /// 指标唯一标识 UUID
+  id           String   @id @default(uuid())
+  /// 关联的应用ID
+  appId        String   @map("app_id")
+  /// 指标类型（如 api_calls, revenue 等）
+  metricType   String   @map("metric_type")
+  /// 指标值
+  metricValue  Decimal? @map("metric_value") @db.Decimal(20, 2)
+  /// 统计周期开始时间
+  periodStart  DateTime @map("period_start")
+  /// 统计周期结束时间
+  periodEnd    DateTime @map("period_end")
+  /// 创建时间
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  application  Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId, periodStart])
+  @@index([metricType])
+  @@map("metrics")
+}
+
+// ============================================
+// Trace - 分布式追踪表
+// ============================================
+model Trace {
+  /// 追踪记录唯一标识 UUID
+  id            String   @id @default(uuid())
+  /// 追踪ID
+  traceId       String   @map("trace_id")
+  /// 关联的应用ID
+  appId         String?  @map("app_id")
+  /// 服务名称
+  serviceName   String?  @map("service_name")
+  /// 操作名称
+  operationName String?  @map("operation_name")
+  /// Span ID
+  spanId        String?  @map("span_id")
+  /// 父Span ID
+  parentSpanId  String?  @map("parent_span_id")
+  /// 开始时间
+  startTime     DateTime @map("start_time")
+  /// 结束时间
+  endTime       DateTime? @map("end_time")
+  /// 持续时间（毫秒）
+  duration      Int?
+  /// 状态: pending(进行中), completed(已完成), error(错误)
+  status        String   @default("pending")
+  /// 标签JSON
+  tags          Json?
+  /// 日志JSON
+  logs          Json?
+  /// 创建时间
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([traceId])
+  @@index([appId])
+  @@index([startTime])
+  @@map("traces")
+}

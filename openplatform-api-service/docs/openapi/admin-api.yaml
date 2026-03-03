@@ -1,0 +1,1148 @@
+openapi: 3.0.3
+info:
+  title: Cregis Custody OpenPlatform Admin API
+  description: |
+    Cregis Custody 开放平台后台管理系统 API 文档
+
+    ## 认证方式
+    所有需要认证的接口需要在 Header 中携带 Authorization: Bearer {token}
+
+    ## 响应格式
+    所有接口返回格式如下：
+    ```json
+    {
+      "code": 0,
+      "message": "success",
+      "data": { ... },
+      "trace_id": "string"
+    }
+    ```
+
+    ## 错误码
+    - 400xx: 请求参数错误
+    - 401xx: 认证错误
+    - 403xx: 权限错误
+    - 404xx: 资源不存在
+    - 500xx: 服务器错误
+  version: 1.0.0
+  contact:
+    name: Cregis Tech
+    email: support@cregis.io
+
+servers:
+  - url: http://localhost:3000/api/v1/admin
+    description: 本地开发环境
+  - url: https://api.cregis.io/v1/admin
+    description: 生产环境
+
+tags:
+  - name: Authentication
+    description: 管理员认证接口
+  - name: Dashboard
+    description: 数据统计看板
+  - name: KYB Review
+    description: KYB 审核管理
+  - name: KYB History
+    description: KYB 审核历史
+  - name: ISV Status
+    description: ISV 状态管理
+  - name: Audit
+    description: 审计日志
+
+paths:
+  # ==================== Authentication ====================
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: 管理员登录
+      description: 管理员使用邮箱密码登录系统
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: 管理员邮箱
+                  example: admin@cregis.io
+                password:
+                  type: string
+                  format: password
+                  description: 密码
+                  example: "SecurePass123"
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: 刷新访问令牌
+      description: 使用刷新令牌获取新的访问令牌
+      responses:
+        '200':
+          description: 刷新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefreshResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: 管理员登出
+      description: 清除会话和令牌
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 登出成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/change-password:
+    post:
+      tags:
+        - Authentication
+      summary: 修改密码
+      description: 管理员修改自己的密码
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  format: password
+                  description: 当前密码
+                newPassword:
+                  type: string
+                  format: password
+                  minLength: 8
+                  description: 新密码（至少8位，包含大小写字母和数字）
+      responses:
+        '200':
+          description: 密码修改成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /profile:
+    get:
+      tags:
+        - Authentication
+      summary: 获取管理员个人信息
+      description: 获取当前登录管理员的信息
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminProfile'
+
+  # ==================== Dashboard ====================
+  /dashboard/stats:
+    get:
+      tags:
+        - Dashboard
+      summary: 获取平台统计数据
+      description: 获取平台概览数据，包括开发者数、应用数、API调用量等
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [7days, 30days, 90days]
+            default: 30days
+          description: 统计周期
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+
+  /dashboard/trends:
+    get:
+      tags:
+        - Dashboard
+      summary: 获取趋势数据
+      description: 获取指定时间段的趋势数据，用于图表展示
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [7days, 30days, 90days]
+            default: 30days
+          description: 统计周期
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardTrends'
+
+  /dashboard/details:
+    get:
+      tags:
+        - Dashboard
+      summary: 获取详细统计数据
+      description: 获取更详细的统计数据，包括错误率、响应时间等
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardDetails'
+
+  /dashboard/health:
+    get:
+      tags:
+        - Dashboard
+      summary: 获取系统健康状态
+      description: 获取后台服务各组件的健康状态
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealth'
+
+  # ==================== KYB Review ====================
+  /kyb/pending:
+    get:
+      tags:
+        - KYB Review
+      summary: 获取待审核列表
+      description: 获取所有待审核的 KYB 申请
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            default: 20
+          description: 每页数量
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYBListResponse'
+
+  /kyb:
+    get:
+      tags:
+        - KYB Review
+      summary: 获取所有KYB申请
+      description: 获取所有 KYB 申请，支持按状态筛选
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+          description: 筛选状态
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            default: 20
+          description: 每页数量
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYBListResponse'
+
+  /kyb/{id}:
+    get:
+      tags:
+        - KYB Review
+      summary: 获取KYB详情
+      description: 获取指定 KYB 申请的详细信息
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: KYB 申请ID
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYBDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /kyb/{id}/approve:
+    post:
+      tags:
+        - KYB Review
+      summary: 审核通过
+      description: 批准 KYB 申请
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: KYB 申请ID
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                  description: 审核备注
+      responses:
+        '200':
+          description: 审核通过
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /kyb/{id}/reject:
+    post:
+      tags:
+        - KYB Review
+      summary: 审核拒绝
+      description: 拒绝 KYB 申请，需要提供拒绝原因
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: KYB 申请ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 10
+                  description: 拒绝原因（至少10个字符）
+                comment:
+                  type: string
+                  description: 审核备注
+      responses:
+        '200':
+          description: 审核拒绝
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /kyb/{id}/request-info:
+    post:
+      tags:
+        - KYB Review
+      summary: 补充材料请求
+      description: 要求申请人补充额外材料
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: KYB 申请ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - info
+              properties:
+                info:
+                  type: string
+                  description: 需要补充的信息说明
+                comment:
+                  type: string
+                  description: 审核备注
+      responses:
+        '200':
+          description: 发送补充材料请求成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /kyb/stats:
+    get:
+      tags:
+        - KYB Review
+      summary: 获取KYB统计
+      description: 获取 KYB 审核统计数据
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYBStats'
+
+  # ==================== KYB History ====================
+  /kyb/history:
+    get:
+      tags:
+        - KYB History
+      summary: 获取审核历史列表
+      description: 获取所有已完成的 KYB 审核记录
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [approved, rejected]
+          description: 筛选状态
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+          description: 开始日期
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+          description: 结束日期
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            default: 20
+          description: 每页数量
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYBHistoryListResponse'
+
+  /kyb/history/{id}:
+    get:
+      tags:
+        - KYB History
+      summary: 获取审核历史详情
+      description: 获取指定 KYB 审核记录的详细信息
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: 审核记录ID
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KYBHistoryDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== ISV Status ====================
+  /isv/{id}/status:
+    get:
+      tags:
+        - ISV Status
+      summary: 获取ISV状态
+      description: 获取指定 ISV 的当前状态信息
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ISV ID
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ISVStatus'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /isv/{id}/activate:
+    post:
+      tags:
+        - ISV Status
+      summary: 激活ISV
+      description: 激活指定的 ISV，允许其使用平台服务
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ISV ID
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                  description: 备注
+      responses:
+        '200':
+          description: 激活成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /isv/{id}/suspend:
+    post:
+      tags:
+        - ISV Status
+      summary: 暂停ISV
+      description: 暂停指定的 ISV，临时禁止其使用平台服务
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ISV ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  description: 暂停原因
+                duration:
+                  type: integer
+                  description: 暂停时长（小时），不传则永久暂停直到手动解除
+      responses:
+        '200':
+          description: 暂停成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /isv/{id}/ban:
+    post:
+      tags:
+        - ISV Status
+      summary: 封禁ISV
+      description: 永久封禁指定的 ISV，禁止其使用平台服务
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ISV ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  description: 封禁原因
+      responses:
+        '200':
+          description: 封禁成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /isv/{id}/status/history:
+    get:
+      tags:
+        - ISV Status
+      summary: 获取ISV状态变更历史
+      description: 获取指定 ISV 的状态变更记录
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ISV ID
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ISVStatusHistoryResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ==================== Common ====================
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 错误码
+        message:
+          type: string
+          description: 错误信息
+        trace_id:
+          type: string
+          description: 追踪ID
+
+    LoginResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: "success"
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              description: 访问令牌
+            refreshToken:
+              type: string
+              description: 刷新令牌
+            user:
+              $ref: '#/components/schemas/AdminProfile'
+        trace_id:
+          type: string
+
+    TokenRefreshResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: "success"
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              description: 新的访问令牌
+            refreshToken:
+              type: string
+              description: 新的刷新令牌
+        trace_id:
+          type: string
+
+    AdminProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 管理员ID
+        email:
+          type: string
+          format: email
+          description: 邮箱
+        name:
+          type: string
+          description: 姓名
+        role:
+          type: string
+          enum: [super_admin, admin, operator]
+          description: 角色
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+          description: 状态
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新时间
+
+    # ==================== Dashboard ====================
+    DashboardStats:
+      type: object
+      properties:
+        totalDevelopers:
+          type: integer
+          description: 开发者总数
+        totalApplications:
+          type: integer
+          description: 应用总数
+        pendingKYBReviews:
+          type: integer
+          description: 待审核KYB数
+        apiCalls:
+          type: object
+          properties:
+            today:
+              type: integer
+            thisWeek:
+              type: integer
+            thisMonth:
+              type: integer
+        errorRate:
+          type: number
+          description: 错误率
+        lastUpdated:
+          type: string
+          format: date-time
+
+    DashboardTrends:
+      type: object
+      properties:
+        period:
+          type: string
+          description: 时间周期
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              calls:
+                type: integer
+              errors:
+                type: integer
+              latency:
+                type: number
+
+    DashboardDetails:
+      type: object
+      properties:
+        totalCalls:
+          type: integer
+        successRate:
+          type: number
+        avgResponseTime:
+          type: number
+        topEndpoints:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              method:
+                type: string
+              calls:
+                type: integer
+              avgLatency:
+                type: number
+
+    SystemHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        components:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+                enum: [up, down, degraded]
+              latency:
+                type: number
+
+    # ==================== KYB ====================
+    KYBListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/KYBItem'
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    KYBItem:
+      type: object
+      properties:
+        id:
+          type: string
+        companyName:
+          type: string
+        email:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        submittedAt:
+          type: string
+          format: date-time
+        reviewerId:
+          type: string
+
+    KYBDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        companyName:
+          type: string
+        creditCode:
+          type: string
+        email:
+          type: string
+        website:
+          type: string
+        industry:
+          type: string
+        ubos:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              idType:
+                type: string
+              idNumber:
+                type: string
+              nationality:
+                type: string
+              phone:
+                type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        documents:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              url:
+                type: string
+        submittedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+        reviewerComment:
+          type: string
+
+    KYBStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        pending:
+          type: integer
+        approved:
+          type: integer
+        rejected:
+          type: integer
+        approvalRate:
+          type: number
+
+    KYBHistoryListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/KYBHistoryItem'
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    KYBHistoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        companyName:
+          type: string
+        decision:
+          type: string
+          enum: [approved, rejected]
+        reviewerId:
+          type: string
+        comments:
+          type: string
+        reviewedAt:
+          type: string
+          format: date-time
+        submittedAt:
+          type: string
+          format: date-time
+
+    KYBHistoryDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        companyName:
+          type: string
+        originalStatus:
+          type: string
+        decision:
+          type: string
+          enum: [approved, rejected]
+        reviewerId:
+          type: string
+        comments:
+          type: string
+        reason:
+          type: string
+        reviewedAt:
+          type: string
+          format: date-time
+
+    # ==================== ISV Status ====================
+    ISVStatus:
+      type: object
+      properties:
+        id:
+          type: string
+        companyName:
+          type: string
+        status:
+          type: string
+          enum: [active, suspended, banned, pending_approval]
+        kybStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        plan:
+          type: string
+        apiQuota:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        lastActivityAt:
+          type: string
+          format: date-time
+
+    ISVStatusHistoryResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/ISVStatusHistoryItem'
+
+    ISVStatusHistoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        previousStatus:
+          type: string
+        newStatus:
+          type: string
+        reason:
+          type: string
+        adminId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 40001
+            message: "Invalid request parameters"
+            trace_id: "abc123"
+
+    Unauthorized:
+      description: 未认证或认证过期
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 40101
+            message: "Invalid or expired token"
+            trace_id: "abc123"
+
+    Forbidden:
+      description: 权限不足
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 40301
+            message: "Insufficient permissions"
+            trace_id: "abc123"
+
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 40401
+            message: "Resource not found"
+            trace_id: "abc123"
+
+    InternalError:
+      description: 服务器内部错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 50001
+            message: "Internal server error"
+            trace_id: "abc123"

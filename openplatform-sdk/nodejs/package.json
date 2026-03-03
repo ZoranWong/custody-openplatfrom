@@ -1,0 +1,27 @@
+{
+  "name": "@cregis/openplatform-sdk",
+  "version": "1.0.0",
+  "description": "Cregis Custody OpenPlatform SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "cregis",
+    "custody",
+    "sdk"
+  ],
+  "author": "Cregis",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {}
+}

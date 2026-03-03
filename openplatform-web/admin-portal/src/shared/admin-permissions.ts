@@ -1,0 +1,111 @@
+/**
+ * Shared Admin Permission Types
+ * IMPORTANT: This file must be kept in sync with:
+ * - openplatform-api-service/src/constants/admin-permissions.ts
+ *
+ * In production, these types should be shared via a monorepo workspace
+ * or published as an NPM package.
+ */
+
+// ============================================
+// Admin Permissions Constants (Shared)
+// ============================================
+
+// Permission levels (hierarchical)
+export enum Permission {
+  VIEW = 'VIEW',
+  MANAGE = 'MANAGE',
+  APPROVE = 'APPROVE',
+  ADMIN = 'ADMIN'
+}
+
+// Admin roles with hierarchy
+export type AdminRole = 'super_admin' | 'admin' | 'operator'
+
+// Resource types that can be accessed
+export enum Resource {
+  // Dashboard
+  DASHBOARD = 'DASHBOARD',
+
+  // ISV Management
+  ISV_VIEW = 'ISV_VIEW',
+  ISV_MANAGE = 'ISV_MANAGE',
+  ISV_KYB = 'ISV_KYB',
+  ISV_STATUS = 'ISV_STATUS',
+
+  // Application Management
+  APP_VIEW = 'APP_VIEW',
+  APP_MANAGE = 'APP_MANAGE',
+
+  // Analytics
+  ANALYTICS_VIEW = 'ANALYTICS_VIEW',
+  ANALYTICS_EXPORT = 'ANALYTICS_EXPORT',
+
+  // System
+  SYSTEM_CONFIG = 'SYSTEM_CONFIG',
+  SYSTEM_USERS = 'SYSTEM_USERS',
+  SYSTEM_AUDIT = 'SYSTEM_AUDIT',
+
+  // Audit Logs
+  AUDIT_VIEW = 'AUDIT_VIEW',
+  AUDIT_EXPORT = 'AUDIT_EXPORT'
+}
+
+// Role hierarchy (higher index = more permissions)
+export const ROLE_HIERARCHY: Record<AdminRole, number> = {
+  super_admin: 100,
+  admin: 50,
+  operator: 10
+}
+
+// Permission matrix: What each role can do
+export const ROLE_PERMISSIONS: Record<AdminRole, Resource[]> = {
+  super_admin: [
+    Resource.DASHBOARD,
+    Resource.ISV_VIEW,
+    Resource.ISV_MANAGE,
+    Resource.ISV_KYB,
+    Resource.APP_VIEW,
+    Resource.APP_MANAGE,
+    Resource.ANALYTICS_VIEW,
+    Resource.ANALYTICS_EXPORT,
+    Resource.SYSTEM_CONFIG,
+    Resource.SYSTEM_USERS,
+    Resource.SYSTEM_AUDIT,
+    Resource.AUDIT_VIEW,
+    Resource.AUDIT_EXPORT
+  ],
+  admin: [
+    Resource.DASHBOARD,
+    Resource.ISV_VIEW,
+    Resource.ISV_MANAGE,
+    Resource.ISV_KYB,
+    Resource.APP_VIEW,
+    Resource.APP_MANAGE,
+    Resource.ANALYTICS_VIEW,
+    Resource.ANALYTICS_EXPORT,
+    Resource.AUDIT_VIEW
+  ],
+  operator: [
+    Resource.DASHBOARD,
+    Resource.ISV_VIEW,
+    Resource.APP_VIEW,
+    Resource.ANALYTICS_VIEW
+  ]
+}
+
+// Check if a role has a specific permission
+export function hasPermission(role: AdminRole, resource: Resource): boolean {
+  const permissions = ROLE_PERMISSIONS[role]
+  return permissions.includes(resource)
+}
+
+// Check if role A has higher or equal privileges than role B
+export function hasHigherOrEqualRole(roleA: AdminRole, roleB: AdminRole): boolean {
+  return ROLE_HIERARCHY[roleA] >= ROLE_HIERARCHY[roleB]
+}
+
+// Get all permissions for a role
+export function getPermissionsForRole(role: AdminRole): Resource[] {
+  return ROLE_PERMISSIONS[role] || []
+}

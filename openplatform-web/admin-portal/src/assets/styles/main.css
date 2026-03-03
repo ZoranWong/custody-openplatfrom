@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --el-color-primary: #00be78;
+        --el-color-success: #00be78;
+        --el-color-warning: #f6ad55;
+        --el-color-danger: #e53e3e;
+        --el-color-info: #3182ce;
+        --el-border-radius-base: 8px;
+        --el-border-radius-small: 6px;
+        --el-box-shadow: none;
+    }
+
+    body {
+        @apply font-sans text-gray-700 bg-gray-50;
+    }
+}
+
+@layer components {
+    .btn-primary {
+        @apply bg-brand text-white px-4 py-2 rounded-md font-medium
+           hover:bg-brand-dark transition-colors duration-200;
+    }
+
+    .btn-secondary {
+        @apply bg-white text-gray-700 px-4 py-2 rounded-md font-medium
+           border border-gray-300 hover:bg-gray-50;
+    }
+
+    .card {
+        @apply bg-white rounded-lg border border-gray-200 shadow-sm transition-all duration-200;
+    }
+}
+
+.el-select__wrapper {
+    height: 100%;
+}

@@ -1,0 +1,122 @@
+{
+  "4cdc5801-995f-4129-aa26-fc5743c9508a": {
+    "id": "4cdc5801-995f-4129-aa26-fc5743c9508a",
+    "isvId": "64976e78-e148-47cf-a2ba-5e9aa6324a0d",
+    "email": "skyandsunning@gmail.com",
+    "password": "$2b$10$Vj.d8QY4o.6Kp3EdV.RHiOmG3bG0BhGypWGELj1nkkUzDVE7SsTY.",
+    "name": "嘿嘿的",
+    "role": "owner",
+    "status": "active",
+    "allowedApplications": [],
+    "createdAt": "2026-02-11T01:46:25.166Z",
+    "updatedAt": "2026-02-11T01:46:25.166Z"
+  },
+  "585ba43d-7012-40cc-8c19-a81825afdb63": {
+    "id": "585ba43d-7012-40cc-8c19-a81825afdb63",
+    "isvId": "7bb412d6-763e-4326-a02c-1f88e8b30d20",
+    "email": "skyandsunning@163.com",
+    "password": "$2b$10$dGGxQsVjPveQ/H6O0bVoKe6SRVOMSalq49euNTnAUmcNSlf0f8FP.",
+    "name": "期到底",
+    "role": "owner",
+    "status": "active",
+    "allowedApplications": [],
+    "createdAt": "2026-02-11T03:28:28.770Z",
+    "updatedAt": "2026-02-11T03:28:28.770Z"
+  },
+  "cb1e7e61-9aec-4009-baaa-5faf6c23d947": {
+    "id": "cb1e7e61-9aec-4009-baaa-5faf6c23d947",
+    "isvId": "b17898da-c92e-4637-9513-32df8d64ccee",
+    "email": "test001@gmail.com",
+    "password": "$2b$10$jAhTKyP7ezPiYjpqz7pW4ee6HdOgNc9lTEdXh8xYqL2KllJWX5186",
+    "name": "ces ",
+    "role": "owner",
+    "status": "active",
+    "allowedApplications": [],
+    "createdAt": "2026-02-11T04:09:13.221Z",
+    "updatedAt": "2026-02-11T04:09:13.221Z"
+  },
+  "57b02f38-c80e-483e-9d65-92053ef4bdd5": {
+    "id": "57b02f38-c80e-483e-9d65-92053ef4bdd5",
+    "isvId": "562d0520-19b0-4849-9ea8-3ae8dc3aaac8",
+    "email": "test002@gmail.com",
+    "password": "$2b$10$ki4rkJjBrG96cvqr8zqfguvkn6/KLt293qqTYjBpNTQ/8eF421Vl.",
+    "name": "测试0012",
+    "role": "owner",
+    "status": "active",
+    "allowedApplications": [],
+    "createdAt": "2026-02-11T06:20:38.636Z",
+    "updatedAt": "2026-02-11T06:20:38.636Z"
+  },
+  "566180ef-4ea5-4983-9efd-b8ae25f62dc1": {
+    "id": "566180ef-4ea5-4983-9efd-b8ae25f62dc1",
+    "isvId": "e678c0dd-a76f-4eaa-9d10-c1a76fc9c182",
+    "email": "test003@gmail.com",
+    "password": "$2b$10$wlqSaSDp1NRU8ASnypHX9.hwUzRpBIFgh2w62cHAXUHQMks4MNEUO",
+    "name": "Iron Stone",
+    "role": "owner",
+    "status": "active",
+    "allowedApplications": [],
+    "createdAt": "2026-02-11T23:42:04.904Z",
+    "updatedAt": "2026-02-11T23:42:04.904Z"
+  },
+  "9737b3ab-33e7-4617-b7fb-d2fbfaeba0ae": {
+    "id": "9737b3ab-33e7-4617-b7fb-d2fbfaeba0ae",
+    "isvId": "c285e2e8-2763-4342-8963-e23d4fa6c6ab",
+    "email": "test0004@gmail.com",
+    "password": "$2b$10$GJu5I655z6.B4iPVi8XIi.KHcUV.wiKoEWlaPuy.n7KM5VHKl.AdC",
+    "name": "测试02",
+    "role": "owner",
+    "status": "active",
+    "allowedApplications": [],
+    "createdAt": "2026-02-12T02:07:18.636Z",
+    "updatedAt": "2026-02-12T02:07:18.636Z"
+  },
+  "e1115d16-234b-46ce-bae7-0ec8515106fc": {
+    "id": "e1115d16-234b-46ce-bae7-0ec8515106fc",
+    "isvId": "c5846367-518e-4a25-97af-950214d32965",
+    "email": "test005@gmail.com",
+    "password": "$2b$10$y7whpLAuh2hYFvEPnDgYaun0fUUecJsir9Zn3EjImFU2HQeMtSSgq",
+    "name": "测试",
+    "role": "owner",
+    "status": "active",
+    "allowedApplications": [],
+    "createdAt": "2026-02-12T02:46:41.655Z",
+    "updatedAt": "2026-02-12T02:46:41.655Z"
+  },
+  "452fb93a-84e7-4a97-9f27-b7034d54ecea": {
+    "id": "452fb93a-84e7-4a97-9f27-b7034d54ecea",
+    "isvId": "35a27709-191e-4b48-8289-6e40c41c575b",
+    "email": "test009@gmail.com",
+    "password": "$2b$10$4th18/w7Q7xw5568Q75r5eGUQsX/Pb9f9sKFi/7tOVfE5jU51Qz6K",
+    "name": "dddd",
+    "role": "owner",
+    "status": "active",
+    "allowedApplications": [],
+    "createdAt": "2026-02-12T02:49:09.615Z",
+    "updatedAt": "2026-02-12T02:49:09.615Z"
+  },
+  "118936b0-2b06-4af5-a9f2-bfdd2fc04884": {
+    "id": "118936b0-2b06-4af5-a9f2-bfdd2fc04884",
+    "isvId": "3b6b4637-3135-4aae-9710-56e66f1463b6",
+    "email": "test0010@gmail.com",
+    "password": "$2b$10$SIY0IgWKyZ5M/yuB3V9qR.ZKj7H8yh42PfVHyBaAodilff9Bg63bu",
+    "name": "测试002312",
+    "role": "owner",
+    "status": "active",
+    "allowedApplications": [],
+    "createdAt": "2026-02-12T04:14:13.422Z",
+    "updatedAt": "2026-02-12T04:14:13.422Z"
+  },
+  "57ab46de-d692-4143-9aff-a8917898ae2b": {
+    "id": "57ab46de-d692-4143-9aff-a8917898ae2b",
+    "isvId": "4965aedd-4a5b-4058-9324-7c03eef8db4d",
+    "email": "test00101@gmail.com",
+    "password": "$2b$10$td9dhUtbxkUuiXAoXcH0j.rLhmUfMPmqgXquQ8D0y0oNm/z8jT616",
+    "name": "测试02342",
+    "role": "owner",
+    "status": "active",
+    "allowedApplications": [],
+    "createdAt": "2026-02-13T06:21:26.140Z",
+    "updatedAt": "2026-02-13T06:21:26.140Z"
+  }
+}
