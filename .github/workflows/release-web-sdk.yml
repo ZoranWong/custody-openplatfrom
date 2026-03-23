@@ -71,7 +71,7 @@ jobs:
 
       - name: Publish to npm
         working-directory: ./openplatform-sdk/web
-        run: npm publish --access public --registry=https://registry.npmjs.org/
+        run: npm publish --access public --provenance --registry=https://registry.npmjs.org/
 
       - name: Update GitHub Release with npm version
         if: github.event_name == 'release'

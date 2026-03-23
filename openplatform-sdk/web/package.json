@@ -2,6 +2,10 @@
     "name": "@cregis-kit/openplatform-webkit",
     "version": "1.0.0",
     "description": "Cregis OpenPlatform Web SDK - iframe embedded authorization and message communication",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ZoranWong/custody-openplatfrom.git"
+    },
     "main": "dist/index.js",
     "module": "dist/index.esm.js",
     "types": "dist/index.d.ts",
@@ -9,7 +13,8 @@
         "dist"
     ],
     "publishConfig": {
-        "access": "public"
+        "access": "public",
+        "provenance": true
     },
     "scripts": {
         "dev": "vite",
