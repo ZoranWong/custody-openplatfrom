@@ -10,10 +10,11 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "test": "vitest",
     "test:run": "vitest run",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "cregis",

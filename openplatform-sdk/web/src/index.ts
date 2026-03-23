@@ -80,6 +80,14 @@ export class CregisWebSDK {
       });
     }
 
+    // Validate authUrl
+    if (!config.authUrl || typeof config.authUrl !== 'string') {
+      throw new SDKError_class({
+        code: ErrorCodes.INVALID_APP_ID,
+        message: 'authUrl is required and must be a string',
+      });
+    }
+
     // Validate container
     if (!config.container) {
       throw new SDKError_class({
@@ -157,8 +165,8 @@ export class CregisWebSDK {
       // Determine mode: popup or inline
       const mode = this.config?.mode || 'inline';
 
-      // Build authorization URL
-      const baseUrl = this.config?.baseUrl || 'https://openplatform.cregis.com';
+      // Build authorization URL using authUrl directly
+      const baseUrl = this.config!.authUrl.replace(/\/$/, ''); // Remove trailing slash
       const params = new URLSearchParams();
       params.set('appId', this.config!.appId);
 
@@ -194,7 +202,7 @@ export class CregisWebSDK {
         params.set('permissions', options.permissions.join(','));
       }
 
-      const authUrl = `${baseUrl}/auth/authorize?${params.toString()}`;
+      const authUrl = `${baseUrl}?${params.toString()}`;
 
       // Create iframe
       this.iframe = document.createElement('iframe');
@@ -344,9 +352,11 @@ export class CregisWebSDK {
    * Create modal overlay for popup mode
    */
   private createModal(iframe: HTMLIFrameElement): HTMLElement {
+    const customStyles = this.config?.modalStyles || {};
+
     // Create overlay
     const overlay = document.createElement('div');
-    overlay.style.cssText = `
+    overlay.style.cssText = customStyles.overlay || `
       position: fixed;
       top: 0;
       left: 0;
@@ -361,7 +371,7 @@ export class CregisWebSDK {
 
     // Create modal container
     const modal = document.createElement('div');
-    modal.style.cssText = `
+    modal.style.cssText = customStyles.modal || `
       position: relative;
       width: 90%;
       max-width: 420px;
@@ -375,7 +385,7 @@ export class CregisWebSDK {
     // Create close button
     const closeBtn = document.createElement('button');
     closeBtn.innerHTML = '×';
-    closeBtn.style.cssText = `
+    closeBtn.style.cssText = customStyles.closeButton || `
       position: absolute;
       top: 10px;
       right: 10px;

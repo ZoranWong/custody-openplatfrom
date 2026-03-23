@@ -27,7 +27,7 @@ export default defineConfig({
             '@': resolve(__dirname, 'src'),
         },
     },
-    base: '/auth/',
+    base: process.env.VITE_BASE || '/openplatform/oauth/',
     build: {
         outDir: 'dist',
         assetsDir: 'assets',

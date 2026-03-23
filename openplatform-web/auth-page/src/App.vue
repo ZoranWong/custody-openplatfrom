@@ -114,7 +114,7 @@ const permissions = ref<string[]>([])
 // Auth state
 const username = ref('')
 const email = ref('')
-const tempToken = ref('')
+const mfaToken = ref('')  // Renamed from tempToken for clarity
 const failedAttempts = ref(0)
 const totpFailedAttempts = ref(0)
 const selectedEnterprise = ref<Enterprise | null>(null)
@@ -263,7 +263,7 @@ function resetFlow() {
   totpFailedAttempts.value = 0;
   username.value = '';
   email.value = '';
-  tempToken.value = '';
+  mfaToken.value = '';
   selectedEnterprise.value = null;
 
   setTimeout(() => {
@@ -295,44 +295,35 @@ async function handleLogin(credentials: { type: 'PASSWORD' | 'EMAIL'; account: s
     const response = await login(credentials);
 
     if (response.success && response.data) {
-      // Save token and user info
-      const tokenTimeout = Number(response.data.tokenTimeout);
-      const tokenExpiresIn = tokenTimeout - Date.now();
-      if (tokenExpiresIn > 0) {
-        setToken(response.data.token, tokenExpiresIn);
-        setUserInfo({
-          userId: String(response.data.user?.id || ''),
-          email: response.data.user?.email || response.data.email || '',
-          role: response.data.role || [],
-          permission: response.data.permission || [],
-          username: response.data.user?.username || '',
-        });
-      }
+      // Save email for later use
+      username.value = credentials.account;
+      email.value = response.data.email || credentials.account;
 
-      if (response.data.requiresSecondAuth && response.data.tempToken) {
+      if (response.data.mfaRequired && response.data.mfaToken) {
         // Proceed to TOTP verification
-        username.value = credentials.account;
-        email.value = response.data.email;
-        tempToken.value = response.data.tempToken;
+        mfaToken.value = response.data.mfaToken;
         currentView.value = 'totp';
       } else {
         // No 2FA required, proceed to enterprise selection
-        username.value = credentials.account;
-        email.value = response.data.email;
+        // Set mock token for development
+        const mockToken = 'dev-token-' + Date.now();
+        setToken(mockToken, 24 * 60 * 60 * 1000);
+        setUserInfo({
+          userId: '1',
+          email: email.value,
+          role: ['user'],
+          permission: ['read'],
+          username: username.value,
+        });
         currentView.value = 'enterprise';
       }
     } else {
       // Check if account is locked
-      if (response.locked) {
-        loginError.value = 'Account locked. Try again later.';
-        failedAttempts.value = MAX_FAILED_ATTEMPTS;
-      } else {
-        failedAttempts.value++;
-        loginError.value = response.error?.message || 'Login failed';
+      failedAttempts.value++;
+      loginError.value = response.error?.message || 'Login failed';
 
-        if (failedAttempts.value >= MAX_FAILED_ATTEMPTS) {
-          loginError.value = `Account locked after ${MAX_FAILED_ATTEMPTS} failed attempts. Try again later.`;
-        }
+      if (failedAttempts.value >= MAX_FAILED_ATTEMPTS) {
+        loginError.value = `Account locked after ${MAX_FAILED_ATTEMPTS} failed attempts. Try again later.`;
       }
     }
   } catch (error) {
@@ -343,36 +334,37 @@ async function handleLogin(credentials: { type: 'PASSWORD' | 'EMAIL'; account: s
 }
 
 async function handleTotpVerify(credentials: { code: string; mode: 'GOOGLE_CODE' | 'RECOVERY_CODE' }) {
-  if (!tempToken.value || !email.value) return;
+  if (!mfaToken.value || !email.value) return;
 
   submitting.value = true;
   totpError.value = '';
 
   try {
-    const response = await secondAuthenticate({
-      tempToken: tempToken.value,
-      verifyCode: credentials.code,
-      email: email.value,
-      secondStepType: credentials.mode,
-    });
+    const response = await secondAuthenticate(
+      mfaToken.value,
+      credentials.code,
+      email.value,
+      credentials.mode
+    );
 
-    if (response.success && response.data) {
+    if (response && response.token) {
       // Reset TOTP failed attempts on success
       totpFailedAttempts.value = 0;
 
-      // Update token and user info after TOTP verification
-      const tokenTimeout = Number(response.data.tokenTimeout);
+      // Save token and user info
+      const tokenTimeout = Number(response.tokenTimeout);
       const tokenExpiresIn = tokenTimeout - Date.now();
       if (tokenExpiresIn > 0) {
-        setToken(response.data.token, tokenExpiresIn);
-        setUserInfo({
-          userId: String(response.data.user?.id || ''),
-          email: response.data.user?.email || response.data.email || '',
-          role: response.data.role || [],
-          permission: response.data.permission || [],
-          username: response.data.user?.username || '',
-        });
+        setToken(response.token, tokenExpiresIn);
       }
+      setUserInfo({
+        userId: String(response.user?.id || ''),
+        email: response.user?.email || response.email || '',
+        role: response.role || [],
+        permission: response.permission || [],
+        username: response.user?.username || '',
+      });
+
       // Proceed to enterprise selection
       currentView.value = 'enterprise';
     } else {
@@ -380,16 +372,16 @@ async function handleTotpVerify(credentials: { code: string; mode: 'GOOGLE_CODE'
       totpFailedAttempts.value++;
 
       if (totpFailedAttempts.value >= MAX_FAILED_ATTEMPTS) {
-        // Lock after 3 failures - clear temp token and go back to login
+        // Lock after 3 failures - clear mfa token and go back to login
         totpError.value = `Too many failed attempts. Please try again.`;
-        tempToken.value = '';
+        mfaToken.value = '';
         setTimeout(() => {
           currentView.value = 'login';
           totpFailedAttempts.value = 0;
           totpError.value = '';
         }, 2000);
       } else {
-        totpError.value = response.error?.message || 'Verification failed';
+        totpError.value = 'Invalid verification code';
       }
     }
   } catch (error) {

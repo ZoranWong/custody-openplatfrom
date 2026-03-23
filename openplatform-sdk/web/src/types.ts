@@ -13,8 +13,8 @@ export interface SDKConfig {
   container: HTMLElement | string;
   /** Event callback - optional */
   onEvent?: (event: SDKEvent) => void;
-  /** API base URL - optional, defaults to production */
-  baseUrl?: string;
+  /** Authorization page URL - required, e.g., 'https://openplatform.cregis.com/openplatform/oauth/' */
+  authUrl: string;
   /** Debug mode - optional, defaults to false */
   debug?: boolean;
   /** App Token - for authorization */
@@ -25,6 +25,12 @@ export interface SDKConfig {
   appLogoUrl?: string;
   /** Display mode: 'inline' or 'popup', defaults to 'inline' */
   mode?: 'inline' | 'popup';
+  /** Custom CSS for modal overlay - optional */
+  modalStyles?: {
+    overlay?: string;
+    modal?: string;
+    closeButton?: string;
+  };
 }
 
 /**

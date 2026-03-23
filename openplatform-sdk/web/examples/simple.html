@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cregis SDK 简单示例</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .description {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .description h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .description p {
+      color: #666;
+      line-height: 1.6;
+    }
+    .config {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    #auth-container {
+      width: 100%;
+      height: 500px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .btn {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    .btn:hover {
+      background: #4338ca;
+    }
+    .btn-secondary {
+      background: #6b7280;
+    }
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+    .result {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .result h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    .result pre {
+      background: #1f2937;
+      color: #10b981;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Cregis OpenPlatform SDK 示例</h1>
+
+    <div class="description">
+      <h2>配置信息</h2>
+      <div class="config">
+        App ID: app_d871206a-7477-4c<br>
+        Auth URL: http://api.vaulink.com/openplatform/oauth/<br>
+        App Token: sk_d871206a74774ca4890d57eb0ddff009
+      </div>
+      <p>这是一个简单的内联授权示例。appToken 应从后端接口获取，SDK 通过 URL 参数传递 appToken 和用户 token，授权完成后结果会显示在下方。</p>
+      <p style="color: #ef4444; margin-top: 10px; font-weight: 500;">
+        注意：appToken 是应用密钥，请勿暴露在前端代码中。必须从后端接口获取 appToken 后再传递给 SDK。<br>
+        后端生成算法：md5(appId + appSecret + timestamp + nonce) + '-' + timestamp + '-' + nonce
+      </p>
+    </div>
+
+    <div id="auth-container"></div>
+
+    <button id="authorize-btn" class="btn">打开授权</button>
+    <button id="close-btn" class="btn btn-secondary">关闭授权</button>
+
+    <div id="result-container" class="result" style="display: none;">
+      <h3>消息记录</h3>
+      <pre id="result-content"></pre>
+    </div>
+  </div>
+
+  <script type="module">
+    import { CregisWebSDK, listenFromParent } from '../src/index.ts';
+
+    // ============================================
+    // AppToken 生成算法（必须在后端执行）
+    // 格式: hash-timestamp-nonce
+    // hash = md5(appId + appSecret + timestamp + nonce)
+    // ============================================
+    function generateAppToken(appId, appSecret) {
+      const timestamp = Date.now();
+      const nonce = Math.random().toString(36).substring(2, 15);
+      const hashInput = appId + appSecret + timestamp + nonce;
+      const hash = md5(hashInput); // 需要引入 md5 库或使用 crypto
+      return `${hash}-${timestamp}-${nonce}`;
+    }
+
+    // 简单的 MD5 实现（用于示例，生产环境请使用后端生成）
+    function md5(text) {
+      // 生产环境中 appToken 应该在后端生成，这里仅用于演示
+      // 实际项目请移除此函数，从后端接口获取 appToken
+      return text; // 占位符
+    }
+
+    // 从后端获取 appToken（生产环境必须从后端接口获取）
+    async function getAppToken() {
+      // 实际项目中应该调用后端接口获取 appToken
+      // 后端生成算法: md5(appId + appSecret + timestamp + nonce) + '-' + timestamp + '-' + nonce
+      //
+      // 示例后端接口:
+      // POST /api/oauth/app-token
+      // Response: { appToken: "hash-timestamp-nonce" }
+      //
+      // const response = await fetch('/api/oauth/app-token');
+      // const data = await response.json();
+      // return data.appToken;
+
+      // 测试用：直接使用已有的 appToken
+      return 'sk_d871206a74774ca4890d57eb0ddff009';
+    }
+
+    // 初始化 SDK
+    async function initSDK() {
+      const appToken = await getAppToken();
+
+      const sdk = new CregisWebSDK({
+        appId: 'app_d871206a-7477-4c',
+        authUrl: 'http://api.vaulink.com/openplatform/oauth/',
+        appToken: appToken,  // 从后端获取，不要硬编码在前端
+        container: '#auth-container',
+        appName: '测试应用',
+        debug: true,
+      });
+
+      // 可选：设置用户 token（如果已有登录态，可跳过登录步骤）
+      // sdk.setToken({
+      //   accessToken: 'user-access-token',
+      //   expiresAt: Date.now() + 3600000,
+      //   tokenType: 'Bearer'
+      // });
+
+      // 监听来自授权页面的消息
+      listenFromParent((message) => {
+        console.log('收到 iframe 消息:', message);
+
+        const container = document.getElementById('result-container');
+        const content = document.getElementById('result-content');
+        container.style.display = 'block';
+        content.textContent = JSON.stringify(message, null, 2);
+
+        // 处理授权结果
+        if (message.action === 'authorization_result') {
+          if (message.type === 'success') {
+            console.log('授权成功! resourceKey:', message.data);
+          } else if (message.type === 'error') {
+            console.error('授权失败:', message.error);
+          }
+        }
+      });
+
+      // 打开授权
+      document.getElementById('authorize-btn').addEventListener('click', async () => {
+        document.getElementById('result-container').style.display = 'none';
+        const result = await sdk.openAuthorization({
+          permissions: ['wallet:read', 'wallet:transfer'],
+          state: 'example-state-' + Date.now(),
+        });
+        console.log('授权结果:', result);
+      });
+
+      // 关闭授权
+      document.getElementById('close-btn').addEventListener('click', () => {
+        sdk.closeModal();
+      });
+
+      return sdk;
+    }
+
+    // 页面加载时初始化
+    initSDK();
+  </script>
+</body>
+</html>
