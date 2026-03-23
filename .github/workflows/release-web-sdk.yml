@@ -35,6 +35,13 @@ jobs:
       - name: Update npm
         run: npm install -g npm@latest
 
+      - name: Check npm version
+        run: npm --version
+
+      - name: Debug npm config
+        run: |
+          npm config list
+
       - name: Install dependencies
         working-directory: ./openplatform-sdk/web
         run: npm ci
