@@ -1,49 +1,38 @@
-name: Release Web SDK
+name: Release
 
 on:
-  # 手动触发（可选）
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version bump (patch/minor/major) or specific version'
+      bump:
+        description: 'Version bump type'
         required: true
         default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
-  # 自动触发：监听 GitHub release
   release:
     types: [published]
 
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     steps:
       - uses: actions/checkout@v4
         with:
-          # 获取完整历史，用于版本更新
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          registry-url: 'https://registry.npmjs.org/'
-
-      - name: Update npm
-        run: npm install -g npm@latest
-
-      - name: Check npm version
-        run: npm --version
-
-      - name: Debug npm config
-        run: |
-          npm config list
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         working-directory: ./openplatform-sdk/web
@@ -53,37 +42,32 @@ jobs:
         working-directory: ./openplatform-sdk/web
         run: npm run build
 
-      - name: Get version from GitHub release tag
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Clean working directory
+        run: |
+          git checkout -- package-lock.json 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+
+      - name: Get version from release tag
         if: github.event_name == 'release'
         working-directory: ./openplatform-sdk/web
         run: |
-          # 从 GitHub release tag 提取版本号 (e.g., v1.0.0 -> 1.0.0)
           VERSION=${GITHUB_REF#refs/tags/v}
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
           npm version $VERSION --no-git-tag-version
 
-      - name: Get version from workflow dispatch
+      - name: Bump version
         if: github.event_name == 'workflow_dispatch'
         working-directory: ./openplatform-sdk/web
-        run: |
-          if [[ "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            npm version ${{ github.event.inputs.version }} --no-git-tag-version
-          else
-            npm version ${{ github.event.inputs.version }}
-          fi
+        run: npm version ${{ inputs.bump }}
 
       - name: Publish to npm
         working-directory: ./openplatform-sdk/web
-        run: npm publish --access public --provenance
+        run: npm publish --access public
 
-      - name: Update GitHub Release with npm version
-        if: github.event_name == 'release'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: context.payload.release.id,
-              body: `Published to npm: @cregis-kit/openplatform-webkit@${process.env.VERSION}\n\n${context.payload.release.body || ''}`
-            })
+      - name: Push version commit and tag
+        if: github.event_name == 'workflow_dispatch'
+        run: git push --follow-tags
