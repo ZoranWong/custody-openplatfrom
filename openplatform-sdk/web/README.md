@@ -1,11 +1,11 @@
-# Cregis OpenPlatform Web SDK
+# Cregis OpenPlatform WebKit SDK
 
 Cregis 托管平台 Web SDK - 用于在第三方应用中嵌入授权页面，实现安全的钱包授权功能。
 
 ## 安装
 
 ```bash
-npm install @cregis/openplatform-web
+npm install @cregis-kit/openplatform-webkit
 ```
 
 ## 快速开始
@@ -31,7 +31,7 @@ npm install @cregis/openplatform-web
   <div id="auth-container"></div>
 
   <script type="module">
-    import { CregisWebSDK } from '@cregis/openplatform-web';
+    import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
 
     // 初始化 SDK
     const sdk = new CregisWebSDK({
@@ -68,7 +68,7 @@ npm install @cregis/openplatform-web
 
 ```jsx
 import { useEffect, useRef } from 'react';
-import { CregisWebSDK } from '@cregis/openplatform-web';
+import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
 
 function AuthButton() {
   const containerRef = useRef(null);
@@ -215,7 +215,7 @@ new CregisWebSDK(config: SDKConfig)
 ### 工具函数
 
 ```typescript
-import { setAllowedOrigins, getAllowedOrigins } from '@cregis/openplatform-web';
+import { setAllowedOrigins, getAllowedOrigins } from '@cregis-kit/openplatform-webkit';
 
 // 设置允许的 iframe 来源（增强安全性）
 setAllowedOrigins(['https://your-domain.com']);
@@ -228,7 +228,7 @@ SDK 通过 `postMessage` 与 iframe 内的授权页面进行双向通信。
 ### 接收授权页面消息
 
 ```javascript
-import { listenFromParent } from '@cregis/openplatform-web';
+import { listenFromParent } from '@cregis-kit/openplatform-webkit';
 
 // 监听来自授权页面的消息
 const unsubscribe = listenFromParent((data) => {
@@ -255,7 +255,7 @@ unsubscribe();
 ### 完整示例
 
 ```javascript
-import { CregisWebSDK, listenFromParent } from '@cregis/openplatform-web';
+import { CregisWebSDK, listenFromParent } from '@cregis-kit/openplatform-webkit';
 
 // 从后端获取 appToken（生产环境必须从后端获取，不要硬编码在前端）
 async function getAppToken() {
