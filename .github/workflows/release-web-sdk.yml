@@ -1,0 +1,60 @@
+name: Release Web SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump (patch/minor/major) or specific version'
+        required: true
+        default: 'patch'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        working-directory: ./openplatform-sdk/web
+        run: npm ci
+
+      - name: Build
+        working-directory: ./openplatform-sdk/web
+        run: npm run build
+
+      - name: Version bump
+        working-directory: ./openplatform-sdk/web
+        run: |
+          if [[ "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            npm version ${{ github.event.inputs.version }} --no-git-tag-version
+          else
+            npm version ${{ github.event.inputs.version }}
+          fi
+
+      - name: Publish to npm
+        working-directory: ./openplatform-sdk/web
+        run: npm publish --access public --registry=https://registry.npmjs.org/
+
+      - name: Create Git Tag
+        if: ${{ !contains(github.event.inputs.version, '.') }}
+        working-directory: ./openplatform-sdk/web
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add -A
+          git commit -m "release: v$(cat package.json | grep '"version"' | cut -d'"' -f4)"
+          git tag "openplatform-webkit/v$(cat package.json | grep '"version"' | cut -d'"' -f4)"
+          git push origin HEAD:main --tags
