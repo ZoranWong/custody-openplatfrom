@@ -1,6 +1,6 @@
 {
     "name": "@cregis-kit/openplatform-webkit",
-    "version": "1.0.0",
+    "version": "1.0.5",
     "description": "Cregis OpenPlatform Web SDK - iframe embedded authorization and message communication",
     "repository": {
         "type": "git",
@@ -13,8 +13,7 @@
         "dist"
     ],
     "publishConfig": {
-        "access": "public",
-        "provenance": true
+        "access": "public"
     },
     "scripts": {
         "dev": "vite",
