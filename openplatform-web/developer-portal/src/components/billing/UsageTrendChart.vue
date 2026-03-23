@@ -70,7 +70,7 @@ const chartOption = computed(() => {
 
   const dates = props.dailyData.map(d => formatDate(d.date))
   const calls = props.dailyData.map(d => d.calls)
-  const successCalls = props.dailyData.map(d => d.success_count)
+  const successCalls = props.dailyData.map(d => d.successCount)
 
   return {
     tooltip: {

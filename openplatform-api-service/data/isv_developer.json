@@ -1,0 +1,185 @@
+{
+  "dev-001": {
+    "id": "dev-001",
+    "email": "admin@techcorp.com",
+    "passwordHash": "$2b$10$examplehash",
+    "legalName": "TechCorp Inc.",
+    "registrationNumber": "91110000123456789A",
+    "jurisdiction": "CN",
+    "dateOfIncorporation": "2020-01-01",
+    "registeredAddress": "Beijing, China",
+    "website": "https://techcorp.com",
+    "kybStatus": "approved",
+    "status": "active",
+    "kybReviewedAt": "2026-01-10T10:00:00.000Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "createdAt": "2026-01-05T08:30:00.000Z",
+    "updatedAt": "2026-01-10T10:00:00.000Z"
+  },
+  "dev-002": {
+    "id": "dev-002",
+    "email": "admin@cryptoex.com",
+    "passwordHash": "$2b$10$examplehash",
+    "legalName": "CryptoExchange Ltd.",
+    "registrationNumber": "91110000987654321B",
+    "jurisdiction": "CN",
+    "dateOfIncorporation": "2021-06-15",
+    "registeredAddress": "Shanghai, China",
+    "website": "https://cryptoex.com",
+    "kybStatus": "approved",
+    "status": "active",
+    "kybReviewedAt": "2026-01-18T14:20:00.000Z",
+    "kybReviewedBy": "admin@cregis.com",
+    "createdAt": "2026-01-12T09:15:00.000Z",
+    "updatedAt": "2026-01-18T14:20:00.000Z"
+  },
+  "dev-003": {
+    "id": "dev-003",
+    "email": "admin@fintech.io",
+    "passwordHash": "$2b$10$examplehash",
+    "legalName": "FinTech Solutions",
+    "registrationNumber": "91310000111122223C",
+    "jurisdiction": "CN",
+    "dateOfIncorporation": "2022-03-20",
+    "registeredAddress": "Shenzhen, China",
+    "website": "https://fintech.io",
+    "kybStatus": "pending",
+    "status": "pending",
+    "createdAt": "2026-02-01T11:00:00.000Z",
+    "updatedAt": "2026-02-01T11:00:00.000Z"
+  },
+  "e678c0dd-a76f-4eaa-9d10-c1a76fc9c182": {
+    "id": "e678c0dd-a76f-4eaa-9d10-c1a76fc9c182",
+    "email": "test003@gmail.com",
+    "passwordHash": "$2b$10$wlqSaSDp1NRU8ASnypHX9.hwUzRpBIFgh2w62cHAXUHQMks4MNEUO",
+    "legalName": "Iron Stone",
+    "registrationNumber": "987665544444433333",
+    "jurisdiction": "VG",
+    "dateOfIncorporation": "2025-01-01",
+    "registeredAddress": "Road 123",
+    "website": "",
+    "kybStatus": "approved",
+    "status": "active",
+    "createdAt": "2026-02-11T23:42:04.825Z",
+    "updatedAt": "2026-02-12T00:12:03.988Z",
+    "kybReviewedAt": "2026-02-12T00:12:03.988Z",
+    "kybReviewedBy": "admin@cregis.com"
+  },
+  "c285e2e8-2763-4342-8963-e23d4fa6c6ab": {
+    "id": "c285e2e8-2763-4342-8963-e23d4fa6c6ab",
+    "email": "test0004@gmail.com",
+    "passwordHash": "$2b$10$GJu5I655z6.B4iPVi8XIi.KHcUV.wiKoEWlaPuy.n7KM5VHKl.AdC",
+    "legalName": "测试02",
+    "registrationNumber": "098723423423343242",
+    "jurisdiction": "VG",
+    "dateOfIncorporation": "2025-06-15",
+    "registeredAddress": "测试地址",
+    "website": "",
+    "kybStatus": "approved",
+    "status": "active",
+    "createdAt": "2026-02-12T02:07:18.546Z",
+    "updatedAt": "2026-02-12T02:08:06.886Z",
+    "kybReviewedAt": "2026-02-12T02:08:06.881Z",
+    "kybReviewedBy": "admin@cregis.com"
+  },
+  "c5846367-518e-4a25-97af-950214d32965": {
+    "id": "c5846367-518e-4a25-97af-950214d32965",
+    "email": "test005@gmail.com",
+    "passwordHash": "$2b$10$y7whpLAuh2hYFvEPnDgYaun0fUUecJsir9Zn3EjImFU2HQeMtSSgq",
+    "legalName": "测试",
+    "registrationNumber": "982142343233",
+    "jurisdiction": "VG",
+    "dateOfIncorporation": "2026-02-06",
+    "registeredAddress": "路德",
+    "website": "",
+    "kybStatus": "pending",
+    "status": "active",
+    "uboInfo": [
+      {
+        "name": "而223",
+        "idType": "passport",
+        "idNumber": "3333",
+        "nationality": "US",
+        "phone": "18729801212"
+      }
+    ],
+    "createdAt": "2026-02-12T02:46:41.574Z",
+    "updatedAt": "2026-02-12T02:46:41.574Z"
+  },
+  "35a27709-191e-4b48-8289-6e40c41c575b": {
+    "id": "35a27709-191e-4b48-8289-6e40c41c575b",
+    "email": "test009@gmail.com",
+    "passwordHash": "$2b$10$4th18/w7Q7xw5568Q75r5eGUQsX/Pb9f9sKFi/7tOVfE5jU51Qz6K",
+    "legalName": "dddd",
+    "registrationNumber": "776666",
+    "jurisdiction": "KY",
+    "dateOfIncorporation": "2026-02-06",
+    "registeredAddress": "hhhh",
+    "website": "",
+    "kybStatus": "pending",
+    "status": "active",
+    "uboInfo": [
+      {
+        "name": "tttt",
+        "idType": "national_id",
+        "idNumber": "77777",
+        "nationality": "CN",
+        "phone": "15678909876"
+      }
+    ],
+    "createdAt": "2026-02-12T02:49:09.542Z",
+    "updatedAt": "2026-02-12T02:49:09.542Z"
+  },
+  "3b6b4637-3135-4aae-9710-56e66f1463b6": {
+    "id": "3b6b4637-3135-4aae-9710-56e66f1463b6",
+    "email": "test0010@gmail.com",
+    "passwordHash": "$2b$10$SIY0IgWKyZ5M/yuB3V9qR.ZKj7H8yh42PfVHyBaAodilff9Bg63bu",
+    "legalName": "测试002312",
+    "registrationNumber": "24123423",
+    "jurisdiction": "VG",
+    "dateOfIncorporation": "2026-02-13",
+    "registeredAddress": "23432412341",
+    "website": "",
+    "kybStatus": "approved",
+    "status": "active",
+    "uboInfo": [
+      {
+        "name": "32434",
+        "idType": "national_id",
+        "idNumber": "2342343",
+        "nationality": "US",
+        "phone": "18272933212"
+      }
+    ],
+    "createdAt": "2026-02-12T04:14:13.313Z",
+    "updatedAt": "2026-02-12T04:14:42.247Z",
+    "kybReviewedAt": "2026-02-12T04:14:42.236Z",
+    "kybReviewedBy": "admin@cregis.com"
+  },
+  "4965aedd-4a5b-4058-9324-7c03eef8db4d": {
+    "id": "4965aedd-4a5b-4058-9324-7c03eef8db4d",
+    "email": "test00101@gmail.com",
+    "passwordHash": "$2b$10$td9dhUtbxkUuiXAoXcH0j.rLhmUfMPmqgXquQ8D0y0oNm/z8jT616",
+    "legalName": "测试02342",
+    "registrationNumber": "224234",
+    "jurisdiction": "KY",
+    "dateOfIncorporation": "2026-02-06",
+    "registeredAddress": "翡翠路",
+    "website": "",
+    "kybStatus": "approved",
+    "status": "active",
+    "uboInfo": [
+      {
+        "name": "翔宇",
+        "idType": "national_id",
+        "idNumber": "23423432",
+        "nationality": "CN",
+        "phone": "18232323343"
+      }
+    ],
+    "createdAt": "2026-02-13T06:21:25.984Z",
+    "updatedAt": "2026-02-13T06:21:59.629Z",
+    "kybReviewedAt": "2026-02-13T06:21:59.621Z",
+    "kybReviewedBy": "admin@cregis.com"
+  }
+}

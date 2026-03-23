@@ -44,13 +44,13 @@ export function ensureLogDirectories(): void {
  */
 export const logRotation = {
   maxSize: process.env.LOG_MAX_SIZE || '10m', // 10MB
-  maxFiles: parseInt(process.env.LOG_MAX_FILES || '30', 10), // 30 days
-  // Access logs: 30 days retention
-  accessRetentionDays: 30,
-  // Audit logs: 90 days retention (longer for compliance)
-  auditRetentionDays: 90,
-  // Error logs: 90 days retention
-  errorRetentionDays: 90,
+    maxFiles: parseInt(process.env.LOG_MAX_FILES || '7', 10), // 7 days
+    // Access logs: 7 days retention
+    accessRetentionDays: 7,
+    // Audit logs: 7 days retention
+    auditRetentionDays: 7,
+    // Error logs: 7 days retention
+    errorRetentionDays: 7,
 };
 
 /**
@@ -114,6 +114,8 @@ export const logOutput = {
     '/api/v1/stats',
   ],
 };
+
+//console.log(`Logger configuration initialized for environment: ${env}`, logOutput, process.env);
 
 /**
  * Sensitive fields to mask in logs

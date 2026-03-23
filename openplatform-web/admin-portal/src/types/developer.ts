@@ -7,7 +7,7 @@
 export type DeveloperStatus = 'active' | 'suspended' | 'banned' | 'pending'
 
 // KYB review status
-export type KYBStatus = 'approved' | 'pending' | 'rejected'
+export type KYBStatus = 'approved' | 'pending' | 'pending_info' | 'rejected'
 
 // UBO information
 export interface UBOInfo {
@@ -80,5 +80,6 @@ export const developerStatusMap: Record<DeveloperStatus, string> = {
 export const kybStatusMap: Record<KYBStatus, string> = {
   approved: 'Approved',
   pending: 'Pending Review',
+  pending_info: 'Pending Info',
   rejected: 'Rejected'
 }

@@ -9,8 +9,7 @@ import {
   Document,
   Wallet,
   User,
-  SwitchButton,
-  Menu
+  SwitchButton
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -18,9 +17,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 const sidebarCollapsed = ref(false)
-const isMobileMenuOpen = ref(false)
 
-const isvInfo = computed(() => authStore.isvInfo)
 const user = computed(() => authStore.user)
 
 const menuItems = [
@@ -38,10 +35,6 @@ const isActiveRoute = (path: string) => {
 
 const handleLogout = async () => {
   await authStore.logout()
-}
-
-const toggleSidebar = () => {
-  sidebarCollapsed.value = !sidebarCollapsed.value
 }
 </script>
 

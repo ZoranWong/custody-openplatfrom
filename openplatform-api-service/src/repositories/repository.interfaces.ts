@@ -4,24 +4,25 @@
  */
 
 import { Repository } from './repository'
-import { ISV, ISVUser, Application } from '../types/isv.types'
+import { IsvDeveloper, ISVUser, Application } from '../types/isv.types'
 import { AppEnterpriseBinding } from '../types/binding.types'
 import { EndpointPermissionConfig } from '../types/permission.types'
 import { OauthResource, Authorization } from '../types/authorization.types'
 
-export interface ISVRepository extends Repository<ISV> {
-  findByRegistrationNumber(registrationNumber: string): Promise<ISV | null>
+export interface IsvDeveloperRepository extends Repository<IsvDeveloper> {
+  findByEmail(email: string): Promise<IsvDeveloper | null>
+  findByRegistrationNumber(registrationNumber: string): Promise<IsvDeveloper | null>
 }
 
 export interface ISVUserRepository extends Repository<ISVUser> {
   findByEmail(email: string): Promise<ISVUser | null>
-  findByISV(isvId: string): Promise<ISVUser[]>
-  findByISVAndEmail(isvId: string, email: string): Promise<ISVUser | null>
+  findByIsvDeveloper(isvDeveloperId: string): Promise<ISVUser[]>
+  findByIsvDeveloperAndEmail(isvDeveloperId: string, email: string): Promise<ISVUser | null>
 }
 
 export interface ApplicationRepository extends Repository<Application> {
   findByAppId(appId: string): Promise<Application | null>
-  findByISV(isvId: string): Promise<Application[]>
+  findByIsvDeveloper(isvDeveloperId: string): Promise<Application[]>
 }
 
 export interface BindingRepository extends Repository<AppEnterpriseBinding> {

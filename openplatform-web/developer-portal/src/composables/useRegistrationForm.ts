@@ -3,7 +3,7 @@
  * Form state management for registration flow
  */
 
-import { reactive, ref, computed, watch } from 'vue'
+import { reactive, ref, computed } from 'vue'
 
 export interface AccountData {
   email: string

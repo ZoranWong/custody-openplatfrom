@@ -10,19 +10,35 @@ datasource db {
 }
 
 // ============================================
-// Developer - 开发者账号表
+// IsvDeveloper - ISV开发者账号表（原Developer）
 // ============================================
-model Developer {
+model IsvDeveloper {
   /// 开发者唯一标识 UUID
   id           String   @id @default(uuid())
   /// 开发者邮箱（唯一）
   email        String   @unique
   /// 密码哈希
   passwordHash String   @map("password_hash")
-  /// 开发者姓名
-  name         String?
-  /// 公司名称
-  company      String?
+  /// 企业名称（ISV公司名称）
+  legalName           String   @map("legal_name")
+  /// 统一社会信用代码
+  registrationNumber  String?  @map("registration_number")
+  /// 注册地（国家/地区）
+  jurisdiction        String?  @map("jurisdiction")
+  /// 成立日期
+  dateOfIncorporation String?  @map("date_of_incorporation")
+  /// 注册地址
+  registeredAddress   String?  @map("registered_address")
+  /// 官网
+  website             String?
+  /// UBO信息（受益所有人）
+  uboInfo             Json?    @map("ubo_info")
+  /// KYB审核状态: pending(待审核), approved(已通过), rejected(已拒绝)
+  kybStatus           String   @default("pending") @map("kyb_status")
+  /// KYB审核时间
+  kybReviewedAt       DateTime? @map("kyb_reviewed_at")
+  /// KYB审核人ID
+  kybReviewedBy       String?   @map("kyb_reviewed_by")
   /// 账号状态: active(正常), suspended(停用), deleted(已删除)
   status       String   @default("active")
   /// 创建时间
@@ -30,9 +46,12 @@ model Developer {
   /// 更新时间
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  applications Application[]
+  applications       Application[]
+  isvUsers            IsvUser[]
+  bindings            Binding[]
+  endpointPermissions EndpointPermission[]
 
-  @@map("developers")
+  @@map("isv_developer")
 }
 
 // ============================================
@@ -41,8 +60,8 @@ model Developer {
 model Application {
   /// 应用唯一标识 UUID
   id            String   @id @default(uuid())
-  /// 关联的开发者ID
-  developerId   String   @map("developer_id")
+  /// 关联的ISV开发者ID
+  isvDeveloperId   String   @map("isv_developer_id")
   /// 应用名称
   appName       String   @map("app_name")
   /// 应用描述
@@ -56,56 +75,14 @@ model Application {
   /// 更新时间
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  developer      Developer       @relation(fields: [developerId], references: [id], onDelete: Cascade)
-  isvEnterprises IsvEnterprise[]
+  isvDeveloper   IsvDeveloper    @relation(fields: [isvDeveloperId], references: [id], onDelete: Cascade)
   oauthResources OauthResource[]
   webhooks       Webhook[]
   apiLogs        ApiLog[]
   metrics        Metric[]
 
-  @@index([developerId])
+  @@index([isvDeveloperId])
   @@map("applications")
-}
-
-// ============================================
-// IsvEnterprise - ISV企业信息表
-// ============================================
-model IsvEnterprise {
-  /// 企业唯一标识 UUID
-  id              String   @id @default(uuid())
-  /// 关联的应用ID
-  appId           String   @map("app_id")
-  /// 企业名称
-  enterpriseName  String   @map("enterprise_name")
-  /// 企业标识ID（外部系统）
-  enterpriseId    String?  @map("enterprise_id")
-  /// 营业执照URL
-  businessLicense String?  @map("business_license_url")
-  /// 联系人姓名
-  contactName     String?  @map("contact_name")
-  /// 联系人邮箱
-  contactEmail    String?  @map("contact_email")
-  /// 联系人电话
-  contactPhone    String?  @map("contact_phone")
-  /// KYB审核状态: pending(待审核), approved(已通过), rejected(已拒绝)
-  kybStatus       String   @default("pending") @map("kyb_status")
-  /// KYB审核时间
-  kybReviewedAt  DateTime? @map("kyb_reviewed_at")
-  /// KYB审核人ID
-  kybReviewedBy   String?  @map("kyb_reviewed_by")
-  /// 企业状态: active(正常), suspended(停用), deleted(已删除)
-  status          String   @default("active")
-  /// 创建时间
-  createdAt       DateTime @default(now()) @map("created_at")
-  /// 更新时间
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  application    Application     @relation(fields: [appId], references: [id], onDelete: Cascade)
-  oauthResources OauthResource[]
-
-  @@index([appId])
-  @@index([kybStatus])
-  @@map("isv_enterprises")
 }
 
 // ============================================
@@ -268,4 +245,125 @@ model Trace {
   @@index([appId])
   @@index([startTime])
   @@map("traces")
+}
+
+// ============================================
+// IsvUser - ISV用户表
+// ============================================
+model IsvUser {
+  /// 用户唯一标识 UUID
+  id           String   @id @default(uuid())
+  /// 关联的ISV开发者ID
+  isvDeveloperId String  @map("isv_developer_id")
+  /// 用户邮箱（唯一）
+  email        String   @unique
+  /// 密码哈希
+  passwordHash String?  @map("password_hash")
+  /// 用户姓名
+  name         String?
+  /// 手机号
+  phone        String?
+  /// 角色: owner(所有者), developer(开发者)
+  role         String   @default("developer")
+  /// 账号状态: active(正常), inactive(未激活), suspended(停用)
+  status       String   @default("inactive")
+  /// 允许访问的应用ID列表
+  allowedApplications Json? @map("allowed_applications")
+  /// 创建时间
+  createdAt    DateTime @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  isvDeveloper IsvDeveloper @relation(fields: [isvDeveloperId], references: [id], onDelete: Cascade)
+
+  @@index([isvDeveloperId])
+  @@index([email])
+  @@map("isv_users")
+}
+
+// ============================================
+// Binding - 绑定关系表
+// ============================================
+model Binding {
+  /// 绑定唯一标识 UUID
+  id              String   @id @default(uuid())
+  /// 关联的ISV开发者ID
+  isvDeveloperId  String   @map("isv_developer_id")
+  /// 绑定类型: bank_account, crypto_wallet, etc.
+  bindingType     String   @map("binding_type")
+  /// 绑定名称
+  name            String?
+  /// 绑定账户标识
+  accountId       String?  @map("account_id")
+  /// 绑定账户详情（JSON）
+  accountDetail   Json?    @map("account_detail")
+  /// 绑定状态: active(有效), suspended(暂停), removed(已解除)
+  status          String   @default("active")
+  /// 绑定时间
+  boundAt         DateTime @default(now()) @map("bound_at")
+  /// 创建时间
+  createdAt       DateTime @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  isvDeveloper    IsvDeveloper @relation(fields: [isvDeveloperId], references: [id], onDelete: Cascade)
+
+  @@index([isvDeveloperId])
+  @@index([bindingType])
+  @@map("bindings")
+}
+
+// ============================================
+// EndpointPermission - 端点权限表
+// ============================================
+model EndpointPermission {
+  /// 权限唯一标识 UUID
+  id           String   @id @default(uuid())
+  /// 关联的ISV开发者ID
+  isvDeveloperId String @map("isv_developer_id")
+  /// API端点路径
+  endpoint     String
+  /// HTTP方法: GET, POST, PUT, DELETE
+  method       String
+  /// 权限级别: read, write, admin
+  permission   String   @default("read")
+  /// 是否启用
+  isEnabled    Boolean  @default(true) @map("is_enabled")
+  /// 创建时间
+  createdAt    DateTime @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  isvDeveloper IsvDeveloper @relation(fields: [isvDeveloperId], references: [id], onDelete: Cascade)
+
+  @@unique([isvDeveloperId, endpoint, method])
+  @@index([isvDeveloperId])
+  @@map("endpoint_permissions")
+}
+
+// ============================================
+// Admin - 管理员表
+// ============================================
+model Admin {
+  /// 管理员唯一标识 UUID
+  id           String   @id @default(uuid())
+  /// 管理员邮箱（唯一）
+  email        String   @unique
+  /// 密码哈希
+  passwordHash String   @map("password_hash")
+  /// 管理员姓名
+  name         String?
+  /// 角色: super_admin, admin, operator, viewer
+  role         String   @default("viewer")
+  /// 账号状态: active(正常), suspended(停用), deleted(已删除)
+  status       String   @default("active")
+  /// 最后登录时间
+  lastLoginAt  DateTime? @map("last_login_at")
+  /// 创建时间
+  createdAt    DateTime @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@map("admins")
 }

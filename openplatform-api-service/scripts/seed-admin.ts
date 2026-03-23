@@ -17,10 +17,10 @@
  *   --delete <email> Delete admin by email
  */
 
-import bcrypt from 'bcrypt'
+import * as bcrypt from 'bcrypt'
 
 // Import repository - this ensures we use the same data access layer as the app
-import { getAdminRepository } from '../repositories/repository.factory'
+import { getAdminRepository } from '../src/repositories/repository.factory'
 
 const DEFAULT_ADMIN = {
   email: 'admin@cregis.com',

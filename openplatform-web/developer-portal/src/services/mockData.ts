@@ -10,8 +10,7 @@ import type {
   EndpointUsage,
   InvoiceData,
   InvoiceHistoryItem,
-  PaymentHistoryItem,
-  BillingPeriodType
+  PaymentHistoryItem
 } from '@/services/api'
 
 // Seeded random number generator for consistent data
@@ -35,16 +34,12 @@ class SeededRandom {
     return this.next() * (max - min) + min
   }
 
-  pick<T>(array: T[]): T {
+  pick<T>(array: readonly T[]): T {
     return array[Math.floor(this.next() * array.length)]
   }
 }
 
 // Helper functions
-function generateId(prefix: string): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 9)}`
-}
-
 function formatDate(date: Date): string {
   return date.toISOString().split('T')[0]
 }
@@ -207,7 +202,6 @@ export class MockDataService {
   }
 
   getInvoiceHistory(page: number = 1, pageSize: number = 10): { list: InvoiceHistoryItem[]; total: number; page: number; pageSize: number } {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     const currentMonth = new Date().getMonth()
     const currentYear = new Date().getFullYear()
 
@@ -267,7 +261,6 @@ export class MockDataService {
     totalAmount: number
     currency: string
   } {
-    const paymentMethods = ['Credit Card', 'Bank Transfer', 'Crypto (USDT)', 'PayPal']
     const statuses = ['success', 'success', 'success', 'pending', 'failed'] as const
     const descriptions = [
       'Monthly API subscription',
@@ -453,5 +446,5 @@ export class MockDataService {
 // Export singleton instance
 export const mockDataService = new MockDataService()
 
-// Export class for custom seeds
-export { MockDataService, SeededRandom }
+// Export SeededRandom for custom seeds
+export { SeededRandom }

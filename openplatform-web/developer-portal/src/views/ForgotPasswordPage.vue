@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Message } from '@element-plus/icons-vue'
 import apiService from '@/services/api'
 import Button from '@/components/common/Button.vue'
+
+const BASE_PATH = import.meta.env.VITE_BASE || '/'
+const loginUrl = computed(() => `${BASE_PATH}login`)
 
 const router = useRouter()
 const loading = ref(false)
@@ -40,11 +43,11 @@ const handleSubmit = async () => {
     await apiService.forgotPassword({ email: form.email })
     // Always show success message regardless of whether email exists (security)
     ElMessage.success('重置链接已发送至您的邮箱，请查收')
-    router.push('/login')
+    router.push({ name: 'login' })
   } catch (e: any) {
     // Don't reveal if email exists or not - show generic message
     ElMessage.success('重置链接已发送至您的邮箱，请查收')
-    router.push('/login')
+    router.push({ name: 'login' })
   } finally {
     loading.value = false
   }
@@ -113,7 +116,7 @@ const handleSubmit = async () => {
         <div class="mt-6 text-center">
           <p class="text-gray-600">
             想起密码了？
-            <a href="/login" class="text-brand hover:underline font-medium">返回登录</a>
+            <a :href="loginUrl" class="text-brand hover:underline font-medium">返回登录</a>
           </p>
         </div>
       </div>

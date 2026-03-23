@@ -1,10 +1,14 @@
 {
   "678dbb47-5f9b-4341-9971-9a284f895ce9": {
     "id": "678dbb47-5f9b-4341-9971-9a284f895ce9",
-    "companyName": "Demo Company",
-    "creditCode": "123456789012345678",
+    "email": "admin@demo.com",
+    "passwordHash": "$2b$10$examplehash",
+    "legalName": "Demo Company",
+    "registrationNumber": "123456789012345678",
+    "jurisdiction": "CN",
+    "dateOfIncorporation": "2020-01-01",
+    "registeredAddress": "Demo Address",
     "website": "https://demo.cregis.com",
-    "industry": "Technology",
     "kybStatus": "approved",
     "status": "active",
     "createdAt": "2026-02-11T00:23:48.538Z",

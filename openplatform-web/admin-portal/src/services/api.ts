@@ -4,8 +4,6 @@ import axios, { AxiosInstance, AxiosError } from 'axios'
 // Developer Types
 // ============================================
 import type {
-  DeveloperItem,
-  DeveloperDetail,
   DevelopersResponse,
   DeveloperDetailResponse
 } from '@/types/developer'
@@ -41,6 +39,7 @@ export interface DeveloperStats {
   total: number
   active: number
   pending: number
+  suspended: number
 }
 
 export interface ApplicationStats {
@@ -187,8 +186,9 @@ class AdminApiService {
               this.isRefreshing = true
 
               // Create a promise that will be resolved when token is refreshed
-              const refreshPromise = new Promise<void>((resolve, reject) => {
-                this.failedRequests.push({ resolve, reject })
+              this.failedRequests.push({
+                resolve: (_token: string) => { },
+                reject: (_error: Error) => { }
               })
 
               this.refreshPromise = this.refreshAccessToken(refreshToken)

@@ -10,6 +10,7 @@ import { isvUserService } from '../services/isv-user.service'
 export interface ISVAuthRequest extends Request {
   isvUser?: {
     userId: string
+    isvDeveloperId: string
     isvId: string
     email: string
     role: string
@@ -62,6 +63,7 @@ export async function isvAuth(req: ISVAuthRequest, res: Response, next: NextFunc
   // Attach user info to request
   req.isvUser = {
     userId: payload.userId,
+    isvDeveloperId: payload.isvDeveloperId,
     isvId: payload.isvId,
     email: payload.email,
     role: payload.role

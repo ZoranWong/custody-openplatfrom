@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
-import { OfficeBuilding, Ticket, Location, Calendar, Link } from '@element-plus/icons-vue'
+import { OfficeBuilding, Ticket, Location } from '@element-plus/icons-vue'
 
 const [form] = defineModel<{
   legalName: string

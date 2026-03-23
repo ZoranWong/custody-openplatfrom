@@ -3,18 +3,14 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { healthApiService, type HealthStatsSummary, type ServiceHealth, type ResourceUsage, type HealthHistory } from '@/services/health-api'
 import { usePermissionStore } from '@/stores/permission.store'
 import { Resource } from '@/shared/admin-permissions'
+import { ElMessage } from 'element-plus'
 import {
   Monitor,
   CircleCheck,
   Warning,
-  CloseCircle,
   Refresh,
   Loading,
-  Timer,
-  Connection,
-  CPU,
-  Storage,
-  Network
+  Timer
 } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import type { ECharts } from 'echarts'
@@ -32,7 +28,6 @@ const error = ref<string | null>(null)
 
 // Auto-refresh
 let refreshInterval: ReturnType<typeof setInterval> | null = null
-const REFRESH_INTERVAL = 30000 // 30 seconds
 
 // Chart refs
 const historyChartRef = ref<HTMLElement>()
@@ -357,7 +352,7 @@ function getStatusIcon(status: string) {
   switch (status) {
     case 'healthy': return CircleCheck
     case 'degraded': return Warning
-    case 'down': return CloseCircle
+    case 'down': return Warning
     default: return Monitor
   }
 }
@@ -437,14 +432,6 @@ const alerts = ref<Array<{ id: string; type: string; message: string; time: stri
 ])
 
 const activeAlertCount = computed(() => alerts.value.filter(a => a.severity === 'critical').length)
-
-function getAlertSeverityColor(severity: string) {
-  switch (severity) {
-    case 'critical': return '#ff4d4f'
-    case 'warning': return '#fa8c16'
-    default: return '#1677ff'
-  }
-}
 
 function saveAlertConfig() {
   // In production, this would call API to save alert configuration

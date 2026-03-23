@@ -3,7 +3,7 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, Plus } from '@element-plus/icons-vue'
-import apiService, { type ListResponse, type Application } from '@/services/api'
+import apiService, { type Application } from '@/services/api'
 import ApplicationCard from '@/components/applications/ApplicationCard.vue'
 import Button from '@/components/common/Button.vue'
 
@@ -25,12 +25,6 @@ const fetchApplications = async () => {
   loading.value = true
 
   try {
-    const params = {
-      page: page.value,
-      pageSize: pageSize.value,
-      keyword: searchForm.keyword.trim() || undefined
-    }
-
     const response = await apiService.getISVApplications() as { data?: { list: Application[], total: number } }
     applications.value = response.data?.list || []
     total.value = response.data?.total || 0

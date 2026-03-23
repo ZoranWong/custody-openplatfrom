@@ -2,18 +2,14 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { apiService, type DashboardStats, type DashboardTrends, type TrendData, type DashboardDetails } from '@/services/api'
 import { usePermissionStore } from '@/stores/permission.store'
-import type { Resource } from '@/shared/admin-permissions'
 import StatsCard from '@/components/dashboard/StatsCard.vue'
 import TrendChart from '@/components/dashboard/TrendChart.vue'
 import {
   User,
   Folder,
-  Connection,
-  Warning,
   Refresh,
   Loading,
-  Top,
-  TrendCharts
+  Top
 } from '@element-plus/icons-vue'
 
 const permissionStore = usePermissionStore()
@@ -29,14 +25,7 @@ const error = ref<string | null>(null)
 
 // Auto-refresh interval
 let refreshInterval: ReturnType<typeof setInterval> | null = null
-
 const REFRESH_INTERVAL = 60000 // 1 minute
-
-// Computed
-const hasAnalyticsPermission = computed(() => {
-  return permissionStore.user?.role === 'super_admin' ||
-    permissionStore.hasPermission(Resource.ANALYTICS_VIEW)
-})
 
 // Trend chart data
 const apiCallsData = computed<TrendData[]>(() => {

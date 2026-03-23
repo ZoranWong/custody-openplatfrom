@@ -147,7 +147,13 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 })
 
 const HOST = process.env.HOST || 'localhost'
+process.on('uncaughtException', (err) => {
+    console.error('🔥 uncaughtException:', err)
+})
 
+process.on('unhandledRejection', (reason) => {
+    console.error('🔥 unhandledRejection:', reason)
+})
 // Initialize database on startup (if MySQL is enabled)
 async function startServer() {
     if (process.env.STORAGE_TYPE === 'mysql') {
@@ -164,10 +170,9 @@ async function startServer() {
         }
     }
 
-    app.listen(PORT, HOST, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`API Gateway running on port ${PORT}`)
-        console.log(`Health check: http://${HOST}:${PORT}/health`)
-        console.log(`Metrics endpoint: http://${HOST}:${PORT}/metrics`)
+        console.log(`Health check: http://localhost:${PORT}/health`)
     })
 }
 

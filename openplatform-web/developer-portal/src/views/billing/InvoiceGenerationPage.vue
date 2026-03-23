@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   Document,
   Download,
-  Refresh,
-  Printer,
-  Close
+  Refresh
 } from '@element-plus/icons-vue'
 import apiService, {
   type BillingPeriodType,
@@ -21,20 +19,12 @@ import Button from '@/components/common/Button.vue'
 const router = useRouter()
 
 // State
-const loading = ref(false)
 const generating = ref(false)
 const error = ref<string | null>(null)
 const selectedPeriod = ref<BillingPeriodType>('current_month')
 const customDateRange = ref<{ start: string; end: string } | null>(null)
 const invoice = ref<InvoiceData | null>(null)
 const showPreview = ref(false)
-
-// Navigation items for breadcrumb
-const navItems = [
-  { name: 'Home', path: '/applications' },
-  { name: 'Billing', path: '/billing', active: true },
-  { name: 'Invoice Generation', path: '/invoice-generation', active: true }
-]
 
 /**
  * Format currency for display
@@ -44,18 +34,6 @@ const formatCurrency = (amount: number, currency: string = 'USD'): string => {
     style: 'currency',
     currency: currency
   }).format(amount)
-}
-
-/**
- * Format date for display
- */
-const formatDate = (dateStr: string): string => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
 }
 
 /**
@@ -127,8 +105,8 @@ const handleGenerateInvoice = async (): Promise<void> => {
 
   try {
     invoice.value = await apiService.generateInvoice({
-      period_start: dateRange.start,
-      period_end: dateRange.end
+      periodStart: dateRange.start,
+      periodEnd: dateRange.end
     })
     ElMessage.success('Invoice generated successfully')
   } catch (e: any) {
@@ -139,7 +117,7 @@ const handleGenerateInvoice = async (): Promise<void> => {
     if (status === 401 || code === 401) {
       error.value = 'Login session has expired, please login again'
       ElMessage.error('Please login first')
-      router.push('/login')
+      router.push({ name: 'login' })
     } else if (code === 'NO_USAGE_DATA') {
       error.value = 'No usage data available for the selected period'
       ElMessage.warning('No usage data available for the selected period')
@@ -157,16 +135,16 @@ const handleGenerateInvoice = async (): Promise<void> => {
  * Download generated invoice as PDF
  */
 const handleDownloadPDF = async (): Promise<void> => {
-  if (!invoice.value?.invoice_id) return
+  if (!invoice.value?.invoiceId) return
 
   try {
-    const blob = await apiService.downloadInvoicePDF(invoice.value.invoice_id)
+    const blob = await apiService.downloadInvoicePDF(invoice.value.invoiceId)
 
     // Create download link
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `${invoice.value.invoice_id}.pdf`
+    link.download = `${invoice.value.invoiceId}.pdf`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -300,18 +278,18 @@ onMounted(() => {
             <div class="bg-gray-50 rounded-lg p-4">
               <div class="flex items-center justify-between mb-2">
                 <span class="text-sm text-gray-500">Invoice Number</span>
-                <span class="font-medium">{{ invoice.invoice_id }}</span>
+                <span class="font-medium">{{ invoice.invoiceId }}</span>
               </div>
               <div class="flex items-center justify-between mb-2">
                 <span class="text-sm text-gray-500">Billing Period</span>
                 <span class="font-medium">
-                  {{ invoice.billing_period.start }} ~ {{ invoice.billing_period.end }}
+                  {{ invoice.billingPeriod.start }} ~ {{ invoice.billingPeriod.end }}
                 </span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-sm text-gray-500">Invoice Amount</span>
                 <span class="text-xl font-bold text-brand">
-                  {{ formatCurrency(invoice.total_amount, invoice.currency) }}
+                  {{ formatCurrency(invoice.totalAmount, invoice.currency) }}
                 </span>
               </div>
             </div>

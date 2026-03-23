@@ -9,13 +9,19 @@ describe('CregisWebSDK', () => {
   describe('constructor', () => {
     it('should throw error when appId is missing', () => {
       expect(() => {
-        new CregisWebSDK({ container: document.body } as any);
+        new CregisWebSDK({ container: document.body, authUrl: 'https://example.com/auth' } as any);
+      }).toThrow();
+    });
+
+    it('should throw error when authUrl is missing', () => {
+      expect(() => {
+        new CregisWebSDK({ appId: 'test-app' } as any);
       }).toThrow();
     });
 
     it('should throw error when container is missing', () => {
       expect(() => {
-        new CregisWebSDK({ appId: 'test-app' } as any);
+        new CregisWebSDK({ appId: 'test-app', authUrl: 'https://example.com/auth' } as any);
       }).toThrow();
     });
 
@@ -23,6 +29,7 @@ describe('CregisWebSDK', () => {
       const mockContainer = document.createElement('div');
       const sdk = new CregisWebSDK({
         appId: 'test-app-id',
+        authUrl: 'https://example.com/auth',
         container: mockContainer,
       });
 
@@ -34,6 +41,7 @@ describe('CregisWebSDK', () => {
       const mockContainer = document.createElement('div');
       new CregisWebSDK({
         appId: 'test-app-id',
+        authUrl: 'https://example.com/auth',
         container: mockContainer,
         onEvent,
       });
@@ -51,6 +59,7 @@ describe('CregisWebSDK', () => {
       const mockContainer = document.createElement('div');
       const sdk = new CregisWebSDK({
         appId: 'test-app-id',
+        authUrl: 'https://example.com/auth',
         container: mockContainer,
       });
 
@@ -63,6 +72,7 @@ describe('CregisWebSDK', () => {
       const mockContainer = document.createElement('div');
       const sdk = new CregisWebSDK({
         appId: 'test-app-id',
+        authUrl: 'https://example.com/auth',
         container: mockContainer,
       });
 
@@ -82,6 +92,7 @@ describe('CregisWebSDK', () => {
       const mockContainer = document.createElement('div');
       const sdk = new CregisWebSDK({
         appId: 'test-app-id',
+        authUrl: 'https://example.com/auth',
         container: mockContainer,
       });
 
@@ -99,6 +110,7 @@ describe('CregisWebSDK', () => {
 
       const sdk = new CregisWebSDK({
         appId: 'test-app-id',
+        authUrl: 'https://example.com/auth',
         container: mockContainer,
       });
 
@@ -132,6 +144,7 @@ describe('CregisWebSDK', () => {
 
       // Verify iframe was created with correct URL
       expect(createdIframe).not.toBeNull();
+      expect(createdIframe?.src).toContain('https://example.com/auth?');
       expect(createdIframe?.src).toContain('appId=test-app-id');
       expect(createdIframe?.src).toContain('token=test-access-token');
       expect(createdIframe?.src).toContain('state=custom-state');
@@ -155,6 +168,7 @@ describe('CregisWebSDK', () => {
 
       const sdk = new CregisWebSDK({
         appId: 'test-app-id',
+        authUrl: 'https://example.com/auth',
         container: mockContainer,
       });
 
@@ -195,6 +209,7 @@ describe('CregisWebSDK', () => {
 
       const sdk = new CregisWebSDK({
         appId: 'test-app-id',
+        authUrl: 'https://example.com/auth',
         container: mockContainer,
       });
 
@@ -256,6 +271,7 @@ describe('Message Handling (Story 1.3)', () => {
 
     const sdk = new CregisWebSDK({
       appId: 'test-app-id',
+      authUrl: 'https://example.com/auth',
       container: mockContainer,
     });
 
@@ -286,6 +302,7 @@ describe('Message Handling (Story 1.3)', () => {
     const onEvent = vi.fn();
     const sdk = new CregisWebSDK({
       appId: 'test-app-id',
+      authUrl: 'https://example.com/auth',
       container: mockContainer,
       onEvent,
     });
@@ -346,6 +363,7 @@ describe('Message Handling (Story 1.3)', () => {
     const onEvent = vi.fn();
     const sdk = new CregisWebSDK({
       appId: 'test-app-id',
+      authUrl: 'https://example.com/auth',
       container: mockContainer,
       onEvent,
     });
@@ -405,6 +423,7 @@ describe('Message Handling (Story 1.3)', () => {
 
     const sdk = new CregisWebSDK({
       appId: 'test-app-id',
+      authUrl: 'https://example.com/auth',
       container: mockContainer,
     });
 
@@ -455,6 +474,7 @@ describe('Message Handling (Story 1.3)', () => {
 
     const sdk = new CregisWebSDK({
       appId: 'test-app-id',
+      authUrl: 'https://example.com/auth',
       container: mockContainer,
     });
 
@@ -504,6 +524,7 @@ describe('Message Handling (Story 1.3)', () => {
     const onEvent = vi.fn();
     const sdk = new CregisWebSDK({
       appId: 'test-app-id',
+      authUrl: 'https://example.com/auth',
       container: mockContainer,
       onEvent,
     });
@@ -559,6 +580,7 @@ describe('Message Handling (Story 1.3)', () => {
     const onEvent = vi.fn();
     const sdk = new CregisWebSDK({
       appId: 'test-app-id',
+      authUrl: 'https://example.com/auth',
       container: mockContainer,
       onEvent,
     });
@@ -593,6 +615,7 @@ describe('Message Handling (Story 1.3)', () => {
 
     const sdk = new CregisWebSDK({
       appId: 'test-app-id',
+      authUrl: 'https://example.com/auth',
       container: mockContainer,
     });
 

@@ -57,7 +57,7 @@ import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePermissionStore } from '@/stores/permission.store'
-import type { Resource } from '@/stores/permission.store'
+import { Resource } from '@/shared/admin-permissions'
 
 const router = useRouter()
 const route = useRoute()

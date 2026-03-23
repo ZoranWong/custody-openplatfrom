@@ -13,7 +13,6 @@ import apiService, {
 } from '@/services/api'
 import PaymentStatusBadge from '@/components/billing/PaymentStatusBadge.vue'
 import PaymentFilters from '@/components/billing/PaymentFilters.vue'
-import PaymentSummaryCard from '@/components/billing/PaymentSummaryCard.vue'
 import Button from '@/components/common/Button.vue'
 
 // Debounce helper
@@ -45,7 +44,7 @@ const pagination = ref({
   total: 0
 })
 const summary = ref({
-  total_amount: 0,
+  totalAmount: 0,
   currency: 'USD'
 })
 
@@ -128,7 +127,7 @@ const fetchPayments = async (showRefreshing = false) => {
     payments.value = response.list
     pagination.value.total = response.total
     summary.value = {
-      total_amount: response.total_amount,
+      totalAmount: response.totalAmount,
       currency: response.currency
     }
   } catch (e: any) {
@@ -139,7 +138,7 @@ const fetchPayments = async (showRefreshing = false) => {
     if (status === 401 || code === 401) {
       error.value = 'Login status expired, please login again'
       ElMessage.error('Please login first')
-      router.push('/login')
+      router.push({ name: 'login' })
     } else {
       error.value = message
       ElMessage.error('Failed to get payment records')
@@ -340,7 +339,7 @@ onMounted(() => {
             <div class="summary-item">
               <p class="summary-label">Total Payment Amount</p>
               <p class="summary-value text-green-600">
-                {{ formatCurrency(summary.total_amount, summary.currency) }}
+                {{ formatCurrency(summary.totalAmount, summary.currency) }}
               </p>
             </div>
             <div class="summary-item">

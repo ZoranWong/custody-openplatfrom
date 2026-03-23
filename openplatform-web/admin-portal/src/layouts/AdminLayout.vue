@@ -39,10 +39,6 @@ const isActiveRoute = (path: string) => {
 const handleLogout = async () => {
   await authStore.logout()
 }
-
-const toggleSidebar = () => {
-  sidebarCollapsed.value = !sidebarCollapsed.value
-}
 </script>
 
 <template>

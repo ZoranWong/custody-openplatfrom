@@ -20,7 +20,7 @@ const applications = ref<KYBPendingItem[]>([])
 const totalApplications = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(20)
-const statusFilter = ref<string | undefined>(undefined)
+const statusFilter = ref<KYBStatus | undefined>(undefined)
 const searchQuery = ref('')
 const tableRef = ref<InstanceType<typeof ElTable>>()
 
@@ -89,7 +89,11 @@ function viewDetails(id: string) {
   router.push(`/kyb/${id}`)
 }
 
-function tableRowClassName({ row }: { row: KYBPendingItem }): string {
+function setStatusFilter(status: KYBStatus | undefined) {
+  statusFilter.value = status
+}
+
+function tableRowClassName(_row: { row: KYBPendingItem }): string {
   return 'kyb-row'
 }
 
@@ -166,23 +170,23 @@ onMounted(async () => {
 
     <!-- Stats Cards -->
     <div class="stats-row">
-      <div class="stat-card" :class="{ active: !statusFilter }" @click="statusFilter = undefined">
+      <div class="stat-card" :class="{ active: !statusFilter }" @click="setStatusFilter(undefined)">
         <div class="stat-value">{{ applications.length }}</div>
         <div class="stat-label">All Applications</div>
       </div>
-      <div class="stat-card pending" :class="{ active: statusFilter === 'pending' }" @click="statusFilter = 'pending'">
+      <div class="stat-card pending" :class="{ active: statusFilter === 'pending' }" @click="setStatusFilter('pending' as KYBStatus)">
         <div class="stat-value">{{ statusCounts.pending }}</div>
         <div class="stat-label">Pending Review</div>
       </div>
-      <div class="stat-card info" :class="{ active: statusFilter === 'pending_info' }" @click="statusFilter = 'pending_info'">
+      <div class="stat-card info" :class="{ active: statusFilter === 'pending_info' }" @click="setStatusFilter('pending_info' as KYBStatus)">
         <div class="stat-value">{{ statusCounts.pendingInfo }}</div>
         <div class="stat-label">Pending Info</div>
       </div>
-      <div class="stat-card approved" :class="{ active: statusFilter === 'approved' }" @click="statusFilter = 'approved'">
+      <div class="stat-card approved" :class="{ active: statusFilter === 'approved' }" @click="setStatusFilter('approved' as KYBStatus)">
         <div class="stat-value">{{ statusCounts.approved }}</div>
         <div class="stat-label">Approved</div>
       </div>
-      <div class="stat-card rejected" :class="{ active: statusFilter === 'rejected' }" @click="statusFilter = 'rejected'">
+      <div class="stat-card rejected" :class="{ active: statusFilter === 'rejected' }" @click="setStatusFilter('rejected' as KYBStatus)">
         <div class="stat-value">{{ statusCounts.rejected }}</div>
         <div class="stat-label">Rejected</div>
       </div>
@@ -203,7 +207,7 @@ onMounted(async () => {
         <el-tag
           v-if="statusFilter"
           closable
-          @close="statusFilter = undefined"
+          @close="setStatusFilter(undefined)"
           class="filter-tag"
         >
           Status: {{ getStatusLabel(statusFilter) }}
@@ -281,7 +285,7 @@ onMounted(async () => {
         description="No applications found"
       >
         <template v-if="searchQuery || statusFilter">
-          <el-button type="primary" @click="searchQuery = ''; statusFilter = undefined">
+          <el-button type="primary" @click="searchQuery = ''; setStatusFilter(undefined)">
             Clear Filters
           </el-button>
         </template>

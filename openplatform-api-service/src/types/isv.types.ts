@@ -5,6 +5,33 @@
 
 import { Entity } from '../repositories/storage.adapter'
 
+// ISV Developer (主账号)
+export interface IsvDeveloper extends Entity {
+  email: string
+  passwordHash?: string
+  legalName: string
+  registrationNumber?: string
+  jurisdiction?: string
+  dateOfIncorporation?: string
+  registeredAddress?: string
+  website?: string
+  uboInfo?: UBO[]
+  kybStatus: 'pending' | 'approved' | 'rejected'
+  status: 'active' | 'suspended' | 'deleted' | 'banned'
+  kybReviewedAt?: string
+  kybReviewedBy?: string
+  statusHistory?: StatusChange[]
+  rejectReason?: string
+  suspendReason?: string
+  suspendedAt?: string
+  suspendedBy?: string
+  bannedAt?: string
+  bannedBy?: string
+  banReason?: string
+  createdAt: string
+  updatedAt: string
+}
+
 // ISV 角色类型
 export enum ISVUserRole {
   OWNER = 'owner',
@@ -20,6 +47,7 @@ export enum ISVUserStatus {
 
 // ISV 用户
 export interface ISVUser extends Entity {
+  isvDeveloperId: string
   isvId: string
   email: string
   password?: string
@@ -47,35 +75,6 @@ export interface StatusChange {
   operatedAt: string
 }
 
-// ISV 公司
-export interface ISV extends Entity {
-  legalName: string
-  registrationNumber: string
-  jurisdiction: string
-  dateOfIncorporation: string
-  registeredAddress: string
-  website?: string
-  kybStatus: 'pending' | 'approved' | 'rejected'
-  status: 'active' | 'suspended' | 'banned'
-  // UBO information
-  uboInfo: UBO[]
-  // Status history
-  statusHistory?: StatusChange[]
-  // KYB related
-  kybReviewedAt?: string
-  kybReviewedBy?: string
-  rejectReason?: string
-  // Account suspension/ban related
-  suspendReason?: string
-  suspendedAt?: string
-  suspendedBy?: string
-  banReason?: string
-  bannedAt?: string
-  bannedBy?: string
-  createdAt: string
-  updatedAt: string
-}
-
 // UBO 信息
 export interface UBO {
   name: string
@@ -87,7 +86,7 @@ export interface UBO {
 
 // Application
 export interface Application extends Entity {
-  isvId: string
+  isvDeveloperId: string
   name: string
   appId: string
   appSecret?: string

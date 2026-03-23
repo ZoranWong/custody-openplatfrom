@@ -13,7 +13,7 @@ export enum ISVStatus {
 
 export interface ISVStatusHistoryItem {
   id: string
-  isvId: string
+  isvDeveloperId: string
   previousStatus: ISVStatus
   newStatus: ISVStatus
   adminId: string

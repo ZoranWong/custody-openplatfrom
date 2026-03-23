@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import apiService from '@/services/api'
 import Button from '@/components/common/Button.vue'
-import type { DeveloperItem, DevelopersResponse } from '@/types/developer'
+import type { DeveloperItem } from '@/types/developer'
 
 const router = useRouter()
 

@@ -33,7 +33,7 @@ export class ApplicationRepositoryImpl implements ApplicationRepository {
     const now = new Date().toISOString()
     const app: Application = {
       id,
-      isvId: data.isvId,
+      isvDeveloperId: data.isvDeveloperId,
       name: data.name,
       appId,
       appSecret,
@@ -71,7 +71,7 @@ export class ApplicationRepositoryImpl implements ApplicationRepository {
     return this.db.findOne<Application>({ appId }) as Promise<Application | null>
   }
 
-  async findByISV(isvId: string): Promise<Application[]> {
-    return this.db.findMany<Application>({ isvId }) as Promise<Application[]>
+  async findByIsvDeveloper(isvDeveloperId: string): Promise<Application[]> {
+    return this.db.findMany<Application>({ isvDeveloperId }) as Promise<Application[]>
   }
 }

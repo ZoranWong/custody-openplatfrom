@@ -13,7 +13,7 @@ export interface Step {
 export function useStepNavigation(
   steps: Step[],
   initialStep: number = 1,
-  private validationFn?: (step: number) => boolean
+  validationFn?: (step: number) => boolean
 ) {
   const currentStep = ref(initialStep)
   const completedSteps = ref<Set<number>>(new Set())

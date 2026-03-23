@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, User, OfficeBuilding, Location, Ticket, Calendar, Link } from '@element-plus/icons-vue'
+import { ArrowLeft, User, OfficeBuilding, Ticket, Link } from '@element-plus/icons-vue'
 import apiService from '@/services/api'
 import Button from '@/components/common/Button.vue'
 import type { DeveloperDetail } from '@/types/developer'

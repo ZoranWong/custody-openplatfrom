@@ -3,7 +3,7 @@
     "id": "admin-1770796105703",
     "email": "admin@cregis.com",
     "name": "Super Admin",
-    "password": "$2b$12$aNaHWn6op5HbgAw3OgwlUekznGuKHyosHb6o8tKge2N2cN8hzexg2",
+    "passwordHash": "$2b$12$aNaHWn6op5HbgAw3OgwlUekznGuKHyosHb6o8tKge2N2cN8hzexg2",
     "role": "super_admin",
     "status": "active",
     "createdAt": "2026-02-11T07:48:25.702Z",

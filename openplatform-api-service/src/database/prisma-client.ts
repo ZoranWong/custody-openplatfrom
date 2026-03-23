@@ -25,7 +25,7 @@ export function getPrismaClient(): PrismaClient {
     // Only create Prisma client if MySQL is enabled
     if (isMySQLEnabled()) {
       const config = getDatabaseConfig()
-
+        // console.log(config)
       // Create adapter according to Prisma documentation
       const adapter = new PrismaMariaDb({
         host: config.host,
@@ -35,7 +35,7 @@ export function getPrismaClient(): PrismaClient {
         connectionLimit: 10,
       })
 
-      logger.info('Creating PrismaClient with MariaDB adapter (MySQL)')
+        logger.info('Creating PrismaClient with MariaDB adapter (MySQL)', config)
 
       prisma = new PrismaClient({ adapter })
 
@@ -79,14 +79,32 @@ export async function disconnectDatabase(): Promise<void> {
 }
 
 /**
- * Check database connection health
+ * Database health check cache
+ */
+let healthCheckCache: { result: boolean; timestamp: number } | null = null
+const HEALTH_CHECK_CACHE_TTL = 10000 // 10 seconds
+
+/**
+ * Check database connection health (with caching)
  */
 export async function checkDatabaseHealth(): Promise<boolean> {
+  const now = Date.now()
+
+  // Return cached result if still valid
+  if (healthCheckCache && (now - healthCheckCache.timestamp) < HEALTH_CHECK_CACHE_TTL) {
+    return healthCheckCache.result
+  }
+
   try {
     const client = getPrismaClient()
     await client.$queryRaw`SELECT 1`
+
+    // Update cache
+    healthCheckCache = { result: true, timestamp: now }
     return true
   } catch {
+    // Update cache with failed result
+    healthCheckCache = { result: false, timestamp: now }
     return false
   }
 }

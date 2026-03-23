@@ -1,22 +1,21 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { AdminRole, Resource, ROLE_PERMISSIONS } from '@/shared/admin-permissions'
-import { Resource as EnumResource } from '@/shared/admin-permissions'
-import { ROLE_PERMISSIONS as SHARED_ROLE_PERMISSIONS } from '@/shared/admin-permissions'
+import type { AdminRole, Resource } from '@/shared/admin-permissions'
+import { Resource as EnumResource, ROLE_PERMISSIONS } from '@/shared/admin-permissions'
 
 // Type for auth user role (re-exported for convenience)
 export type { AdminRole, Resource } from '@/shared/admin-permissions'
 
 // Role to permissions mapping (imported from shared)
-const ROLE_PERMISSIONS_MAP: Record<string, Resource[]> = SHARED_ROLE_PERMISSIONS
+const ROLE_PERMISSIONS_MAP: Record<string, Resource[]> = ROLE_PERMISSIONS
 
 export const usePermissionStore = defineStore('permission', () => {
   // Permission state
   const permissions = ref<Set<Resource>>(new Set())
-  const userRole = ref<AdminRole>(null)
+  const userRole = ref<AdminRole | null>(null)
 
   // Private function to get role (avoiding circular dependency)
-  function getCurrentRole(): AdminRole {
+  function getCurrentRole(): AdminRole | null {
     // Try to get from localStorage as backup
     const storedRole = localStorage.getItem('adminRole')
     if (storedRole && ['super_admin', 'admin', 'operator'].includes(storedRole)) {

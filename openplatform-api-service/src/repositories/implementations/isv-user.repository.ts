@@ -31,6 +31,7 @@ export class ISVUserRepositoryImpl implements ISVUserRepository {
     const now = new Date().toISOString()
     const user: ISVUser = {
       id,
+      isvDeveloperId: data.isvDeveloperId,
       isvId: data.isvId,
       email: data.email,
       password: data.password,
@@ -68,12 +69,12 @@ export class ISVUserRepositoryImpl implements ISVUserRepository {
     return this.db.findOne<ISVUser>({ email }) as Promise<ISVUser | null>
   }
 
-  async findByISV(isvId: string): Promise<ISVUser[]> {
-    return this.db.findMany<ISVUser>({ isvId }) as Promise<ISVUser[]>
+  async findByIsvDeveloper(isvDeveloperId: string): Promise<ISVUser[]> {
+    return this.db.findMany<ISVUser>({ isvDeveloperId }) as Promise<ISVUser[]>
   }
 
-  async findByISVAndEmail(isvId: string, email: string): Promise<ISVUser | null> {
-    const users = await this.db.findMany<ISVUser>({ isvId, email })
+  async findByIsvDeveloperAndEmail(isvDeveloperId: string, email: string): Promise<ISVUser | null> {
+    const users = await this.db.findMany<ISVUser>({ isvDeveloperId, email })
     return users[0] || null
   }
 }

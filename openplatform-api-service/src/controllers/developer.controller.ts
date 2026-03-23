@@ -1,11 +1,11 @@
 /**
  * Developer Controller
- * Handles developer/ISV management APIs for admin portal
+ * Handles developer/IsvDeveloper management APIs for admin portal
  */
 
 import { Request, Response } from 'express'
-import { getISVRepository } from '../repositories/repository.factory'
-import { ISV, StatusChange } from '../types/isv.types'
+import { getIsvDeveloperRepository } from '../repositories/repository.factory'
+import { IsvDeveloper, StatusChange } from '../types/isv.types'
 
 // Generate unique ID
 function generateId(): string {
@@ -21,8 +21,8 @@ async function addStatusHistory(
   operator: string,
   reason?: string
 ): Promise<void> {
-  const isvRepo = getISVRepository()
-  const isv = await isvRepo.findById(isvId) as ISV | null
+  const isvRepo = getIsvDeveloperRepository()
+  const isv = await isvRepo.findById(isvId) as IsvDeveloper | null
 
   if (!isv) return
 
@@ -47,16 +47,16 @@ async function addStatusHistory(
 interface DeveloperListItem {
   id: string
   legalName: string
-  registrationNumber: string
-  jurisdiction: string
+  registrationNumber?: string
+  jurisdiction?: string
   contactEmail: string
   status: string
   kybStatus: string
   createdAt: string
 }
 
-// Format ISV to developer item
-function formatDeveloperItem(isv: ISV, contactEmail?: string): DeveloperListItem {
+// Format IsvDeveloper to developer item
+function formatDeveloperItem(isv: IsvDeveloper, contactEmail?: string): DeveloperListItem {
   return {
     id: isv.id,
     legalName: isv.legalName,
@@ -82,37 +82,37 @@ export async function getDevelopers(req: Request, res: Response): Promise<void> 
       kybStatus
     } = req.query
 
-    const isvRepo = getISVRepository()
+    const isvRepo = getIsvDeveloperRepository()
 
-    // Get all ISVs
-    const allISVs = await isvRepo.findAll() as ISV[]
+    // Get all IsvDevelopers
+    const allIsvDevelopers = await isvRepo.findAll() as IsvDeveloper[]
 
     // Apply filters
-    let filteredISVs = allISVs
+    let filteredIsvDevelopers = allIsvDevelopers
     if (status) {
-      filteredISVs = filteredISVs.filter(isv => isv.status === status)
+      filteredIsvDevelopers = filteredIsvDevelopers.filter(isv => isv.status === status)
     }
     if (kybStatus) {
-      filteredISVs = filteredISVs.filter(isv => isv.kybStatus === kybStatus)
+      filteredIsvDevelopers = filteredIsvDevelopers.filter(isv => isv.kybStatus === kybStatus)
     }
 
     // Sort by createdAt descending
-    filteredISVs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    filteredIsvDevelopers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
     // Pagination
     const pageNum = parseInt(page as string, 10)
     const size = parseInt(pageSize as string, 10)
     const start = (pageNum - 1) * size
-    const paginatedISVs = filteredISVs.slice(start, start + size)
+    const paginatedIsvDevelopers = filteredIsvDevelopers.slice(start, start + size)
 
     // Format response
-    const list = paginatedISVs.map(isv => formatDeveloperItem(isv))
+    const list = paginatedIsvDevelopers.map(isv => formatDeveloperItem(isv))
 
     res.json({
       code: 0,
       data: {
         list,
-        total: filteredISVs.length,
+        total: filteredIsvDevelopers.length,
         page: pageNum,
         pageSize: size
       }
@@ -134,8 +134,8 @@ export async function getDeveloperById(req: Request, res: Response): Promise<voi
   try {
     const { id } = req.params
 
-    const isvRepo = getISVRepository()
-    const isv = await isvRepo.findById(id) as ISV | null
+    const isvRepo = getIsvDeveloperRepository()
+    const isv = await isvRepo.findById(id) as IsvDeveloper | null
 
     if (!isv) {
       res.status(404).json({
@@ -145,7 +145,7 @@ export async function getDeveloperById(req: Request, res: Response): Promise<voi
       return
     }
 
-    // Get contact email from ISV user if available
+    // Get contact email from IsvDeveloper user if available
     // For now, use a placeholder or try to get from related data
     const contactEmail = (isv as any).contactEmail || ''
 
@@ -181,8 +181,8 @@ export async function approveDeveloper(req: Request, res: Response): Promise<voi
     const { id } = req.params
     const adminEmail = (req as any).user?.email || 'admin@cregis.com'
 
-    const isvRepo = getISVRepository()
-    const isv = await isvRepo.findById(id) as ISV | null
+    const isvRepo = getIsvDeveloperRepository()
+    const isv = await isvRepo.findById(id) as IsvDeveloper | null
 
     if (!isv) {
       res.status(404).json({
@@ -247,8 +247,8 @@ export async function rejectDeveloper(req: Request, res: Response): Promise<void
       return
     }
 
-    const isvRepo = getISVRepository()
-    const isv = await isvRepo.findById(id) as ISV | null
+    const isvRepo = getIsvDeveloperRepository()
+    const isv = await isvRepo.findById(id) as IsvDeveloper | null
 
     if (!isv) {
       res.status(404).json({
@@ -305,8 +305,8 @@ export async function activateDeveloper(req: Request, res: Response): Promise<vo
     const { id } = req.params
     const adminEmail = (req as any).user?.email || 'admin@cregis.com'
 
-    const isvRepo = getISVRepository()
-    const isv = await isvRepo.findById(id) as ISV | null
+    const isvRepo = getIsvDeveloperRepository()
+    const isv = await isvRepo.findById(id) as IsvDeveloper | null
 
     if (!isv) {
       res.status(404).json({
@@ -357,8 +357,8 @@ export async function suspendDeveloper(req: Request, res: Response): Promise<voi
     const { reason } = req.body
     const adminEmail = (req as any).user?.email || 'admin@cregis.com'
 
-    const isvRepo = getISVRepository()
-    const isv = await isvRepo.findById(id) as ISV | null
+    const isvRepo = getIsvDeveloperRepository()
+    const isv = await isvRepo.findById(id) as IsvDeveloper | null
 
     if (!isv) {
       res.status(404).json({
@@ -421,8 +421,8 @@ export async function banDeveloper(req: Request, res: Response): Promise<void> {
       return
     }
 
-    const isvRepo = getISVRepository()
-    const isv = await isvRepo.findById(id) as ISV | null
+    const isvRepo = getIsvDeveloperRepository()
+    const isv = await isvRepo.findById(id) as IsvDeveloper | null
 
     if (!isv) {
       res.status(404).json({
@@ -475,8 +475,8 @@ export async function getDeveloperHistory(req: Request, res: Response): Promise<
   try {
     const { id } = req.params
 
-    const isvRepo = getISVRepository()
-    const isv = await isvRepo.findById(id) as ISV | null
+    const isvRepo = getIsvDeveloperRepository()
+    const isv = await isvRepo.findById(id) as IsvDeveloper | null
 
     if (!isv) {
       res.status(404).json({
@@ -512,8 +512,8 @@ export async function getDeveloperHistory(req: Request, res: Response): Promise<
  */
 export async function getDeveloperStats(req: Request, res: Response): Promise<void> {
   try {
-    const isvRepo = getISVRepository()
-    const allISVs = await isvRepo.findAll() as ISV[]
+    const isvRepo = getIsvDeveloperRepository()
+    const allIsvDevelopers = await isvRepo.findAll() as IsvDeveloper[]
 
     // Count by status
     const statusCounts: Record<string, number> = {
@@ -533,7 +533,7 @@ export async function getDeveloperStats(req: Request, res: Response): Promise<vo
     let totalApproved = 0
     let totalRejected = 0
 
-    for (const isv of allISVs) {
+    for (const isv of allIsvDevelopers) {
       // Status counts
       if (statusCounts[isv.status] !== undefined) {
         statusCounts[isv.status]++
@@ -553,7 +553,7 @@ export async function getDeveloperStats(req: Request, res: Response): Promise<vo
       }
     }
 
-    const total = allISVs.length
+    const total = allIsvDevelopers.length
     const reviewed = totalApproved + totalRejected
     const approvalRate = reviewed > 0 ? Math.round((totalApproved / reviewed) * 100) : 0
 

@@ -1,10 +1,10 @@
-import { RouteRecordRaw, NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
+import { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 /**
  * Check if route requires authentication
  */
-function requiresAuth(route: RouteRecordRaw): boolean {
+function requiresAuth(route: { meta?: Record<string, unknown> }): boolean {
   // Check meta.requiresAuth directly
   if (route.meta?.requiresAuth !== undefined) {
     return route.meta.requiresAuth as boolean
@@ -108,7 +108,7 @@ export function createGuestGuard() {
 export function createAuthGuestGuard() {
   return async (
     to: RouteLocationNormalized,
-    from: RouteLocationNormalized,
+    _from: RouteLocationNormalized,
     next: NavigationGuardNext
   ): Promise<void> => {
     const authStore = useAuthStore()

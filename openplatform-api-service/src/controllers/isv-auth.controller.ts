@@ -17,16 +17,16 @@ function getJwtConfig() {
 }
 
 // Generate token
-export function generateToken(payload: { userId: string; isvId: string; email: string; role: string }) {
+export function generateToken(payload: { userId: string; isvDeveloperId: string; isvId: string; email: string; role: string }) {
   const { secret, expiresIn } = getJwtConfig()
   return jwt.sign(payload, secret, { expiresIn } as SignOptions)
 }
 
 // Verify token
-export function verifyToken(token: string): { userId: string; isvId: string; email: string; role: string } | null {
+export function verifyToken(token: string): { userId: string; isvDeveloperId: string; isvId: string; email: string; role: string } | null {
   try {
     const { secret } = getJwtConfig()
-    return jwt.verify(token, secret) as { userId: string; isvId: string; email: string; role: string }
+      return jwt.verify(token, secret) as { userId: string; isvDeveloperId: string; isvId: string; email: string; role: string }
   } catch {
     return null
   }
@@ -91,7 +91,7 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     // Create ISV owner user
     const result = await isvUserService.registerOwner({
-      isvId: isv.id,
+        isvDeveloperId: isv.id,
       email,
       password,
       name: legalName
@@ -110,7 +110,8 @@ export async function register(req: Request, res: Response): Promise<void> {
     // Generate token
     const token = generateToken({
       userId: user.id as string,
-      isvId: user.isvId as string,
+      isvDeveloperId: user.isvDeveloperId as string,
+      isvId: isv.id,
       email: user.email as string,
       role: user.role as string
     })
@@ -158,7 +159,7 @@ export async function ownerLogin(req: Request, res: Response): Promise<void> {
       return
     }
 
-    const result = await isvUserService.login(userByEmail.isvId, email, password)
+      const result = await isvUserService.login(userByEmail.isvDeveloperId, email, password)
 
     if (!result.success) {
       res.status(401).json({
@@ -170,6 +171,7 @@ export async function ownerLogin(req: Request, res: Response): Promise<void> {
 
     const token = generateToken({
       userId: result.user!.id as string,
+      isvDeveloperId: result.user!.isvDeveloperId as string,
       isvId: result.user!.isvId as string,
       email: result.user!.email as string,
       role: result.user!.role as string

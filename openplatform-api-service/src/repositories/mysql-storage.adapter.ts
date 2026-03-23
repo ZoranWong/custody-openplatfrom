@@ -14,9 +14,12 @@ type PrismaWhereInput = Record<string, unknown>
  * Map plural table names to singular Prisma model names
  */
 const TABLE_TO_MODEL_MAP: Record<string, string> = {
-  developers: 'developer',
+  isv_developer: 'IsvDeveloper',
   applications: 'application',
-  isv_enterprises: 'isvEnterprise',
+  isv_users: 'IsvUser',
+  bindings: 'Binding',
+  endpoint_permissions: 'EndpointPermission',
+  admins: 'Admin',
   oauth_resources: 'oauthResource',
   webhooks: 'webhook',
   api_logs: 'apiLog',

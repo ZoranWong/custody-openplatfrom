@@ -5,7 +5,7 @@ export type ISVUserRole = 'owner' | 'developer'
 
 export interface ISVUser {
   id: string
-  isvId: string
+  isvDeveloperId: string
   email: string
   name: string
   phone?: string
@@ -42,7 +42,7 @@ export type ApplicationType = 'corporate' | 'payment' | 'custody'
 
 export interface Application {
   id: string
-  isvId: string
+  isvDeveloperId: string
   name: string
   appId: string
   appSecret?: string
@@ -86,7 +86,7 @@ export interface RegisterParams {
 }
 
 export interface LoginParams {
-  isvId?: string  // Optional, for demo can use any ISV
+  isvDeveloperId?: string  // Optional, for demo can use any ISV
   email: string
   password: string
 }
@@ -96,6 +96,7 @@ export interface AuthResponse {
   message: string
   data?: {
     accessToken: string
+    refreshToken?: string
     user?: ISVUser
   }
 }
@@ -315,7 +316,12 @@ export interface PaymentHistoryResponse {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+const BASE_PATH = import.meta.env.VITE_BASE || '/'
+console.log('--------- API_BASE_URL:', API_BASE_URL, import.meta.env)
 
+function getLoginUrl(): string {
+  return `${BASE_PATH}login`
+}
 class ApiService {
   private client: AxiosInstance
 
@@ -347,7 +353,7 @@ class ApiService {
         if (error.response?.status === 401) {
           localStorage.removeItem('accessToken')
           localStorage.removeItem('refreshToken')
-          window.location.href = '/login'
+          window.location.href = getLoginUrl()
         }
         return Promise.reject(error)
       }

@@ -4,8 +4,8 @@
  */
 
 import bcrypt from 'bcrypt'
-import { ISVUser, ISVUserRole, ISVUserStatus, ISV, Application, UBO } from '../types/isv.types'
-import { getISVRepository, getISVUserRepository, getApplicationRepository } from '../repositories/repository.factory'
+import { IsvDeveloper, ISVUser, ISVUserRole, ISVUserStatus, Application, UBO } from '../types/isv.types'
+import { getIsvDeveloperRepository, getISVUserRepository, getApplicationRepository } from '../repositories/repository.factory'
 
 // ============================================
 // ISV Service
@@ -20,8 +20,8 @@ export const isvService = {
         registeredAddress: string
         website?: string
         uboInfo: UBO[]
-    }): Promise<ISV> {
-        const repo = getISVRepository()
+    }): Promise<IsvDeveloper> {
+        const repo = getIsvDeveloperRepository()
         return repo.create({
             ...params,
             kybStatus: 'pending',
@@ -29,18 +29,18 @@ export const isvService = {
         })
     },
 
-    async getISVById(id: string): Promise<ISV | null> {
-        const repo = getISVRepository()
+    async getISVById(id: string): Promise<IsvDeveloper | null> {
+        const repo = getIsvDeveloperRepository()
         return repo.findById(id)
     },
 
-    async getAllISVs(): Promise<ISV[]> {
-        const repo = getISVRepository()
+    async getAllISVs(): Promise<IsvDeveloper[]> {
+        const repo = getIsvDeveloperRepository()
         return repo.findMany()
     },
 
-    async updateISV(id: string, data: Partial<ISV>): Promise<ISV | null> {
-        const repo = getISVRepository()
+    async updateISV(id: string, data: Partial<IsvDeveloper>): Promise<IsvDeveloper | null> {
+        const repo = getIsvDeveloperRepository()
         return repo.update(id, data)
     }
 }
@@ -51,7 +51,7 @@ export const isvService = {
 
 export const isvUserService = {
     async registerOwner(params: {
-        isvId: string
+        isvDeveloperId: string
         email: string
         password: string
         name: string
@@ -59,7 +59,7 @@ export const isvUserService = {
     }): Promise<{ success: boolean; user?: Omit<ISVUser, 'password'>; error?: string }> {
         const repo = getISVUserRepository()
 
-        const existing = await repo.findByISVAndEmail(params.isvId, params.email)
+        const existing = await repo.findByIsvDeveloperAndEmail(params.isvDeveloperId, params.email)
         if (existing) {
             return { success: false, error: 'Email already registered in this ISV' }
         }
@@ -78,7 +78,7 @@ export const isvUserService = {
     },
 
     async addDeveloper(params: {
-        isvId: string
+        isvDeveloperId: string
         email: string
         password: string
         name: string
@@ -87,7 +87,7 @@ export const isvUserService = {
     }): Promise<{ success: boolean; user?: Omit<ISVUser, 'password'>; error?: string }> {
         const repo = getISVUserRepository()
 
-        const existing = await repo.findByISVAndEmail(params.isvId, params.email)
+        const existing = await repo.findByIsvDeveloperAndEmail(params.isvDeveloperId, params.email)
         if (existing) {
             return { success: false, error: 'Email already registered in this ISV' }
         }
@@ -111,7 +111,7 @@ export const isvUserService = {
         error?: string
     }> {
         const repo = getISVUserRepository()
-        const user = await repo.findByISVAndEmail(isvId, email)
+        const user = await repo.findByIsvDeveloperAndEmail(isvId, email)
 
         if (!user) {
             return { success: false, error: 'User not found' }
@@ -141,7 +141,7 @@ export const isvUserService = {
 
     async getUsersByISV(isvId: string): Promise<Omit<ISVUser, 'password'>[]> {
         const repo = getISVUserRepository()
-        const users = await repo.findByISV(isvId)
+        const users = await repo.findByIsvDeveloper(isvId)
         return users.map(({ password: _, ...user }) => user)
     },
 
@@ -158,7 +158,7 @@ export const isvUserService = {
 
 export const isvApplicationService = {
     async createApplication(params: {
-        isvId: string
+        isvDeveloperId: string
         name: string
         description?: string
         callbackUrl?: string
@@ -167,7 +167,7 @@ export const isvApplicationService = {
         const repo = getApplicationRepository()
         // Repository's create method will generate id and appId
         return repo.create({
-            isvId: params.isvId,
+            isvDeveloperId: params.isvDeveloperId,
             name: params.name,
             description: params.description,
             callbackUrl: params.callbackUrl,
@@ -186,7 +186,7 @@ export const isvApplicationService = {
 
     async getApplicationsByISV(isvId: string): Promise<Omit<Application, 'appSecret'>[]> {
         const repo = getApplicationRepository()
-        const apps = await repo.findByISV(isvId)
+        const apps = await repo.findByIsvDeveloper(isvId)
         return apps.map(({ appSecret: _, ...app }) => app)
     },
 
@@ -198,10 +198,10 @@ export const isvApplicationService = {
         if (!user) return []
 
         if (user.role === ISVUserRole.OWNER) {
-            return this.getApplicationsByISV(user.isvId)
+            return this.getApplicationsByISV(user.isvDeveloperId)
         }
 
-        const apps = await appRepo.findByISV(user.isvId)
+        const apps = await appRepo.findByIsvDeveloper(user.isvDeveloperId)
         return apps
             .filter(a => a.permittedUsers.length === 0 || a.permittedUsers.includes(userId))
             .map(({ appSecret: _, ...app }) => app)

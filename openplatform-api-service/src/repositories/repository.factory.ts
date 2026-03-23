@@ -7,15 +7,15 @@ import { StorageDriver, StorageAdapter } from './storage.adapter'
 import { FileStorageAdapter, MemoryStorageAdapter } from './file-storage.adapter'
 import { MySQLStorageAdapter } from './mysql-storage.adapter'
 import { EntityBase } from './repository'
-import { ISVRepository } from './repository.interfaces'
 import { ISVUserRepository } from './repository.interfaces'
+import { IsvDeveloperRepository } from './repository.interfaces'
 import { ApplicationRepository } from './repository.interfaces'
 import { BindingRepository } from './repository.interfaces'
 import { EndpointPermissionRepository } from './repository.interfaces'
 import { AdminRepository } from './repository.interfaces'
 import { OauthResourceRepository } from './repository.interfaces'
-import { ISVRepositoryImpl } from './implementations/isv.repository'
 import { ISVUserRepositoryImpl } from './implementations/isv-user.repository'
+import { IsvDeveloperRepositoryImpl } from './implementations/isv-developer.repository'
 import { ApplicationRepositoryImpl } from './implementations/application.repository'
 import { BindingRepositoryImpl } from './implementations/binding.repository'
 import { EndpointPermissionRepositoryImpl } from './implementations/permission.repository'
@@ -23,7 +23,7 @@ import { AdminRepositoryImpl } from './implementations/admin.repository'
 import { OauthResourceRepositoryImpl } from './implementations/authorization.repository'
 
 // Singleton instances
-let isvRepo: ISVRepository | null = null
+let isvDeveloperRepo: IsvDeveloperRepository | null = null
 let isvUserRepo: ISVUserRepository | null = null
 let appRepo: ApplicationRepository | null = null
 let bindingRepo: BindingRepository | null = null
@@ -35,7 +35,7 @@ let oauthResourceRepo: OauthResourceRepository | null = null
  * Create storage adapter based on driver
  */
 function createAdapter(tableName: string): StorageAdapter {
-  const driver = (process.env.STORAGE_DRIVER as StorageDriver) || 'file'
+  const driver = (process.env.STORAGE_TYPE as StorageDriver) || 'file'
 
   if (driver === 'mysql') {
     return new MySQLStorageAdapter(tableName)
@@ -49,12 +49,12 @@ function createAdapter(tableName: string): StorageAdapter {
 }
 
 /**
- * Get ISV repository instance
+ * Get IsvDeveloper repository instance
  */
-export function getISVRepository(): ISVRepository {
-  if (isvRepo) return isvRepo
-  isvRepo = new ISVRepositoryImpl(createAdapter('isv'))
-  return isvRepo
+export function getIsvDeveloperRepository(): IsvDeveloperRepository {
+  if (isvDeveloperRepo) return isvDeveloperRepo
+  isvDeveloperRepo = new IsvDeveloperRepositoryImpl(createAdapter('isv_developer'))
+  return isvDeveloperRepo
 }
 
 /**
@@ -122,7 +122,7 @@ export function getAuthorizationRepository(): OauthResourceRepository {
  * Reset all repository instances (for testing)
  */
 export function resetRepositories(): void {
-  isvRepo = null
+  isvDeveloperRepo = null
   isvUserRepo = null
   appRepo = null
   bindingRepo = null

@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Message, Lock } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import Button from '@/components/common/Button.vue'
+
+const BASE_PATH = import.meta.env.VITE_BASE || '/'
+const registerUrl = computed(() => `${BASE_PATH}register`)
 
 interface LoginForm {
   email: string
@@ -162,7 +165,7 @@ const handleSubmit = async () => {
         <div class="mt-6 text-center">
           <p class="text-gray-600">
             Don't have an account?
-            <a href="/register" class="text-brand hover:underline font-medium">Sign Up</a>
+            <a :href="registerUrl" class="text-brand hover:underline font-medium">Sign Up</a>
           </p>
         </div>
       </div>

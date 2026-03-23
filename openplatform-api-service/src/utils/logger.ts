@@ -3,9 +3,15 @@
  * Winston wrapper for structured JSON logging with trace_id support
  */
 
+// Load environment variables first
+import { config } from 'dotenv'
+config()
+
 import winston from 'winston';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
+import winstonDailyRotateFile from 'winston-daily-rotate-file';
 
 // Log directory configuration - use process.cwd() for compatibility
 const logDir = process.env.LOG_DIR || path.join(process.cwd(), 'logs');
@@ -50,7 +56,7 @@ const addTraceId = winston.format((info) => {
  * JSON format with timestamp
  */
 const jsonFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'ISO' }),
+  winston.format.timestamp(),
   addTraceId(),
   winston.format.json()
 );
@@ -75,22 +81,30 @@ const consoleFormat = winston.format.combine(
 );
 
 /**
- * Create file transporter with rotation
+ * Create file transporter with daily rotation - keeps 7 days
  */
 function createFileTransport(filename: string, level: string): winston.transport {
   const logSubDir = path.join(logDir, filename.split('.')[0]);
 
-  // Create directory if it doesn't exist
+  // Ensure directory exists before creating transport
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  }
   if (!fs.existsSync(logSubDir)) {
     fs.mkdirSync(logSubDir, { recursive: true });
   }
 
-  return new winston.transports.File({
-    filename: path.join(logSubDir, filename),
+  // Daily rotation using winston-daily-rotate-file
+  const baseName = filename.replace('.log', '');
+  return new (winstonDailyRotateFile as any)({
+    filename: path.join(logSubDir, `${baseName}.log`),
+    datePattern: 'YYYY-MM-DD',
+    zippedArchive: false,
+    maxSize: '10m',
+    maxFiles: 7,
     level,
-    maxsize: 10 * 1024 * 1024, // 10MB
-    maxFiles: 30, // 30 days retention
     format: jsonFormat,
+    auditFile: path.join(os.tmpdir(), `${baseName}-audit.json`), // Store audit file in temp directory
   });
 }
 
@@ -114,18 +128,21 @@ const loggerConfig: winston.LoggerOptions = {
       format: env === 'production' ? jsonFormat : consoleFormat,
     }),
   ],
-  // Handle uncaught exceptions
-  exceptionHandlers: [
-    createFileTransport('exceptions.log', 'error'),
-  ],
-  // Handle unhandled promise rejections
-  rejectionHandlers: [
-    createFileTransport('rejections.log', 'error'),
-  ],
 };
 
-// Add file transports in production
-if (env === 'production' || process.env.ENABLE_FILE_LOGGING === 'true') {
+// Add file transports - enable in production or when ENABLE_FILE_LOGGING=true
+const shouldEnableFileLogging = env === 'production' || process.env.ENABLE_FILE_LOGGING === 'true';
+
+if (shouldEnableFileLogging) {
+  // Exception handlers - only when file logging enabled
+  loggerConfig.exceptionHandlers = [
+    createFileTransport('exceptions.log', 'error'),
+  ];
+  // Rejection handlers - only when file logging enabled
+  loggerConfig.rejectionHandlers = [
+    createFileTransport('rejections.log', 'error'),
+  ];
+
   const existingTransports = loggerConfig.transports as winston.transport[] | undefined;
   loggerConfig.transports = [
     ...(existingTransports || []),

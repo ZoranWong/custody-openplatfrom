@@ -9,6 +9,12 @@ import apiService, {
   type UBO
 } from '@/services/api'
 
+const BASE_PATH = import.meta.env.VITE_BASE || '/'
+
+function getLoginUrl(): string {
+  return `${BASE_PATH}login`
+}
+
 // ISV User type
 export type User = ISVUser
 
@@ -108,7 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
       refreshToken.value = null
       localStorage.removeItem(ACCESS_TOKEN_KEY)
       localStorage.removeItem(REFRESH_TOKEN_KEY)
-      window.location.href = '/login'
+      window.location.href = getLoginUrl()
     }
   }
 

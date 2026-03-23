@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Check, Close, User, OfficeBuilding, Location, Ticket, Calendar, Link } from '@element-plus/icons-vue'
+import { ArrowLeft, Check, Close, User, OfficeBuilding, Ticket, Link } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import apiService from '@/services/api'
 import Button from '@/components/common/Button.vue'

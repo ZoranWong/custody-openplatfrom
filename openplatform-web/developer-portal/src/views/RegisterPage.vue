@@ -10,6 +10,9 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const authStore = useAuthStore()
 
+const BASE_PATH = import.meta.env.VITE_BASE || '/'
+const loginUrl = computed(() => `${BASE_PATH}login`)
+
 const currentStep = ref(1)
 const totalSteps = 3
 const loading = ref(false)
@@ -102,7 +105,7 @@ const handleSubmit = async () => {
     })
 
     ElMessage.success('Registration successful! Please wait for KYB approval. You will be notified by email.')
-    router.push('/login')
+    router.push({ name: 'login' })
   } catch (error: any) {
     const message = error.response?.data?.message || 'Registration failed, please try again later'
     ElMessage.error(message)
@@ -232,7 +235,7 @@ const uboFormRef = ref()
         <div class="mt-6 text-center">
           <p class="text-gray-600">
             Already have an account?
-            <a href="/login" class="text-brand hover:underline font-medium">Sign In</a>
+            <a :href="loginUrl" class="text-brand hover:underline font-medium">Sign In</a>
           </p>
         </div>
       </div>

@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { DataLine, Timer, CircleCheck, Refresh, Wallet, OfficeBuilding, Location } from '@element-plus/icons-vue'
+import { DataLine, Refresh, Wallet, OfficeBuilding, Location } from '@element-plus/icons-vue'
 import apiService, { type UsageStats, type PeriodType } from '@/services/api'
 import Button from '@/components/common/Button.vue'
 import UsageTrendChart from '@/components/billing/UsageTrendChart.vue'
@@ -79,7 +79,7 @@ const fetchStats = async (showRefreshing = false) => {
     if (status === 401 || code === 401) {
       error.value = 'Your session has expired, please log in again'
       ElMessage.error('Please log in first')
-      router.push('/login')
+      router.push({ name: 'login' })
     } else if (code === 'INSUFFICIENT_BALANCE') {
       error.value = 'Insufficient account balance, please recharge promptly to avoid service interruption'
       ElMessage.warning('Insufficient balance')

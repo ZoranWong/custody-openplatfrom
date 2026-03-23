@@ -77,19 +77,19 @@ const handlePrint = (): void => {
       <!-- Invoice Header -->
       <div class="invoice-header mb-8">
         <h2 class="text-2xl font-bold text-gray-900">INVOICE</h2>
-        <p class="text-gray-500">{{ invoice?.invoice_id }}</p>
+        <p class="text-gray-500">{{ invoice?.invoiceId }}</p>
       </div>
 
       <!-- Invoice Date -->
       <div class="flex justify-between mb-8">
         <div>
           <p class="text-sm text-gray-500 mb-1">发票日期</p>
-          <p class="font-medium">{{ invoice ? formatDate(invoice.created_at) : '-' }}</p>
+          <p class="font-medium">{{ invoice ? formatDate(invoice.createdAt) : '-' }}</p>
         </div>
         <div>
           <p class="text-sm text-gray-500 mb-1">账单周期</p>
           <p class="font-medium">
-            {{ invoice?.billing_period.start }} ~ {{ invoice?.billing_period.end }}
+            {{ invoice?.billingPeriod.start }} ~ {{ invoice?.billingPeriod.end }}
           </p>
         </div>
       </div>
@@ -100,19 +100,19 @@ const handlePrint = (): void => {
         <div class="grid grid-cols-2 gap-4">
           <div>
             <p class="text-sm text-gray-500">公司名称</p>
-            <p class="font-medium">{{ invoice?.company_info.name }}</p>
+            <p class="font-medium">{{ invoice?.companyInfo.name }}</p>
           </div>
           <div>
             <p class="text-sm text-gray-500">纳税人识别号</p>
-            <p class="font-medium">{{ invoice?.company_info.tax_id }}</p>
+            <p class="font-medium">{{ invoice?.companyInfo.taxId }}</p>
           </div>
           <div class="col-span-2">
             <p class="text-sm text-gray-500">公司地址</p>
-            <p class="font-medium">{{ invoice?.company_info.address }}</p>
+            <p class="font-medium">{{ invoice?.companyInfo.address }}</p>
           </div>
           <div>
             <p class="text-sm text-gray-500">联系邮箱</p>
-            <p class="font-medium">{{ invoice?.company_info.email }}</p>
+            <p class="font-medium">{{ invoice?.companyInfo.email }}</p>
           </div>
         </div>
       </div>
@@ -120,7 +120,7 @@ const handlePrint = (): void => {
       <!-- Usage Breakdown -->
       <div class="usage-breakdown mb-8">
         <h3 class="text-sm font-semibold text-gray-700 mb-3">费用明细</h3>
-        <el-table :data="invoice?.usage_breakdown" style="width: 100%" border>
+        <el-table :data="invoice?.usageBreakdown" style="width: 100%" border>
           <el-table-column prop="item" label="项目" min-width="150" />
           <el-table-column prop="quantity" label="数量" width="100" align="right" />
           <el-table-column prop="unit_price" label="单价" width="120" align="right">
@@ -145,13 +145,13 @@ const handlePrint = (): void => {
               <span class="font-medium">{{ formatCurrency(invoice?.subtotal || 0, invoice?.currency) }}</span>
             </div>
             <div class="flex justify-between py-2">
-              <span class="text-gray-600">税率 ({{ invoice?.tax_rate }}%)</span>
-              <span class="font-medium">{{ formatCurrency(invoice?.tax_amount || 0, invoice?.currency) }}</span>
+              <span class="text-gray-600">税率 ({{ invoice?.taxRate }}%)</span>
+              <span class="font-medium">{{ formatCurrency(invoice?.taxAmount || 0, invoice?.currency) }}</span>
             </div>
             <div class="flex justify-between py-3 border-t border-gray-200 mt-2">
               <span class="text-lg font-bold text-gray-900">合计</span>
               <span class="text-lg font-bold text-brand">
-                {{ formatCurrency(invoice?.total_amount || 0, invoice?.currency) }}
+                {{ formatCurrency(invoice?.totalAmount || 0, invoice?.currency) }}
               </span>
             </div>
           </div>

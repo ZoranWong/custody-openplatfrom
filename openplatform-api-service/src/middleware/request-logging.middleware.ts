@@ -36,13 +36,14 @@ function registerCustomTokens(): void {
     return appid;
   });
 
-  // Token: response_time - calculate response time
+  // Token: response_time - calculate response time in milliseconds
   morgan.token('response_time', (req: Request, res: Response) => {
     const startTime = (req as any)._startTime;
     if (!startTime) return '-';
-    const diff = process.hrtime(startTime);
-    const ms = diff[0] * 1000 + diff[1] / 1000000;
-    return ms.toFixed(2);
+    const start = startTime instanceof Date ? startTime.getTime() : Number(startTime);
+    const now = Date.now();
+    const diff = now - start;
+    return diff.toFixed(2);
   });
 
   // Token: status - HTTP status code (already built-in but redefined for clarity)

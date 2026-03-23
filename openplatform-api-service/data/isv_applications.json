@@ -1,7 +1,7 @@
 {
   "f13cff05-c221-4563-aa85-6b45bea686aa": {
     "id": "f13cff05-c221-4563-aa85-6b45bea686aa",
-    "isvId": "678dbb47-5f9b-4341-9971-9a284f895ce9",
+    "isvDeveloperId": "678dbb47-5f9b-4341-9971-9a284f895ce9",
     "name": "Demo Application",
     "appId": "ak_f13cff05",
     "appSecret": "sk_f13cff05c22145",

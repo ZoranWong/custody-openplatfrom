@@ -6,6 +6,9 @@ import { Lock, View, Hide } from '@element-plus/icons-vue'
 import apiService from '@/services/api'
 import Button from '@/components/common/Button.vue'
 
+const BASE_PATH = import.meta.env.VITE_BASE || '/'
+const loginUrl = computed(() => `${BASE_PATH}login`)
+
 const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
@@ -118,7 +121,7 @@ const handleSubmit = async () => {
   try {
     await apiService.resetPassword({ token, password: form.password })
     ElMessage.success('密码重置成功，请使用新密码登录')
-    router.push('/login')
+    router.push({ name: 'login' })
   } catch (e: any) {
     const message = e.response?.data?.message || '重置失败，请稍后重试'
     ElMessage.error(message)
@@ -248,7 +251,7 @@ onMounted(() => {
           <div class="mt-6 text-center">
             <p class="text-gray-600">
               想起密码了？
-              <a href="/login" class="text-brand hover:underline font-medium">返回登录</a>
+              <a :href="loginUrl" class="text-brand hover:underline font-medium">返回登录</a>
             </p>
           </div>
         </template>

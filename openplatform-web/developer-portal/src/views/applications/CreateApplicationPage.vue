@@ -54,7 +54,7 @@ const appTypes = [
 ]
 
 // KYB Status and ownership check
-const kybStatus = computed(() => authStore.user?.isvInfo?.kybStatus || authStore.isvInfo?.kybStatus || 'pending')
+const kybStatus = computed(() => authStore.isvInfo?.kybStatus || 'pending')
 const isOwner = computed(() => authStore.user?.role === 'owner' || authStore.isOwner)
 const canCreateApp = computed(() => kybStatus.value === 'approved' && isOwner.value)
 
@@ -153,7 +153,7 @@ const handleSubmit = async () => {
       type: form.type as 'corporate' | 'payment' | 'custody'
     }
 
-    createdApplication.value = (await apiService.createISVApplication(params)).data?.application
+    createdApplication.value = (await apiService.createISVApplication(params)).data?.application ?? null
     showAppSecretDialog.value = true
   } catch (e: any) {
     const code = e.response?.data?.code

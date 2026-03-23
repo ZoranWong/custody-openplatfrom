@@ -177,7 +177,7 @@ router.get('/applications/:id', isvAuth, async (req, res) => {
  */
 router.get('/users', isvAuth, requireOwner, async (req, res) => {
   const isvUser = (req as ISVAuthRequest).isvUser
-  const users = await isvUserService.getUsersByISV(isvUser!.isvId)
+  const users = await isvUserService.getUsersByISV(isvUser!.isvDeveloperId)
   res.json({
     code: 0,
     message: 'Success',
@@ -203,7 +203,7 @@ router.post('/users', isvAuth, requireOwner, async (req, res) => {
     }
 
     const result = await isvUserService.addDeveloper({
-      isvId: isvUser!.isvId,
+      isvDeveloperId: isvUser!.isvDeveloperId,
       email,
       password,
       name,
@@ -239,7 +239,7 @@ router.post('/users', isvAuth, requireOwner, async (req, res) => {
  */
 router.get('/applications/all', isvAuth, requireOwner, async (req, res) => {
   const isvUser = (req as ISVAuthRequest).isvUser
-  const apps = await isvApplicationService.getApplicationsByISV(isvUser!.isvId)
+  const apps = await isvApplicationService.getApplicationsByISV(isvUser!.isvDeveloperId)
   res.json({
     code: 0,
     message: 'Success',
@@ -273,7 +273,7 @@ router.post('/applications', isvAuth, requireOwner, async (req, res) => {
     }
 
     // Check KYB status
-    const isv = await isvService.getISVById(isvUser!.isvId)
+    const isv = await isvService.getISVById(isvUser!.isvDeveloperId)
     if (!isv) {
       res.status(404).json({
         code: 40401,
@@ -291,7 +291,7 @@ router.post('/applications', isvAuth, requireOwner, async (req, res) => {
     }
 
     const app = await isvApplicationService.createApplication({
-      isvId: isvUser!.isvId,
+      isvDeveloperId: isvUser!.isvDeveloperId,
       name,
       description,
       callbackUrl,
@@ -373,7 +373,7 @@ router.put('/applications/:id', isvAuth, requireOwner, async (req, res) => {
       return
     }
 
-    if (app.isvId !== isvUser!.isvId) {
+    if (app.isvDeveloperId !== isvUser!.isvDeveloperId) {
       res.status(403).json({
         code: 40301,
         message: 'Access denied'
@@ -415,7 +415,7 @@ router.delete('/applications/:id', isvAuth, requireOwner, async (req, res) => {
       return
     }
 
-    if (app.isvId !== isvUser!.isvId) {
+    if (app.isvDeveloperId !== isvUser!.isvDeveloperId) {
       res.status(403).json({
         code: 40301,
         message: 'Access denied'
@@ -455,7 +455,7 @@ router.post('/applications/:id/regenerate-secret', isvAuth, requireOwner, async 
       return
     }
 
-    if (app.isvId !== isvUser!.isvId) {
+    if (app.isvDeveloperId !== isvUser!.isvDeveloperId) {
       res.status(403).json({
         code: 40301,
         message: 'Access denied'
