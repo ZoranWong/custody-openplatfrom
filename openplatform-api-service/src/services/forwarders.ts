@@ -232,11 +232,11 @@ export class CustodyForwarder implements Forwarder {
     }
 
     // Add custody-specific headers if available
-    if (resourceReq.developerContext?.appId) {
-      headers['X-Forwarded-AppId'] = resourceReq.developerContext.appId
+    if (resourceReq.context?.application?.id) {
+      headers['X-Forwarded-AppId'] = resourceReq.context.application.id
     }
-    if (resourceReq.developerContext?.developerId) {
-      headers['X-Forwarded-DeveloperId'] = resourceReq.developerContext.developerId
+    if (resourceReq.context?.developer?.id) {
+      headers['X-Forwarded-DeveloperId'] = resourceReq.context.developer.id
     }
     if (resourceReq.authorizationId) {
       headers['X-Forwarded-AuthorizationId'] = resourceReq.authorizationId
@@ -244,8 +244,8 @@ export class CustodyForwarder implements Forwarder {
     if (resourceReq.userId) {
       headers['X-Forwarded-UserId'] = resourceReq.userId
     }
-    if (resourceReq.resourceKey) {
-      headers['X-Forwarded-ResourceKey'] = resourceReq.resourceKey
+    if ((resourceReq as any).resourceKey) {
+      headers['X-Forwarded-ResourceKey'] = (resourceReq as any).resourceKey
     }
 
     const traceId = getCurrentTraceId()

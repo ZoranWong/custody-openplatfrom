@@ -27,9 +27,7 @@ import usageRoutes from './routes/v1/usage.routes'
 import webhookConfigRoutes from './routes/v1/webhook-config.routes'
 import oauthRoutes from './routes/oauth.routes'
 import authorizationRoutes from './routes/v1/authorization.routes'
-
-// Import routing middleware
-import { createRequestRoutingMiddleware, createBackendForwardingMiddleware } from './middleware/request-routing.middleware'
+import thirdpartyRoutes from './routes/thirdparty.routes'
 
 // Import metrics modules
 import { createMetricsMiddleware } from './middleware/metrics.middleware'
@@ -79,14 +77,6 @@ app.use(createRequestLoggerMiddleware())
 // Metrics collection middleware
 app.use(createMetricsMiddleware())
 
-// Request routing middleware - handles backend service forwarding
-const routingMiddleware = createRequestRoutingMiddleware()
-const forwardingMiddleware = createBackendForwardingMiddleware()
-
-// Apply routing middleware BEFORE routes
-app.use(routingMiddleware)
-app.use(forwardingMiddleware)
-
 // Health check
 app.get('/health', async (_req: Request, res: Response) => {
     const metricsCollector = getMetricsCollector()
@@ -120,6 +110,9 @@ app.use('/api/v1/isv', webhookConfigRoutes)
 
 // OAuth routes (including appToken/validate)
 app.use('/api/oauth', oauthRoutes)
+
+// Third-party developer routes
+app.use('/api/thirdparty', thirdpartyRoutes)
 
 // Authorization routes
 app.use('/api/v1/authorizations', authorizationRoutes)

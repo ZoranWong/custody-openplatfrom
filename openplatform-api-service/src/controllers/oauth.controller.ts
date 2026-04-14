@@ -1,6 +1,7 @@
 /**
  * OAuth Token Controller
  * Handles OAuth 2.0 token issuance, refresh, revocation, and appToken validation endpoints
+ * Internal APIs for platform token management
  */
 
 import { Request, Response } from 'express';

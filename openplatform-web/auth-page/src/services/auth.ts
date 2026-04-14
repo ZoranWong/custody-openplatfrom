@@ -142,14 +142,14 @@ export async function firstAuthenticate(
  * POST /v1/auth/mfa/totp/verify
  *
  * @param mfaToken - Token from first authentication
- * @param code - 6-digit TOTP code or recovery code
+ * @param verifyCode - 6-digit TOTP code or recovery code
  * @param email - User email
  * @param secondStepType - Type of verification
  * @returns LoginResultMeta or null on failure
  */
 export async function secondAuthenticate(
     mfaToken: string,
-    code: string,
+    verifyCode: string,
     email: string,
     secondStepType: SecondAuthType
 ): Promise<LoginResultMeta | null> {
@@ -158,9 +158,9 @@ export async function secondAuthenticate(
             method: 'POST',
             body: JSON.stringify({
                 mfaToken,
-                code,
+                code: verifyCode,
                 email,
-                secondStepType
+                type: secondStepType,
             }),
         })
 

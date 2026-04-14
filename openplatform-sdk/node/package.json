@@ -1,0 +1,52 @@
+{
+  "name": "@cregis-kit/openplatform-node",
+  "version": "1.0.0",
+  "description": "Cregis OpenPlatform Node.js SDK - Server-side SDK for backend integration",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZoranWong/custody-openplatfrom.git"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "cregis",
+    "custody",
+    "sdk",
+    "nodejs",
+    "api",
+    "server-side"
+  ],
+  "author": "Cregis",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "uuid": "^9.0.0"
+  }
+}

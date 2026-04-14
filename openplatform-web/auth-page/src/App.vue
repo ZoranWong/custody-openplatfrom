@@ -91,7 +91,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import LoginForm from './components/LoginForm.vue'
 import TotpForm from './components/TotpForm.vue'
 import EnterpriseSelector from './components/EnterpriseSelector.vue'
-import { listenFromParent, sendToParent } from './utils/postMessage'
+import { listenFromParent, sendEventToParent, sendSuccessToParent, sendFailedToParent, getSDKUUIDFromUrl } from './utils/postMessage'
 import { login, secondAuthenticate, submitAuthorization } from './services/auth'
 import { setToken, setUserInfo, isTokenValid, clearToken, getUserInfo } from './utils/tokenStorage'
 import type { AuthInitData, AuthView, Enterprise } from './types'
@@ -138,13 +138,78 @@ function checkExistingSession(): boolean {
 // Initialize: check session first, then setup listeners
 checkExistingSession()
 
-// Validate appToken format
+// Validate appToken format (JWT from backend - must be valid JWT structure)
 function validateToken(token: string): { valid: boolean; error?: string } {
   if (!token || typeof token !== 'string') {
     return { valid: false, error: 'Missing or invalid appToken' };
   }
   if (token.trim().length === 0) {
     return { valid: false, error: 'appToken cannot be empty' };
+  }
+  // JWT format validation (header.payload.signature)
+  const jwtParts = token.split('.');
+  if (jwtParts.length !== 3) {
+    return { valid: false, error: 'Invalid appToken format: expected JWT structure' };
+  }
+  return { valid: true };
+}
+
+// Validate appId (请求传入 - must be non-empty string)
+function validateAppId(appId: string): { valid: boolean; error?: string } {
+  if (!appId || typeof appId !== 'string' || appId.trim().length === 0) {
+    return { valid: false, error: 'Missing or invalid appId' };
+  }
+  return { valid: true };
+}
+
+// Allowed permission values (platform-configured whitelist)
+const ALLOWED_PERMISSIONS = new Set(['read', 'write', 'admin', 'transfer', 'view']);
+
+// Validate permissions (请求 + 平台校验 - must be in whitelist)
+function validatePermissions(permissions: string[]): { valid: boolean; error?: string } {
+  if (!permissions || !Array.isArray(permissions) || permissions.length === 0) {
+    return { valid: false, error: 'Missing permissions' };
+  }
+  for (const perm of permissions) {
+    if (!ALLOWED_PERMISSIONS.has(perm)) {
+      return { valid: false, error: `Invalid permission: ${perm}` };
+    }
+  }
+  return { valid: true };
+}
+
+// Validate redirectUri format (请求传入 - should be valid URL)
+function validateRedirectUri(uri: string): { valid: boolean; error?: string } {
+  if (!uri) return { valid: true }; // Optional field
+  try {
+    const url = new URL(uri);
+    // Only allow https (or http for localhost)
+    if (!['https:', 'http:'].includes(url.protocol)) {
+      return { valid: false, error: 'redirectUri must use http or https protocol' };
+    }
+    if (url.protocol === 'http:' && !url.hostname.includes('localhost') && !url.hostname.includes('127.0.0.1')) {
+      return { valid: false, error: 'redirectUri http allowed only for localhost' };
+    }
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Invalid redirectUri format' };
+  }
+}
+
+// Validate state format (请求传入 - 防 CSRF + uuid)
+function validateState(state: string): { valid: boolean; error?: string } {
+  if (!state) return { valid: true }; // Optional field
+  if (typeof state !== 'string' || state.trim().length === 0) {
+    return { valid: false, error: 'Invalid state' };
+  }
+  // State should contain a UUID-like identifier (basic format check)
+  // Format expectation: uuid|csrf_token or just a UUID
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const parts = state.split('|');
+  const possibleUuid = parts[0];
+  if (!uuidPattern.test(possibleUuid)) {
+    // Allow non-UUID states but warn (CSRF protection might not be optimal)
+    console.warn('Auth Page: state does not contain valid UUID format');
   }
   return { valid: true };
 }
@@ -189,23 +254,61 @@ function initWithData(data: AuthInitData) {
       username.value = userInfo.username || userInfo.email;
       email.value = userInfo.email;
       currentView.value = 'enterprise';
+      // Send ready event after initialization
+      sendEventToParent({ uuid: getSDKUUIDFromUrl() || '', type: 'ready' });
       return;
     }
   }
 
   currentView.value = 'login';
+  // Send ready event after initialization
+  sendEventToParent({ uuid: getSDKUUIDFromUrl() || '', type: 'ready' });
 }
 
 onMounted(() => {
   // Session check already done at init, now try to get token from URL
   const urlData = getTokenFromUrl();
   if (urlData) {
-    const validation = validateToken(urlData.appToken);
-    if (!validation.valid) {
+    // Comprehensive validation of all URL parameters
+    const tokenValidation = validateToken(urlData.appToken);
+    if (!tokenValidation.valid) {
       currentView.value = 'error';
-      errorMessage.value = validation.error || 'Invalid appToken';
+      errorMessage.value = tokenValidation.error || 'Invalid appToken';
       return;
     }
+
+    const appIdValidation = validateAppId(urlData.appId);
+    if (!appIdValidation.valid) {
+      currentView.value = 'error';
+      errorMessage.value = appIdValidation.error || 'Invalid appId';
+      return;
+    }
+
+    const permissionsValidation = validatePermissions(urlData.permissions || ['read']);
+    if (!permissionsValidation.valid) {
+      currentView.value = 'error';
+      errorMessage.value = permissionsValidation.error || 'Invalid permissions';
+      return;
+    }
+
+    if (urlData.redirectUri) {
+      const redirectUriValidation = validateRedirectUri(urlData.redirectUri);
+      if (!redirectUriValidation.valid) {
+        currentView.value = 'error';
+        errorMessage.value = redirectUriValidation.error || 'Invalid redirectUri';
+        return;
+      }
+    }
+
+    if (urlData.state) {
+      const stateValidation = validateState(urlData.state);
+      if (!stateValidation.valid) {
+        currentView.value = 'error';
+        errorMessage.value = stateValidation.error || 'Invalid state';
+        return;
+      }
+    }
+
     initWithData(urlData);
     return;
   }
@@ -216,24 +319,51 @@ onMounted(() => {
       // Try to get data from URL after init trigger
       const urlData = getTokenFromUrl();
       if (urlData) {
-        const validation = validateToken(urlData.appToken);
-        if (!validation.valid) {
+        // Comprehensive validation of all URL parameters
+        const tokenValidation = validateToken(urlData.appToken);
+        if (!tokenValidation.valid) {
           currentView.value = 'error';
-          errorMessage.value = validation.error || 'Invalid appToken';
+          errorMessage.value = tokenValidation.error || 'Invalid appToken';
           return;
         }
+
+        const appIdValidation = validateAppId(urlData.appId);
+        if (!appIdValidation.valid) {
+          currentView.value = 'error';
+          errorMessage.value = appIdValidation.error || 'Invalid appId';
+          return;
+        }
+
+        const permissionsValidation = validatePermissions(urlData.permissions || ['read']);
+        if (!permissionsValidation.valid) {
+          currentView.value = 'error';
+          errorMessage.value = permissionsValidation.error || 'Invalid permissions';
+          return;
+        }
+
+        if (urlData.redirectUri) {
+          const redirectUriValidation = validateRedirectUri(urlData.redirectUri);
+          if (!redirectUriValidation.valid) {
+            currentView.value = 'error';
+            errorMessage.value = redirectUriValidation.error || 'Invalid redirectUri';
+            return;
+          }
+        }
+
+        if (urlData.state) {
+          const stateValidation = validateState(urlData.state);
+          if (!stateValidation.valid) {
+            currentView.value = 'error';
+            errorMessage.value = stateValidation.error || 'Invalid state';
+            return;
+          }
+        }
+
         initWithData(urlData);
       }
     } else if (message.action === 'close' || message.action === 'cancel') {
       // Send cancelled result to parent
-      sendToParent({
-        action: 'authorization_result',
-        type: 'error',
-        error: {
-          code: 'USER_CANCELLED',
-          message: 'User cancelled authorization',
-        },
-      });
+      sendFailedToParent('USER_CANCELLED', 'User cancelled authorization');
     }
   });
 
@@ -400,6 +530,8 @@ async function handleAuthorize() {
   if (!authData.value || !selectedEnterprise.value) return;
 
   submitting.value = true;
+  // Send authorization_started event
+  sendEventToParent({ uuid: getSDKUUIDFromUrl() || '', type: 'authorization_started' });
 
   try {
     // Submit authorization to backend
@@ -411,37 +543,21 @@ async function handleAuthorize() {
     // Check if we got valid authorization id
     if (!result.authorizationId) {
       errorMessage.value = 'Authorization failed: No authorization ID returned';
-      sendToParent({
-        action: 'authorization_result',
-        type: 'error',
-        error: {
-          code: 'AUTHORIZATION_FAILED',
-          message: 'No authorization ID returned',
-        },
-      });
+      // Send authorization_failed event
+      sendFailedToParent('AUTHORIZATION_FAILED', 'No authorization ID returned');
       return;
     }
 
-    // Send success message to parent
-    sendToParent({
-      action: 'authorization_result',
-      type: 'success',
-      data: result.authorizationId,
-    });
+    // Send authorization_succeed event
+    sendSuccessToParent(result.authorizationId);
 
     // Show success view
     currentView.value = 'success';
     startCountdown();
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Authorization failed';
-    sendToParent({
-      action: 'authorization_result',
-      type: 'error',
-      error: {
-        code: 'AUTHORIZATION_FAILED',
-        message: error instanceof Error ? error.message : 'Failed to complete authorization',
-      },
-    });
+    // Send authorization_failed event
+    sendFailedToParent('AUTHORIZATION_FAILED', errorMessage.value);
   } finally {
     submitting.value = false;
   }
@@ -453,14 +569,7 @@ function goBackToEnterprise() {
 
 function handleCancel() {
   // Send cancelled result to parent
-  sendToParent({
-    action: 'authorization_result',
-    type: 'error',
-    error: {
-      code: 'USER_CANCELLED',
-      message: 'User cancelled authorization',
-    },
-  });
+  sendFailedToParent('USER_CANCELLED', 'User cancelled authorization');
 }
 
 function startCountdown() {
@@ -472,10 +581,10 @@ function startCountdown() {
         clearInterval(countdownTimer);
         countdownTimer = null;
       }
-      // Close the window/iframe
-      sendToParent({
-        action: 'close',
-        type: 'success',
+      // Close the window/iframe - send close event
+      sendEventToParent({
+        uuid: getSDKUUIDFromUrl() || '',
+        type: 'close',
       });
     }
   }, 1000);

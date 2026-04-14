@@ -1,7 +1,7 @@
 # Sprint Status YAML
 # Generated: 2026-03-03
 
-generated: "2026-03-03"
+generated: "2026-04-14"
 project: cregis-custody-openplatform
 project_key: CREGIS
 tracking_system: file-system
@@ -55,17 +55,17 @@ development_status:
   epic-4: done
   4-1-1-landing-page: done
   4-2-1-developer-registration: done
-  4-2-2-email-phone-verification: backlog
+  4-2-2-email-phone-verification: skipped
   4-2-3-developer-login: done
   4-2-4-password-reset: done
   4-2-5-developer-profile: done
-  4-3-1-create-application: backlog
-  4-3-2-application-list: backlog
-  4-3-3-application-detail: backlog
-  4-3-4-regenerate-appsecret: backlog
-  4-3-5-update-application: backlog
-  4-3-6-delete-application: backlog
-  4-4-1-api-usage-statistics: backlog
+  4-3-1-create-application: done
+  4-3-2-application-list: done
+  4-3-3-application-detail: done
+  4-3-4-regenerate-appsecret: done
+  4-3-5-update-application: done
+  4-3-6-delete-application: done
+  4-4-1-api-usage-statistics: done
   4-4-2-invoice-generation: done
   4-4-3-payment-history: done
   epic-4-retrospective: optional
@@ -102,36 +102,36 @@ development_status:
   6-5-3-tracing-support: done
   epic-6-retrospective: optional
 
-  # Epic 7 - SDK (epics.md - Module D)
-  epic-7: backlog
-  7-1-1-token-management: backlog
-  7-1-2-request-signing: backlog
-  7-1-3-error-handling: backlog
-  7-2-1-create-enterprise: backlog
-  7-2-2-get-enterprise: backlog
-  7-3-1-create-treasury-unit: backlog
-  7-3-2-list-treasury-units: backlog
-  7-3-3-get-treasury-unit-detail: backlog
-  7-3-4-get-account-balance: backlog
-  7-3-5-list-accounts: backlog
-  7-4-1-create-payment-order: backlog
-  7-4-2-get-payment-order: backlog
-  7-4-3-confirm-payment: backlog
-  7-5-1-create-transfer: backlog
-  7-5-2-confirm-transfer: backlog
-  7-6-1-manual-pooling: backlog
-  7-6-2-get-pool-status: backlog
-  7-6-3-configure-auto-pooling: backlog
-  7-7-1-create-signature-task: backlog
-  7-7-2-get-signature-task: backlog
-  7-7-3-list-signature-tasks: backlog
-  7-8-1-list-transactions: backlog
-  7-8-2-get-transaction: backlog
-  7-8-3-list-webhook-events: backlog
-  7-9-1-authorization-page: backlog
-  7-9-2-task-signature-page: backlog
-  7-9-3-signature-display-page: backlog
-  7-9-4-event-handling: backlog
+  # Epic 7 - SDK (Node.js SDK 已实现)
+  epic-7: done
+  7-1-1-token-management: done
+  7-1-2-request-signing: done
+  7-1-3-error-handling: done
+  7-2-1-create-enterprise: optional
+  7-2-2-get-enterprise: optional
+  7-3-1-create-treasury-unit: done
+  7-3-2-list-treasury-units: done
+  7-3-3-get-treasury-unit-detail: optional
+  7-3-4-get-account-balance: optional
+  7-3-5-list-accounts: optional
+  7-4-1-create-payout: done
+  7-4-2-list-transfer-out-orders: done
+  7-4-3-list-transfer-in-orders: done
+  7-5-1-create-transfer: optional
+  7-5-2-confirm-transfer: optional
+  7-6-1-manual-pooling: optional
+  7-6-2-get-pool-status: optional
+  7-6-3-configure-auto-pooling: optional
+  7-7-1-submit-task-approval: done
+  7-7-2-get-task: optional
+  7-7-3-list-tasks: optional
+  7-8-1-list-activities: done
+  7-8-2-get-activity: optional
+  7-8-3-list-fund-records: done
+  7-9-1-authorization-page: optional
+  7-9-2-task-signature-page: optional
+  7-9-3-signature-display-page: optional
+  7-9-4-webhook-management: done
   epic-7-retrospective: optional
 
   # Epic 8 - Custody Message Forwarding Signature Verification (epic-e-custody-signature.md)
@@ -144,3 +144,8 @@ development_status:
   8-5-1-authorization-forwarding-middleware: done
   8-5-2-error-handling-and-logging: done
   epic-8-retrospective: optional
+
+  # Epic 9 - SDK Transfer Task Detail Dialog
+  epic-9: done
+  9-1-transfer-task-detail-dialog: done
+  epic-9-retrospective: optional

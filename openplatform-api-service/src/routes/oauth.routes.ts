@@ -1,6 +1,7 @@
 /**
  * OAuth Routes
  * OAuth 2.0 token and revocation endpoints
+ * Internal APIs for platform token management
  */
 
 import { Router } from 'express';
@@ -8,7 +9,7 @@ import { oauthToken, oauthRevoke, validateAppToken } from '../controllers/oauth.
 
 const router = Router();
 
-// POST /oauth/token - Token issuance and refresh
+// POST /oauth/appToken/refresh - Token issuance and refresh (grant_type flow)
 router.post('/appToken/refresh', oauthToken);
 
 // POST /oauth/revoke - Token revocation

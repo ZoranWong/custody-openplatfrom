@@ -16,7 +16,7 @@
         "access": "public"
     },
     "scripts": {
-        "dev": "vite",
+        "dev": "vite --port 4000",
         "build": "vite build",
         "test": "vitest",
         "test:run": "vitest run",

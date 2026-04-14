@@ -109,6 +109,13 @@ This project uses **BMAD** (Build-Measure-Analyze-Document) workflow management.
 - `web/`: `requirements/`, `design/`, `ui-specs/`
 - `shared/`: Product vision, technical specs, glossary, ADRs
 
+## Global Technical Specifications
+
+### Message Signature Specification
+- **文件:** `docs/signature-spec.md`
+- **用途:** 开发者与开放平台交互的通用消息签名机制
+- **内容:** 请求格式、签名算法、安全要求、错误码
+
 ## Development Notes
 
 - All subprojects are currently in initial setup phase
@@ -116,6 +123,23 @@ This project uses **BMAD** (Build-Measure-Analyze-Document) workflow management.
 - API service module is organized into `enterprise/`, `payment/`, and `services/` submodules
 - Reference PRD: `docs/prd-cregis-custody-2026-02-02-cn.md` for detailed requirements
 - Compliance: KYB (Know Your Business) required for all institutional clients; no KYC for end users
+
+## API Authentication
+
+### Basic Auth (Client Credentials)
+开发者调用 API 时使用 HTTP Basic Auth：
+- **格式:** `Authorization: Basic base64(appId:appSecret)`
+- **用途:** 换取 access_token / refresh_token
+
+### Bearer Token (JWT)
+API 请求时使用：
+- **格式:** `Authorization: Bearer <jwt_token>`
+- **Payload:** `{ appId, oauthUserId?, enterpriseId?, permissions?, exp, iat }`
+
+### Signature Verification
+- **文件:** `docs/signature-spec.md`
+- **用途:** 业务请求的签名校验，防篡改和重放攻击
+- **算法:** MD5(appSecret + appId + timestamp + nonce + MD5(business))
 
 ## Coding Standards
 
