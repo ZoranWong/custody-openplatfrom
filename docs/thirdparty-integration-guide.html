@@ -436,8 +436,19 @@
                     <a href="#signature" class="nav-item">签名算法</a>
                     <a href="#api" class="nav-item">业务接口</a>
                     <a href="#error" class="nav-item">错误码</a>
-                    <a href="#sdk" class="nav-item">SDK 示例</a>
+                    <a href="#sdk" class="nav-item">SDK 集成</a>
                     <a href="#notes" class="nav-item">注意事项</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">SDK 集成指南</div>
+                    <a href="#sdk-overview" class="nav-item sub">概述</a>
+                    <a href="#sdk-capabilities" class="nav-item sub">能力速览</a>
+                    <a href="#sdk-architecture" class="nav-item sub">架构概览</a>
+                    <a href="#sdk-nodejs" class="nav-item sub">Node.js SDK</a>
+                    <a href="#sdk-web" class="nav-item sub">Web SDK</a>
+                    <a href="#sdk-e2e" class="nav-item sub">完整示例</a>
+                    <a href="#sdk-security" class="nav-item sub">安全模型</a>
+                    <a href="#sdk-versions" class="nav-item sub">版本兼容</a>
                 </div>
             </nav>
         </aside>
@@ -461,8 +472,9 @@
                     <li><a href="#signature">签名算法</a></li>
                     <li><a href="#api">业务接口</a></li>
                     <li><a href="#error">错误码</a></li>
-                    <li><a href="#sdk">SDK 示例</a></li>
+                    <li><a href="#sdk">SDK 集成</a></li>
                     <li><a href="#notes">注意事项</a></li>
+                    <li><a href="#sdk-overview">SDK 集成指南</a></li>
                 </ul>
             </div>
 
@@ -547,16 +559,19 @@ sequenceDiagram
                     <div class="diagram-title">阶段一：获取授权 URL</div>
                     <div class="mermaid">
 sequenceDiagram
-    participant TD as 三方平台服务端
-    participant API as 开放平台 API
+    participant BE as 三方平台后端
+    participant CS as Custody 服务
+    participant OP as 开放平台
     participant DB as 数据库
 
-    TD->>API: POST /oauth/authorizeUrl<br/>(basic + business)
-    API->>API: 验证签名
-    API->>DB: 查询应用配置 (appName, appLogoUrl)
-    DB-->>API: 应用配置
-    API->>API: 生成 appToken (JWT)
-    API-->>TD: authorizeUrl<br/>(包含 appId, appToken, appName, appLogoUrl)
+    BE->>CS: 1. 请求授权 URL (getAuthorizationUrl)
+    CS->>OP: 2. POST /oauth/authorizeUrl (basic + business)
+    OP->>OP: 3. 验证签名
+    OP->>DB: 4. 查询应用配置 (appName, appLogoUrl)
+    DB-->>OP: 5. 应用配置
+    OP->>OP: 6. 生成 appToken (JWT)
+    OP-->>CS: 7. authorizeUrl<br/>(包含 appId, appToken, appName, appLogoUrl)
+    CS-->>BE: 8. authorizeUrl
                     </div>
                 </div>
 
@@ -564,36 +579,48 @@ sequenceDiagram
                     <div class="diagram-title">阶段二：发起授权</div>
                     <div class="mermaid">
 sequenceDiagram
-    participant C as 三方平台客户端
-    participant CS as Custody
-    participant API as 开放平台
-    participant DB as 数据库
+    participant FE as 三方平台前端
+    participant BE as 三方平台后端
+    participant CS as Custody 服务
+    participant OP as 开放平台
+    participant AuthPage as 授权页面
 
-    C->>CS: 发起授权<br/>(authorizeUrl)
-    CS->>API: POST /oauth/verify<br/>(oauthToken)
-    API->>API: 验证 JWT 签名
-    API->>DB: Upsert OauthResource
-    DB-->>API: 授权记录
-    API-->>CS: authorizeId
-    CS-->>C: 授权成功<br/>(authorizeId)
+    BE->>CS: 1. 获取授权 URL (getAuthorizationUrl)
+    CS->>OP: 2. 调用 /oauth/authorizeUrl
+    OP-->>CS: 3. authorizeUrl
+    CS-->>BE: 4. authorizeUrl
+    BE-->>FE: 5. authorizeUrl
+
+    FE->>AuthPage: 6. 打开授权页面
+    AuthPage->>OP: 7. 用户登录授权
+    OP-->>AuthPage: 8. oauthToken
+    AuthPage-->>FE: 9. postMessage(oauthToken)
+    FE-->>BE: 10. 回调 oauthToken
+
+    BE->>CS: 11. 验证并换取 authorizeId
+    CS->>OP: 12. 调用 /oauth/verify
+    OP->>OP: 13. 验证 JWT + 存储
+    OP-->>CS: 14. authorizeId
+    CS-->>BE: 15. authorizeId
                     </div>
                 </div>
 
                 <div class="diagram-container">
-                    <div class="diagram-title">阶段三：调用业务接口</div>
+                    <div class="diagram-title">阶段三：业务调用</div>
                     <div class="mermaid">
 sequenceDiagram
-    participant C as 三方平台客户端
-    participant OP as 开放平台服务端
+    participant BE as 三方平台后端
     participant CS as Custody 服务
+    participant OP as 开放平台
     participant DB as 数据库
 
-    C->>OP: 业务请求<br/>(basic + business)
-    OP->>OP: 验证签名
-    OP->>CS: 转发业务请求
-    CS->>CS: 处理业务逻辑
-    CS-->>OP: 业务响应
-    OP-->>C: 返回业务结果
+    BE->>CS: 1. 业务请求 (createTreasuryUnit, createPayout...)
+    CS->>OP: 2. 调用业务接口 (authorizeId + 签名)
+    OP->>OP: 3. 验证签名 + authorizeId
+    OP->>DB: 4. 业务操作
+    DB-->>OP: 5. 操作结果
+    OP-->>CS: 6. 业务响应
+    CS-->>BE: 7. 返回业务结果
                     </div>
                 </div>
 
@@ -608,15 +635,15 @@ sequenceDiagram
                     <tbody>
                         <tr>
                             <td>获取授权 URL</td>
-                            <td>三方平台服务端调用 <code>/oauth/authorizeUrl</code> 获取授权页面 URL（包含 appToken + appName + appLogoUrl）</td>
+                            <td>三方平台后端调用 Custody 服务 <code>getAuthorizationUrl</code> 接口，Custody 服务内部调用开放平台 <code>/oauth/authorizeUrl</code> 获取授权页面 URL</td>
                         </tr>
                         <tr>
                             <td>发起授权</td>
-                            <td>用户通过三方平台客户端发起授权 → 调用 Custody → Custody 调用开放平台验证并存储授权 → 返回资源标识</td>
+                            <td>三方平台前端打开授权页面 → 用户登录授权 → 授权页面通过 postMessage 返回 oauthToken → 三方平台后端用 oauthToken 调用 Custody 服务验证接口换取 authorizeId</td>
                         </tr>
                         <tr>
                             <td>业务调用</td>
-                            <td>用户通过三方平台客户端直接调用开放平台业务接口 → 开放平台验证签名 → 转发到 Custody 完成业务</td>
+                            <td>三方平台后端通过 Custody 服务调用开放平台业务接口（使用 authorizeId）</td>
                         </tr>
                     </tbody>
                 </table>
@@ -643,8 +670,9 @@ Content-Type: application/json</pre>
   },
   "business": {
     "permissions": ["read", "write"],
-    "redirectUri": "https://example.com/callback",
-    "state": "custom-state"
+    "state": "custom-state",
+    "callback": "https://your-app.com/callback",
+    "token": "developer-generated-token-xyz"
   }
 }</span></div>
 
@@ -666,16 +694,22 @@ Content-Type: application/json</pre>
                             <td>权限列表</td>
                         </tr>
                         <tr>
-                            <td>redirectUri</td>
-                            <td>String</td>
-                            <td>是</td>
-                            <td>回调地址</td>
-                        </tr>
-                        <tr>
                             <td>state</td>
                             <td>String</td>
                             <td>是</td>
                             <td>防 CSRF 状态</td>
+                        </tr>
+                        <tr>
+                            <td>callback</td>
+                            <td>String</td>
+                            <td>否</td>
+                            <td>授权成功后的回调通知地址</td>
+                        </tr>
+                        <tr>
+                            <td>token</td>
+                            <td>String</td>
+                            <td>否</td>
+                            <td>开发者生成的 token，用于回调时身份映射</td>
                         </tr>
                     </tbody>
                 </table>
@@ -685,7 +719,7 @@ Content-Type: application/json</pre>
   "code": 0,
   "message": "Success",
   "data": {
-    "authorizeUrl": "https://openplatform.cregis.com/openplatform/auth/authorize?appId=xxx&appToken=yyy&appName=zzz&appLogoUrl=...&permissions=...&redirectUri=...&state=...",
+    "authorizeUrl": "https://openplatform.cregis.com/openplatform/auth/authorize?appId=xxx&appToken=yyy&appName=zzz&permissions=...&state=...",
     "expiresIn": 7200
   }
 }</span></div>
@@ -708,7 +742,7 @@ Content-Type: application/json</pre>
                         <tr>
                             <td>appToken</td>
                             <td>后端生成</td>
-                            <td>JWT token (内含 appId)</td>
+                            <td>JWT token (内含 appId + callback + token)</td>
                         </tr>
                         <tr>
                             <td>appName</td>
@@ -716,19 +750,9 @@ Content-Type: application/json</pre>
                             <td>应用名称（不可伪造）</td>
                         </tr>
                         <tr>
-                            <td>appLogoUrl</td>
-                            <td>平台配置</td>
-                            <td>应用 Logo（不可伪造）</td>
-                        </tr>
-                        <tr>
                             <td>permissions</td>
                             <td>请求 + 平台校验</td>
                             <td>权限列表</td>
-                        </tr>
-                        <tr>
-                            <td>redirectUri</td>
-                            <td>请求传入</td>
-                            <td>回调地址</td>
                         </tr>
                         <tr>
                             <td>state</td>
@@ -739,7 +763,11 @@ Content-Type: application/json</pre>
                 </table>
 
                 <h3>1.2 验证授权并存储</h3>
-                <p>资源服务器验证 Token 后存储授权信息。</p>
+                <p>用于 Custody 服务验证 Token 并存储授权信息。</p>
+
+                <div class="note">
+                    <strong>注意：</strong>此接口<strong>无需签名认证</strong>，直接接收业务参数。
+                </div>
 
                 <p><strong>请求</strong></p>
                 <pre>POST /api/thirdparty/oauth/verify
@@ -747,18 +775,64 @@ Content-Type: application/json</pre>
 
                 <p><strong>请求体</strong></p>
                 <div class="code-block"><span class="string">{
-  "basic": {
-    "appId": "550e8400-e29b-41d4-a716-446655440000",
-    "timestamp": 1742947200,
-    "nonce": "random-string",
-    "signature": "md5-hash"
-  },
-  "business": {
-    "oauthToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
+  "resourceKey": "treasury_unit_123",
+  "oauthToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }</span></div>
 
-                <p class="note"><strong>注意：</strong>此接口使用 Basic 签名，签名字符串为 <code>appId + timestamp + nonce + md5(business)</code>，不包含 authorizationId。</p>
+                <h4>请求参数</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>参数</th>
+                            <th>类型</th>
+                            <th>必填</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>resourceKey</td>
+                            <td>string</td>
+                            <td>是</td>
+                            <td>资源标识（如财务单元 ID）</td>
+                        </tr>
+                        <tr>
+                            <td>oauthToken</td>
+                            <td>string</td>
+                            <td>是</td>
+                            <td>OAuth 授权 token（JWT 格式，内含 callback 和 token）</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>回调通知</h4>
+                <p>验证成功后，开放平台会根据 JWT 中的 callback 参数或应用的默认回调地址发送通知：</p>
+                <div class="code-block"><span class="string">{
+  "authorizeId": "uuid-authorization-id",
+  "token": "developer-generated-token-xyz"
+}</span></div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>参数</th>
+                            <th>类型</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>authorizeId</td>
+                            <td>string</td>
+                            <td>授权记录 ID，用于后续业务接口的 authorizationId</td>
+                        </tr>
+                        <tr>
+                            <td>token</td>
+                            <td>string</td>
+                            <td>开发者提供的身份映射 token</td>
+                        </tr>
+                    </tbody>
+                </table>
 
                 <p><strong>响应</strong></p>
                 <div class="code-block"><span class="string">{
@@ -768,6 +842,24 @@ Content-Type: application/json</pre>
     "authorizeId": "uuid-authorization-id"
   }
 }</span></div>
+
+                <h4>响应参数</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>参数</th>
+                            <th>类型</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>authorizeId</td>
+                            <td>string</td>
+                            <td>授权记录 ID，用于后续业务接口的 authorizationId</td>
+                        </tr>
+                    </tbody>
+                </table>
             </section>
 
             <!-- Signature Section -->
@@ -887,15 +979,15 @@ Content-Type: application/json</pre>
                     <li><code>appSecret</code> = <code>secret123</code></li>
                     <li><code>timestamp</code> = <code>1742947200</code></li>
                     <li><code>nonce</code> = <code>abc123def456</code></li>
-                    <li><code>business</code> = <code>{"permissions":["read","write"],"redirectUri":"https://example.com/callback","state":"custom-state"}</code></li>
+                    <li><code>business</code> = <code>{"permissions":["read","write"],"state":"custom-state","callback":"https://example.com/callback","token":"xyz123"}</code></li>
                 </ul>
 
                 <p>计算过程：</p>
                 <pre><code>// 1. business JSON (已排序)
-businessJson = '{"permissions":["read","write"],"redirectUri":"https://example.com/callback","state":"custom-state"}'
+businessJson = '{"permissions":["read","write"],"state":"custom-state","callback":"https://example.com/callback","token":"xyz123"}'
 
 // 2. business MD5
-businessMd5 = MD5('{"permissions":["read","write"],"redirectUri":"https://example.com/callback","state":"custom-state"}')
+businessMd5 = MD5('{"permissions":["read","write"],"state":"custom-state","callback":"https://example.com/callback","token":"xyz123"}')
 
 // 3. 签名字符串 (Basic 签名不包含 authorizationId)
 signString = "550e8400-e29b-41d4-a716-446655440000" +
@@ -1032,15 +1124,15 @@ signature = MD5("secret123" + signString)</code></pre>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td>POST</td><td>/api/third-party/create/{resourceAccessKey}</td><td>创建财务单元</td></tr>
-                        <tr><td>POST</td><td>/api/third-party/list/{resourceAccessKey}</td><td>查询财务单元列表</td></tr>
-                        <tr><td>POST</td><td>/api/third-party/get-unit-address/{resourceAccessKey}</td><td>获取财务单元地址</td></tr>
-                        <tr><td>POST</td><td>/api/third-party/payout/{resourceAccessKey}</td><td>出金操作</td></tr>
-                        <tr><td>POST</td><td>/api/third-party/submit/task/{resourceAccessKey}/{taskId}</td><td>提交任务审批</td></tr>
-                        <tr><td>POST</td><td>/api/third-party/activities/{resourceAccessKey}</td><td>查询活动记录</td></tr>
-                        <tr><td>POST</td><td>/api/third-party/transfer-out-orders/{resourceAccessKey}</td><td>查询出金订单</td></tr>
-                        <tr><td>POST</td><td>/api/third-party/transfer-in-orders/{resourceAccessKey}</td><td>查询入金订单</td></tr>
-                        <tr><td>POST</td><td>/api/third-party/fund-records/{resourceAccessKey}</td><td>查询资金流水</td></tr>
+                        <tr><td>POST</td><td>/api/thirdparty/treasury/create</td><td>创建财务单元</td></tr>
+                        <tr><td>POST</td><td>/api/thirdparty/treasury/list</td><td>查询财务单元列表</td></tr>
+                        <tr><td>POST</td><td>/api/thirdparty/treasury/address</td><td>获取财务单元地址</td></tr>
+                        <tr><td>POST</td><td>/api/thirdparty/treasury/payout</td><td>出金操作</td></tr>
+                        <tr><td>POST</td><td>/api/thirdparty/treasury/submit-task/{taskId}</td><td>提交任务审批</td></tr>
+                        <tr><td>POST</td><td>/api/thirdparty/treasury/activities</td><td>查询活动记录</td></tr>
+                        <tr><td>POST</td><td>/api/thirdparty/treasury/transfer-out-orders</td><td>查询出金订单</td></tr>
+                        <tr><td>POST</td><td>/api/thirdparty/treasury/transfer-in-orders</td><td>查询入金订单</td></tr>
+                        <tr><td>POST</td><td>/api/thirdparty/treasury/fund-records</td><td>查询资金流水</td></tr>
                     </tbody>
                 </table>
 
@@ -1060,7 +1152,7 @@ signature = MD5("secret123" + signString)</code></pre>
 }</span></div>
 
                 <h3>3.3 创建财务单元</h3>
-                <p><strong>POST</strong> <code>/api/third-party/create/{resourceAccessKey}</code></p>
+                <p><strong>POST</strong> <code>/api/thirdparty/treasury/create</code></p>
                 <p>创建新的财务单元。</p>
 
                 <h4>请求参数</h4>
@@ -1142,7 +1234,7 @@ signature = MD5("secret123" + signString)</code></pre>
 }</span></div>
 
                 <h3>3.4 查询财务单元列表</h3>
-                <p><strong>POST</strong> <code>/api/third-party/list/{resourceAccessKey}</code></p>
+                <p><strong>POST</strong> <code>/api/thirdparty/treasury/list</code></p>
                 <p>查询当前商户下所有财务单元。</p>
 
                 <h4>响应示例</h4>
@@ -1168,7 +1260,7 @@ signature = MD5("secret123" + signString)</code></pre>
 }</span></div>
 
                 <h3>3.5 获取财务单元地址</h3>
-                <p><strong>POST</strong> <code>/api/third-party/get-unit-address/{resourceAccessKey}</code></p>
+                <p><strong>POST</strong> <code>/api/thirdparty/treasury/address</code></p>
                 <p>获取财务单元下指定账户类型的地址列表。</p>
 
                 <h4>请求参数</h4>
@@ -1187,7 +1279,7 @@ signature = MD5("secret123" + signString)</code></pre>
                 </table>
 
                 <h3>3.6 出金操作</h3>
-                <p><strong>POST</strong> <code>/api/third-party/payout/{resourceAccessKey}</code></p>
+                <p><strong>POST</strong> <code>/api/thirdparty/treasury/payout</code></p>
                 <p>发起出金操作。</p>
 
                 <h4>请求参数</h4>
@@ -1207,7 +1299,7 @@ signature = MD5("secret123" + signString)</code></pre>
                 </table>
 
                 <h3>3.7 提交任务审批</h3>
-                <p><strong>POST</strong> <code>/api/third-party/submit/task/{resourceAccessKey}/{taskId}</code></p>
+                <p><strong>POST</strong> <code>/api/thirdparty/treasury/submit-task/{taskId}</code></p>
                 <p>提交任务审批（签名）。</p>
 
                 <h4>请求参数</h4>
@@ -1222,7 +1314,7 @@ signature = MD5("secret123" + signString)</code></pre>
                 </table>
 
                 <h3>3.4 查询财务单元列表</h3>
-                <p><strong>POST</strong> <code>/api/third-party/list/{resourceAccessKey}</code></p>
+                <p><strong>POST</strong> <code>/api/thirdparty/treasury/list</code></p>
                 <p>查询当前商户下所有财务单元。</p>
 
                 <h4>请求参数</h4>
@@ -1238,7 +1330,7 @@ signature = MD5("secret123" + signString)</code></pre>
                 </table>
 
                 <h3>3.8 查询活动记录</h3>
-                <p><strong>POST</strong> <code>/api/third-party/activities/{resourceAccessKey}</code></p>
+                <p><strong>POST</strong> <code>/api/thirdparty/treasury/activities</code></p>
                 <p>分页查询活动记录，包括所有资金操作如入金、出金、转账等。</p>
 
                 <h4>请求参数</h4>
@@ -1259,7 +1351,7 @@ signature = MD5("secret123" + signString)</code></pre>
                 </table>
 
                 <h3>3.9 查询出金订单</h3>
-                <p><strong>POST</strong> <code>/api/third-party/transfer-out-orders/{resourceAccessKey}</code></p>
+                <p><strong>POST</strong> <code>/api/thirdparty/treasury/transfer-out-orders</code></p>
                 <p>分页查询出金订单，包括提现和调拨订单。</p>
 
                 <h4>请求参数</h4>
@@ -1280,7 +1372,7 @@ signature = MD5("secret123" + signString)</code></pre>
                 </table>
 
                 <h3>3.10 查询入金订单</h3>
-                <p><strong>POST</strong> <code>/api/third-party/transfer-in-orders/{resourceAccessKey}</code></p>
+                <p><strong>POST</strong> <code>/api/thirdparty/treasury/transfer-in-orders</code></p>
                 <p>分页查询入金订单，包括充值和收款订单。</p>
 
                 <h4>请求参数</h4>
@@ -1301,7 +1393,7 @@ signature = MD5("secret123" + signString)</code></pre>
                 </table>
 
                 <h3>3.11 查询资金流水</h3>
-                <p><strong>POST</strong> <code>/api/third-party/fund-records/{resourceAccessKey}</code></p>
+                <p><strong>POST</strong> <code>/api/thirdparty/treasury/fund-records</code></p>
                 <p>分页查询资金流水，记录每笔资金变动明细。</p>
 
                 <h4>请求参数</h4>
@@ -1448,8 +1540,9 @@ const timestamp = Math.floor(Date.now() / 1000);
 const nonce = crypto.randomUUID();
 const business = {
   permissions: ['read', 'write'],
-  redirectUri: 'https://example.com/callback',
-  state: 'custom-state'
+  state: 'custom-state',
+  callback: 'https://example.com/callback',
+  token: 'xyz123'
 };
 
 const signature = calculateBasicSignature(
@@ -1461,12 +1554,15 @@ const signature = calculateBasicSignature(
   appId: string,
   appSecret: string,
   permissions: string[],
-  redirectUri: string,
-  state: string
+  state: string,
+  callback?: string,
+  token?: string
 ): Promise&lt;string&gt; {
   const timestamp = Math.floor(Date.now() / 1000);
   const nonce = crypto.randomUUID();
-  const business = { permissions, redirectUri, state };
+  const business: Record&lt;string, unknown&gt; = { permissions, state };
+  if (callback) business.callback = callback;
+  if (token) business.token = token;
 
   // 使用 Basic 签名（OAuth 接口不需要 authorizationId）
   const signature = calculateBasicSignature(
@@ -1610,6 +1706,493 @@ async function authorize() {
 
                 <div class="note">
                     <strong>UUID 验证:</strong> SDK 与授权页面通过 UUID 进行双向消息验证
+                </div>
+            </section>
+
+            <!-- SDK Integration Section -->
+            <section id="sdk-overview" class="section">
+                <h2>六、SDK 集成指南</h2>
+
+                <h3>6.1 概述</h3>
+                <p>开放平台提供两种官方 SDK，帮助开发者快速接入：</p>
+
+                <table>
+                    <thead>
+                        <tr><th>SDK</th><th>包名</th><th>适用场景</th><th>认证方式</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Node.js SDK</strong></td>
+                            <td><code>@cregis-kit/openplatform-node</code></td>
+                            <td>后端服务集成</td>
+                            <td>自动处理签名计算</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Web SDK</strong></td>
+                            <td><code>@cregis-kit/openplatform-webkit</code></td>
+                            <td>前端页面集成</td>
+                            <td>处理授权弹窗通信</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="note">
+                    <strong>一句话定位：</strong> Node SDK 让后端安全接入，Web SDK 让前端轻松集成授权页面。
+                </div>
+
+                <h3>6.2 能力速览</h3>
+
+                <h4>Node.js SDK 能力</h4>
+                <table>
+                    <thead>
+                        <tr><th>能力</th><th>方法</th><th>说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>授权 URL</td><td><code>getAuthorizationUrl()</code></td><td>获取授权页面 URL</td></tr>
+                        <tr><td>财务单元</td><td><code>createTreasuryUnit()</code></td><td>创建托管钱包</td></tr>
+                        <tr><td>出金操作</td><td><code>createPayout()</code></td><td>发起加密资产转账</td></tr>
+                        <tr><td>任务审批</td><td><code>submitTask()</code></td><td>提交多签审批</td></tr>
+                        <tr><td>Webhooks</td><td><code>registerWebhook()</code></td><td>接收平台事件通知</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Web SDK 能力</h4>
+                <table>
+                    <thead>
+                        <tr><th>组件</th><th>说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>CregisWebSDK</code></td><td>授权页面管理，支持 popup/tab/window 三种模式</td></tr>
+                        <tr><td><code>TransferTaskDetailDialog</code></td><td>转账任务详情展示组件，用于审批流程</td></tr>
+                    </tbody>
+                </table>
+
+                <h3 id="sdk-architecture">6.3 架构概览</h3>
+
+                <div class="diagram-container">
+                    <div class="diagram-title">SDK 集成架构</div>
+                    <pre class="mermaid">
+sequenceDiagram
+    participant FE as 第三方前端
+    participant CS as Custody 服务
+    participant OP as 开放平台
+    participant AuthPage as 授权页面
+
+    CS->>OP: Basic 签名请求获取授权 URL
+    OP-->>CS: authorizeUrl
+    CS-->>FE: authorizeUrl
+
+    FE->>AuthPage: 打开授权页面
+    AuthPage->>OP: 用户登录授权
+    OP-->>AuthPage: oauthToken
+    AuthPage-->>FE: 授权成功消息
+    FE-->>CS: 回调通知 authorizeId
+    CS->>OP: 使用 authorizeId 调用业务接口
+
+    Note over CS,OP: 授权完成后返回 authorizeId，用于后续所有业务接口调用
+                    </pre>
+                </div>
+
+                <div class="success">
+                    <strong>关键流程：</strong> 通过 authorizeId 调用开放平台业务接口（Custody 服务通过 Node.js SDK 或直接调用）
+                </div>
+
+                <h3 id="sdk-nodejs">6.4 Node.js SDK 集成</h3>
+
+                <h4>安装</h4>
+                <pre><code>npm install @cregis-kit/openplatform-node</code></pre>
+
+                <h4>初始化与授权</h4>
+                <pre><code>import { CregisSDK } from '@cregis-kit/openplatform-node';
+
+const sdk = new CregisSDK({
+  baseUrl: 'https://api.cregis.com',
+  appId: 'your-app-id-uuid',
+  appSecret: 'your-app-secret',
+});
+
+// 获取授权 URL
+const { authorizeUrl } = await sdk.getAuthorizationUrl({
+  permissions: ['treasury:create', 'payout:create'],
+  state: 'random-state-string',
+  callback: 'https://your-app.com/callback',
+  token: 'developer-token-xyz',
+});
+
+// 授权成功后，开放平台自动完成验证和存储
+// 前端会收到 oauthToken（用于调试/日志），但无需开发者调用验证接口
+
+// 直接使用 authorizeId 调用业务接口
+const unit = await sdk.createTreasuryUnit(authorizeId, request);
+const payout = await sdk.createPayout(authorizeId, payoutRequest);
+                </code></pre>
+
+                <h4>财务单元管理</h4>
+                <pre><code>// 创建财务单元
+const unit = await sdk.createTreasuryUnit(authorizeId, {
+  businessScope: 'DEDICATED_ACCOUNT',
+  topology: 'ORBIT',
+  coinIds: [{ coinId: 'USDT', network: 'TRC20' }],
+  primaryManager: [{ coinId: 'USDT', fundControlRules: [...] }],
+  payoutManager: [...],
+  riskManager: [...],
+});
+
+// 查询列表
+const units = await sdk.listTreasuryUnits(authorizeId, { pageSize: 10 });
+
+// 获取地址
+const addresses = await sdk.getTreasuryUnitAddress(authorizeId, { unitId: 1 });
+                </code></pre>
+
+                <h4>出金操作</h4>
+                <pre><code>// 创建出金订单
+const payout = await sdk.createPayout(authorizeId, {
+  unitId: 1,
+  payTo: [{ address: '0xabcd...', amount: '10000' }],
+  coinId: 'USDT',
+  network: 'TRC20',
+  merchantType: 'payment',
+});
+
+// 查询出金订单
+const orders = await sdk.listTransferOutOrders(authorizeId, { pageIndex: 0, pageSize: 20 });
+                </code></pre>
+
+                <h4>任务审批</h4>
+                <pre><code>// 提交审批（确认/拒绝）
+const result = await sdk.submitTask(authorizeId, taskId, {
+  confirmed: true,      // true = 确认，false = 拒绝
+  signatures: { [taskId]: ['sig1', 'sig2'] },
+});
+                </code></pre>
+
+                <h4>Webhook 管理</h4>
+                <pre><code>// 注册 Webhook
+const webhook = await sdk.registerWebhook({
+  url: 'https://your-app.com/webhook',
+  eventTypes: ['payout.completed', 'payout.failed'],
+});
+
+// 查询和删除
+const webhooks = await sdk.listWebhooks();
+await sdk.deleteWebhook(webhookId);
+                </code></pre>
+
+                <h4>错误处理</h4>
+                <pre><code>import { CregisSDK, SDKError, SDKErrorCode } from '@cregis-kit/openplatform-node';
+
+try {
+  const result = await sdk.createTreasuryUnit(authorizeId, request);
+} catch (error) {
+  if (error instanceof SDKError) {
+    console.error('SDK Error:', {
+      code: error.code,           // SDKErrorCode 枚举值
+      message: error.message,    // 错误描述
+      httpStatus: error.httpStatus,
+      isRetryable: error.isRetryable,  // 是否可重试
+    });
+
+    // 根据错误类型处理
+    if (error.code === SDKErrorCode.API_UNAUTHORIZED) {
+      // 认证失败，需要重新获取授权
+      console.log('需要重新授权');
+    }
+  }
+}
+                </code></pre>
+
+                <h3 id="sdk-web">6.5 Web SDK 集成</h3>
+
+                <h4>安装</h4>
+                <pre><code>npm install @cregis-kit/openplatform-webkit</code></pre>
+
+                <h4>授权页面集成</h4>
+                <pre><code>import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
+
+const sdk = new CregisWebSDK({
+  appId: 'your-app-id',
+  authUrl: 'https://openplatform.cregis.com/openplatform/auth/authorize',
+  container: '#auth-container',
+  mode: 'popup',
+
+  onReady: ({ uuid }) => {
+    console.log('授权页面已就绪, SDK UUID:', uuid);
+  },
+
+  onAuthorizationComplete: ({ authorizeId }) => {
+    console.log('授权成功, authorizeId:', authorizeId);
+  },
+
+  onAuthorizationError: ({ code, message }) => {
+    console.error('授权失败:', code, message);
+  },
+});
+
+// 打开授权页面
+const result = await sdk.openAuthorization(authorizeUrl);
+
+if (result.status === 'success') {
+  console.log('授权成功, authorizeId:', result.authorizeId);
+}
+                </code></pre>
+
+                <h4>转账任务详情组件</h4>
+                <pre><code>import { openTransferTaskDetailDialog } from '@cregis-kit/openplatform-webkit';
+
+const taskData = {
+  taskId: '#TRX-8829',
+  status: 'pending',
+  amount: '10000',
+  coin: 'USDT',
+  network: 'Ethereum',
+  from: { name: 'Corporate Treasury', address: '0x1234...', type: 'account' },
+  to: { name: 'Vendor Payment', address: '0xabcd...', type: 'external' },
+  meta: { unit: 'Everypay-Treasury', createdAt: '2024-01-15 10:30:00', expiresIn: '24h' },
+  approvalFlow: [
+    { name: 'Manager Approval', status: 'completed', actor: 'john@company.com' },
+    { name: 'CFO Approval', status: 'current' },
+    { name: 'Final Confirmation', status: 'pending' },
+  ],
+};
+
+// 打开弹窗
+const dialog = openTransferTaskDetailDialog(taskData, {
+  title: 'Review Transfer',
+  onClose: () => console.log('Dialog closed'),
+});
+                </code></pre>
+
+                <h3 id="sdk-e2e">6.6 前后端配合完整示例</h3>
+
+                <div class="diagram-container">
+                    <div class="diagram-title">端到端集成流程</div>
+                    <pre class="mermaid">
+sequenceDiagram
+    participant FE as 第三方前端
+    participant BE as 第三方后端
+    participant CS as Custody 服务
+    participant OP as 开放平台
+    participant AuthPage as 授权页面
+
+    Note over BE,OP: 阶段一：获取授权 URL
+    FE->>BE: 1. 请求授权 URL
+    BE->>CS: 2. getAuthorizationUrl()
+    CS->>OP: 3. POST /oauth/authorizeUrl
+    OP-->>CS: 4. authorizeUrl
+    CS-->>BE: 5. authorizeUrl
+    BE-->>FE: 6. authorizeUrl
+
+    Note over FE,OP: 阶段二：用户授权
+    FE->>AuthPage: 7. 打开授权页面
+    AuthPage->>CS: 8. 用户身份验证
+    CS->>OP: 9. 身份验证请求
+    OP-->>CS: 10. 验证结果
+    AuthPage->>OP: 11. 用户授权
+    OP->>OP: 12. 生成 oauthToken + 存储
+
+    alt 有回调 URL
+        OP->>BE: 13. 回调 (oauthToken/authorizeId)
+    end
+
+    AuthPage-->>FE: 14. postMessage (oauthToken 或状态)
+    FE-->>BE: 15. 提交授权信息
+
+    Note over BE,OP: 阶段三：业务调用
+    BE->>CS: 16. createTreasuryUnit(authorizeId, ...)
+    CS->>OP: 17. POST /api/thirdparty/treasury/create
+    OP-->>CS: 18. treasury.id
+    CS-->>BE: 19. treasury.id
+                    </pre>
+                </div>
+
+                <h4>后端代码（Node.js SDK）</h4>
+                <pre><code>// server.js
+import { CregisSDK } from '@cregis-kit/openplatform-node';
+
+const sdk = new CregisSDK({
+  baseUrl: 'https://api.cregis.com',
+  appId: process.env.APP_ID,
+  appSecret: process.env.APP_SECRET,
+});
+
+// API: 获取授权 URL
+app.post('/api/authorize-url', async (req, res) => {
+  const { customerId } = req.body; // 三方平台的用户 ID
+
+  // 1. 生成 token 用于关联用户身份
+  const token = generateOAuthToken(); // 开发者自己生成
+
+  // 2. 缓存 token -> customerId 映射
+  await db.pendingAuthorizations.create({
+    data: { token, customerId },
+  });
+
+  // 3. 调用 Custody 服务获取授权 URL
+  const { authorizeUrl } = await sdk.getAuthorizationUrl({
+    permissions: ['treasury:create', 'payout:create'],
+    state: generateState(),
+    callback: 'https://your-app.com/callback',
+    token,
+  });
+  res.json({ authorizeUrl });
+});
+
+// 授权回调 - 接收开放平台的通知，通过 token 查找客户身份并绑定 authorizeId
+app.post('/api/callback', async (req, res) => {
+  const { authorizeId, token } = req.body;
+
+  // 在开发者数据库中查找 token 对应的客户身份
+  const pendingAuth = await db.pendingAuthorizations.findUnique({
+    where: { token },
+  });
+
+  if (!pendingAuth) {
+    return res.status(404).json({ error: 'Pending authorization not found' });
+  }
+
+  const { customerId } = pendingAuth;
+
+  // 绑定客户身份与 authorizeId
+  await db.authorizations.upsert({
+    where: { customerId },
+    update: { authorizeId, status: 'active' },
+    create: { customerId, authorizeId, status: 'active' },
+  });
+
+  // 删除待处理记录
+  await db.pendingAuthorizations.delete({ where: { token } });
+
+  res.json({ success: true });
+});
+
+// API: 创建出金订单（使用 authorizeId）
+app.post('/api/payout', requireAuth, async (req, res) => {
+  const authorizeId = req.session.authorizeId;
+  const payout = await sdk.createPayout(authorizeId, req.body);
+  res.json(payout);
+});
+                </code></pre>
+
+                <h4>前端代码（Web SDK）</h4>
+                <pre><code>// client.js
+import { CregisWebSDK, openTransferTaskDetailDialog } from '@cregis-kit/openplatform-webkit';
+
+const sdk = new CregisWebSDK({
+  appId: 'your-app-id',
+  authUrl: 'https://openplatform.cregis.com/openplatform/auth/authorize',
+
+  onAuthorizationComplete: async ({ oauthToken, status }) => {
+    if (status === 'success' && oauthToken) {
+      // 将 oauthToken 提交给后端验证
+      const response = await fetch('/api/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oauthToken }),
+      });
+      const result = await response.json();
+      console.log('授权完成, authorizeId:', result.authorizeId);
+    }
+  },
+});
+
+// 发起授权
+async function startAuthorization() {
+  const resp = await fetch('/api/authorize-url', { method: 'POST' });
+  const { authorizeUrl } = await resp.json();
+  await sdk.openAuthorization(authorizeUrl);
+}
+
+// 显示转账审批弹窗
+function showPayoutDialog(taskId) {
+  const taskData = await fetchTaskDetails(taskId);
+  openTransferTaskDetailDialog(taskData, {
+    onClose: () => console.log('审批弹窗已关闭'),
+  });
+}
+                </code></pre>
+
+                <h3 id="sdk-security">6.7 安全模型</h3>
+
+                <h4>Node.js SDK 安全措施</h4>
+                <table>
+                    <thead>
+                        <tr><th>措施</th><th>说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>自动签名计算</td>
+                            <td>SDK 内部自动完成 Basic Signature 和 Resource Signature 计算，无需暴露 appSecret</td>
+                        </tr>
+                        <tr>
+                            <td>时间戳生成</td>
+                            <td>自动生成符合要求的 timestamp，避免时间戳错误导致的签名失败</td>
+                        </tr>
+                        <tr>
+                            <td>Nonce 管理</td>
+                            <td>自动生成随机 nonce，符合防重放要求</td>
+                        </tr>
+                        <tr>
+                            <td>参数校验</td>
+                            <td>请求参数自动校验，避免格式错误</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>Web SDK 安全措施</h4>
+                <table>
+                    <thead>
+                        <tr><th>措施</th><th>说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>UUID 双向验证</td>
+                            <td>SDK 实例与授权页面通过唯一 UUID 建立安全通信通道，防止跨域消息污染</td>
+                        </tr>
+                        <tr>
+                            <td>Origin 限制</td>
+                            <td>支持配置允许的 iframe 来源，增强安全性</td>
+                        </tr>
+                        <tr>
+                            <td>模式选择</td>
+                            <td>popup（iframe）、tab、window 三种模式，可根据场景选择安全级别</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 id="sdk-versions">6.8 版本和兼容性</h3>
+
+                <h4>Node.js SDK 版本要求</h4>
+                <table>
+                    <thead>
+                        <tr><th>要求</th><th>说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Node.js 版本</td><td>>= 18.0.0</td></tr>
+                        <tr><td>TypeScript</td><td>推荐使用，提供完整类型定义</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Web SDK 版本要求</h4>
+                <table>
+                    <thead>
+                        <tr><th>要求</th><th>说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>浏览器</td><td>现代浏览器（Chrome, Firefox, Safari, Edge）</td></tr>
+                        <tr><td>ES6+</td><td>需要支持 ES6 模块和 async/await</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>版本更新策略</h4>
+                <ul>
+                    <li><strong>主版本号：</strong>不兼容的 API 变更</li>
+                    <li><strong>次版本号：</strong>向后兼容的功能新增</li>
+                    <li><strong>修订号：</strong>向后兼容的问题修复</li>
+                </ul>
+
+                <div class="note">
+                    <strong>推荐做法：</strong>锁定 SDK 版本号在 package.json 中，定期评估并升级到最新稳定版本。
                 </div>
             </section>
 

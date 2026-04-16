@@ -96,8 +96,6 @@ model OauthResource {
   id           String   @id @default(uuid())
   /// 关联的应用ID
   appId       String   @map("app_id")
-  /// 开发平台用户ID
-  userId      String   @map("user_id")
   /// 资源键（替换原enterpriseId），可关联企业或其他资源
   resourceKey String?  @map("resource_key")
   /// 授权时间

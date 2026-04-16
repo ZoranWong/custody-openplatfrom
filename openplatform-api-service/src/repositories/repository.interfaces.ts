@@ -66,7 +66,7 @@ export interface OauthResourceRepository extends Repository<OauthResource> {
   findByAppId(appId: string): Promise<OauthResource[]>
   findByApp(appId: string): Promise<OauthResource[]>
   findByAppAndResource(appId: string, resourceKey: string): Promise<OauthResource | null>
-  upsert(data: Omit<OauthResource, 'id' | 'createdAt' | 'updatedAt' | 'authorizedAt'>): Promise<OauthResource>
+  upsert(data: Omit<OauthResource, 'id' | 'createdAt' | 'updatedAt'>): Promise<OauthResource>
 }
 
 // Legacy type alias for backward compatibility

@@ -132,8 +132,9 @@ export class AuthService {
    */
   async getAuthorizationUrl(params: {
     permissions: string[];
-    redirectUri: string;
     state: string;
+    callback?: string;  // Authorization success callback URL
+    token?: string;     // Developer-generated token for user identity mapping
   }): Promise<{
     authorizeUrl: string;
     expiresIn: number;
@@ -141,11 +142,20 @@ export class AuthService {
     const timestamp = getTimestamp();
     const nonce = generateNonce();
 
-    const business = {
+    const business: Record<string, unknown> = {
       permissions: params.permissions,
-      redirectUri: params.redirectUri,
       state: params.state,
     };
+
+    // Include callback if provided
+    if (params.callback) {
+      business.callback = params.callback;
+    }
+
+    // Include token if provided (for identity mapping)
+    if (params.token) {
+      business.token = params.token;
+    }
 
     const signatureParams: BasicSignatureParams = {
       appId: this.config.appId,

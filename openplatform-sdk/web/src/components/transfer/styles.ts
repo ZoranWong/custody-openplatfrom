@@ -834,6 +834,145 @@ export const defaultDialogStyles = `
 .transfer-task-dialog-explorer-link:hover {
     background: #dbeafe;
 }
+
+/* Action Bar */
+.transfer-task-dialog-action-bar {
+    flex-shrink: 0;
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    z-index: 10;
+}
+
+.transfer-task-dialog-action-bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+}
+
+.transfer-task-dialog-action-info {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.transfer-task-dialog-action-task-id {
+    font-family: monospace;
+    color: #111827;
+    font-weight: 500;
+}
+
+.transfer-task-dialog-action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.transfer-task-dialog-btn-reject {
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 1px solid #fecaca;
+    background: #ffffff;
+    color: #dc2626;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.transfer-task-dialog-btn-reject:hover {
+    background: #fef2f2;
+}
+
+.transfer-task-dialog-btn-sign {
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: none;
+    background: #111827;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.transfer-task-dialog-btn-sign:hover {
+    background: #1f2937;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.transfer-task-dialog-btn-sign:active {
+    transform: scale(0.95);
+}
+
+.transfer-task-dialog-btn-sign:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.transfer-task-dialog-btn-sign.loading {
+    background: #6b7280;
+    cursor: wait;
+}
+
+.transfer-task-dialog-sign-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid #ffffff;
+    border-radius: 50%;
+    animation: transfer-task-dialog-spin 0.8s linear infinite;
+}
+
+@keyframes transfer-task-dialog-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Toast */
+.transfer-task-dialog-toast {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    animation: transfer-task-dialog-toast-in 0.3s ease-out;
+    white-space: nowrap;
+}
+
+.transfer-task-dialog-toast.success {
+    background: #16a34a;
+}
+
+.transfer-task-dialog-toast.error {
+    background: #dc2626;
+}
+
+.transfer-task-dialog-toast.fade-out {
+    animation: transfer-task-dialog-toast-out 0.3s ease-in forwards;
+}
+
+@keyframes transfer-task-dialog-toast-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes transfer-task-dialog-toast-out {
+    from { opacity: 1; transform: translateX(-50%) translateY(0); }
+    to { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+}
 `;
 
 /**

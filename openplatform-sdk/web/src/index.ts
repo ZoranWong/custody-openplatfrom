@@ -739,4 +739,6 @@ export type {
     TravelRuleInfo,
     ApprovalStep,
     TransferTaskMeta,
+    SignParams,
+    SignResult,
 } from './components/transfer/types';

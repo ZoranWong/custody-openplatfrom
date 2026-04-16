@@ -82,7 +82,7 @@ export class OauthResourceRepositoryImpl implements OauthResourceRepository {
     return this.db.findOne<OauthResource>({ appId, resourceKey } as any) as Promise<OauthResource | null>;
   }
 
-  async upsert(data: Omit<OauthResource, 'id' | 'createdAt' | 'updatedAt' | 'authorizedAt'>): Promise<OauthResource> {
+  async upsert(data: Omit<OauthResource, 'id' | 'createdAt' | 'updatedAt'>): Promise<OauthResource> {
     // Check if exists
     const existing = await this.findByAppAndResource(data.appId, data.resourceKey || '');
 

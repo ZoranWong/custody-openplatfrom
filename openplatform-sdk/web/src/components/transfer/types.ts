@@ -13,6 +13,12 @@ export interface TransferTaskDetailDialogOptions {
     className?: string;
     /** Callback when dialog is closed */
     onClose?: () => void;
+    /** Callback when user signs successfully */
+    onSign?: (result: SignResult) => void;
+    /** Callback when user rejects the task */
+    onReject?: (taskId: string) => void;
+    /** Callback when signing fails */
+    onSignError?: (error: Error) => void;
 }
 
 /**
@@ -107,6 +113,8 @@ export interface TransferTaskDetailData {
     meta: TransferTaskMeta;
     /** Approval flow steps */
     approvalFlow: ApprovalStep[];
+    /** Sign parameters (when present, enables Action Bar) */
+    signParams?: SignParams;
 }
 
 /**
@@ -140,4 +148,28 @@ export const StatusConfig = {
  */
 export function getStatusDisplay(status: TransferTaskDetailData['status']) {
     return StatusConfig[status] || StatusConfig.pending;
+}
+
+/**
+ * Sign parameters for SealX signing
+ */
+export interface SignParams {
+    /** EIP-712 signContent JSON string */
+    signContent: string;
+    /** Task type, e.g. 'orders', 'eip712' */
+    taskType: string;
+    /** Signing command, e.g. 'transfer' */
+    command: string;
+    /** Expiration timestamp string */
+    validUntilTime: string;
+    /** signContent key mapping JSON string */
+    signContentKeyMapping?: string;
+}
+
+/**
+ * Sign result returned via onSign callback
+ */
+export interface SignResult {
+    taskId: string;
+    signature: string;
 }

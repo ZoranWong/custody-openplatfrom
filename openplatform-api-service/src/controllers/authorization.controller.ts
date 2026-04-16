@@ -205,6 +205,7 @@ export async function createAuthorization(req: Request, res: Response): Promise<
       permissions,
       expiresAt,
       status: 'active',
+      authorizedAt: new Date().toISOString(),
     });
 
     res.status(200).json({

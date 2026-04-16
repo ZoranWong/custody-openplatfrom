@@ -12,6 +12,7 @@ import {
     TravelRuleItem,
 } from './types';
 import { injectDialogStyles } from './styles';
+import { signBySealx, closeSealx } from 'sealx-sdk';
 
 /**
  * Generate SVG icon elements
@@ -292,6 +293,7 @@ export class TransferTaskDetailDialog {
     private data: TransferTaskDetailData | null = null;
     private isMultipleMode = false;
     private isDestroyed = false;
+    private isSigning = false;
 
     /**
      * Create a new TransferTaskDetailDialog
@@ -459,6 +461,20 @@ export class TransferTaskDetailDialog {
                             </div>
                         </div>
                     </div>
+                    ${this.shouldShowActionBar(data) ? `
+                    <!-- Action Bar -->
+                    <div class="transfer-task-dialog-action-bar">
+                        <div class="transfer-task-dialog-action-bar-content">
+                            <div class="transfer-task-dialog-action-info">
+                                Reviewing task <span class="transfer-task-dialog-action-task-id">#${data.taskId.replace('#', '')}</span>
+                            </div>
+                            <div class="transfer-task-dialog-action-buttons">
+                                <button class="transfer-task-dialog-btn-reject" id="dialog-reject-btn">Reject</button>
+                                <button class="transfer-task-dialog-btn-sign" id="dialog-sign-btn">Sign</button>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
             </div>
         `;
@@ -550,6 +566,136 @@ export class TransferTaskDetailDialog {
             }
         };
         document.addEventListener('keydown', handleEscape);
+
+        // Action bar listeners
+        this.attachActionBarListeners();
+    }
+
+    /**
+     * Check if action bar should be shown
+     */
+    private shouldShowActionBar(data: TransferTaskDetailData): boolean {
+        return data.status === 'wait_for_sign' && !!data.signParams;
+    }
+
+    /**
+     * Attach action bar event listeners
+     */
+    private attachActionBarListeners(): void {
+        if (!this.overlay) return;
+
+        const rejectBtn = this.overlay.querySelector('#dialog-reject-btn');
+        const signBtn = this.overlay.querySelector('#dialog-sign-btn');
+
+        rejectBtn?.addEventListener('click', () => {
+            if (this.data) {
+                this.options.onReject?.(this.data.taskId);
+            }
+        });
+
+        signBtn?.addEventListener('click', () => {
+            this.handleSign();
+        });
+    }
+
+    /**
+     * Handle sign button click
+     */
+    private async handleSign(): Promise<void> {
+        if (this.isSigning || !this.data?.signParams) return;
+        this.isSigning = true;
+        this.updateSignButton('loading');
+
+        try {
+            const params = this.data.signParams;
+            const signContent = JSON.parse(params.signContent);
+            const signContentWithLayout = {
+                ...signContent,
+                layout: {
+                    template: '',
+                    keysMapStr: params.signContentKeyMapping || '{}'
+                }
+            };
+
+            const signTask = {
+                taskId: this.data.taskId.replace('#', ''),
+                taskType: params.taskType,
+                command: params.command,
+                signContent: signContentWithLayout,
+                validUntilTime: params.validUntilTime
+            };
+
+            const res = await signBySealx<{ signature: string }>(signTask);
+            const signature = (res as { signature?: string })?.signature ?? '';
+
+            if (!signature) {
+                throw new Error('Signing failed: no signature returned');
+            }
+
+            this.updateSignButton('success');
+            this.showToast('Signed successfully', 'success');
+            this.options.onSign?.({ taskId: this.data.taskId, signature });
+        } catch (e: any) {
+            this.updateSignButton('error');
+            const message = e?.message || 'Signing failed';
+            this.showToast(message, 'error');
+            this.options.onSignError?.(e instanceof Error ? e : new Error(message));
+        } finally {
+            closeSealx();
+            this.isSigning = false;
+        }
+    }
+
+    /**
+     * Update sign button state
+     */
+    private updateSignButton(state: 'loading' | 'success' | 'error'): void {
+        if (!this.overlay) return;
+        const btn = this.overlay.querySelector('#dialog-sign-btn') as HTMLButtonElement;
+        if (!btn) return;
+
+        if (state === 'loading') {
+            btn.disabled = true;
+            btn.classList.add('loading');
+            btn.innerHTML = '<span class="transfer-task-dialog-sign-spinner"></span> Signing...';
+        } else if (state === 'success') {
+            btn.disabled = true;
+            btn.classList.remove('loading');
+            btn.innerHTML = 'Signed';
+            btn.style.background = '#16a34a';
+            setTimeout(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Sign';
+                    btn.style.background = '';
+                }
+            }, 2000);
+        } else {
+            btn.disabled = false;
+            btn.classList.remove('loading');
+            btn.innerHTML = 'Sign';
+            btn.style.background = '';
+        }
+    }
+
+    /**
+     * Show toast notification
+     */
+    private showToast(message: string, type: 'success' | 'error'): void {
+        if (!this.overlay) return;
+
+        const container = this.overlay.querySelector('.transfer-task-dialog-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `transfer-task-dialog-toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     }
 }
 

@@ -4,9 +4,9 @@
  */
 
 import { Request, Response } from 'express';
-import { getPrismaClient } from '../database/prisma-client';
 import { signJWT, verifyJWT } from '../utils/jwt.util';
 import { ResourceValidationRequest } from '../middleware/resource-validation.middleware';
+import { getApplicationRepository, getOauthResourceRepository } from '../repositories/repository.factory';
 
 /**
  * POST /api/thirdparty/oauth/token
@@ -92,7 +92,7 @@ export async function issueOauthToken(req: ResourceValidationRequest, res: Respo
  * Request body (after middleware):
  * {
  *   basic: { appId, resourceKey, timestamp, nonce, signature },
- *   business: { permissions?, redirectUri?, state? }
+ *   business: { permissions?, redirectUri?, state?, oauthToken? }
  * }
  *
  * Response:
@@ -108,8 +108,9 @@ export async function issueOauthToken(req: ResourceValidationRequest, res: Respo
 export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Response): Promise<void> {
     const businessData = req.body.business as {
         permissions?: string[];
-        redirectUri?: string;
+        callback?: string 
         state?: string;
+        token?: string;  // Developer-generated token for user identity mapping
     } | undefined;
     const appId = req.context?.application?.id;
 
@@ -141,9 +142,13 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
     // Generate appToken (JWT) with oauthUserId placeholder
     // Note: oauthUserId will be determined when user actually authenticates in the auth page
     const expiresIn = 7200; // 2 hours
+    const developerToken = businessData?.token;
+    const callback = businessData?.callback
     const signed = signJWT(
         {
             appId,
+            callback,
+            token: developerToken, // Include developer-provided token for user identity mapping if provided
             // oauthUserId will be set when user logs in on auth page
             // For now, we include a temporary token that will be exchanged
             type: 'authorize',
@@ -167,9 +172,6 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
     }
     if (businessData?.permissions && businessData.permissions.length > 0) {
         params.set('permissions', JSON.stringify(businessData.permissions));
-    }
-    if (businessData?.redirectUri) {
-        params.set('redirectUri', businessData.redirectUri);
     }
     if (businessData?.state) {
         params.set('state', businessData.state);
@@ -195,7 +197,8 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
  * Request body:
  * {
  *   resourceKey: string,
- *   oauthToken: string
+ *   oauthToken: string,
+ *   callback?: string  // Optional: URL to receive async notification after verification
  * }
  *
  * Response:
@@ -205,6 +208,12 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
  *   data: {
  *     authorizeId: string
  *   }
+ * }
+ *
+ * If callback is provided, a POST request will be sent to the callback URL after verification:
+ * {
+ *   authorizeId: string,
+ *   oauthToken: string
  * }
  */
 export async function verifyOauthToken(req: Request, res: Response): Promise<void> {
@@ -230,9 +239,9 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
 
     // Verify and decode the JWT
     const payload = verifyJWT<{
-        oauthUserId: string;
         appId: string;
-        resourceKey?: string;
+        token?: string;
+        callback?: string
         iat: number;
         exp: number;
     }>(oauthToken);
@@ -245,39 +254,53 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
         return;
     }
 
-    const { oauthUserId, appId } = payload;
+    const { appId } = payload;
 
-    if (!oauthUserId || !appId) {
+    if (!appId) {
         res.status(401).json({
             code: 40101,
-            message: 'Invalid token payload: missing oauthUserId or appId',
+            message: 'Invalid token payload: missing appId',
         });
         return;
     }
 
     try {
-        const prisma = getPrismaClient();
+        const appRepo = getApplicationRepository();
+        const oauthRepo = getOauthResourceRepository();
+
+        const application = await appRepo.findByAppId(appId)
+        if (!application) {
+            res.status(404).json({
+                code: 40401,
+                message: 'Application not exist.'
+            })
+            return
+        }
 
         // Upsert OauthResource - create or update if exists
-        const oauthResource = await prisma.oauthResource.upsert({
-            where: {
-                appId_userId_resourceKey: {
-                    appId,
-                    userId: oauthUserId,
-                    resourceKey,
-                },
-            },
-            update: {
-                status: 'active',
-                authorizedAt: new Date(),
-            },
-            create: {
-                appId,
-                userId: oauthUserId,
-                resourceKey,
-                status: 'active',
-            },
+        const oauthResource = await oauthRepo.upsert({
+            appId,
+            resourceKey,
+            status: 'active',
+            authorizedAt: new Date().toISOString(),
         });
+
+
+        const callback = payload.callback || application.callbackUrl
+        // Send callback notification if provided
+        if (callback) {
+            // Fire and forget - don't wait for callback response
+            fetch(callback, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    authorizeId: oauthResource.id,
+                    token: payload.token, // Include developer-provided token for user identity mapping if provided
+                }),
+            }).catch((err) => {
+                console.error('Callback notification failed:', err);
+            });
+        }
 
         res.json({
             code: 0,
