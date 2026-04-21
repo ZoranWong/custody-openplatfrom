@@ -64,17 +64,17 @@
     "updatedAt": "2026-02-12T04:15:37.831Z"
   },
   "55c01e56-2588-47fe-b21d-d0aeebd76092": {
-    "id": "55c01e56-2588-47fe-b21d-d0aeebd76092",
-    "isvDeveloperId": "4965aedd-4a5b-4058-9324-7c03eef8db4d",
-    "name": "everypay",
-    "appId": "app_7c1f5151-c7ab-40",
-    "appSecret": "sk_7c1f5151c7ab4095ae47cc3d9ccc0e85",
-    "description": "测试托管",
-    "callbackUrl": "https://everypay.com/callback",
-    "type": "corporate",
-    "status": "active",
-    "permittedUsers": [],
-    "createdAt": "2026-02-13T06:22:38.363Z",
-    "updatedAt": "2026-02-13T06:22:38.363Z"
+      "id": "55c01e56-2588-47fe-b21d-d0aeebd76092",
+      "isvDeveloperId": "4965aedd-4a5b-4058-9324-7c03eef8db4d",
+      "name": "everypay",
+      "appId": "55c01e56-2588-47fe-b21d-d0aeebd76092",
+      "appSecret": "sk_7c1f5151c7ab4095ae47cc3d9ccc0e85",
+      "description": "测试托管",
+      "callbackUrl": "https://everypay.com/callback",
+      "type": "corporate",
+      "status": "active",
+      "permittedUsers": [],
+      "createdAt": "2026-02-13T06:22:38.363Z",
+      "updatedAt": "2026-02-13T06:22:38.363Z"
   }
 }

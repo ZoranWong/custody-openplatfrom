@@ -35,10 +35,10 @@
       @back="goBackToLogin"
     />
 
-    <EnterpriseSelector
-      v-else-if="currentView === 'enterprise'"
+    <OrganizationSelector
+      v-else-if="currentView === 'organization'"
       :username="username"
-      @select="handleEnterpriseSelect"
+      @select="handleOrganizationSelect"
       @back="goBackToTotp"
     />
 
@@ -54,18 +54,18 @@
       <div class="authorize-content">
         <h2>Authorize Access</h2>
         <p>
-          <strong>{{ selectedEnterprise?.name || 'Enterprise' }}</strong>
+          <strong>{{ selectedOrganization?.name || 'Organization' }}</strong>
           will authorize
           <strong>{{ appName }}</strong>
           to access vault permissions.
         </p>
         <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
         <div class="authorize-actions">
+          <button @click="goBackToOrganization" class="auth-btn cancel" :disabled="submitting">
+            Back
+          </button>
           <button @click="handleAuthorize" class="auth-btn authorize" :disabled="submitting">
             {{ submitting ? 'Authorizing...' : 'Authorize' }}
-          </button>
-          <button @click="goBackToEnterprise" class="auth-btn cancel" :disabled="submitting">
-            Back
           </button>
         </div>
       </div>
@@ -90,11 +90,12 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import LoginForm from './components/LoginForm.vue'
 import TotpForm from './components/TotpForm.vue'
-import EnterpriseSelector from './components/EnterpriseSelector.vue'
-import { listenFromParent, sendEventToParent, sendSuccessToParent, sendFailedToParent, getSDKUUIDFromUrl } from './utils/postMessage'
+import OrganizationSelector from './components/OrganizationSelector.vue'
+// sendEventToParent auto-injects SDK UUID from module-level sdkUuid variable
+import { listenFromParent, sendEventToParent, sendSuccessToParent, sendFailedToParent } from './utils/postMessage'
 import { login, secondAuthenticate, submitAuthorization } from './services/auth'
 import { setToken, setUserInfo, isTokenValid, clearToken, getUserInfo } from './utils/tokenStorage'
-import type { AuthInitData, AuthView, Enterprise } from './types'
+import type { AuthInitData, AuthView, Organization } from './types'
 
 const MAX_FAILED_ATTEMPTS = 3
 
@@ -106,6 +107,7 @@ const totpError = ref('')
 const submitting = ref(false)
 const countdown = ref(0)
 let countdownTimer: ReturnType<typeof setTimeout> | null = null
+let initTimeout: ReturnType<typeof setTimeout> | null = null
 const appName = ref('Third-party Application')
 const appLogoUrl = ref('')
 const appToken = ref('')
@@ -114,31 +116,15 @@ const permissions = ref<string[]>([])
 // Auth state
 const username = ref('')
 const email = ref('')
-const mfaToken = ref('')  // Renamed from tempToken for clarity
+const mfaToken = ref('')
 const failedAttempts = ref(0)
 const totpFailedAttempts = ref(0)
-const selectedEnterprise = ref<Enterprise | null>(null)
+const selectedOrganization = ref<Organization | null>(null)
 
 let unsubscribe: (() => void) | null = null
 
-// Check if user has valid token and skip to enterprise selection on init
-function checkExistingSession(): boolean {
-  if (isTokenValid()) {
-    const userInfo = getUserInfo();
-    if (userInfo && userInfo.email) {
-      username.value = userInfo.username || userInfo.email;
-      email.value = userInfo.email;
-      currentView.value = 'enterprise';
-      return true;
-    }
-  }
-  return false;
-}
+// ---------- Validators ----------
 
-// Initialize: check session first, then setup listeners
-checkExistingSession()
-
-// Validate appToken format (JWT from backend - must be valid JWT structure)
 function validateToken(token: string): { valid: boolean; error?: string } {
   if (!token || typeof token !== 'string') {
     return { valid: false, error: 'Missing or invalid appToken' };
@@ -146,7 +132,6 @@ function validateToken(token: string): { valid: boolean; error?: string } {
   if (token.trim().length === 0) {
     return { valid: false, error: 'appToken cannot be empty' };
   }
-  // JWT format validation (header.payload.signature)
   const jwtParts = token.split('.');
   if (jwtParts.length !== 3) {
     return { valid: false, error: 'Invalid appToken format: expected JWT structure' };
@@ -154,7 +139,6 @@ function validateToken(token: string): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
-// Validate appId (请求传入 - must be non-empty string)
 function validateAppId(appId: string): { valid: boolean; error?: string } {
   if (!appId || typeof appId !== 'string' || appId.trim().length === 0) {
     return { valid: false, error: 'Missing or invalid appId' };
@@ -162,15 +146,13 @@ function validateAppId(appId: string): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
-// Allowed permission values (platform-configured whitelist)
 const ALLOWED_PERMISSIONS = new Set(['read', 'write', 'admin', 'transfer', 'view']);
 
-// Validate permissions (请求 + 平台校验 - must be in whitelist)
-function validatePermissions(permissions: string[]): { valid: boolean; error?: string } {
-  if (!permissions || !Array.isArray(permissions) || permissions.length === 0) {
+function validatePermissions(perms: string[]): { valid: boolean; error?: string } {
+  if (!perms || !Array.isArray(perms) || perms.length === 0) {
     return { valid: false, error: 'Missing permissions' };
   }
-  for (const perm of permissions) {
+  for (const perm of perms) {
     if (!ALLOWED_PERMISSIONS.has(perm)) {
       return { valid: false, error: `Invalid permission: ${perm}` };
     }
@@ -178,12 +160,10 @@ function validatePermissions(permissions: string[]): { valid: boolean; error?: s
   return { valid: true };
 }
 
-// Validate redirectUri format (请求传入 - should be valid URL)
 function validateRedirectUri(uri: string): { valid: boolean; error?: string } {
-  if (!uri) return { valid: true }; // Optional field
+  if (!uri) return { valid: true };
   try {
     const url = new URL(uri);
-    // Only allow https (or http for localhost)
     if (!['https:', 'http:'].includes(url.protocol)) {
       return { valid: false, error: 'redirectUri must use http or https protocol' };
     }
@@ -196,48 +176,72 @@ function validateRedirectUri(uri: string): { valid: boolean; error?: string } {
   }
 }
 
-// Validate state format (请求传入 - 防 CSRF + uuid)
 function validateState(state: string): { valid: boolean; error?: string } {
-  if (!state) return { valid: true }; // Optional field
+  if (!state) return { valid: true };
   if (typeof state !== 'string' || state.trim().length === 0) {
     return { valid: false, error: 'Invalid state' };
   }
-  // State should contain a UUID-like identifier (basic format check)
-  // Format expectation: uuid|csrf_token or just a UUID
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const parts = state.split('|');
   const possibleUuid = parts[0];
   if (!uuidPattern.test(possibleUuid)) {
-    // Allow non-UUID states but warn (CSRF protection might not be optimal)
     console.warn('Auth Page: state does not contain valid UUID format');
   }
   return { valid: true };
 }
 
-// Read token from URL query parameters
+/** Unified validation entry point */
+function validateAuthData(data: AuthInitData): { valid: boolean; error?: string } {
+  const tokenValidation = validateToken(data.appToken);
+  if (!tokenValidation.valid) return tokenValidation;
+
+  const appIdValidation = validateAppId(data.appId);
+  if (!appIdValidation.valid) return appIdValidation;
+
+  const permissionsValidation = validatePermissions(data.permissions || ['read']);
+  if (!permissionsValidation.valid) return permissionsValidation;
+
+  if (data.redirectUri) {
+    const redirectUriValidation = validateRedirectUri(data.redirectUri);
+    if (!redirectUriValidation.valid) return redirectUriValidation;
+  }
+
+  if (data.state) {
+    const stateValidation = validateState(data.state);
+    if (!stateValidation.valid) return stateValidation;
+  }
+
+  return { valid: true };
+}
+
+// ---------- URL Parsing ----------
+
 function getTokenFromUrl(): AuthInitData | null {
   const urlParams = new URLSearchParams(window.location.search);
   const appToken = urlParams.get('appToken');
-  const appId = urlParams.get('appId') || '';
-  const appName = urlParams.get('appName') || '';
-  const appLogoUrl = urlParams.get('appLogoUrl') || '';
-  const permissionsStr = urlParams.get('permissions');
-  const redirectUri = urlParams.get('redirectUri') || undefined;
-  const state = urlParams.get('state') || undefined;
-
-  if (!appToken) {
-    return null;
-  }
+  if (!appToken) return null;
 
   return {
-    appId,
+    appId: urlParams.get('appId') || '',
     appToken,
-    appName: appName || undefined,
-    appLogoUrl: appLogoUrl || undefined,
-    permissions: permissionsStr ? permissionsStr.split(',') : ['read'],
-    redirectUri,
-    state,
+    appName: urlParams.get('appName') || undefined,
+    appLogoUrl: urlParams.get('appLogoUrl') || undefined,
+    permissions: urlParams.get('permissions')?.split(',') || ['read'],
+    redirectUri: urlParams.get('redirectUri') || undefined,
+    state: urlParams.get('state') || undefined,
   };
+}
+
+// ---------- Initialization ----------
+
+function tryInitialize(data: AuthInitData) {
+  const validation = validateAuthData(data);
+  if (!validation.valid) {
+    currentView.value = 'error';
+    errorMessage.value = validation.error || 'Invalid authorization data';
+    return;
+  }
+  initWithData(data);
 }
 
 function initWithData(data: AuthInitData) {
@@ -247,127 +251,40 @@ function initWithData(data: AuthInitData) {
   appLogoUrl.value = data.appLogoUrl || '';
   appToken.value = data.appToken || '';
 
-  // Check if user is already logged in
   if (isTokenValid()) {
     const userInfo = getUserInfo();
     if (userInfo && userInfo.email) {
       username.value = userInfo.username || userInfo.email;
       email.value = userInfo.email;
-      currentView.value = 'enterprise';
-      // Send ready event after initialization
-      sendEventToParent({ uuid: getSDKUUIDFromUrl() || '', type: 'ready' });
+      currentView.value = 'organization';
+      sendEventToParent({ type: 'ready' });
       return;
     }
   }
 
   currentView.value = 'login';
-  // Send ready event after initialization
-  sendEventToParent({ uuid: getSDKUUIDFromUrl() || '', type: 'ready' });
+  sendEventToParent({ type: 'ready' });
 }
 
 onMounted(() => {
-  // Session check already done at init, now try to get token from URL
   const urlData = getTokenFromUrl();
   if (urlData) {
-    // Comprehensive validation of all URL parameters
-    const tokenValidation = validateToken(urlData.appToken);
-    if (!tokenValidation.valid) {
-      currentView.value = 'error';
-      errorMessage.value = tokenValidation.error || 'Invalid appToken';
-      return;
-    }
-
-    const appIdValidation = validateAppId(urlData.appId);
-    if (!appIdValidation.valid) {
-      currentView.value = 'error';
-      errorMessage.value = appIdValidation.error || 'Invalid appId';
-      return;
-    }
-
-    const permissionsValidation = validatePermissions(urlData.permissions || ['read']);
-    if (!permissionsValidation.valid) {
-      currentView.value = 'error';
-      errorMessage.value = permissionsValidation.error || 'Invalid permissions';
-      return;
-    }
-
-    if (urlData.redirectUri) {
-      const redirectUriValidation = validateRedirectUri(urlData.redirectUri);
-      if (!redirectUriValidation.valid) {
-        currentView.value = 'error';
-        errorMessage.value = redirectUriValidation.error || 'Invalid redirectUri';
-        return;
-      }
-    }
-
-    if (urlData.state) {
-      const stateValidation = validateState(urlData.state);
-      if (!stateValidation.valid) {
-        currentView.value = 'error';
-        errorMessage.value = stateValidation.error || 'Invalid state';
-        return;
-      }
-    }
-
-    initWithData(urlData);
+    tryInitialize(urlData);
     return;
   }
 
-  // Then, listen for postMessage from parent (just triggers init, data from URL)
   unsubscribe = listenFromParent((message) => {
     if (message.action === 'init') {
-      // Try to get data from URL after init trigger
       const urlData = getTokenFromUrl();
       if (urlData) {
-        // Comprehensive validation of all URL parameters
-        const tokenValidation = validateToken(urlData.appToken);
-        if (!tokenValidation.valid) {
-          currentView.value = 'error';
-          errorMessage.value = tokenValidation.error || 'Invalid appToken';
-          return;
-        }
-
-        const appIdValidation = validateAppId(urlData.appId);
-        if (!appIdValidation.valid) {
-          currentView.value = 'error';
-          errorMessage.value = appIdValidation.error || 'Invalid appId';
-          return;
-        }
-
-        const permissionsValidation = validatePermissions(urlData.permissions || ['read']);
-        if (!permissionsValidation.valid) {
-          currentView.value = 'error';
-          errorMessage.value = permissionsValidation.error || 'Invalid permissions';
-          return;
-        }
-
-        if (urlData.redirectUri) {
-          const redirectUriValidation = validateRedirectUri(urlData.redirectUri);
-          if (!redirectUriValidation.valid) {
-            currentView.value = 'error';
-            errorMessage.value = redirectUriValidation.error || 'Invalid redirectUri';
-            return;
-          }
-        }
-
-        if (urlData.state) {
-          const stateValidation = validateState(urlData.state);
-          if (!stateValidation.valid) {
-            currentView.value = 'error';
-            errorMessage.value = stateValidation.error || 'Invalid state';
-            return;
-          }
-        }
-
-        initWithData(urlData);
+        tryInitialize(urlData);
       }
     } else if (message.action === 'close' || message.action === 'cancel') {
-      // Send cancelled result to parent
       sendFailedToParent('USER_CANCELLED', 'User cancelled authorization');
     }
   });
 
-  setTimeout(() => {
+  initTimeout = setTimeout(() => {
     if (currentView.value === 'loading') {
       currentView.value = 'error';
       errorMessage.value = 'Unable to initialize authorization. Please refresh and try again.';
@@ -381,9 +298,15 @@ onUnmounted(() => {
   }
 });
 
+// ---------- Flow Handlers ----------
+
 function resetFlow() {
-  // Clear token and session
   clearToken();
+
+  if (initTimeout) {
+    clearTimeout(initTimeout);
+    initTimeout = null;
+  }
 
   currentView.value = 'loading';
   errorMessage.value = '';
@@ -394,9 +317,9 @@ function resetFlow() {
   username.value = '';
   email.value = '';
   mfaToken.value = '';
-  selectedEnterprise.value = null;
+  selectedOrganization.value = null;
 
-  setTimeout(() => {
+  initTimeout = setTimeout(() => {
     if (currentView.value === 'loading' && authData.value) {
       currentView.value = 'login';
     } else if (currentView.value === 'loading') {
@@ -425,17 +348,13 @@ async function handleLogin(credentials: { type: 'PASSWORD' | 'EMAIL'; account: s
     const response = await login(credentials);
 
     if (response.success && response.data) {
-      // Save email for later use
       username.value = credentials.account;
       email.value = response.data.email || credentials.account;
 
       if (response.data.mfaRequired && response.data.mfaToken) {
-        // Proceed to TOTP verification
         mfaToken.value = response.data.mfaToken;
         currentView.value = 'totp';
       } else {
-        // No 2FA required, proceed to enterprise selection
-        // Set mock token for development
         const mockToken = 'dev-token-' + Date.now();
         setToken(mockToken, 24 * 60 * 60 * 1000);
         setUserInfo({
@@ -445,10 +364,9 @@ async function handleLogin(credentials: { type: 'PASSWORD' | 'EMAIL'; account: s
           permission: ['read'],
           username: username.value,
         });
-        currentView.value = 'enterprise';
+        currentView.value = 'organization';
       }
     } else {
-      // Check if account is locked
       failedAttempts.value++;
       loginError.value = response.error?.message || 'Login failed';
 
@@ -478,10 +396,8 @@ async function handleTotpVerify(credentials: { code: string; mode: 'GOOGLE_CODE'
     );
 
     if (response && response.token) {
-      // Reset TOTP failed attempts on success
       totpFailedAttempts.value = 0;
 
-      // Save token and user info
       const tokenTimeout = Number(response.tokenTimeout);
       const tokenExpiresIn = tokenTimeout - Date.now();
       if (tokenExpiresIn > 0) {
@@ -495,14 +411,11 @@ async function handleTotpVerify(credentials: { code: string; mode: 'GOOGLE_CODE'
         username: response.user?.username || '',
       });
 
-      // Proceed to enterprise selection
-      currentView.value = 'enterprise';
+      currentView.value = 'organization';
     } else {
-      // Track failed attempts
       totpFailedAttempts.value++;
 
       if (totpFailedAttempts.value >= MAX_FAILED_ATTEMPTS) {
-        // Lock after 3 failures - clear mfa token and go back to login
         totpError.value = `Too many failed attempts. Please try again.`;
         mfaToken.value = '';
         setTimeout(() => {
@@ -521,54 +434,47 @@ async function handleTotpVerify(credentials: { code: string; mode: 'GOOGLE_CODE'
   }
 }
 
-function handleEnterpriseSelect(enterprise: Enterprise) {
-  selectedEnterprise.value = enterprise;
+function handleOrganizationSelect(organization: Organization) {
+  selectedOrganization.value = organization;
   currentView.value = 'authorize';
 }
 
 async function handleAuthorize() {
-  if (!authData.value || !selectedEnterprise.value) return;
+  if (!authData.value || !selectedOrganization.value) return;
 
   submitting.value = true;
-  // Send authorization_started event
-  sendEventToParent({ uuid: getSDKUUIDFromUrl() || '', type: 'authorization_started' });
+  sendEventToParent({ type: 'authorization_started' });
 
   try {
-    // Submit authorization to backend
     const result = await submitAuthorization({
       appId: authData.value.appId,
-      enterpriseId: selectedEnterprise.value.id,
+      organizationId: selectedOrganization.value.id,
     });
 
-    // Check if we got valid authorization id
     if (!result.authorizationId) {
       errorMessage.value = 'Authorization failed: No authorization ID returned';
-      // Send authorization_failed event
       sendFailedToParent('AUTHORIZATION_FAILED', 'No authorization ID returned');
       return;
     }
 
-    // Send authorization_succeed event
     sendSuccessToParent(result.authorizationId);
 
-    // Show success view
     currentView.value = 'success';
     startCountdown();
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Authorization failed';
-    // Send authorization_failed event
     sendFailedToParent('AUTHORIZATION_FAILED', errorMessage.value);
   } finally {
     submitting.value = false;
   }
 }
 
-function goBackToEnterprise() {
-  currentView.value = 'enterprise';
+function goBackToOrganization() {
+  selectedOrganization.value = null;
+  currentView.value = 'organization';
 }
 
 function handleCancel() {
-  // Send cancelled result to parent
   sendFailedToParent('USER_CANCELLED', 'User cancelled authorization');
 }
 
@@ -581,11 +487,7 @@ function startCountdown() {
         clearInterval(countdownTimer);
         countdownTimer = null;
       }
-      // Close the window/iframe - send close event
-      sendEventToParent({
-        uuid: getSDKUUIDFromUrl() || '',
-        type: 'close',
-      });
+      sendEventToParent({ type: 'close' });
     }
   }, 1000);
 }

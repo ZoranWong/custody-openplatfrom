@@ -17,16 +17,37 @@
  *   --delete <email> Delete admin by email
  */
 
+import 'dotenv/config'
+
 import * as bcrypt from 'bcrypt'
 
 // Import repository - this ensures we use the same data access layer as the app
 import { getAdminRepository } from '../src/repositories/repository.factory'
 
+function generateRandomPassword(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz'
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const digits = '0123456789'
+  const special = '!@#$%^&*'
+  let result = ''
+  result += upper[Math.floor(Math.random() * upper.length)]
+  result += chars[Math.floor(Math.random() * chars.length)]
+  result += chars[Math.floor(Math.random() * chars.length)]
+  result += digits[Math.floor(Math.random() * digits.length)]
+  result += digits[Math.floor(Math.random() * digits.length)]
+  result += special[Math.floor(Math.random() * special.length)]
+  for (let i = 0; i < 6; i++) {
+    const all = chars + upper + digits + special
+    result += all[Math.floor(Math.random() * all.length)]
+  }
+  return result
+}
+
 const DEFAULT_ADMIN = {
   email: 'admin@cregis.com',
   name: 'Super Admin',
   role: 'super_admin' as const,
-  password: 'Admin123!'
+  password: process.env.ADMIN_PASSWORD || generateRandomPassword()
 }
 
 // Validate password strength
@@ -129,7 +150,7 @@ async function seedAdmin(options: {
     const newAdmin = await adminRepo.create({
       email,
       name,
-      password: hashedPassword,
+      passwordHash: hashedPassword,
       role,
       status: 'active'
     })

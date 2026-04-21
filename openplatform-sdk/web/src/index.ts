@@ -9,7 +9,6 @@ import {
     SDKEventType,
     SDKError,
     AuthorizationResult,
-    AuthorizationOptions,
     TokenInfo,
 } from './types';
 
@@ -260,22 +259,6 @@ export class CregisWebSDK {
      * Validate SDK configuration
      */
     private validateConfig(config: SDKConfig): void {
-        // Validate appId
-        if (!config.appId || typeof config.appId !== 'string') {
-            throw new SDKError_class({
-                code: ErrorCodes.INVALID_APP_ID,
-                message: 'appId is required and must be a string',
-            });
-        }
-
-        // Validate authUrl
-        if (!config.authUrl || typeof config.authUrl !== 'string') {
-            throw new SDKError_class({
-                code: ErrorCodes.INVALID_APP_ID,
-                message: 'authUrl is required and must be a string',
-            });
-        }
-
         // Validate container
         if (!config.container) {
             throw new SDKError_class({
@@ -318,20 +301,16 @@ export class CregisWebSDK {
 
     /**
      * Open authorization page
-     * @param options - Authorization URL string OR options object with oauthUrl
+     * @param authorizeUrl - Full authorization URL from backend
      *
      * Usage:
-     *   // Direct: pass authorizeUrl string
-     *   sdk.openAuthorization('https://openplatform.../authorize?appId=xxx&...')
-     *
-     *   // Via options object with oauthUrl
-     *   sdk.openAuthorization({ oauthUrl: '...' })
-     *
-     *   // Legacy: build URL from config (deprecated)
-     *   sdk.openAuthorization({ permissions: ['read'], state: 'xxx' })
+     *   // 1. Backend calls getAuthorizationUrl() to get authorizeUrl
+     *   // 2. Backend returns authorizeUrl to frontend
+     *   // 3. Frontend calls sdk.openAuthorization(authorizeUrl)
+     *   sdk.openAuthorization('https://openplatform.../authorize?appId=xxx&appToken=yyy&...')
      */
     public async openAuthorization(
-        options?: AuthorizationOptions,
+        authorizeUrl: string,
     ): Promise<AuthorizationResult> {
         this.checkInitialized();
 
@@ -341,56 +320,16 @@ export class CregisWebSDK {
         this.emitEvent('authorization_started');
 
         try {
+            // Append SDK UUID to authorizeUrl for message validation
+            const fullUrl = this.appendUUID(authorizeUrl);
+
             // Determine mode: popup, tab, or window
             const mode = this.config?.mode || 'popup';
-
-            // Resolve authorizeUrl
-            let authorizeUrl: string;
-
-            if (typeof options === 'string') {
-                // Direct string: append uuid to oauthUrl
-                authorizeUrl = this.appendUUID(options);
-            } else if (options?.oauthUrl) {
-                // Object with oauthUrl: append uuid
-                authorizeUrl = this.appendUUID(options.oauthUrl);
-            } else {
-                // Legacy: build URL from config
-                const baseUrl = this.config!.authUrl.replace(/\/$/, '');
-                const params = new URLSearchParams();
-                params.set('appId', this.config!.appId);
-
-                if (this.config?.appToken) {
-                    params.set('appToken', this.config.appToken);
-                }
-                if (this.config?.appName) {
-                    params.set('appName', this.config.appName);
-                }
-                if (this.config?.appLogoUrl) {
-                    params.set('appLogoUrl', this.config.appLogoUrl);
-                }
-
-                const token = this.getToken();
-                if (token?.accessToken) {
-                    params.set('token', token.accessToken);
-                }
-
-                if (options?.state) {
-                    params.set('state', options.state);
-                }
-                if (options?.redirectUri) {
-                    params.set('redirectUri', options.redirectUri);
-                }
-                if (options?.permissions) {
-                    params.set('permissions', options.permissions.join(','));
-                }
-
-                authorizeUrl = `${baseUrl}?${params.toString()}&sdkUuid=${this.uuid}`;
-            }
 
             if (mode === 'popup') {
                 // popup mode: use iframe in modal overlay
                 this.iframe = document.createElement('iframe');
-                this.iframe.src = authorizeUrl;
+                this.iframe.src = fullUrl;
                 this.iframe.style.width = '100%';
                 this.iframe.style.height = '100%';
                 this.iframe.style.border = 'none';
@@ -398,12 +337,12 @@ export class CregisWebSDK {
                 this.setupMessageListener();
             } else if (mode === 'tab') {
                 // tab mode: open in new tab, rely on postMessage from redirectUri page
-                window.open(authorizeUrl, '_blank');
+                window.open(fullUrl, '_blank');
                 this.setupWindowListener();
             } else if (mode === 'window') {
                 // window mode: open popup window, rely on postMessage from redirectUri page
                 const win = window.open(
-                    authorizeUrl,
+                    fullUrl,
                     'auth',
                     'width=600,height=700',
                 );

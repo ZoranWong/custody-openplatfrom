@@ -41,7 +41,7 @@ export interface TotpResponse {
   };
 }
 
-export type AuthView = 'loading' | 'login' | 'totp' | 'enterprise' | 'authorize' | 'success' | 'error';
+export type AuthView = 'loading' | 'login' | 'totp' | 'organization' | 'authorize' | 'success' | 'error';
 
 export interface AuthState {
   username: string;
@@ -50,15 +50,15 @@ export interface AuthState {
   lockedUntil?: number;
 }
 
-export interface Enterprise {
+export interface Organization {
   id: string;
   name: string;
   status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
 }
 
-export interface EnterpriseListResponse {
+export interface OrganizationListResponse {
   success: boolean;
-  enterprises?: Enterprise[];
+  organizations?: Organization[];
   error?: {
     code: string;
     message: string;

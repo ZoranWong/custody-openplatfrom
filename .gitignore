@@ -47,3 +47,5 @@ logs/
 *.tmp
 *.temp
 
+.dev-pids
+.dev-logs

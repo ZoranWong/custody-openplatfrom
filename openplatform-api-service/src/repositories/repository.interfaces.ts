@@ -1,73 +1,84 @@
 /**
  * Extended Repository Interfaces
- * Add specific query methods for each entity type
+ * Each interface extends Prisma-generated model types for type safety
  */
 
-import { Repository } from './repository'
-import { IsvDeveloper, ISVUser, Application } from '../types/isv.types'
-import { AppEnterpriseBinding } from '../types/binding.types'
-import { EndpointPermissionConfig } from '../types/permission.types'
-import { OauthResource, Authorization } from '../types/authorization.types'
+import {
+  Prisma,
+  Admin,
+  IsvDeveloper,
+  IsvUser,
+  Application,
+  OauthResource,
+  EndpointPermission,
+} from '@prisma/client'
 
-export interface IsvDeveloperRepository extends Repository<IsvDeveloper> {
+export {
+  Admin,
+  IsvDeveloper,
+  IsvUser,
+  Application,
+  OauthResource,
+  EndpointPermission,
+}
+
+export interface IsvDeveloperRepository {
+  findById(id: string): Promise<IsvDeveloper | null>
   findByEmail(email: string): Promise<IsvDeveloper | null>
   findByRegistrationNumber(registrationNumber: string): Promise<IsvDeveloper | null>
+  findByFilters(where: Prisma.IsvDeveloperWhereInput, page?: number, pageSize?: number): Promise<IsvDeveloper[]>
+  count(where?: Prisma.IsvDeveloperWhereInput): Promise<number>
+  create(data: Prisma.IsvDeveloperCreateInput): Promise<IsvDeveloper>
+  update(id: string, data: Prisma.IsvDeveloperUpdateInput): Promise<IsvDeveloper>
+  delete(id: string): Promise<boolean>
 }
 
-export interface ISVUserRepository extends Repository<ISVUser> {
-  findByEmail(email: string): Promise<ISVUser | null>
-  findByIsvDeveloper(isvDeveloperId: string): Promise<ISVUser[]>
-  findByIsvDeveloperAndEmail(isvDeveloperId: string, email: string): Promise<ISVUser | null>
+export interface ISVUserRepository {
+  findById(id: string): Promise<IsvUser | null>
+  findByEmail(email: string): Promise<IsvUser | null>
+  findByIsvDeveloper(isvDeveloperId: string): Promise<IsvUser[]>
+  findByIsvDeveloperAndEmail(isvDeveloperId: string, email: string): Promise<IsvUser | null>
+  create(data: Prisma.IsvUserCreateInput): Promise<IsvUser>
+  update(id: string, data: Prisma.IsvUserUpdateInput): Promise<IsvUser>
+  delete(id: string): Promise<boolean>
 }
 
-export interface ApplicationRepository extends Repository<Application> {
+export interface ApplicationRepository {
+  findById(id: string): Promise<Application | null>
   findByAppId(appId: string): Promise<Application | null>
   findByIsvDeveloper(isvDeveloperId: string): Promise<Application[]>
+  create(data: Prisma.ApplicationCreateInput): Promise<Application>
+  update(id: string, data: Prisma.ApplicationUpdateInput): Promise<Application>
+  delete(id: string): Promise<boolean>
 }
 
-export interface BindingRepository extends Repository<AppEnterpriseBinding> {
-  findByAppAndEnterprise(appid: string, enterpriseId: string): Promise<AppEnterpriseBinding | null>
-  findByAppid(appid: string): Promise<AppEnterpriseBinding[]>
-  findByEnterpriseId(enterpriseId: string): Promise<AppEnterpriseBinding[]>
+export interface EndpointPermissionRepository {
+  findById(id: string): Promise<EndpointPermission | null>
+  findByPathAndMethod(endpoint: string, method: string): Promise<EndpointPermission | null>
+  findByIsvDeveloper(isvDeveloperId: string): Promise<EndpointPermission[]>
+  findAll(): Promise<EndpointPermission[]>
+  create(data: Prisma.EndpointPermissionCreateInput): Promise<EndpointPermission>
+  update(id: string, data: Prisma.EndpointPermissionUpdateInput): Promise<EndpointPermission>
+  delete(id: string): Promise<boolean>
 }
 
-export interface EndpointPermissionRepository extends Repository<EndpointPermissionConfig> {
-  findByPathAndMethod(path: string, method: string): Promise<EndpointPermissionConfig | null>
-}
-
-/**
- * Admin entity interface
- */
-export interface Admin {
-  id: string
-  email: string
-  name: string
-  password: string
-  role: 'super_admin' | 'admin' | 'operator'
-  status: 'active' | 'inactive' | 'suspended'
-  createdAt: string
-  updatedAt: string
-}
-
-/**
- * Admin Repository interface
- */
-export interface AdminRepository extends Repository<Admin> {
+export interface AdminRepository {
+  findById(id: string): Promise<Admin | null>
   findByEmail(email: string): Promise<Admin | null>
-  findByRole(role: 'super_admin' | 'admin' | 'operator'): Promise<Admin[]>
+  findByRole(role: string): Promise<Admin[]>
   findActive(): Promise<Admin[]>
+  findAll(): Promise<Admin[]>
+  create(data: Prisma.AdminCreateInput): Promise<Admin>
+  update(id: string, data: Prisma.AdminUpdateInput): Promise<Admin>
+  delete(id: string): Promise<boolean>
 }
 
-/**
- * OauthResource Repository interface (renamed from AuthorizationRepository)
- */
-export interface OauthResourceRepository extends Repository<OauthResource> {
+export interface OauthResourceRepository {
   findById(id: string): Promise<OauthResource | null>
   findByAppId(appId: string): Promise<OauthResource[]>
-  findByApp(appId: string): Promise<OauthResource[]>
   findByAppAndResource(appId: string, resourceKey: string): Promise<OauthResource | null>
-  upsert(data: Omit<OauthResource, 'id' | 'createdAt' | 'updatedAt'>): Promise<OauthResource>
+  upsert(data: { appId: string; resourceKey: string | null; authorizedAt?: Date; expiresAt?: Date }): Promise<OauthResource>
+  create(data: Prisma.OauthResourceCreateInput): Promise<OauthResource>
+  update(id: string, data: Prisma.OauthResourceUpdateInput): Promise<OauthResource>
+  delete(id: string): Promise<boolean>
 }
-
-// Legacy type alias for backward compatibility
-export type AuthorizationRepository = OauthResourceRepository

@@ -16,17 +16,17 @@ const showAppSecretDialog = ref(false)
 const createdApplication = ref<Application | null>(null)
 
 const form = reactive({
-  name: '',
-  description: '',
+  appName: '',
+  appDescription: '',
   callbackUrl: '',
-  type: '' as 'corporate' | 'payment' | 'custody' | ''
+  appType: '' as 'corporate' | 'payment' | 'custody' | ''
 })
 
 const errors = reactive({
-  name: '',
-  description: '',
+  appName: '',
+  appDescription: '',
   callbackUrl: '',
-  type: ''
+  appType: ''
 })
 
 const appTypes = [
@@ -81,41 +81,43 @@ const handleBack = () => {
 
 // Validation
 const validateName = () => {
-  if (!form.name.trim()) {
-    errors.name = 'Please enter an application name'
+  if (!form.appName.trim()) {
+    errors.appName = 'Please enter an application name'
     return false
   }
-  if (form.name.length < 1 || form.name.length > 50) {
-    errors.name = 'Application name must be 1-50 characters'
+  if (form.appName.length < 1 || form.appName.length > 50) {
+    errors.appName = 'Application name must be 1-50 characters'
     return false
   }
-  errors.name = ''
+  errors.appName = ''
   return true
 }
 
 const validateDescription = () => {
-  if (form.description.length > 500) {
-    errors.description = 'Application description cannot exceed 500 characters'
+  if (form.appDescription.length > 500) {
+    errors.appDescription = 'Application description cannot exceed 500 characters'
     return false
   }
-  errors.description = ''
+  errors.appDescription = ''
   return true
 }
 
 const validateType = () => {
-  if (!form.type) {
-    errors.type = 'Please select an application type'
+  if (!form.appType) {
+    errors.appType = 'Please select an application type'
     return false
   }
-  errors.type = ''
+  errors.appType = ''
   return true
 }
 
 const validateCallbackUrl = () => {
+  // Optional field - skip validation if empty
   if (!form.callbackUrl.trim()) {
-    errors.callbackUrl = 'Please enter a callback URL'
-    return false
+    errors.callbackUrl = ''
+    return true
   }
+  // Basic URL format validation (no HTTPS enforcement)
   try {
     new URL(form.callbackUrl)
     errors.callbackUrl = ''
@@ -140,17 +142,17 @@ const handleSubmit = async () => {
   }
 
   loading.value = true
-  errors.name = ''
-  errors.description = ''
+  errors.appName = ''
+  errors.appDescription = ''
   errors.callbackUrl = ''
-  errors.type = ''
+  errors.appType = ''
 
   try {
     const params = {
-      name: form.name.trim(),
-      description: form.description.trim() || undefined,
+      appName: form.appName.trim(),
+      appDescription: form.appDescription.trim() || undefined,
       callbackUrl: form.callbackUrl.trim() || undefined,
-      type: form.type as 'corporate' | 'payment' | 'custody'
+      appType: form.appType as 'corporate' | 'payment' | 'custody'
     }
 
     createdApplication.value = (await apiService.createISVApplication(params)).data?.application ?? null
@@ -160,7 +162,7 @@ const handleSubmit = async () => {
     const message = e.response?.data?.message || 'Creation failed. Please try again later.'
 
     if (code === 1002 || e.response?.status === 409) {
-      errors.name = 'Application name already exists. Please use a different name.'
+      errors.appName = 'Application name already exists. Please use a different name.'
     } else if (code === 40303) {
       // KYB not approved
       await authStore.fetchISVInfo()
@@ -225,21 +227,21 @@ onMounted(async () => {
               Application Name <span class="text-red-500">*</span>
             </label>
             <el-input
-              v-model="form.name"
+              v-model="form.appName"
               placeholder="Enter application name"
               size="large"
               class="h-10"
-              :class="{ 'is-error': errors.name }"
+              :class="{ 'is-error': errors.appName }"
               maxlength="50"
               show-word-limit
               @blur="validateName"
-              @input="errors.name = ''"
+              @input="errors.appName = ''"
             >
               <template #prefix>
                 <el-icon class="text-gray-400"><Document /></el-icon>
               </template>
             </el-input>
-            <p v-if="errors.name" class="mt-1 text-sm text-red-500">{{ errors.name }}</p>
+            <p v-if="errors.appName" class="mt-1 text-sm text-red-500">{{ errors.appName }}</p>
           </div>
 
           <!-- App Type Selection -->
@@ -255,14 +257,14 @@ onMounted(async () => {
                 :key="type.value"
                 class="relative border-2 rounded-lg p-4 cursor-pointer transition-all"
                 :class="[
-                  form.type === type.value
+                  form.appType === type.value
                     ? 'border-brand bg-brand/5'
                     : 'border-gray-200 hover:border-brand/30'
                 ]"
-                @click="form.type = type.value as any; errors.type = ''"
+                @click="form.appType = type.value as any; errors.appType = ''"
               >
                 <div class="flex items-center gap-3 mb-3">
-                  <el-icon class="w-6 h-6" :class="form.type === type.value ? 'text-brand' : 'text-gray-400'">
+                  <el-icon class="w-6 h-6" :class="form.appType === type.value ? 'text-brand' : 'text-gray-400'">
                     <component :is="type.icon" />
                   </el-icon>
                   <span class="font-medium text-gray-900">{{ type.title }}</span>
@@ -279,14 +281,14 @@ onMounted(async () => {
                   </li>
                 </ul>
                 <el-icon
-                  v-if="form.type === type.value"
+                  v-if="form.appType === type.value"
                   class="absolute top-2 right-2 text-brand w-5 h-5"
                 >
                   <CircleCheck />
                 </el-icon>
               </div>
             </div>
-            <p v-if="errors.type" class="mt-2 text-sm text-red-500">{{ errors.type }}</p>
+            <p v-if="errors.appType" class="mt-2 text-sm text-red-500">{{ errors.appType }}</p>
           </div>
 
           <!-- Description -->
@@ -295,25 +297,25 @@ onMounted(async () => {
               Application Description <span class="text-red-500">*</span>
             </label>
             <el-input
-              v-model="form.description"
+              v-model="form.appDescription"
               type="textarea"
               placeholder="Enter application description"
               size="large"
               class="h-10"
-              :class="{ 'is-error': errors.description }"
+              :class="{ 'is-error': errors.appDescription }"
               :rows="4"
               maxlength="500"
               show-word-limit
               @blur="validateDescription"
-              @input="errors.description = ''"
+              @input="errors.appDescription = ''"
             />
-            <p v-if="errors.description" class="mt-1 text-sm text-red-500">{{ errors.description }}</p>
+            <p v-if="errors.appDescription" class="mt-1 text-sm text-red-500">{{ errors.appDescription }}</p>
           </div>
 
           <!-- Callback URL -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Callback URL <span class="text-red-500">*</span>
+              Callback URL
             </label>
             <el-input
               v-model="form.callbackUrl"
@@ -329,8 +331,10 @@ onMounted(async () => {
               </template>
             </el-input>
             <p v-if="errors.callbackUrl" class="mt-1 text-sm text-red-500">{{ errors.callbackUrl }}</p>
-            <p class="mt-1 text-xs text-gray-400">
-              Used to receive Webhook notifications. Please ensure it is a valid HTTPS URL.
+            <p class="mt-2 text-xs text-gray-500 leading-relaxed">
+              Optional. Receive real-time event notifications including authorization (created/revoked/expired),
+              transactions (submitted/confirming/completed/failed), and task approvals (approved/rejected).
+              Uses HMAC-SHA256 signature verification. Request headers include X-Timestamp, X-Signature, X-Event.
             </p>
           </div>
 

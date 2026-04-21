@@ -6,6 +6,7 @@
 
 import { Request, Response } from 'express'
 import jwt, { SignOptions } from 'jsonwebtoken'
+import bcrypt from 'bcrypt'
 import { isvUserService, isvService, isvApplicationService } from '../services/isv-user.service'
 import { getEnvOrDefault } from '../utils/env'
 
@@ -79,7 +80,10 @@ export async function register(req: Request, res: Response): Promise<void> {
     }
 
     // Create ISV company
+    const passwordHash = await bcrypt.hash(password, 10)
     const isv = await isvService.createISV({
+      email,
+      passwordHash,
       legalName,
       registrationNumber,
       jurisdiction,
@@ -172,7 +176,7 @@ export async function ownerLogin(req: Request, res: Response): Promise<void> {
     const token = generateToken({
       userId: result.user!.id as string,
       isvDeveloperId: result.user!.isvDeveloperId as string,
-      isvId: result.user!.isvId as string,
+      isvId: result.user!.isvDeveloperId as string,
       email: result.user!.email as string,
       role: result.user!.role as string
     })
@@ -242,7 +246,7 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
       return
     }
 
-    const { password: _, ...userData } = user
+    const { passwordHash: _, ...userData } = user
     res.json({
       code: 0,
       message: 'Success',
@@ -283,7 +287,7 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
       return
     }
 
-    const { password: _, ...userData } = user
+    const { passwordHash: _, ...userData } = user
     res.json({
       code: 0,
       message: 'Profile updated successfully',
@@ -313,7 +317,7 @@ export async function getISVInfo(req: Request, res: Response): Promise<void> {
       return
     }
 
-    const isv = await isvService.getISVById(isvUser.isvId)
+    const isv = await isvService.getISVById(isvUser.isvDeveloperId)
     if (!isv) {
       res.status(404).json({
         code: 40401,
@@ -351,7 +355,7 @@ export async function getMyApplications(req: Request, res: Response): Promise<vo
       return
     }
 
-    const apps = await isvApplicationService.getUserAccessibleApplications(isvUser.userId)
+    const apps = await isvApplicationService.getApplicationsByISV(isvUser.isvDeveloperId)
     res.json({
       code: 0,
       message: 'Success',

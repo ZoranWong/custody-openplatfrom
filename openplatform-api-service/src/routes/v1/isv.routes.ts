@@ -141,9 +141,7 @@ router.get('/applications/:id', isvAuth, async (req, res) => {
       return
     }
 
-    const canAccess = isvUser?.role === 'owner' ||
-      app.permittedUsers.length === 0 ||
-      app.permittedUsers.includes(isvUser!.userId)
+    const canAccess = isvUser?.role === 'owner' || app.isvDeveloperId === isvUser?.isvDeveloperId
 
     if (!canAccess) {
       res.status(403).json({
@@ -254,7 +252,7 @@ router.get('/applications/all', isvAuth, requireOwner, async (req, res) => {
 router.post('/applications', isvAuth, requireOwner, async (req, res) => {
   try {
     const isvUser = (req as ISVAuthRequest).isvUser
-    const { name, description, callbackUrl, type } = req.body
+    const { name, description, type } = req.body
 
     if (!name) {
       res.status(400).json({
@@ -294,8 +292,6 @@ router.post('/applications', isvAuth, requireOwner, async (req, res) => {
       isvDeveloperId: isvUser!.isvDeveloperId,
       name,
       description,
-      callbackUrl,
-      type
     })
 
     res.status(201).json({
@@ -317,41 +313,7 @@ router.post('/applications', isvAuth, requireOwner, async (req, res) => {
  * Update application user permissions (Owner only)
  */
 router.put('/applications/:appId/permissions', isvAuth, requireOwner, async (req, res) => {
-  try {
-    const { appId } = req.params
-    const { userIds } = req.body
-
-    if (!Array.isArray(userIds)) {
-      res.status(400).json({
-        code: 40001,
-        message: 'userIds must be an array'
-      })
-      return
-    }
-
-    const app = await isvApplicationService.updateApplicationPermissions(appId, userIds)
-
-    if (!app) {
-      res.status(404).json({
-        code: 40401,
-        message: 'Application not found'
-      })
-      return
-    }
-
-    const { appSecret: _, ...result } = app
-    res.json({
-      code: 0,
-      message: 'Permissions updated successfully',
-      data: { application: result }
-    })
-  } catch (error) {
-    console.error('Update permissions error:', error)
-    res.status(500).json({
-      code: 50001,
-      message: 'Internal server error'
-    })
-  }
+  res.status(501).json({ code: 50101, message: 'User-level application permissions not supported' })
 })
 
 /**
@@ -381,7 +343,7 @@ router.put('/applications/:id', isvAuth, requireOwner, async (req, res) => {
       return
     }
 
-    const updated = await isvApplicationService.updateApplication(id, { name, description, status })
+    const updated = await isvApplicationService.updateApplication(id, { appName: name, appDescription: description, status })
     const { appSecret: _, ...result } = updated!
     res.json({
       code: 0,

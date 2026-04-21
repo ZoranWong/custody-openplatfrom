@@ -15,7 +15,6 @@ import {
   activateDeveloper,
   suspendDeveloper,
   banDeveloper,
-  getDeveloperHistory,
   getDeveloperStats
 } from '../../controllers/developer.controller'
 
@@ -37,7 +36,6 @@ router.get('/admins', adminAuthMiddleware, requireRole('super_admin'), getAdminP
 router.get('/developers', adminAuthMiddleware, getDevelopers)
 router.get('/developers/stats', adminAuthMiddleware, getDeveloperStats)
 router.get('/developers/:id', adminAuthMiddleware, getDeveloperById)
-router.get('/developers/:id/history', adminAuthMiddleware, getDeveloperHistory)
 router.post('/developers/:id/approve', adminAuthMiddleware, approveDeveloper)
 router.post('/developers/:id/reject', adminAuthMiddleware, rejectDeveloper)
 router.post('/developers/:id/activate', adminAuthMiddleware, activateDeveloper)

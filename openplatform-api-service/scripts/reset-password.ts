@@ -3,7 +3,7 @@
  * Reset Admin Password Script
  */
 
-import bcrypt from 'path'
+import bcrypt from 'bcrypt'
 import fs from 'fs/promises'
 
 interface AdminRecord {

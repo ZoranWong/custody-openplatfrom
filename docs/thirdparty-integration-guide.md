@@ -1,7 +1,7 @@
 # 第三方开发者接入指南
 
-**Last Updated:** 2026-04-13
-**版本:** v3.0
+**Last Updated:** 2026-04-20
+**版本:** v4.0
 
 ---
 
@@ -194,6 +194,180 @@ Content-Type: application/json
 | 参数 | 类型 | 说明 |
 |------|------|------|
 | authorizeId | string | 授权记录 ID，用于后续业务接口的 authorizationId |
+
+---
+
+### 1.3 回调通知机制
+
+开放平台通过回调通知机制向开发者服务器推送事件通知，包括授权状态变更、交易状态变更、任务审核结果等。
+
+#### 回调地址配置
+
+开发者可以在创建应用时配置回调地址（Callback URL），也可在授权时通过 `callback` 参数指定。
+
+**配置优先级：**
+1. 授权请求中的 `callback` 参数（一次性回调）
+2. 应用默认的回调地址（持续订阅）
+
+#### 回调推送格式
+
+回调通过 HTTP POST 请求发送到开发者的回调地址：
+
+**请求头：**
+
+| 头部字段 | 必填 | 说明 | 示例 |
+|----------|------|------|------|
+| `Content-Type` | 是 | 内容类型 | `application/json` |
+| `X-Timestamp` | 是 | 推送时间戳（毫秒） | `1745220600000` |
+| `X-Signature` | 是 | HMAC-SHA256 签名 | `sha256=xxxxxx...` |
+| `X-Event` | 否 | 事件类型 | `authorization.created` |
+
+**请求体：**
+
+```json
+{
+  "appId": "550e8400-e29b-41d4-a716-446655440000",
+  "event": "authorization.created",
+  "timestamp": "1745220600000",
+  "data": {
+    "authorizeId": "123e4567-e89b-12d3-a456-426614174000",
+    "oauthToken": "developer-provided-token"
+  }
+}
+```
+
+#### 签名验证
+
+回调使用 HMAC-SHA256 算法进行签名验证：
+
+**签名公式：**
+
+```
+signData = appId + "." + [event] + "." + timestamp
+signature = HMAC-SHA256(appSecret, signData)
+```
+
+**示例（Node.js）：**
+
+```javascript
+const crypto = require('crypto');
+
+function verifyCallbackSignature(appSecret, appId, event, timestamp, signature) {
+    // 构建签名数据
+    let signData = appId;
+    if (event) {
+        signData += '.' + event;
+    }
+    signData += '.' + timestamp;
+
+    // 计算 HMAC-SHA256
+    const expected = crypto
+        .createHmac('sha256', appSecret)
+        .update(signData)
+        .digest('hex');
+
+    // 提取请求中的签名
+    const requestSignature = signature.replace('sha256=', '');
+
+    // 常数时间比较
+    return crypto.timingSafeEqual(
+        Buffer.from(expected),
+        Buffer.from(requestSignature)
+    );
+}
+
+// 使用示例
+app.post('/callback', (req, res) => {
+    const signature = req.headers['x-signature'];
+    const timestamp = req.headers['x-timestamp'];
+    const event = req.headers['x-event'];
+    const appId = req.body.appId;
+
+    const appSecret = getAppSecret(appId);
+    if (!verifyCallbackSignature(appSecret, appId, event, timestamp, signature)) {
+        return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    // 处理回调
+    const { event: eventType, data } = req.body;
+    // ...
+});
+```
+
+#### 事件类型
+
+| 类别 | 事件名称 | 说明 |
+|------|----------|------|
+| 授权 | `authorization.created` | 授权创建成功 |
+| | `authorization.revoked` | 授权被撤销 |
+| | `authorization.expired` | 授权已过期 |
+| 交易 | `transaction.submitted` | 交易已提交 |
+| | `transaction.confirming` | 交易确认中 |
+| | `transaction.completed` | 交易已完成 |
+| | `transaction.failed` | 交易失败 |
+| 任务 | `task.approved` | 任务审批通过 |
+| | `task.rejected` | 任务审批被拒绝 |
+
+#### 重试机制
+
+回调推送失败时，开放平台会自动重试：
+
+| 参数 | 值 |
+|------|-----|
+| 最大重试次数 | 3 次（总共 4 次尝试） |
+| 重试间隔 | 0s, 1s, 5s, 30s |
+| 单次请求超时 | 30 秒 |
+
+**会重试的情况：**
+- HTTP 状态码 429（限流）
+- HTTP 状态码 5xx（服务器错误）
+- 网络错误（超时、连接失败等）
+
+**不会重试的情况：**
+- HTTP 状态码 2xx（成功）
+- HTTP 状态码 4xx（客户端错误）
+
+#### 最佳实践
+
+**1. 幂等处理：**
+
+```javascript
+app.post('/callback', (req, res) => {
+    const eventId = req.headers['x-event'] + '-' + req.body.timestamp;
+
+    // 检查是否已处理
+    if (processedEvents.has(eventId)) {
+        return res.status(200).json({ status: 'already_processed' });
+    }
+
+    // 标记为处理中
+    processedEvents.add(eventId);
+
+    // 异步处理业务逻辑
+    processEvent(req.body).catch(err => {
+        processedEvents.delete(eventId); // 失败时删除标记，允许重试
+        console.error('Failed to process event:', err);
+    });
+
+    res.status(200).json({ status: 'ok' });
+});
+```
+
+**2. 快速响应：**
+
+回调处理应快速返回，异步执行业务逻辑：
+
+```javascript
+app.post('/callback', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+
+    setImmediate(() => {
+        processEvent(req.body).catch(err => {
+            console.error('Callback processing failed:', err);
+        });
+    });
+});
+```
 
 ---
 
@@ -1564,6 +1738,9 @@ Web SDK 使用 UUID 机制防止跨域消息污染：
 4. **敏感信息**: appSecret 仅在服务端使用，切勿暴露在客户端
 5. **错误处理**: 收到错误码时应根据文档进行相应处理
 6. **UUID 验证**: SDK 与授权页面通过 UUID 进行双向消息验证
+7. **回调签名验证**: 接收回调通知时必须验证 HMAC-SHA256 签名，确保消息来源可靠
+8. **回调幂等处理**: 回调处理器应支持幂等操作，避免重复处理同一事件
+9. **回调快速响应**: 回调处理应快速返回 200，避免长时间处理导致超时
 
 ---
 

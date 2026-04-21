@@ -7,22 +7,12 @@
  * SDK Configuration
  */
 export interface SDKConfig {
-    /** Application ID - required */
-    appId: string;
     /** DOM container for iframe - required */
     container: HTMLElement | string;
-    /** Event callback - optional (receives all events) */
-    onEvent?: (event: SDKEvent) => void;
-    /** Authorization page URL - required, e.g., 'https://openplatform.cregis.com/openplatform/oauth/' */
-    authUrl: string;
+    /** Authorization server gateway URL - e.g., 'https://openplatform.cregis.com/openplatform' */
+    gateway?: string;
     /** Debug mode - optional, defaults to false */
     debug?: boolean;
-    /** App Token - for authorization */
-    appToken?: string;
-    /** App Name - displayed in authorization page */
-    appName?: string;
-    /** App Logo URL - displayed in authorization page */
-    appLogoUrl?: string;
     /** Display mode: 'tab', 'window', or 'popup', defaults to 'popup' */
     mode?: 'tab' | 'window' | 'popup';
     /** Custom CSS for modal overlay - optional */
@@ -43,6 +33,8 @@ export interface SDKConfig {
     onAuthorizationError?: (error: { code: string; message: string }) => void;
     /** Callback when authorization is cancelled */
     onAuthorizationCancelled?: () => void;
+    /** Event callback - optional (receives all events) */
+    onEvent?: (event: SDKEvent) => void;
 }
 
 /**

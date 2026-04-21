@@ -2,79 +2,38 @@
  * ISV User Repository Implementation
  */
 
-import { StorageAdapter } from '../storage.adapter'
-import { ISVUser } from '../../types/isv.types'
+import { PrismaClient, Prisma, IsvUser } from '@prisma/client'
 import { ISVUserRepository } from '../repository.interfaces'
-import { v4 as uuidv4 } from 'uuid'
 
 export class ISVUserRepositoryImpl implements ISVUserRepository {
-  constructor(private readonly db: StorageAdapter) {}
+  constructor(private readonly prisma: PrismaClient) {}
 
-  async findById(id: string): Promise<ISVUser | null> {
-    return this.db.findById<ISVUser>(id) as Promise<ISVUser | null>
+  async findById(id: string): Promise<IsvUser | null> {
+    return this.prisma.isvUser.findUnique({ where: { id } })
   }
 
-  async findOne(where: Partial<ISVUser>): Promise<ISVUser | null> {
-    return this.db.findOne<ISVUser>(where) as Promise<ISVUser | null>
+  async findByEmail(email: string): Promise<IsvUser | null> {
+    return this.prisma.isvUser.findUnique({ where: { email } })
   }
 
-  async findMany(where?: Partial<ISVUser>): Promise<ISVUser[]> {
-    return this.db.findMany<ISVUser>(where) as Promise<ISVUser[]>
+  async findByIsvDeveloper(isvDeveloperId: string): Promise<IsvUser[]> {
+    return this.prisma.isvUser.findMany({ where: { isvDeveloperId } })
   }
 
-  async findAll(): Promise<ISVUser[]> {
-    return this.db.findAll<ISVUser>() as Promise<ISVUser[]>
+  async findByIsvDeveloperAndEmail(isvDeveloperId: string, email: string): Promise<IsvUser | null> {
+    return this.prisma.isvUser.findFirst({ where: { isvDeveloperId, email } })
   }
 
-  async create(data: Omit<ISVUser, 'id'>): Promise<ISVUser> {
-    const id = uuidv4()
-    const now = new Date().toISOString()
-    const user: ISVUser = {
-      id,
-      isvDeveloperId: data.isvDeveloperId,
-      isvId: data.isvId,
-      email: data.email,
-      password: data.password,
-      name: data.name,
-      phone: data.phone,
-      role: data.role,
-      status: data.status,
-      allowedApplications: data.allowedApplications,
-      createdAt: now,
-      updatedAt: now
-    }
-    await this.db.insert(user)
-    return user
+  async create(data: Prisma.IsvUserCreateInput): Promise<IsvUser> {
+    return this.prisma.isvUser.create({ data })
   }
 
-  async update(id: string, data: Partial<ISVUser>): Promise<ISVUser | null> {
-    const now = new Date().toISOString()
-    const result = await this.db.update(id, { ...data, updatedAt: now })
-    return result as ISVUser | null
+  async update(id: string, data: Prisma.IsvUserUpdateInput): Promise<IsvUser> {
+    return this.prisma.isvUser.update({ where: { id }, data })
   }
 
   async delete(id: string): Promise<boolean> {
-    return this.db.delete(id)
-  }
-
-  async exists(id: string): Promise<boolean> {
-    return this.db.exists(id)
-  }
-
-  async count(where?: Partial<ISVUser>): Promise<number> {
-    return this.db.count(where)
-  }
-
-  async findByEmail(email: string): Promise<ISVUser | null> {
-    return this.db.findOne<ISVUser>({ email }) as Promise<ISVUser | null>
-  }
-
-  async findByIsvDeveloper(isvDeveloperId: string): Promise<ISVUser[]> {
-    return this.db.findMany<ISVUser>({ isvDeveloperId }) as Promise<ISVUser[]>
-  }
-
-  async findByIsvDeveloperAndEmail(isvDeveloperId: string, email: string): Promise<ISVUser | null> {
-    const users = await this.db.findMany<ISVUser>({ isvDeveloperId, email })
-    return users[0] || null
+    await this.prisma.isvUser.delete({ where: { id } })
+    return true
   }
 }

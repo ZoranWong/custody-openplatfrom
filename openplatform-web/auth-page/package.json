@@ -4,8 +4,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "vite --port=1002 ",
-        "build": "vue-tsc && vite build",
+        "dev": "vite --mode development --port=1003",
+        "build": "vue-tsc && vite build --mode production",
+        "build:test": "vite build --mode development",
         "preview": "vite preview",
         "test": "vitest run",
         "test:watch": "vitest"

@@ -43,12 +43,11 @@ export type ApplicationType = 'corporate' | 'payment' | 'custody'
 export interface Application {
   id: string
   isvDeveloperId: string
-  name: string
-  appId: string
+  appName?: string
+  appDescription?: string
+  appType?: ApplicationType
   appSecret?: string
-  type: ApplicationType
   status: 'pending_review' | 'active' | 'inactive' | 'suspended'
-  description?: string
   callbackUrl?: string
   permittedUsers: string[]
   apiUsage?: ApplicationApiUsage
@@ -156,8 +155,9 @@ export interface UserProfile {
 }
 
 export interface CreateAppParams {
-  name: string
-  description?: string
+  appName: string
+  appDescription?: string
+  appType?: ApplicationType
   callbackUrl?: string
 }
 
@@ -415,7 +415,7 @@ class ApiService {
     return response.data
   }
 
-  async createISVApplication(data: { name: string; description?: string; callbackUrl?: string; type: 'corporate' | 'payment' | 'custody' }): Promise<ApplicationResponse> {
+  async createISVApplication(data: { appName: string; appDescription?: string; callbackUrl?: string; appType: 'corporate' | 'payment' | 'custody' }): Promise<ApplicationResponse> {
     const response = await this.client.post('/isv/applications', data)
     return response.data
   }

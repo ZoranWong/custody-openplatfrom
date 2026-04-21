@@ -68,7 +68,7 @@ const handleClose = () => {
   <el-dialog
     v-model="dialogVisible"
     title="Application Secret"
-    width="480px"
+    width="560px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     @close="handleClose"
@@ -88,8 +88,8 @@ const handleClose = () => {
 
       <!-- App Info -->
       <div v-if="application">
-        <p class="text-sm text-gray-600 mb-2">Application Name: {{ application.name }}</p>
-        <p class="text-sm text-gray-600 mb-4">AppID: {{ application.appId }}</p>
+        <p class="text-sm text-gray-600 mb-2">Application Name: {{ application.appName || 'Unnamed' }}</p>
+        <p class="text-sm text-gray-600 mb-4">AppID: {{ application.id }}</p>
       </div>
 
       <!-- AppSecret Display -->
@@ -120,7 +120,7 @@ const handleClose = () => {
       </div>
 
       <!-- Confirmation -->
-      <el-checkbox v-model="confirmed" class="mt-4">
+      <el-checkbox v-model="confirmed" class="mt-4" style="white-space: normal; word-break: break-word;">
         I understand and have saved the AppSecret. I understand this value will not be shown again.
       </el-checkbox>
     </div>

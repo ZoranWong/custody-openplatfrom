@@ -3,10 +3,9 @@
  * Domain models for ISV entities
  */
 
-import { Entity } from '../repositories/storage.adapter'
-
 // ISV Developer (主账号)
-export interface IsvDeveloper extends Entity {
+export interface IsvDeveloper {
+  id: string
   email: string
   passwordHash?: string
   legalName: string
@@ -46,7 +45,8 @@ export enum ISVUserStatus {
 }
 
 // ISV 用户
-export interface ISVUser extends Entity {
+export interface ISVUser {
+  id: string
   isvDeveloperId: string
   isvId: string
   email: string
@@ -85,13 +85,13 @@ export interface UBO {
 }
 
 // Application
-export interface Application extends Entity {
+export interface Application {
+  id: string
   isvDeveloperId: string
   name: string
-  appId: string
   appSecret?: string
   description?: string
-  callbackUrl?: string
+  callbackUrl?: string | null
   type: 'corporate' | 'payment' | 'custody'
   status: 'pending_review' | 'active' | 'inactive' | 'suspended'
   permittedUsers: string[]

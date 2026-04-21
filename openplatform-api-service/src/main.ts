@@ -24,7 +24,6 @@ import adminRoutes from './routes/v1/admin.routes'
 import isvRoutes from './routes/v1/isv.routes'
 import billingRoutes from './routes/v1/billing.routes'
 import usageRoutes from './routes/v1/usage.routes'
-import webhookConfigRoutes from './routes/v1/webhook-config.routes'
 import oauthRoutes from './routes/oauth.routes'
 import authorizationRoutes from './routes/v1/authorization.routes'
 import thirdpartyRoutes from './routes/thirdparty.routes'
@@ -106,7 +105,6 @@ app.use('/api/v1/admin', traceRoutes)
 app.use('/api/v1/isv', isvRoutes)
 app.use('/api/v1/billing', billingRoutes)
 app.use('/api/v1/usage', usageRoutes)
-app.use('/api/v1/isv', webhookConfigRoutes)
 
 // OAuth routes (including appToken/validate)
 app.use('/api/oauth', oauthRoutes)

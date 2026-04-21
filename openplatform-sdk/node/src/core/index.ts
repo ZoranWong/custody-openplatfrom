@@ -4,10 +4,11 @@
  * A comprehensive Node.js SDK for Cregis Custody OpenPlatform API.
  */
 
-import { SDKConfig } from '../types';
+import { SDKConfig, CallbackPayload, CallbackRequest } from '../types';
 import { SDKError, SDKErrorCode } from './error';
 import { HttpClient } from './http';
 import { isValidUUID, generateNonce, getTimestamp, buildBasicInfo, BasicSignatureParams, buildBasicInfoWithAuthorization, ResourceSignatureParams } from './signature';
+import { CallbackService } from './callback.service';
 
 /**
  * Cregis OpenPlatform Node.js SDK
@@ -15,11 +16,13 @@ import { isValidUUID, generateNonce, getTimestamp, buildBasicInfo, BasicSignatur
 export class CregisSDK {
   private readonly config: SDKConfig;
   private readonly http: HttpClient;
+  private readonly callbackService: CallbackService;
 
   constructor(config: SDKConfig) {
     this.validateConfig(config);
     this.config = config;
     this.http = new HttpClient(config);
+    this.callbackService = new CallbackService();
   }
 
   /**
@@ -742,6 +745,73 @@ export class CregisSDK {
   async deleteWebhook(id: string): Promise<{ success: boolean }> {
     await this.http.delete(`/api/v1/isv/webhooks/webhooks/${id}`);
     return { success: true };
+  }
+
+  // ============ Callback Methods ============
+
+  /**
+   * Handle callback request from Cregis platform
+   *
+   * Verifies the HMAC-SHA256 signature and calls the provided callback
+   * with the parsed payload if verification succeeds.
+   *
+   * Supports two callback scenarios:
+   * - Business parameter callback: signature based on appId + "." + timestamp
+   * - Global Application callback: signature based on appId + "." + event + "." + timestamp
+   *
+   * @param req - HTTP request object (Express or Koa compatible)
+   * @param callback - Business handler called with verified payload
+   * @throws SDKError with SIGNATURE_INVALID if verification fails
+   *
+   * @example
+   * // Express route
+   * app.post('/callback', (req, res) => {
+   *   sdk.onCallback(req, (payload) => {
+   *     console.log('Event:', payload.event, 'Data:', payload.data);
+   *     res.status(200).send('OK');
+   *   });
+   * });
+   */
+  public onCallback(
+    req: CallbackRequest,
+    callback: (payload: CallbackPayload) => void
+  ): void {
+    const signature = req.headers['x-signature']?.replace('sha256=', '');
+    const timestamp = req.headers['x-timestamp'];
+    // Event comes from body.event (global Application callback) or X-Event header (fallback)
+    const event = req.body?.event || req.headers['x-event'];
+
+    // Validate required headers
+    if (!signature || !timestamp) {
+      throw new SDKError(
+        SDKErrorCode.SIGNATURE_INVALID,
+        'Missing required signature or timestamp headers'
+      );
+    }
+
+    // Verify signature
+    const isValid = this.callbackService.verifySignature({
+      appSecret: this.config.appSecret,
+      appId: req.body?.appId || this.config.appId,
+      event,
+      timestamp,
+      signature,
+    });
+
+    if (!isValid) {
+      throw new SDKError(
+        SDKErrorCode.SIGNATURE_INVALID,
+        'Invalid callback signature'
+      );
+    }
+
+    // Debug logging
+    if (this.config.debug) {
+      console.log('[CregisSDK] Callback verified:', { event, timestamp });
+    }
+
+    // Call business callback with verified payload
+    callback(req.body as CallbackPayload);
   }
 
   // ============ Utility Methods ============

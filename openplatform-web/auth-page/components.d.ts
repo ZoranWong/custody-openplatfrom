@@ -13,8 +13,8 @@ declare module 'vue' {
   export interface GlobalComponents {
     ElOption: typeof import('element-plus/es')['ElOption']
     ElSelect: typeof import('element-plus/es')['ElSelect']
-    EnterpriseSelector: typeof import('./src/components/EnterpriseSelector.vue')['default']
     LoginForm: typeof import('./src/components/LoginForm.vue')['default']
+    OrganizationSelector: typeof import('./src/components/OrganizationSelector.vue')['default']
     SvgIcon: typeof import('./src/components/SvgIcon.vue')['default']
     TotpForm: typeof import('./src/components/TotpForm.vue')['default']
   }

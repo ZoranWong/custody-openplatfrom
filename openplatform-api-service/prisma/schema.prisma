@@ -70,6 +70,10 @@ model Application {
   appLogoUrl    String?  @map("app_logo_url")
   /// 应用密钥
   appSecret     String   @map("app_secret")
+  /// 应用类型: corporate(企业财务), payment(支付处理), custody(个人托管)
+  appType       String   @default("corporate") @map("app_type")
+  /// 回调 URL（用于推送事件通知）
+  callbackUrl   String?  @map("callback_url")
   /// 应用状态: active(正常), suspended(停用), deleted(已删除)
   status        String   @default("active")
   /// 创建时间
@@ -79,7 +83,6 @@ model Application {
 
   isvDeveloper   IsvDeveloper    @relation(fields: [isvDeveloperId], references: [id], onDelete: Cascade)
   oauthResources OauthResource[]
-  webhooks       Webhook[]
   apiLogs        ApiLog[]
   metrics        Metric[]
 
@@ -112,36 +115,9 @@ model OauthResource {
   application Application    @relation(fields: [appId], references: [id], onDelete: Cascade)
   // enterprise  IsvEnterprise? @relation(fields: [resourceKey], references: [id], onDelete: SetNull) // TODO: IsvEnterprise model missing
 
-  @@unique([appId, userId, resourceKey])
+  @@unique([appId, resourceKey], name: "appId_resourceKey")
   @@index([resourceKey])
   @@map("oauth_resources")
-}
-
-// ============================================
-// Webhook - Webhook配置表
-// ============================================
-model Webhook {
-  /// Webhook唯一标识 UUID
-  id          String   @id @default(uuid())
-  /// 关联的应用ID
-  appId       String   @map("app_id")
-  /// Webhook回调URL
-  url         String
-  /// Webhook密钥（用于签名验证）
-  secret      String?
-  /// 订阅的事件类型列表
-  eventTypes  Json     @map("event_types")
-  /// 是否启用
-  isActive    Boolean  @default(true) @map("is_active")
-  /// 创建时间
-  createdAt   DateTime @default(now()) @map("created_at")
-  /// 更新时间
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  application Application @relation(fields: [appId], references: [id], onDelete: Cascade)
-
-  @@index([appId])
-  @@map("webhooks")
 }
 
 // ============================================

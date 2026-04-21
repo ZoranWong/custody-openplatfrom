@@ -3,8 +3,6 @@
  * Types for app-enterprise binding validation
  */
 
-import { Entity } from '../repositories/storage.adapter'
-
 /**
  * App-Enterprise Binding status
  */
@@ -13,7 +11,8 @@ export type BindingStatus = 'active' | 'expired' | 'revoked'
 /**
  * App-Enterprise Binding record
  */
-export interface AppEnterpriseBinding extends Entity {
+export interface AppEnterpriseBinding {
+  id: string
   appid: string
   enterprise_id: string
   permissions: string[]

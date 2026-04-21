@@ -401,3 +401,47 @@ export interface FundRecord {
   toAddress?: string;
   createdAt: string;
 }
+
+// ============ Callback Types ============
+
+/**
+ * Callback Payload - message body pushed from Cregis platform
+ */
+export interface CallbackPayload {
+  /** Application ID */
+  appId: string;
+  /** Event type (present for global Application callbacks) */
+  event?: CallbackEventType;
+  /** Unix timestamp in milliseconds */
+  timestamp: string;
+  /** Event-specific data */
+  data: Record<string, unknown>;
+}
+
+/**
+ * Callback Event Types - events pushed from Cregis platform
+ */
+export type CallbackEventType =
+  | 'authorization.created'
+  | 'authorization.revoked'
+  | 'authorization.expired'
+  | 'transaction.submitted'
+  | 'transaction.confirming'
+  | 'transaction.completed'
+  | 'transaction.failed'
+  | 'task.approved'
+  | 'task.rejected'
+
+/**
+ * HTTP Request object interface (compatible with Express/Koa)
+ * For Express: req.headers, req.body
+ * For Koa: ctx.request.headers, ctx.request.body
+ */
+export interface CallbackRequest {
+  headers: {
+    'x-signature'?: string;
+    'x-timestamp'?: string;
+    'x-event'?: string;
+  };
+  body: CallbackPayload;
+}

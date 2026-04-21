@@ -1,5 +1,5 @@
 <template>
-  <div class="enterprise-selector">
+  <div class="organization-selector">
     <div class="selector-header">
       <div class="icon">
         <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -7,31 +7,31 @@
           <path d="M24 14V34M14 24H34" stroke="#4F46E5" stroke-width="4" stroke-linecap="round"/>
         </svg>
       </div>
-      <h1>Select Enterprise</h1>
-      <p class="subtitle">Choose an enterprise to authorize access for</p>
+      <h1>Select Organization</h1>
+      <p class="subtitle">Choose an organization to authorize access for</p>
     </div>
 
     <div v-if="loading" class="loading">
       <div class="spinner"></div>
-      <p>Loading enterprises...</p>
+      <p>Loading organizations...</p>
     </div>
 
     <div v-else-if="errorMessage" class="error-message">
       {{ errorMessage }}
     </div>
 
-    <div v-else class="enterprise-select-wrapper">
+    <div v-else class="organization-select-wrapper">
       <el-select
-        v-model="selectedEnterpriseId"
-        placeholder="Select an enterprise"
-        class="enterprise-select"
+        v-model="selectedOrganizationId"
+        placeholder="Select an organization"
+        class="organization-select"
         :disabled="loading"
       >
         <el-option
-          v-for="enterprise in enterprises"
-          :key="enterprise.id"
-          :label="enterprise.name"
-          :value="enterprise.id"
+          v-for="organization in organizations"
+          :key="organization.id"
+          :label="organization.name"
+          :value="organization.id"
         />
       </el-select>
     </div>
@@ -40,7 +40,7 @@
       <button @click="$emit('back')" class="back-btn" :disabled="loading">
         Back
       </button>
-      <button @click="handleContinue" class="continue-btn" :disabled="loading || !selectedEnterpriseId">
+      <button @click="handleContinue" class="continue-btn" :disabled="loading || !selectedOrganizationId">
         Continue
       </button>
     </div>
@@ -49,27 +49,26 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import type { Enterprise } from '../types'
-import { getEnterpriseList } from '../services/auth'
+import type { Organization } from '../types'
+import { getOrganizationList } from '../services/auth'
 
 const props = defineProps<{
   username: string;
-  loading?: boolean;
-  errorMessage?: string;
 }>();
 
 const emit = defineEmits<{
-  (e: 'select', enterprise: Enterprise): void;
+  (e: 'select', organization: Organization): void;
   (e: 'back'): void;
   (e: 'error', error: string): void;
 }>();
 
-const enterprises = ref<Enterprise[]>([]);
-const selectedEnterpriseId = ref<string>('');
+const organizations = ref<Organization[]>([]);
+const selectedOrganizationId = ref<string>('');
 const loading = ref(false);
+const errorMessage = ref('');
 
 function handleContinue() {
-  const selected = enterprises.value.find(e => e.id === selectedEnterpriseId.value);
+  const selected = organizations.value.find(org => org.id === selectedOrganizationId.value);
   if (selected) {
     emit('select', selected);
   }
@@ -78,14 +77,16 @@ function handleContinue() {
 onMounted(async () => {
   loading.value = true;
   try {
-    const response = await getEnterpriseList(props.username);
-    if (response.success && response.enterprises) {
-      enterprises.value = response.enterprises;
+    const response = await getOrganizationList(props.username);
+    if (response.success && response.organizations) {
+      organizations.value = response.organizations;
     } else {
-      emit('error', response.error?.message || 'Failed to load enterprises');
+      errorMessage.value = response.error?.message || 'Failed to load organizations';
+      emit('error', errorMessage.value);
     }
   } catch (error) {
-    emit('error', 'Network error. Please try again.');
+    errorMessage.value = 'Network error. Please try again.';
+    emit('error', errorMessage.value);
   } finally {
     loading.value = false;
   }
@@ -93,7 +94,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.enterprise-selector {
+.organization-selector {
   width: 100%;
   max-width: 440px;
   padding: 40px;
@@ -160,31 +161,31 @@ onMounted(async () => {
   text-align: center;
 }
 
-.enterprise-select-wrapper {
+.organization-select-wrapper {
   margin-bottom: 24px;
 }
 
-.enterprise-select {
+.organization-select {
   width: 100%;
 }
 
-.enterprise-select :deep(.el-select__wrapper) {
+.organization-select :deep(.el-select__wrapper) {
   padding: 16px;
   border-radius: 12px;
   border: 1px solid rgba(31, 33, 31, 0.2);
   box-shadow: none;
 }
 
-.enterprise-select :deep(.el-select__wrapper:hover) {
+.organization-select :deep(.el-select__wrapper:hover) {
   border-color: #00be78;
 }
 
-.enterprise-select :deep(.el-select__wrapper.is-focused) {
+.organization-select :deep(.el-select__wrapper.is-focused) {
   border-color: #00be78;
   box-shadow: 0 0 0 3px rgba(0, 190, 120, 0.1);
 }
 
-.enterprise-select :deep(.el-select__placeholder) {
+.organization-select :deep(.el-select__placeholder) {
   color: #6b7280;
 }
 

@@ -184,7 +184,7 @@ describe('ISV User Service', () => {
           id: 'user-123',
           isvDeveloperId: 'isv-123',
           email: 'test@test.com',
-          password: hashedPassword,
+          passwordHash: hashedPassword,
           role: 'owner',
           status: 'active'
         })
@@ -201,7 +201,7 @@ describe('ISV User Service', () => {
           id: 'user-123',
           isvDeveloperId: 'isv-123',
           email: 'test@test.com',
-          password: hashedPassword,
+          passwordHash: hashedPassword,
           role: 'owner',
           status: 'active'
         })

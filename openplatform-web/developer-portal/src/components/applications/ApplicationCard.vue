@@ -23,7 +23,7 @@ const statusConfig = computed(() => {
 })
 
 const typeConfig = computed(() => {
-  return applicationTypeConfig[props.application.type] || applicationTypeConfig.corporate
+  return applicationTypeConfig[props.application.appType || 'corporate'] || applicationTypeConfig.corporate
 })
 
 const typeGradient = computed(() => {
@@ -63,8 +63,8 @@ const handleClick = () => {
           :class="typeGradient"
         >
           <el-icon class="w-6 h-6 text-white">
-            <OfficeBuilding v-if="application.type === 'corporate'" />
-            <CreditCard v-else-if="application.type === 'payment'" />
+            <OfficeBuilding v-if="application.appType === 'corporate'" />
+            <CreditCard v-else-if="application.appType === 'payment'" />
             <UserFilled v-else />
           </el-icon>
         </div>
@@ -72,11 +72,11 @@ const handleClick = () => {
         <!-- Details -->
         <div class="min-w-0 flex-1">
           <h3 class="text-lg font-medium text-gray-900 truncate">
-            {{ application.name }}
+            {{ application.appName || 'Unnamed App' }}
           </h3>
           <div class="flex items-center gap-3 mt-1">
             <span class="text-sm text-gray-500 font-mono">
-              {{ application.appId }}
+              {{ application.id }}
             </span>
             <el-tag :type="statusConfig.type" size="small">
               {{ statusConfig.text }}

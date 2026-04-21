@@ -7,7 +7,9 @@ import { Request, Response } from 'express';
 import { getApplicationRepository } from '../repositories/repository.factory';
 import { getAuthorizationRepository } from '../repositories/repository.factory';
 import { computeSignature, verifySignature, SignatureErrorCode } from '../utils/signature.util';
-import { Authorization } from '../types/authorization.types';
+import { OauthResource } from '../repositories/repository.interfaces';
+import { getApplicationCallbackService } from '../services/application-callback.service';
+import { logger } from '../utils/logger';
 
 /**
  * Sort object keys recursively for consistent JSON serialization
@@ -202,10 +204,7 @@ export async function createAuthorization(req: Request, res: Response): Promise<
     const authorization = await authorizationRepo.upsert({
       appId,
       resourceKey,
-      permissions,
-      expiresAt,
-      status: 'active',
-      authorizedAt: new Date().toISOString(),
+      expiresAt: expiresAt ? new Date(expiresAt) : undefined,
     });
 
     res.status(200).json({
@@ -216,6 +215,18 @@ export async function createAuthorization(req: Request, res: Response): Promise<
         updatedAt: authorization.updatedAt,
       },
     });
+
+    // Push callback event (async, non-blocking)
+    getApplicationCallbackService().pushEvent({
+      application,
+      event: 'authorization.created',
+      data: {
+        authorizationId: authorization.id,
+        resourceKey,
+        expiresAt: authorization.expiresAt,
+      },
+    }).catch((err) => logger.error('Callback push failed:', err));
+
   } catch (error) {
     res.status(500).json({
       code: 50001,
@@ -366,7 +377,6 @@ export async function getAuthorization(req: Request, res: Response): Promise<voi
         authorizationId: authorization.id,
         appId: authorization.appId,
         resourceKey: authorization.resourceKey,
-        permissions: authorization.permissions,
         status: effectiveStatus,
         createdAt: authorization.createdAt,
         updatedAt: authorization.updatedAt,

@@ -253,7 +253,7 @@ export async function verifySecondFactor(params: {
  */
 export async function submitAuthorization(params: {
     appId: string
-    enterpriseId: string
+    organizationId: string
 }): Promise<{ authorizationId: string }> {
     try {
         const urlParams = new URLSearchParams(window.location.search)
@@ -261,7 +261,7 @@ export async function submitAuthorization(params: {
 
         const queryParams = new URLSearchParams({
             appId: params.appId,
-            ecode: params.enterpriseId,
+            ecode: params.organizationId,
             appToken: appToken,
         })
 
@@ -295,12 +295,12 @@ export async function submitAuthorization(params: {
 }
 
 /**
- * Get enterprise list
+ * Get organization list
  * GET /merchant/member/list
  */
-export async function getEnterpriseList(_username?: string): Promise<{
+export async function getOrganizationList(_username?: string): Promise<{
     success: boolean
-    enterprises?: Array<{
+    organizations?: Array<{
         id: string
         name: string
         status: 'ACTIVE' | 'INACTIVE' | 'PENDING'
@@ -328,7 +328,7 @@ export async function getEnterpriseList(_username?: string): Promise<{
         if (response.code === 200 && response.data) {
             return {
                 success: true,
-                enterprises: response.data
+                organizations: response.data
                     .filter(ent => ent.state === 'ACTIVE')
                     .map(ent => ({
                         id: ent.ecode,
@@ -342,12 +342,12 @@ export async function getEnterpriseList(_username?: string): Promise<{
             success: false,
             error: {
                 code: String(response.code),
-                message: response.message || 'Failed to get enterprise list',
+                message: response.message || 'Failed to get organization list',
             },
         }
     } catch (error) {
-        console.warn('Enterprise list API not available, using mock')
-        return mockGetEnterpriseList()
+        console.warn('Organization list API not available, using mock')
+        return mockGetOrganizationList()
     }
 }
 
@@ -355,14 +355,14 @@ export async function getEnterpriseList(_username?: string): Promise<{
 // Mock Functions (for development)
 // ============================================
 
-async function mockGetEnterpriseList() {
+async function mockGetOrganizationList() {
     await new Promise(resolve => setTimeout(resolve, 500))
     return {
         success: true,
-        enterprises: [
-            { id: 'ent-001', name: 'Acme Corporation', status: 'ACTIVE' as const },
-            { id: 'ent-002', name: 'Tech Innovations Ltd', status: 'ACTIVE' as const },
-            { id: 'ent-003', name: 'Global Trading Co', status: 'PENDING' as const },
+        organizations: [
+            { id: 'org-001', name: 'Acme Organization', status: 'ACTIVE' as const },
+            { id: 'org-002', name: 'Tech Innovations Ltd', status: 'ACTIVE' as const },
+            { id: 'org-003', name: 'Global Trading Co', status: 'PENDING' as const },
         ],
     }
 }

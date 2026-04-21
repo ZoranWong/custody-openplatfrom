@@ -45,10 +45,9 @@ describe('ResourceAuthorizationService', () => {
       const mockOauth = {
         id: 'oauth-1',
         appId,
-        userId: 'user-1',
         resourceKey,
         status: 'active',
-        expiresAt: new Date(Date.now() + 86400000) // 1 day from now
+        expiresAt: new Date(Date.now() + 86400000)
       }
 
       mockOauthResource.findFirst.mockResolvedValue(mockOauth)
@@ -57,7 +56,6 @@ describe('ResourceAuthorizationService', () => {
 
       expect(result.authorized).toBe(true)
       expect(result.authorizationId).toBe('oauth-1')
-      expect(result.userId).toBe('user-1')
       expect(result.resourceKey).toBe(resourceKey)
     })
 
@@ -74,7 +72,6 @@ describe('ResourceAuthorizationService', () => {
       mockOauthResource.findFirst.mockResolvedValue({
         id: 'oauth-1',
         appId,
-        userId: 'user-1',
         resourceKey,
         status: 'revoked'
       })
@@ -89,7 +86,6 @@ describe('ResourceAuthorizationService', () => {
       mockOauthResource.findFirst.mockResolvedValue({
         id: 'oauth-1',
         appId,
-        userId: 'user-1',
         resourceKey,
         status: 'active',
         expiresAt: new Date(Date.now() - 86400000) // 1 day ago
@@ -105,7 +101,6 @@ describe('ResourceAuthorizationService', () => {
       mockOauthResource.findFirst.mockResolvedValue({
         id: 'oauth-1',
         appId,
-        userId: 'user-1',
         resourceKey,
         status: 'active',
         expiresAt: new Date(Date.now() - 86400000) // Expired
@@ -122,7 +117,6 @@ describe('ResourceAuthorizationService', () => {
       mockOauthResource.findFirst.mockResolvedValue({
         id: 'oauth-1',
         appId,
-        userId: 'user-1',
         resourceKey,
         status: 'active',
         expiresAt: null
@@ -140,7 +134,6 @@ describe('ResourceAuthorizationService', () => {
       const mockOauth = {
         id: 'oauth-1',
         appId: 'app-123',
-        userId: 'user-1',
         resourceKey: 'resource-456',
         status: 'active',
         expiresAt: new Date(Date.now() + 86400000)
@@ -172,7 +165,6 @@ describe('ResourceAuthorizationService', () => {
         .mockResolvedValueOnce({
           id: 'oauth-1',
           appId: 'app-1',
-          userId: 'user-1',
           resourceKey: 'resource-1',
           status: 'active'
         })
@@ -180,7 +172,6 @@ describe('ResourceAuthorizationService', () => {
         .mockResolvedValueOnce({
           id: 'oauth-3',
           appId: 'app-1',
-          userId: 'user-1',
           resourceKey: 'resource-3',
           status: 'active'
         })

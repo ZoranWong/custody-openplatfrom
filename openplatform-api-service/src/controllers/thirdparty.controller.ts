@@ -7,6 +7,9 @@ import { Request, Response } from 'express';
 import { signJWT, verifyJWT } from '../utils/jwt.util';
 import { ResourceValidationRequest } from '../middleware/resource-validation.middleware';
 import { getApplicationRepository, getOauthResourceRepository } from '../repositories/repository.factory';
+import { getApplicationCallbackService } from '../services/application-callback.service';
+import { logger } from '../utils/logger';
+import { Application } from '@prisma/client';
 
 /**
  * POST /api/thirdparty/oauth/token
@@ -122,7 +125,7 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
         return;
     }
 
-    const application = req.context?.application;
+    const application = req.context?.application as unknown as Application;
     if (!application) {
         res.status(404).json({
             code: 40401,
@@ -159,12 +162,12 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
     // Build authorization URL
     // Base URL from environment or default
     const baseUrl = process.env.OPENPLATFORM_AUTH_URL || 'https://openplatform.cregis.com/openplatform';
-    const authPath = '/auth/authorize';
+    const authPath = '';
 
     const params = new URLSearchParams();
     params.set('appId', appId);
     params.set('appToken', signed.token);
-    params.set('appName', application.name);
+    params.set('appName', application.appName);
 
     // Add optional parameters if provided
     if (application.appLogoUrl) {
@@ -281,25 +284,40 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
         const oauthResource = await oauthRepo.upsert({
             appId,
             resourceKey,
-            status: 'active',
-            authorizedAt: new Date().toISOString(),
+            authorizedAt: new Date(),
         });
 
+        const callbackService = getApplicationCallbackService()
+        const eventData = {
+            authorizeId: oauthResource.id,
+            oauthToken: payload.token,
+        }
 
-        const callback = payload.callback || application.callbackUrl
-        // Send callback notification if provided
-        if (callback) {
-            // Fire and forget - don't wait for callback response
-            fetch(callback, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    authorizeId: oauthResource.id,
-                    token: payload.token, // Include developer-provided token for user identity mapping if provided
-                }),
-            }).catch((err) => {
-                console.error('Callback notification failed:', err);
-            });
+        // 1. Authorization-specific callback (from payload) - with HMAC-SHA256 signature
+        try {
+            if (payload.callback) {
+                callbackService.pushEvent({
+                    application: {
+                        id: application.id,
+                        appSecret: application.appSecret,
+                        callbackUrl: payload.callback,
+                    },
+                    data: eventData,
+                }).catch((err) => logger.error('Authorization callback (payload) failed:', err))
+            } else
+                if (application.callbackUrl) {
+                    callbackService.pushEvent({
+                        application: {
+                            id: application.id,
+                            appSecret: application.appSecret,
+                            callbackUrl: application.callbackUrl,
+                        },
+                        event: 'authorization.created',
+                        data: eventData,
+                    }).catch((err) => logger.error('Authorization callback (app) failed:', err))
+                }
+        } catch (err) {
+            logger.error('Failed to push authorization callback:', err)
         }
 
         res.json({

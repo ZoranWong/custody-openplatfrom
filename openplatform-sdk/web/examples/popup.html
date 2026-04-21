@@ -150,20 +150,28 @@
 
     // 初始化 SDK - 使用 popup 模式
     const sdk = new CregisWebSDK({
-      appId: 'app_d871206a-7477-4c',
-      authUrl: 'http://api.vaulink.com/openplatform/oauth/',
-      container: 'body',  // popup 模式下可以传任意元素
-      appName: '钱包应用',
-      mode: 'popup',  // 弹窗模式
+      container: 'body',
+      mode: 'popup',
       debug: true,
+      onAuthorizationComplete: async ({ authorizeId }) => {
+        console.log('授权完成:', { authorizeId });
+      },
     });
+
+    // 从后端获取 authorizeUrl
+    async function getAuthorizeUrl() {
+      // 实际项目中调用后端接口
+      // const response = await fetch('/api/authorize-url', { method: 'POST' });
+      // const data = await response.json();
+      // return data.authorizeUrl;
+
+      return 'https://openplatform.cregis.com/openplatform/auth/authorize?appId=test&appToken=xxx&appName=钱包应用';
+    }
 
     // 打开授权
     document.getElementById('authorize-btn').addEventListener('click', async () => {
-      const result = await sdk.openAuthorization({
-        permissions: ['wallet:read', 'wallet:transfer', 'wallet:view_balance'],
-        state: 'popup-example-' + Date.now(),
-      });
+      const authorizeUrl = await getAuthorizeUrl();
+      const result = await sdk.openAuthorization(authorizeUrl);
 
       displayResult(result);
     });
@@ -181,8 +189,8 @@
         container.classList.add('success');
         content.textContent = JSON.stringify({
           status: result.status,
-          resourceKey: result.resourceKey,
-          message: '授权成功！resourceKey 可用于后续 API 调用。'
+          authorizeId: result.authorizeId,
+          message: '授权成功！authorizeId 可用于后续 API 调用。'
         }, null, 2);
       } else if (result.status === 'cancelled') {
         container.classList.add('error');

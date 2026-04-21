@@ -45,7 +45,7 @@ const handleSecretRegenerated = () => {
   fetchApplication()
 }
 
-const appId = computed(() => application.value?.appId || '')
+const appId = computed(() => application.value?.id || '')
 const copiedAppId = ref(false)
 
 const statusConfig = computed(() => {
@@ -167,7 +167,7 @@ onMounted(() => {
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
           <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-bold text-gray-900">{{ application.name }}</h1>
+            <h1 class="text-2xl font-bold text-gray-900">{{ application.appName || 'Unnamed' }}</h1>
             <el-tag :type="statusConfig.type" size="large">
               {{ statusConfig.text }}
             </el-tag>
@@ -215,7 +215,7 @@ onMounted(() => {
             <!-- AppSecret -->
             <div class="card p-6">
               <AppSecretDisplay
-                :app-id="application.appId"
+                :app-id="application.id"
                 :app-secret="application.appSecret"
               />
             </div>
@@ -235,9 +235,9 @@ onMounted(() => {
                   <p class="text-gray-900 break-all">{{ application.callbackUrl }}</p>
                 </div>
 
-                <div v-if="application.description">
+                <div v-if="application.appDescription">
                   <label class="block text-xs text-gray-400 mb-1">Description</label>
-                  <p class="text-gray-900">{{ application.description }}</p>
+                  <p class="text-gray-900">{{ application.appDescription }}</p>
                 </div>
               </div>
             </div>
@@ -273,7 +273,7 @@ onMounted(() => {
       v-if="application"
       v-model="showRegenerateDialog"
       :application-id="application.id"
-      :application-name="application.name"
+      :application-name="application.appName || 'Unnamed'"
       @regenerated="handleSecretRegenerated"
     />
 
@@ -282,8 +282,8 @@ onMounted(() => {
       v-if="application"
       v-model="showDeleteDialog"
       :application-id="application.id"
-      :application-name="application.name"
-      :app-id="application.appId"
+      :application-name="application.appName || 'Unnamed'"
+      :app-id="application.id"
       @deleted="handleApplicationDeleted"
     />
   </div>

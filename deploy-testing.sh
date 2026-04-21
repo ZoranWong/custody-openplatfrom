@@ -51,8 +51,8 @@ scp "$PROJECT_ROOT/openplatform-api-service/.env" "$DEPLOY_HOST:$DEPLOY_PATH/api
 scp -r "$PROJECT_ROOT/openplatform-api-service/prisma/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
 scp "$PROJECT_ROOT/openplatform-api-service/prisma.config.ts" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
 
-# Run npm install on server
-ssh $DEPLOY_HOST "cd $DEPLOY_PATH/api-service && npm install --production"
+# Run npm install and generate Prisma client on server
+ssh $DEPLOY_HOST "cd $DEPLOY_PATH/api-service && npm install --production && npx prisma generate"
 
 # Sync Developer Portal
 echo "Syncing Developer Portal..."

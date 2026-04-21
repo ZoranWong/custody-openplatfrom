@@ -3,8 +3,6 @@
  * Types for endpoint permission checking
  */
 
-import { Entity } from '../repositories/storage.adapter'
-
 /**
  * Permission error codes
  */
@@ -16,7 +14,8 @@ export enum PermissionErrorCode {
 /**
  * Endpoint permission configuration
  */
-export interface EndpointPermissionConfig extends Entity {
+export interface EndpointPermissionConfig {
+  id: string
   path: string
   method: string
   required_permissions: string[]

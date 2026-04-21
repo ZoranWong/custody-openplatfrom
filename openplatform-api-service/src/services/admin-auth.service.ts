@@ -178,16 +178,16 @@ export class AdminAuthService {
    * Create new admin
    */
   async create(data: Omit<Admin, 'id' | 'createdAt' | 'updatedAt'>): Promise<Admin> {
-    const passwordValidation = validatePasswordStrength(data.password)
+    const passwordValidation = validatePasswordStrength(data.passwordHash)
     if (!passwordValidation.valid) {
       throw new Error(`Password validation failed: ${passwordValidation.message}`)
     }
 
-    const hashedPassword = await bcrypt.hash(data.password, 12)
+    const hashedPassword = await bcrypt.hash(data.passwordHash, 12)
 
     return this.repo.create({
       ...data,
-      password: hashedPassword
+      passwordHash: hashedPassword
     })
   }
 
@@ -195,12 +195,12 @@ export class AdminAuthService {
    * Update admin
    */
   async update(id: string, data: Partial<Admin>): Promise<Admin | null> {
-    if (data.password) {
-      const passwordValidation = validatePasswordStrength(data.password)
+    if (data.passwordHash) {
+      const passwordValidation = validatePasswordStrength(data.passwordHash)
       if (!passwordValidation.valid) {
         throw new Error(`Password validation failed: ${passwordValidation.message}`)
       }
-      data.password = await bcrypt.hash(data.password, 12)
+      data.passwordHash = await bcrypt.hash(data.passwordHash, 12)
     }
 
     return this.repo.update(id, data)
@@ -231,7 +231,7 @@ export class AdminAuthService {
    * Validate password
    */
   async validatePassword(admin: Admin, password: string): Promise<boolean> {
-    return bcrypt.compare(password, admin.password)
+    return bcrypt.compare(password, admin.passwordHash)
   }
 
   /**

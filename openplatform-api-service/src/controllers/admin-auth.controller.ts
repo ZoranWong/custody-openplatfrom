@@ -188,10 +188,10 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
     // Verify password
     console.log('[Login] Password verification:', {
       inputPassword: password,
-      storedHash: admin.password.substring(0, 20) + '...',
+      storedHash: admin.passwordHash.substring(0, 20) + '...',
       inputLength: password.length
     })
-    const isValidPassword = await bcrypt.compare(password, admin.password)
+    const isValidPassword = await bcrypt.compare(password, admin.passwordHash)
     console.log('[Login] Password valid:', isValidPassword)
     if (!isValidPassword) {
       res.status(401).json({
@@ -209,11 +209,11 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
     const response: AdminUserResponse = {
       id: admin.id,
       email: admin.email,
-      name: admin.name,
-      role: admin.role,
-      status: admin.status,
-      createdAt: admin.createdAt,
-      updatedAt: admin.updatedAt
+      name: admin.name ?? '',
+      role: admin.role as 'super_admin' | 'admin' | 'operator',
+      status: admin.status as 'active' | 'inactive' | 'suspended',
+      createdAt: admin.createdAt.toISOString(),
+      updatedAt: admin.updatedAt.toISOString()
     }
 
     // Set tokens in httpOnly cookies for security
@@ -399,7 +399,7 @@ export async function adminChangePassword(req: Request, res: Response): Promise<
     }
 
     // Verify current password
-    const isValidPassword = await bcrypt.compare(currentPassword, admin.password)
+    const isValidPassword = await bcrypt.compare(currentPassword, admin.passwordHash)
     if (!isValidPassword) {
       res.status(401).json({
         code: 40101,
@@ -413,7 +413,7 @@ export async function adminChangePassword(req: Request, res: Response): Promise<
     const newPasswordHash = await bcrypt.hash(newPassword, 12)
 
     // Update password
-    await adminService.update(adminId, { password: newPasswordHash })
+    await adminService.update(adminId, { passwordHash: newPasswordHash })
 
     // Blacklist all existing refresh tokens for this admin
     await tokenBlacklistService.blacklistByAdmin(adminId, 30 * 24 * 60 * 60 * 1000)

@@ -45,9 +45,9 @@
     },
     "dependencies": {
         "crypto-js": "^4.2.0",
+        "js-md5": "^0.8.3",
         "md5": "^2.3.0",
         "sealx-sdk": "^1.0.26"
     },
-    "peerDependencies": {},
     "peerDependenciesMeta": {}
 }

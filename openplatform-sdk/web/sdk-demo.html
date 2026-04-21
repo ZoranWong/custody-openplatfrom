@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cregis SDK Demo - SDK Integration Test</title>
+  <title>Cregis SDK Demo - 授权测试</title>
   <style>
     * {
       margin: 0;
@@ -57,9 +57,10 @@
       margin-bottom: 8px;
       font-weight: 600;
       color: #333;
+      font-size: 14px;
     }
 
-    .form-group input {
+    .form-group input, .form-group select {
       width: 100%;
       padding: 12px 16px;
       border: 2px solid #e5e7eb;
@@ -68,9 +69,21 @@
       transition: border-color 0.2s;
     }
 
-    .form-group input:focus {
+    .form-group input:focus, .form-group select:focus {
       outline: none;
       border-color: #00be78;
+    }
+
+    .form-group input[readonly] {
+      background: #f9fafb;
+      color: #6b7280;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 20px;
     }
 
     .btn {
@@ -103,11 +116,16 @@
     .btn-secondary {
       background: #f3f4f6;
       color: #6b7280;
-      margin-top: 12px;
     }
 
     .btn-secondary:hover {
       background: #e5e7eb;
+    }
+
+    .btn-secondary:disabled {
+      background: #e5e7eb;
+      color: #9ca3af;
+      cursor: not-allowed;
     }
 
     .result {
@@ -131,6 +149,12 @@
       background: #fee2e2;
       border: 1px solid #f87171;
       color: #991b1b;
+    }
+
+    .result.cancelled {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      color: #92400e;
     }
 
     .result h3 {
@@ -181,272 +205,408 @@
     .status-value.pending {
       color: #f59e0b;
     }
+
+    .status-value.error {
+      color: #ef4444;
+    }
+
+    .note {
+      margin-top: 20px;
+      padding: 12px;
+      background: #fef3c7;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #92400e;
+      line-height: 1.6;
+    }
+
+    .note code {
+      background: rgba(0, 0, 0, 0.08);
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>🚀 Cregis SDK Demo</h1>
-      <p>测试 SDK 集成 - SDK Integration Test</p>
+      <h1>Cregis SDK Demo</h1>
+      <p>钱包授权测试 - Wallet Authorization Test</p>
     </div>
 
     <div class="content">
       <div class="form-group">
         <label>App ID</label>
-        <input type="text" id="appId" placeholder="输入你的 App ID" value="app-123">
+        <input type="text" id="appId" placeholder="输入 App ID（UUID 格式）">
       </div>
 
       <div class="form-group">
         <label>App Secret</label>
-        <input type="text" id="appSecret" placeholder="输入你的 App Secret" value="test-secret-123">
-      </div>
-
-      <button class="btn btn-primary" id="generateTokenBtn">生成 AppToken</button>
-
-      <div class="form-group" style="margin-top: 20px;">
-        <label>App Token (自动生成)</label>
-        <input type="text" id="appToken" placeholder="点击上方按钮生成" readonly>
+        <input type="password" id="appSecret" placeholder="输入 App Secret">
       </div>
 
       <div class="form-group">
-        <label>App Name (可选)</label>
-        <input type="text" id="appName" placeholder="应用名称" value="测试应用">
-      </div>
-
-      <div class="form-group">
-        <label>App Logo URL (可选)</label>
-        <input type="text" id="appLogoUrl" placeholder="应用Logo URL" value="">
-      </div>
-
-      <div class="form-group">
-        <label>Base URL (可选)</label>
-        <input type="text" id="baseUrl" placeholder="默认: http://localhost:1002" value="http://localhost:1002">
+        <label>Base URL（开放平台地址）</label>
+        <input type="text" id="baseUrl" value="http://localhost:1002" placeholder="默认: http://localhost:1002">
       </div>
 
       <div class="form-group">
         <label>显示模式</label>
-        <select id="mode" style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
-          <option value="inline">内嵌模式 (inline)</option>
+        <select id="mode">
           <option value="popup" selected>弹框模式 (popup)</option>
+          <option value="tab">新标签页 (tab)</option>
+          <option value="window">弹窗窗口 (window)</option>
         </select>
       </div>
 
-      <button class="btn btn-primary" id="initBtn">初始化 SDK</button>
-      <button class="btn btn-secondary" id="openAuthBtn" disabled>打开授权页面</button>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="getAuthUrlBtn">获取 authorizeUrl</button>
+        <button class="btn btn-primary" id="openAuthBtn" disabled>打开授权</button>
+        <button class="btn btn-secondary" id="closeBtn" disabled>关闭授权</button>
+      </div>
+
+      <div class="form-group" style="margin-top: 20px;">
+        <label>Authorize URL（自动填入）</label>
+        <input type="text" id="authorizeUrlDisplay" placeholder="获取成功后自动填入" readonly>
+      </div>
 
       <div class="result" id="result"></div>
 
-      <!-- SDK 容器，用于显示授权页面 -->
-      <div id="sdk-container" style="margin-top: 20px; height: 500px; border: 1px dashed #ccc; border-radius: 8px; display: none; overflow: hidden; position: relative;"></div>
-
-      <!-- 弹框遮罩层 -->
-      <div id="sdk-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 9999;">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 420px; height: 600px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
-          <div id="sdk-modal-content" style="width: 100%; height: 100%;"></div>
-          <button id="sdk-modal-close" style="position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border: none; background: #f3f4f6; border-radius: 50%; cursor: pointer; font-size: 18px; z-index: 10;">×</button>
-        </div>
-      </div>
-
       <div class="status" id="status">
         <div class="status-item">
-          <span class="status-label">SDK 初始化</span>
+          <span class="status-label">SDK 状态</span>
           <span class="status-value pending" id="sdkStatus">未初始化</span>
         </div>
         <div class="status-item">
           <span class="status-label">授权状态</span>
-          <span class="status-value pending" id="authStatus">-</span>
+          <span class="status-value pending" id="authStatus">等待授权</span>
         </div>
         <div class="status-item">
-          <span class="status-label">Resource Key</span>
-          <span class="status-value" id="authId">-</span>
+          <span class="status-label">Authorize ID</span>
+          <span class="status-value" id="authorizeId">-</span>
         </div>
+      </div>
+
+      <div class="note">
+        <strong>使用说明：</strong><br>
+        1. 输入 App ID 和 App Secret<br>
+        2. 点击"获取 authorizeUrl"调用开放平台接口<br>
+        3. 点击"打开授权"完成钱包授权<br>
+        4. 注意：appSecret 是应用密钥，生产环境应通过后端代理获取
       </div>
     </div>
   </div>
 
-  <!-- 引入 md5 库 -->
-  <script src="./node_modules/md5/dist/md5.min.js"></script>
-  <script>
-    // 确保 md5 可用
-    var md5 = window.md5 || window.MD5;
-  </script>
+  <!-- 引入 md5 库（在 module script 之前加载） -->
+  <script src="./node_modules/js-md5/build/md5.min.js"></script>
 
-  <!-- 引入真实 SDK -->
-  <script>
-    // 动态加载 SDK
-    function loadSDK() {
-      return new Promise((resolve, reject) => {
-        if (window.CregisWebSDK) {
-          // UMD 构建使用 .default 或 .CregisWebSDK
-          const SDK = window.CregisWebSDK.default || window.CregisWebSDK.CregisWebSDK || window.CregisWebSDK;
-          resolve(SDK);
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = './dist/index.umd.js';
-        script.onload = () => {
-          const SDK = window.CregisWebSDK.default || window.CregisWebSDK.CregisWebSDK || window.CregisWebSDK;
-          resolve(SDK);
-        };
-        script.onerror = () => reject(new Error('Failed to load SDK'));
-        document.head.appendChild(script);
-      });
-    }
-  </script>
+  <!-- 主要逻辑 -->
+  <script type="module">
+    import { CregisWebSDK } from './dist/index.es.js';
 
-  <!-- Demo 代码 -->
-  <script>
-    // Demo 代码
+
+    // ============================================================
+    // 状态变量
+    // ============================================================
     let sdk = null;
+    let currentAuthorizeUrl = null;
+    let isAuthorizing = false;
 
-    const initBtn = document.getElementById('initBtn');
-    const generateTokenBtn = document.getElementById('generateTokenBtn');
+    // ============================================================
+    // DOM 元素
+    // ============================================================
+    const getAuthUrlBtn = document.getElementById('getAuthUrlBtn');
     const openAuthBtn = document.getElementById('openAuthBtn');
+    const closeBtn = document.getElementById('closeBtn');
     const result = document.getElementById('result');
     const sdkStatus = document.getElementById('sdkStatus');
     const authStatus = document.getElementById('authStatus');
-    const authId = document.getElementById('authId');
+    const authorizeIdEl = document.getElementById('authorizeId');
+    const authorizeUrlDisplay = document.getElementById('authorizeUrlDisplay');
 
-    function showResult(success, message, data) {
-      result.className = 'result show ' + (success ? 'success' : 'error');
+    // ============================================================
+    // 签名工具函数
+    // ============================================================
+
+    /**
+     * 递归排序对象的 key
+     */
+    function sortKeys(obj) {
+      if (obj === null || obj === undefined) {
+        return obj;
+      }
+      const sorted = {};
+      const keys = Object.keys(obj).sort();
+      for (const key of keys) {
+        const value = obj[key];
+        if (value !== null && value !== undefined) {
+          if (typeof value === 'object' && !Array.isArray(value)) {
+            sorted[key] = sortKeys(value);
+          } else {
+            sorted[key] = value;
+          }
+        }
+      }
+      return sorted;
+    }
+
+    /**
+     * 生成随机 nonce
+     */
+    function generateNonce(length = 32) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    /**
+     * 计算 Basic 签名（用于 /oauth/* 接口）
+     * 公式: MD5(appSecret + appId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))
+     */
+    function calculateBasicSignature({ appId, appSecret, timestamp, nonce, business }) {
+      const md5 = window.md5;
+      if (typeof md5 !== 'function') {
+        throw new Error('MD5 library not loaded. Please ensure md5.min.js is available.');
+      }
+      const serializedBusiness = JSON.stringify(sortKeys(business));
+      const businessMd5 = md5(serializedBusiness);
+      const signString = `${appId}${timestamp}${nonce}${businessMd5}`;
+      const signature = md5(`${appSecret}${signString}`);
+      return signature;
+    }
+
+    // ============================================================
+    // API 调用
+    // ============================================================
+
+    /**
+     * 调用开放平台获取 authorizeUrl
+     * POST {baseUrl}/api/thirdparty/oauth/authorizeUrl
+     */
+    async function fetchAuthorizeUrl(appId, appSecret, baseUrl) {
+      const timestamp = Math.floor(Date.now() / 1000); // 秒级时间戳
+      const nonce = generateNonce();
+      const business = {
+        permissions: [],
+        redirectUri: '',
+        state: crypto.randomUUID ? crypto.randomUUID() : generateNonce(16),
+      };
+
+      const signature = calculateBasicSignature({
+        appId,
+        appSecret,
+        timestamp,
+        nonce,
+        business,
+      });
+
+      const basic = {
+        appId,
+        timestamp,
+        nonce,
+        signature,
+      };
+
+      // Add timeout via AbortController (15s)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      try {
+        const response = await fetch(`${baseUrl}/api/thirdparty/oauth/authorizeUrl`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ basic, business }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        // Response format: { code: 0, message: "Success", data: { authorizeUrl, expiresIn } }
+        // or directly: { authorizeUrl, expiresIn }
+        if (data.data && data.data.authorizeUrl) {
+          return data.data;
+        }
+        if (data.authorizeUrl) {
+          return data;
+        }
+        throw new Error('响应中未找到 authorizeUrl');
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    // ============================================================
+    // UI 辅助函数
+    // ============================================================
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showResult(type, message, data) {
+      result.className = 'result show ' + type;
       result.innerHTML = `
-        <h3>${success ? '✅ 成功' : '❌ 错误'}</h3>
-        <p>${message}</p>
+        <h3>${type === 'success' ? '成功' : type === 'error' ? '错误' : '已取消'}</h3>
+        <p>${escapeHtml(message)}</p>
         ${data ? '<pre>' + JSON.stringify(data, null, 2) + '</pre>' : ''}
       `;
     }
 
     function updateStatus(element, text, type) {
       element.textContent = text;
-      element.className = 'status-value ' + type;
+      element.className = 'status-value ' + (type || '');
     }
 
-    // 生成 AppToken: md5(appId+appSecret+timestramp+nonce) + '-' + timestramp + '-' + nonce
-    function generateAppToken(appId, appSecret) {
-      const timestamp = Date.now().toString();
-      const nonce = Math.random().toString(36).substring(2, 15);
-      const hashInput = appId + appSecret + timestamp + nonce;
-      const hash = md5(hashInput);
-      const token = hash + '-' + timestamp + '-' + nonce;
-      return token;
+    // ============================================================
+    // SDK 管理
+    // ============================================================
+
+    function initSDK(mode) {
+      if (sdk) {
+        sdk.destroy();
+        sdk = null;
+      }
+
+      sdk = new CregisWebSDK({
+        container: 'body',
+        mode: mode,
+        debug: true,
+        onReady: ({ uuid }) => {
+          console.log('SDK 已就绪, UUID:', uuid);
+          updateStatus(sdkStatus, '已就绪', 'success');
+        },
+        onAuthorizationStarted: () => {
+          console.log('授权流程已开始');
+          updateStatus(authStatus, '授权中...', 'pending');
+          closeBtn.disabled = false;
+        },
+        onAuthorizationComplete: ({ authorizeId }) => {
+          console.log('授权完成:', { authorizeId });
+          updateStatus(authStatus, '已授权', 'success');
+          authorizeIdEl.textContent = authorizeId || '-';
+          showResult('success', '授权成功！', { authorizeId });
+        },
+        onAuthorizationError: (error) => {
+          console.error('授权错误:', error);
+          updateStatus(authStatus, '失败', 'error');
+          showResult('error', error.message || '授权失败', error);
+        },
+        onAuthorizationCancelled: () => {
+          console.log('授权已取消');
+          updateStatus(authStatus, '已取消', 'pending');
+          showResult('cancelled', '用户取消了授权');
+        },
+      });
+
+      updateStatus(sdkStatus, '已初始化', 'success');
     }
 
-    // 生成 AppToken 按钮
-    generateTokenBtn.addEventListener('click', () => {
-      const appId = document.getElementById('appId').value;
-      const appSecret = document.getElementById('appSecret').value;
+    // ============================================================
+    // 事件处理
+    // ============================================================
+
+    // 获取 authorizeUrl
+    getAuthUrlBtn.addEventListener('click', async () => {
+      const appId = document.getElementById('appId').value.trim();
+      const appSecret = document.getElementById('appSecret').value.trim();
+      const baseUrl = document.getElementById('baseUrl').value.trim() || 'http://localhost:1002';
 
       if (!appId || !appSecret) {
-        showResult(false, '请输入 App ID 和 App Secret');
+        showResult('error', '请输入 App ID 和 App Secret');
         return;
       }
 
-      const appToken = generateAppToken(appId, appSecret);
-      document.getElementById('appToken').value = appToken;
-      showResult(true, 'AppToken 生成成功！', { appToken });
-    });
-
-    // 初始化 SDK
-    initBtn.addEventListener('click', async () => {
-      const appId = document.getElementById('appId').value;
-      const appSecret = document.getElementById('appSecret').value;
-      const appToken = document.getElementById('appToken').value;
-      const appName = document.getElementById('appName').value;
-      const appLogoUrl = document.getElementById('appLogoUrl').value;
-      const baseUrl = document.getElementById('baseUrl').value || 'http://localhost:1002';
-      const mode = document.getElementById('mode').value;
-
-      if (!appId) {
-        showResult(false, '请输入 App ID');
-        return;
-      }
-
-      // 如果没有生成 appToken，先生成
-      let finalAppToken = appToken;
-      if (!finalAppToken && appId && appSecret) {
-        finalAppToken = generateAppToken(appId, appSecret);
-        document.getElementById('appToken').value = finalAppToken;
-      }
+      getAuthUrlBtn.disabled = true;
+      getAuthUrlBtn.textContent = '获取中...';
+      result.className = 'result';
 
       try {
-        // 加载 SDK
-        const SDK = await loadSDK();
+        const data = await fetchAuthorizeUrl(appId, appSecret, baseUrl);
+        currentAuthorizeUrl = data.authorizeUrl;
+        authorizeUrlDisplay.value = currentAuthorizeUrl;
 
-        // 创建 SDK 实例
-        sdk = new SDK({
-          appId: appId,
-          baseUrl: baseUrl,
-          container: '#sdk-container',
-          appToken: finalAppToken,
-          appName: appName || undefined,
-          appLogoUrl: appLogoUrl || undefined,
-          mode: mode,
-          debug: true,
-          onEvent: (event) => {
-            console.log('SDK Event:', event);
-            // 监听授权结果
-            if (event.type === 'authorization_complete') {
-              updateStatus(authStatus, '已授权', 'success');
-              authId.textContent = event.data?.resourceKey || '-';
-              showResult(true, '授权成功！', event.data);
-            } else if (event.type === 'authorization_error') {
-              updateStatus(authStatus, '失败', 'error');
-              showResult(false, '授权失败', event.error);
-            } else if (event.type === 'authorization_started') {
-              // 授权流程开始
-              updateStatus(authStatus, '授权中...', 'pending');
-            }
-          }
-        });
-
-        // 显示容器
-        const container = document.getElementById('sdk-container');
-        container.style.display = mode === 'inline' ? 'block' : 'none';
-
-        // 更新状态
-        updateStatus(sdkStatus, '已初始化', 'success');
         openAuthBtn.disabled = false;
-        showResult(true, 'SDK 初始化成功！点击"打开授权页面"开始授权', { appId, baseUrl, appToken: finalAppToken, mode });
-
+        showResult('success', `authorizeUrl 获取成功！有效期 ${data.expiresIn || 7200} 秒`, {
+          expiresIn: data.expiresIn,
+          authorizeUrl: currentAuthorizeUrl,
+        });
       } catch (error) {
-        showResult(false, 'SDK 初始化失败: ' + error.message);
+        showResult('error', '获取 authorizeUrl 失败: ' + error.message);
+      } finally {
+        getAuthUrlBtn.disabled = false;
+        getAuthUrlBtn.textContent = '获取 authorizeUrl';
       }
     });
 
-    // 打开授权页面
+    // 打开授权
     openAuthBtn.addEventListener('click', async () => {
-      if (!sdk || !sdk.isInitialized()) {
-        showResult(false, '请先初始化 SDK');
+      if (!currentAuthorizeUrl) {
+        showResult('error', '请先获取 authorizeUrl');
         return;
       }
 
+      if (isAuthorizing) {
+        return;
+      }
+
+      const mode = document.getElementById('mode').value;
+      initSDK(mode);
+
+      isAuthorizing = true;
       openAuthBtn.disabled = true;
       openAuthBtn.textContent = '授权中...';
 
       try {
-        // 打开授权页面 - SDK 会自动处理弹框或内嵌
-        const result = await sdk.openAuthorization();
+        const authResult = await sdk.openAuthorization(currentAuthorizeUrl);
 
-        // 更新状态
-        updateStatus(authStatus, result.status === 'success' ? '已授权' : '失败', result.status === 'success' ? 'success' : 'error');
-        authId.textContent = result.resourceKey || '-';
-
-        if (result.status === 'success') {
-          showResult(true, '授权成功！', result);
+        if (authResult.status === 'success') {
+          updateStatus(authStatus, '已授权', 'success');
+          authorizeIdEl.textContent = authResult.authorizeId || '-';
+          showResult('success', '授权成功！', authResult);
+        } else if (authResult.status === 'cancelled') {
+          updateStatus(authStatus, '已取消', 'pending');
+          showResult('cancelled', '用户取消了授权', authResult);
         } else {
-          showResult(false, '授权失败', result.error);
+          updateStatus(authStatus, '失败', 'error');
+          showResult('error', authResult.error?.message || '授权失败', authResult);
         }
-
       } catch (error) {
-        showResult(false, '授权错误: ' + error.message);
+        showResult('error', '授权异常: ' + error.message);
       } finally {
+        isAuthorizing = false;
         openAuthBtn.disabled = false;
-        openAuthBtn.textContent = '打开授权页面';
+        openAuthBtn.textContent = '打开授权';
+        closeBtn.disabled = true;
       }
     });
 
-    console.log('🚀 Cregis SDK Demo 已加载');
-    console.log('请查看控制台了解更多信息');
+    // 关闭授权
+    closeBtn.addEventListener('click', () => {
+      if (sdk) {
+        sdk.closeModal();
+        updateStatus(authStatus, '已关闭', 'pending');
+      }
+    });
+
+    // 页面卸载时清理
+    window.addEventListener('beforeunload', () => {
+      if (sdk) {
+        sdk.destroy();
+      }
+    });
+
+    console.log('Cregis SDK Demo 已加载');
   </script>
 </body>
 </html>

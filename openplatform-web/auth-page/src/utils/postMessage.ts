@@ -82,6 +82,9 @@ let isChannelReady = false;
 // Store the SDK UUID for validation
 let sdkUuid: string | null = null;
 
+// Initialize SDK UUID from URL at module load time (before listenFromParent is called)
+sdkUuid = getSDKUUIDFromUrl();
+
 /**
  * Get SDK UUID from URL parameters
  */
