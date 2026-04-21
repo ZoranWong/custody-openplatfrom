@@ -63,7 +63,8 @@ jobs:
           VERSION=${TAG#node-sdk-v}
           VERSION=${VERSION#v}
           echo "Extracted version: $VERSION"
-          npm version $VERSION --no-git-tag-version
+          # Use --allow-same-version to avoid error when version matches
+          npm version $VERSION --no-git-tag-version --allow-same-version
 
       - name: Bump version
         if: github.event_name == 'workflow_dispatch'
