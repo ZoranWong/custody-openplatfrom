@@ -30,7 +30,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
@@ -59,7 +59,10 @@ jobs:
         if: github.event_name == 'release'
         working-directory: ./openplatform-sdk/node
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#node-sdk-v}
+          VERSION=${VERSION#v}
+          echo "Extracted version: $VERSION"
           npm version $VERSION --no-git-tag-version
 
       - name: Bump version
