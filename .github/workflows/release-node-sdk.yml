@@ -1,0 +1,78 @@
+name: Release Node SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        working-directory: ./openplatform-sdk/node
+        run: npm ci
+
+      - name: Build
+        working-directory: ./openplatform-sdk/node
+        run: npm run build
+
+      - name: Run tests
+        working-directory: ./openplatform-sdk/node
+        run: npm run test:run
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Clean working directory
+        run: |
+          git checkout -- package-lock.json 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+
+      - name: Get version from release tag
+        if: github.event_name == 'release'
+        working-directory: ./openplatform-sdk/node
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          npm version $VERSION --no-git-tag-version
+
+      - name: Bump version
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: ./openplatform-sdk/node
+        run: npm version ${{ inputs.bump }}
+
+      - name: Publish to npm
+        working-directory: ./openplatform-sdk/node
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push version commit and tag
+        if: github.event_name == 'workflow_dispatch'
+        run: git push --follow-tags
