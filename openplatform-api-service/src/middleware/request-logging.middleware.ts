@@ -72,6 +72,11 @@ function registerCustomTokens(): void {
         return (req as any)._responseBody || '-';
     });
 
+    // Token: content_length - request Content-Length header
+    morgan.token('content_length', (req: Request) => {
+        return req.headers['content-length'] || '0';
+    });
+
     // Token: response_length - response content length
     morgan.token('response_length', (req: Request, res: Response) => {
         const contentLength = res.getHeader('content-length');
