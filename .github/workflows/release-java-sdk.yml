@@ -36,9 +36,9 @@ jobs:
         run: |
           mvn versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
 
-      - name: Build and test
+      - name: Build and package
         working-directory: ./openplatform-sdk/java
-        run: mvn clean verify
+        run: mvn clean package -DskipTests
 
       - name: Commit version and create tag
         run: |

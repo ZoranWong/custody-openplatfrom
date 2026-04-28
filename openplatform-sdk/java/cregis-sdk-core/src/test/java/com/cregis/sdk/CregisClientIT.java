@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 向后兼容:
  *   支持 -Dcregis.base.url=xxx 覆盖环境变量
  */
-class CregisClientIntegrationTest {
+class CregisClientIT {
 
     // ========== 测试凭证 ==========
     private static final String APP_ID = "5c6bef2e-3da7-4d7f-9bed-9d198b9b9e16";
