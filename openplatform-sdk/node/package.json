@@ -1,6 +1,6 @@
 {
   "name": "@cregis-kit/openplatform-node",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Cregis OpenPlatform Node.js SDK - Server-side SDK for backend integration",
   "repository": {
     "type": "git",
