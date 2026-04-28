@@ -1,0 +1,40 @@
+#!/bin/sh
+# Apache Maven Wrapper script
+# Downloads and runs Maven with the version specified in maven-wrapper.properties
+
+MVNW_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROPERTIES="$MVNW_DIR/.mvn/wrapper/maven-wrapper.properties"
+
+# Parse properties
+WRAPPER_URL=$(grep '^wrapperUrl=' "$PROPERTIES" | cut -d'=' -f2-)
+DISTRIBUTION_URL=$(grep '^distributionUrl=' "$PROPERTIES" | cut -d'=' -f2-)
+
+WRAPPER_JAR="$MVNW_DIR/.mvn/wrapper/maven-wrapper.jar"
+MAVEN_HOME="$MVNW_DIR/.mvn/wrapper/dists"
+
+# Download wrapper if missing
+if [ ! -f "$WRAPPER_JAR" ]; then
+    echo "Downloading Maven Wrapper..."
+    mkdir -p "$(dirname "$WRAPPER_JAR")"
+    curl -fsSL "$WRAPPER_URL" -o "$WRAPPER_JAR" 2>/dev/null || wget -q "$WRAPPER_URL" -O "$WRAPPER_JAR" 2>/dev/null
+fi
+
+# Download Maven distribution if missing
+MAVEN_ZIP="$MAVEN_HOME/$(basename "$DISTRIBUTION_URL")"
+if [ ! -f "$MAVEN_ZIP" ]; then
+    echo "Downloading Apache Maven 3.9.9..."
+    mkdir -p "$MAVEN_HOME"
+    curl -fsSL "$DISTRIBUTION_URL" -o "$MAVEN_ZIP" 2>/dev/null || wget -q "$DISTRIBUTION_URL" -O "$MAVEN_ZIP" 2>/dev/null
+    cd "$MAVEN_HOME" && unzip -q "$(basename "$MAVEN_ZIP")" && cd - > /dev/null
+fi
+
+# Find Maven binary
+MAVEN_BIN=$(find "$MAVEN_HOME" -name "mvn" -type f -path "*/bin/mvn" 2>/dev/null | head -1)
+
+if [ -n "$MAVEN_BIN" ]; then
+    export MAVEN_HOME="$(dirname "$(dirname "$MAVEN_BIN")")"
+    exec "$MAVEN_BIN" "$@"
+else
+    echo "Error: Maven distribution not found" >&2
+    exit 1
+fi

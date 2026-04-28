@@ -1,0 +1,48 @@
+name: Release Java SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update version
+        working-directory: ./openplatform-sdk/java
+        run: |
+          mvn versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
+
+      - name: Build and test
+        working-directory: ./openplatform-sdk/java
+        run: mvn clean verify
+
+      - name: Commit version and create tag
+        run: |
+          git add openplatform-sdk/java/
+          git commit -m "chore: release Java SDK v${{ inputs.version }}"
+          git tag java-sdk-v${{ inputs.version }}
+          git push --follow-tags
