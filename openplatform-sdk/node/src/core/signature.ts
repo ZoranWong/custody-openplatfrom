@@ -10,9 +10,10 @@ import * as crypto from 'crypto';
 /**
  * Sort object keys alphabetically
  */
-function sortKeys<T extends Record<string, unknown>>(obj: T): T {
+function sortKeys<T extends Record<string, unknown>>(obj: T | null | undefined): T {
+    // Normalize null/undefined to empty object for consistent signing
   if (obj === null || obj === undefined) {
-    return obj;
+      return {} as T;
   }
 
   const sorted: Record<string, unknown> = {};
@@ -38,7 +39,7 @@ function sortKeys<T extends Record<string, unknown>>(obj: T): T {
  * Serialize object to JSON with sorted keys
  */
 function serializeWithSortedKeys(obj: Record<string, unknown>): string {
-  return JSON.stringify(sortKeys(obj));
+    return JSON.stringify(sortKeys(obj ? obj : {}));
 }
 
 /**

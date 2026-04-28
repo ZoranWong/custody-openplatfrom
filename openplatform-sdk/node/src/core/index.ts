@@ -11,6 +11,18 @@ import { isValidUUID, generateNonce, getTimestamp, buildBasicInfo, BasicSignatur
 import { CallbackService } from './callback.service';
 
 /**
+ * Paginated response from backend
+ * Backend returns: { current, pages, records, size, total }
+ */
+export interface PaginatedResponse<T> {
+  records: T[];
+  total: number;
+  current: number;
+  size: number;
+  pages: number;
+}
+
+/**
  * Cregis OpenPlatform Node.js SDK
  */
 export class CregisSDK {
@@ -122,10 +134,10 @@ export class CregisSDK {
 
   /**
    * Create a new treasury unit
-   * POST /api/third-party/create/{resourceAccessKey}
+   * POST /api/thirdparty/treasury/create
    */
   async createTreasuryUnit(
-    resourceAccessKey: string,
+    authorizationId: string,
     request: {
       businessScope: 'DEDICATED_ACCOUNT' | 'OMNIBUS_ACCOUNT' | 'OPEN_API_PROXY';
       topology: 'ORBIT' | 'SINGLE_GENERAL' | 'QUAD_SMART_ISOLATION';
@@ -172,7 +184,7 @@ export class CregisSDK {
     const params: ResourceSignatureParams = {
       appId: this.config.appId,
       appSecret: this.config.appSecret,
-      authorizationId: resourceAccessKey,
+      authorizationId: authorizationId,
       timestamp,
       nonce,
       business: request,
@@ -187,15 +199,15 @@ export class CregisSDK {
       status: string;
       networks: string[];
       createTime: string;
-    }>(`/api/third-party/create/${resourceAccessKey}`, { basic, business: request });
+    }>('/api/thirdparty/treasury/create', { basic, business: request });
   }
 
   /**
    * List treasury units
-   * POST /api/third-party/list/{resourceAccessKey}
+   * POST /api/thirdparty/treasury/list
    */
   async listTreasuryUnits(
-    resourceAccessKey: string,
+    authorizationId: string,
     options: { pageSize?: number; pageNum?: number; sortFields?: string } = {}
   ): Promise<
     Array<{
@@ -219,7 +231,7 @@ export class CregisSDK {
     const params: ResourceSignatureParams = {
       appId: this.config.appId,
       appSecret: this.config.appSecret,
-      authorizationId: resourceAccessKey,
+      authorizationId: authorizationId,
       timestamp,
       nonce,
       business,
@@ -236,15 +248,15 @@ export class CregisSDK {
       accounts: Array<{ accountName: string; accountType: string }>;
       status: string;
       creationType: string;
-    }>>(`/api/third-party/list/${resourceAccessKey}`, { basic, business });
+    }>>('/api/thirdparty/treasury/list', { basic, business });
   }
 
   /**
    * Get treasury unit addresses
-   * POST /api/third-party/get-unit-address/{resourceAccessKey}
+   * POST /api/thirdparty/treasury/address
    */
   async getTreasuryUnitAddress(
-    resourceAccessKey: string,
+    authorizationId: string,
     request: {
       unitId: number;
       accountType?: string;
@@ -260,7 +272,7 @@ export class CregisSDK {
     const params: ResourceSignatureParams = {
       appId: this.config.appId,
       appSecret: this.config.appSecret,
-      authorizationId: resourceAccessKey,
+      authorizationId: authorizationId,
       timestamp,
       nonce,
       business: request,
@@ -269,7 +281,7 @@ export class CregisSDK {
     const basic = buildBasicInfoWithAuthorization(params);
 
     return this.http.post<Array<{ address: string; accountType: string }>>(
-      `/api/third-party/get-unit-address/${resourceAccessKey}`,
+      '/api/thirdparty/treasury/address',
       { basic, business: request }
     );
   }
@@ -278,10 +290,10 @@ export class CregisSDK {
 
   /**
    * Create a payout order
-   * POST /api/third-party/payout/{resourceAccessKey}
+   * POST /api/thirdparty/treasury/payout
    */
   async createPayout(
-    resourceAccessKey: string,
+    authorizationId: string,
     request: {
       unitId: number;
       payTo: Array<{ address: string; amount: string }>;
@@ -298,7 +310,7 @@ export class CregisSDK {
     const params: ResourceSignatureParams = {
       appId: this.config.appId,
       appSecret: this.config.appSecret,
-      authorizationId: resourceAccessKey,
+      authorizationId: authorizationId,
       timestamp,
       nonce,
       business: request,
@@ -307,17 +319,17 @@ export class CregisSDK {
     const basic = buildBasicInfoWithAuthorization(params);
 
     return this.http.post<{ orderId: string; unitId: number; status: string }>(
-      `/api/third-party/payout/${resourceAccessKey}`,
+      '/api/thirdparty/treasury/payout',
       { basic, business: request }
     );
   }
 
   /**
    * List transfer-out orders
-   * POST /api/third-party/transfer-out-orders/{resourceAccessKey}
+   * POST /api/thirdparty/treasury/transfer-out-orders
    */
   async listTransferOutOrders(
-    resourceAccessKey: string,
+    authorizationId: string,
     options: {
       pageIndex?: number;
       pageSize?: number;
@@ -329,8 +341,7 @@ export class CregisSDK {
         join?: 'and' | 'or';
       }>;
     } = {}
-  ): Promise<{
-    list: Array<{
+  ): Promise<PaginatedResponse<{
       id: number;
       orderId: string;
       unitId: number;
@@ -345,11 +356,7 @@ export class CregisSDK {
       txHash?: string;
       createdAt: string;
       updatedAt?: string;
-    }>;
-    total: number;
-    pageIndex: number;
-    pageSize: number;
-  }> {
+    }>> {
     const timestamp = getTimestamp();
     const nonce = generateNonce();
     const business: Record<string, unknown> = {};
@@ -361,7 +368,7 @@ export class CregisSDK {
     const params: ResourceSignatureParams = {
       appId: this.config.appId,
       appSecret: this.config.appSecret,
-      authorizationId: resourceAccessKey,
+      authorizationId: authorizationId,
       timestamp,
       nonce,
       business,
@@ -369,35 +376,30 @@ export class CregisSDK {
 
     const basic = buildBasicInfoWithAuthorization(params);
 
-    return this.http.post<{
-      list: Array<{
-        id: number;
-        orderId: string;
-        unitId: number;
-        unitEcode: string;
-        coinId: string;
-        network: string;
-        amount: string;
-        fee: string;
-        status: string;
-        fromAddress: string;
-        toAddress: string;
-        txHash?: string;
-        createdAt: string;
-        updatedAt?: string;
-      }>;
-      total: number;
-      pageIndex: number;
-      pageSize: number;
-    }>(`/api/third-party/transfer-out-orders/${resourceAccessKey}`, { basic, business });
+    return this.http.post<PaginatedResponse<{
+      id: number;
+      orderId: string;
+      unitId: number;
+      unitEcode: string;
+      coinId: string;
+      network: string;
+      amount: string;
+      fee: string;
+      status: string;
+      fromAddress: string;
+      toAddress: string;
+      txHash?: string;
+      createdAt: string;
+      updatedAt?: string;
+    }>>('/api/thirdparty/treasury/transfer-out-orders', { basic, business });
   }
 
   /**
    * List transfer-in orders
-   * POST /api/third-party/transfer-in-orders/{resourceAccessKey}
+   * POST /api/thirdparty/treasury/transfer-in-orders
    */
   async listTransferInOrders(
-    resourceAccessKey: string,
+    authorizationId: string,
     options: {
       pageIndex?: number;
       pageSize?: number;
@@ -409,8 +411,7 @@ export class CregisSDK {
         join?: 'and' | 'or';
       }>;
     } = {}
-  ): Promise<{
-    list: Array<{
+  ): Promise<PaginatedResponse<{
       id: number;
       orderId: string;
       unitId: number;
@@ -424,11 +425,7 @@ export class CregisSDK {
       txHash?: string;
       createdAt: string;
       updatedAt?: string;
-    }>;
-    total: number;
-    pageIndex: number;
-    pageSize: number;
-  }> {
+    }>> {
     const timestamp = getTimestamp();
     const nonce = generateNonce();
     const business: Record<string, unknown> = {};
@@ -440,7 +437,7 @@ export class CregisSDK {
     const params: ResourceSignatureParams = {
       appId: this.config.appId,
       appSecret: this.config.appSecret,
-      authorizationId: resourceAccessKey,
+      authorizationId: authorizationId,
       timestamp,
       nonce,
       business,
@@ -448,36 +445,31 @@ export class CregisSDK {
 
     const basic = buildBasicInfoWithAuthorization(params);
 
-    return this.http.post<{
-      list: Array<{
-        id: number;
-        orderId: string;
-        unitId: number;
-        unitEcode: string;
-        coinId: string;
-        network: string;
-        amount: string;
-        status: string;
-        fromAddress: string;
-        toAddress: string;
-        txHash?: string;
-        createdAt: string;
-        updatedAt?: string;
-      }>;
-      total: number;
-      pageIndex: number;
-      pageSize: number;
-    }>(`/api/third-party/transfer-in-orders/${resourceAccessKey}`, { basic, business });
+    return this.http.post<PaginatedResponse<{
+      id: number;
+      orderId: string;
+      unitId: number;
+      unitEcode: string;
+      coinId: string;
+      network: string;
+      amount: string;
+      status: string;
+      fromAddress: string;
+      toAddress: string;
+      txHash?: string;
+      createdAt: string;
+      updatedAt?: string;
+    }>>(`/api/thirdparty/treasury/transfer-in-orders`, { basic, business });
   }
 
   // ============ Signature Task Methods ============
 
   /**
    * Submit task approval/rejection
-   * POST /api/third-party/submit/task/{resourceAccessKey}/{taskId}
+   * POST /api/thirdparty/treasury/submit-task/{taskId}
    */
   async submitTask(
-    resourceAccessKey: string,
+    authorizationId: string,
     taskId: string,
     request: {
       signatures?: Record<string, string[]>;
@@ -490,7 +482,7 @@ export class CregisSDK {
     const params: ResourceSignatureParams = {
       appId: this.config.appId,
       appSecret: this.config.appSecret,
-      authorizationId: resourceAccessKey,
+      authorizationId: authorizationId,
       timestamp,
       nonce,
       business: request,
@@ -499,7 +491,7 @@ export class CregisSDK {
     const basic = buildBasicInfoWithAuthorization(params);
 
     return this.http.post<{ success: boolean; taskId: string; status: string }>(
-      `/api/third-party/submit/task/${resourceAccessKey}/${taskId}`,
+      `/api/thirdparty/treasury/submit-task/${taskId}`,
       { basic, business: request }
     );
   }
@@ -508,10 +500,10 @@ export class CregisSDK {
 
   /**
    * List activities
-   * POST /api/third-party/activities/{resourceAccessKey}
+   * POST /api/thirdparty/treasury/activities
    */
   async listActivities(
-    resourceAccessKey: string,
+    authorizationId: string,
     options: {
       pageIndex?: number;
       pageSize?: number;
@@ -523,8 +515,7 @@ export class CregisSDK {
         join?: 'and' | 'or';
       }>;
     } = {}
-  ): Promise<{
-    list: Array<{
+  ): Promise<PaginatedResponse<{
       id: number;
       activityId: string;
       unitId: number;
@@ -542,11 +533,7 @@ export class CregisSDK {
       toAddress?: string;
       status: string;
       createdAt: string;
-    }>;
-    total: number;
-    pageIndex: number;
-    pageSize: number;
-  }> {
+    }>> {
     const timestamp = getTimestamp();
     const nonce = generateNonce();
     const business: Record<string, unknown> = {};
@@ -558,7 +545,7 @@ export class CregisSDK {
     const params: ResourceSignatureParams = {
       appId: this.config.appId,
       appSecret: this.config.appSecret,
-      authorizationId: resourceAccessKey,
+      authorizationId: authorizationId,
       timestamp,
       nonce,
       business,
@@ -566,38 +553,33 @@ export class CregisSDK {
 
     const basic = buildBasicInfoWithAuthorization(params);
 
-    return this.http.post<{
-      list: Array<{
-        id: number;
-        activityId: string;
-        unitId: number;
-        unitEcode: string;
-        coinId: string;
-        network: string;
-        type: string;
-        direction: 'IN' | 'OUT';
-        amount: string;
-        balanceBefore: string;
-        balanceAfter: string;
-        fee?: string;
-        txHash?: string;
-        fromAddress?: string;
-        toAddress?: string;
-        status: string;
-        createdAt: string;
-      }>;
-      total: number;
-      pageIndex: number;
-      pageSize: number;
-    }>(`/api/third-party/activities/${resourceAccessKey}`, { basic, business });
+    return this.http.post<PaginatedResponse<{
+      id: number;
+      activityId: string;
+      unitId: number;
+      unitEcode: string;
+      coinId: string;
+      network: string;
+      type: string;
+      direction: 'IN' | 'OUT';
+      amount: string;
+      balanceBefore: string;
+      balanceAfter: string;
+      fee?: string;
+      txHash?: string;
+      fromAddress?: string;
+      toAddress?: string;
+      status: string;
+      createdAt: string;
+    }>>(`/api/thirdparty/treasury/activities`, { basic, business });
   }
 
   /**
    * List fund records
-   * POST /api/third-party/fund-records/{resourceAccessKey}
+   * POST /api/thirdparty/treasury/fund-records
    */
   async listFundRecords(
-    resourceAccessKey: string,
+    authorizationId: string,
     options: {
       pageIndex?: number;
       pageSize?: number;
@@ -609,8 +591,7 @@ export class CregisSDK {
         join?: 'and' | 'or';
       }>;
     } = {}
-  ): Promise<{
-    list: Array<{
+  ): Promise<PaginatedResponse<{
       id: number;
       recordId: string;
       unitId: number;
@@ -627,11 +608,7 @@ export class CregisSDK {
       fromAddress?: string;
       toAddress?: string;
       createdAt: string;
-    }>;
-    total: number;
-    pageIndex: number;
-    pageSize: number;
-  }> {
+    }>> {
     const timestamp = getTimestamp();
     const nonce = generateNonce();
     const business: Record<string, unknown> = {};
@@ -643,7 +620,7 @@ export class CregisSDK {
     const params: ResourceSignatureParams = {
       appId: this.config.appId,
       appSecret: this.config.appSecret,
-      authorizationId: resourceAccessKey,
+      authorizationId: authorizationId,
       timestamp,
       nonce,
       business,
@@ -651,29 +628,24 @@ export class CregisSDK {
 
     const basic = buildBasicInfoWithAuthorization(params);
 
-    return this.http.post<{
-      list: Array<{
-        id: number;
-        recordId: string;
-        unitId: number;
-        unitEcode: string;
-        coinId: string;
-        network: string;
-        accountType: string;
-        txType: string;
-        amount: string;
-        balanceBefore: string;
-        balanceAfter: string;
-        fee?: string;
-        txHash?: string;
-        fromAddress?: string;
-        toAddress?: string;
-        createdAt: string;
-      }>;
-      total: number;
-      pageIndex: number;
-      pageSize: number;
-    }>(`/api/third-party/fund-records/${resourceAccessKey}`, { basic, business });
+    return this.http.post<PaginatedResponse<{
+      id: number;
+      recordId: string;
+      unitId: number;
+      unitEcode: string;
+      coinId: string;
+      network: string;
+      accountType: string;
+      txType: string;
+      amount: string;
+      balanceBefore: string;
+      balanceAfter: string;
+      fee?: string;
+      txHash?: string;
+      fromAddress?: string;
+      toAddress?: string;
+      createdAt: string;
+    }>>(`/api/thirdparty/treasury/fund-records`, { basic, business });
   }
 
   // ============ Webhook Methods ============

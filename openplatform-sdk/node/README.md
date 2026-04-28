@@ -9,7 +9,6 @@ Cregis 托管平台 Node.js SDK，用于后端集成加密资产托管服务。
 - 为你的用户创建和管理加密资产托管钱包
 - 发起和审批加密资产转账
 - 查询交易记录和资金流水
-- 管理 Webhook 接收平台通知
 
 **技术特性：**
 
@@ -413,64 +412,6 @@ const result = await sdk.listFundRecords(
   }>;
   total: number; pageIndex: number; pageSize: number;
 }>
-```
-
----
-
-### Webhook 管理
-
-#### `registerWebhook`
-
-注册 Webhook，用于接收平台事件通知。
-
-```typescript
-const result = await sdk.registerWebhook({
-  url: string;
-  eventTypes: string[];
-}): Promise<{
-  id: string;
-  url: string;
-  eventTypes: string[];
-  isActive: boolean;
-  secret: string;
-}>
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `url` | `string` | 是 | Webhook 接收地址（必须是 HTTPS） |
-| `eventTypes` | `string[]` | 是 | 订阅的事件类型，如 `['payout.completed', 'payout.failed']` |
-
-**返回值：**
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `id` | `string` | Webhook ID |
-| `secret` | `string` | 签名密钥，用于验证请求来源 |
-
----
-
-#### `listWebhooks`
-
-查询已注册的 Webhook 列表。
-
-```typescript
-const result = await sdk.listWebhooks(): Promise<Array<{
-  id: string;
-  url: string;
-  eventTypes: string[];
-  isActive: boolean;
-}>>
-```
-
----
-
-#### `deleteWebhook`
-
-删除 Webhook。
-
-```typescript
-const result = await sdk.deleteWebhook(id: string): Promise<{ success: boolean }>
 ```
 
 ---
