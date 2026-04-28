@@ -43,7 +43,7 @@ jobs:
 
       - name: Run tests
         working-directory: ./openplatform-sdk/node
-        run: npm run test:run
+        run: npm run test:unit
 
       - name: Configure git
         run: |
