@@ -1,5 +1,7 @@
 import { Request, Response } from 'express'
 import { dashboardStatsService, HealthStatsSummary, ServiceHealth, ResourceUsage, HealthHistory } from '../services/dashboard-stats.service'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 
 // ============================================
 // Health Statistics Controller (B.3.3)
@@ -21,8 +23,8 @@ export async function getHealthStatus(req: Request, res: Response): Promise<void
     })
   } catch (error) {
     console.error('Get health status error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get health status',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -46,8 +48,8 @@ export async function getServicesHealth(req: Request, res: Response): Promise<vo
     })
   } catch (error) {
     console.error('Get services health error:', error)
-    res.status(500).json({
-      code: 50002,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_UNAVAILABLE,
       message: 'Failed to get services health',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -71,8 +73,8 @@ export async function getResourceUsage(req: Request, res: Response): Promise<voi
     })
   } catch (error) {
     console.error('Get resource usage error:', error)
-    res.status(500).json({
-      code: 50003,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_DATABASE,
       message: 'Failed to get resource usage',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -89,8 +91,8 @@ export async function getHealthHistory(req: Request, res: Response): Promise<voi
     const hours = parseInt((req.query.hours as string) || '24')
 
     if (hours < 1 || hours > 168) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'Hours parameter must be between 1 and 168 (7 days)',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -108,8 +110,8 @@ export async function getHealthHistory(req: Request, res: Response): Promise<voi
     })
   } catch (error) {
     console.error('Get health history error:', error)
-    res.status(500).json({
-      code: 50004,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_CACHE,
       message: 'Failed to get health history',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -128,8 +130,8 @@ export async function getServiceDetail(req: Request, res: Response): Promise<voi
     // Validate serviceId format (alphanumeric, dashes, underscores only)
     const SERVICE_ID_REGEX = /^[a-zA-Z0-9_-]+$/
     if (!serviceId || !SERVICE_ID_REGEX.test(serviceId)) {
-      res.status(400).json({
-        code: 40002,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_INVALID_FORMAT,
         message: 'Invalid service ID format',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -141,8 +143,8 @@ export async function getServiceDetail(req: Request, res: Response): Promise<voi
     const service = allServices.find(s => s.serviceId === serviceId)
 
     if (!service) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Service not found',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -158,8 +160,8 @@ export async function getServiceDetail(req: Request, res: Response): Promise<voi
     })
   } catch (error) {
     console.error('Get service detail error:', error)
-    res.status(500).json({
-      code: 50005,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get service detail',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -192,8 +194,8 @@ export async function refreshHealthData(req: Request, res: Response): Promise<vo
     })
   } catch (error) {
     console.error('Refresh health data error:', error)
-    res.status(500).json({
-      code: 50006,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to refresh health data',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''

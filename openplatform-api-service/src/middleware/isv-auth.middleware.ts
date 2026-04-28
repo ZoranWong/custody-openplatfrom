@@ -4,6 +4,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 import { verifyToken } from '../controllers/isv-auth.controller'
 import { isvUserService } from '../services/isv-user.service'
 
@@ -24,8 +26,8 @@ export async function isvAuth(req: ISVAuthRequest, res: Response, next: NextFunc
   const authHeader = req.headers.authorization
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({
-      code: 40101,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_MISSING_HEADERS,
       message: 'Authorization header required'
     })
     return
@@ -35,8 +37,8 @@ export async function isvAuth(req: ISVAuthRequest, res: Response, next: NextFunc
   const payload = verifyToken(token)
 
   if (!payload) {
-    res.status(401).json({
-      code: 40102,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_INVALID_SIGNATURE,
       message: 'Invalid or expired token'
     })
     return
@@ -45,16 +47,16 @@ export async function isvAuth(req: ISVAuthRequest, res: Response, next: NextFunc
   // Verify user still exists and is active
   const user = await isvUserService.getUserById(payload.userId)
   if (!user) {
-    res.status(401).json({
-      code: 40103,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
       message: 'User not found'
     })
     return
   }
 
   if (user.status === 'suspended') {
-    res.status(403).json({
-      code: 40301,
+    res.status(HttpCodes.FORBIDDEN).json({
+      code: BusinessCodes.AUTHZ_ACCESS_DENIED,
       message: 'Account is suspended'
     })
     return
@@ -77,8 +79,8 @@ export async function isvAuth(req: ISVAuthRequest, res: Response, next: NextFunc
  */
 export function requireOwner(req: ISVAuthRequest, res: Response, next: NextFunction): void {
   if (req.isvUser?.role !== 'owner') {
-    res.status(403).json({
-      code: 40302,
+    res.status(HttpCodes.FORBIDDEN).json({
+      code: BusinessCodes.AUTHZ_PERMISSION_DENIED,
       message: 'Owner access required'
     })
     return

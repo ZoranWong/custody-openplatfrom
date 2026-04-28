@@ -9,11 +9,11 @@ import { BasicValidationRequest, BasicInfo } from '../../requests/BasicValiation
 import { RequestWithContext } from '../../requests/extended-request';
 import * as common from './common.validator';
 import { IRequestValidator } from './interfaces';
+import { BusinessCodes } from '../../enums/business-codes.enum';
 
 export { BasicInfo } from '../../requests/BasicValiationRequest';
 
 // Re-export common validator utilities
-export const ValidationErrorCodes = common.ValidationErrorCodes;
 export const TIMESTAMP_TOLERANCE = common.TIMESTAMP_TOLERANCE;
 export const isValidUUID = common.isValidUUID;
 export const isTimestampValid = common.isTimestampValid;
@@ -97,7 +97,7 @@ export class BasicValidator implements IRequestValidator {
                 valid: false,
                 errors: [{
                     field: 'basic',
-                    code: ValidationErrorCodes.MISSING_FIELD,
+                    code: BusinessCodes.PARAM_REQUIRED,
                     message: 'Missing or incomplete basic info in request body. Required format: { basic: { appId, timestamp, nonce, signature }, business: { ... } }',
                 }],
             };
@@ -130,7 +130,7 @@ export class BasicValidator implements IRequestValidator {
         if (!isValidSignature) {
             errors.push({
                 field: 'signature',
-                code: ValidationErrorCodes.INVALID_SIGNATURE,
+                code: BusinessCodes.AUTH_INVALID_SIGNATURE,
                 message: 'Invalid signature',
             });
         }

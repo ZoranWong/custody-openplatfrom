@@ -5,6 +5,8 @@
  */
 
 import { Request, Response } from 'express'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 import { isvUserService, isvService, isvApplicationService } from '../services/isv-user.service'
@@ -53,8 +55,8 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     // Validate required fields
     if (!email || !password || !legalName || !registrationNumber || !jurisdiction || !dateOfIncorporation || !registeredAddress) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'Missing required fields: email, password, legalName, registrationNumber, jurisdiction, dateOfIncorporation, registeredAddress'
       })
       return
@@ -62,8 +64,8 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     // Validate UBO info
     if (!uboInfo || !Array.isArray(uboInfo) || uboInfo.length === 0) {
-      res.status(400).json({
-        code: 40002,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_INVALID_FORMAT,
         message: 'At least one UBO is required'
       })
       return
@@ -72,8 +74,8 @@ export async function register(req: Request, res: Response): Promise<void> {
     // Check if email already exists
     const existingUser = await isvUserService.getUserByEmail(email)
     if (existingUser) {
-      res.status(409).json({
-        code: 40901,
+      res.status(HttpCodes.CONFLICT).json({
+        code: BusinessCodes.CONFLICT_DUPLICATE,
         message: 'Email already registered'
       })
       return
@@ -102,8 +104,8 @@ export async function register(req: Request, res: Response): Promise<void> {
     })
 
     if (!result.success || !result.user) {
-      res.status(400).json({
-        code: 40003,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_BUSINESS_RULE,
         message: result.error || 'Failed to create user'
       })
       return
@@ -120,7 +122,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       role: user.role as string
     })
 
-    res.status(201).json({
+    res.status(HttpCodes.CREATED).json({
       code: 0,
       message: 'Registration successful',
       data: {
@@ -130,8 +132,8 @@ export async function register(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('ISV registration error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }
@@ -146,8 +148,8 @@ export async function ownerLogin(req: Request, res: Response): Promise<void> {
     const { email, password } = req.body
 
     if (!email || !password) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'Missing required fields: email, password'
       })
       return
@@ -156,8 +158,8 @@ export async function ownerLogin(req: Request, res: Response): Promise<void> {
     // Find user by email first to get isvId
     const userByEmail = await isvUserService.getUserByEmail(email)
     if (!userByEmail) {
-      res.status(401).json({
-        code: 40101,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
         message: 'Invalid email or password'
       })
       return
@@ -166,8 +168,8 @@ export async function ownerLogin(req: Request, res: Response): Promise<void> {
       const result = await isvUserService.login(userByEmail.isvDeveloperId, email, password)
 
     if (!result.success) {
-      res.status(401).json({
-        code: 40101,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
         message: result.error || 'Login failed'
       })
       return
@@ -191,8 +193,8 @@ export async function ownerLogin(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('ISV login error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }
@@ -215,8 +217,8 @@ export async function logout(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('ISV logout error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }
@@ -230,8 +232,8 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
   try {
     const isvUser = (req as any).isvUser
     if (!isvUser) {
-      res.status(401).json({
-        code: 40101,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
         message: 'Authentication required'
       })
       return
@@ -239,8 +241,8 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
 
     const user = await isvUserService.getUserById(isvUser.userId)
     if (!user) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'User not found'
       })
       return
@@ -254,8 +256,8 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Get profile error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }
@@ -269,8 +271,8 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
   try {
     const isvUser = (req as any).isvUser
     if (!isvUser) {
-      res.status(401).json({
-        code: 40101,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
         message: 'Authentication required'
       })
       return
@@ -280,8 +282,8 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     const user = await isvUserService.updateUser(isvUser.userId, { name, phone })
 
     if (!user) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'User not found'
       })
       return
@@ -295,8 +297,8 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     })
   } catch (error) {
     console.error('Update profile error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }
@@ -310,8 +312,8 @@ export async function getISVInfo(req: Request, res: Response): Promise<void> {
   try {
     const isvUser = (req as any).isvUser
     if (!isvUser) {
-      res.status(401).json({
-        code: 40101,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
         message: 'Authentication required'
       })
       return
@@ -319,8 +321,8 @@ export async function getISVInfo(req: Request, res: Response): Promise<void> {
 
     const isv = await isvService.getISVById(isvUser.isvDeveloperId)
     if (!isv) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'ISV not found'
       })
       return
@@ -333,8 +335,8 @@ export async function getISVInfo(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Get ISV info error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }
@@ -348,8 +350,8 @@ export async function getMyApplications(req: Request, res: Response): Promise<vo
   try {
     const isvUser = (req as any).isvUser
     if (!isvUser) {
-      res.status(401).json({
-        code: 40101,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
         message: 'Authentication required'
       })
       return
@@ -363,8 +365,8 @@ export async function getMyApplications(req: Request, res: Response): Promise<vo
     })
   } catch (error) {
     console.error('Get applications error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }

@@ -5,6 +5,8 @@
 
 import { Request, Response } from 'express';
 import { getTraceStorage } from '../services/trace-storage.service';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 
 /**
  * Get trace by ID
@@ -14,8 +16,8 @@ export async function getTraceById(req: Request, res: Response): Promise<void> {
     const { traceId } = req.params;
 
     if (!traceId) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'traceId is required',
       });
       return;
@@ -25,8 +27,8 @@ export async function getTraceById(req: Request, res: Response): Promise<void> {
     const trace = storage.getTrace(traceId);
 
     if (!trace) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Trace not found',
         trace_id: (req.headers as any)['x-trace-id'],
       });
@@ -40,8 +42,8 @@ export async function getTraceById(req: Request, res: Response): Promise<void> {
     });
   } catch (error) {
     console.error('Error getting trace:', error);
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error',
       trace_id: (req.headers as any)['x-trace-id'],
     });
@@ -88,8 +90,8 @@ export async function listTraces(req: Request, res: Response): Promise<void> {
     });
   } catch (error) {
     console.error('Error listing traces:', error);
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error',
       trace_id: (req.headers as any)['x-trace-id'],
     });
@@ -111,8 +113,8 @@ export async function getTraceStats(req: Request, res: Response): Promise<void> 
     });
   } catch (error) {
     console.error('Error getting trace stats:', error);
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error',
       trace_id: (req.headers as any)['x-trace-id'],
     });

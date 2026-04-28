@@ -10,11 +10,20 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 import { issueOauthToken, verifyOauthToken, buildAuthorizeUrl } from '../controllers/thirdparty.controller';
 import { createHttpClient, HttpClient } from '../services/http-client.service';
-import { FORWARD_ROUTES, BACKEND_CLIENTS, findForwardRoute } from '../config/forward-routes';
+import {
+    BACKEND_CLIENTS,
+    findForwardRoute,
+    normalizePath,
+    validateParamValue,
+} from '../config/forward-routes';
 import { basicValidationMiddleware, resourceValidationMiddleware } from '../middleware/resource-validation.middleware';
-
+import { AuthorizationResult } from '../services/resource-authorization.service';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 const router = Router();
 
 // Basic validation middleware for OAuth endpoints (BasicInfo only)
@@ -28,53 +37,109 @@ for (const clientConfig of BACKEND_CLIENTS) {
 
 /**
  * Forward request to configured backend service
- * Extracts resourceAccessKey from URL path and passes it to the backend
+ * Extracts resourceKey from req.context.resource and passes it to the backend
+ * URL parameters are extracted from the inboundPath pattern
  */
 async function forwardRequest(req: Request, res: Response): Promise<void> {
-    const matchedRoute = findForwardRoute(req.path, req.method);
+    // Normalize path for matching
+    const normalizedPath = normalizePath(req.baseUrl + req.path);
+    const matched = findForwardRoute(normalizedPath);
 
-    if (!matchedRoute) {
+    if (!matched) {
         res.status(404).json({
-            code: 40401,
+            code: BusinessCodes.NOT_FOUND_RESOURCE,
             message: `Route not found: ${req.method} ${req.path}`,
         });
         return;
     }
 
-    const client = httpClients.get(matchedRoute.clientName);
+    const { config, urlParams } = matched;
+    const client = httpClients.get(config.clientName);
 
     if (!client) {
         res.status(503).json({
-            code: 50301,
-            message: `Backend service not available: ${matchedRoute.clientName}`,
+            code: BusinessCodes.SERVICE_UNAVAILABLE,
+            message: `Backend service not available: ${config.clientName}`,
         });
         return;
     }
 
     try {
-        const traceId = (req.headers['x-trace-id'] as string) ||
-            `tp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        const traceId = (req.headers['x-trace-id'] as string) || uuidv4();
 
-        // Extract resourceAccessKey from URL path
-        // Path format: /api/third-party/{action}/{resourceAccessKey}
-        const pathParts = req.path.split('/');
-        const resourceAccessKeyIndex = pathParts.findIndex(p => p === 'third-party') + 2;
+        // Build the backend path with parameters
+        let backendPath = config.route;
 
-        // Build the backend path with resourceAccessKey
-        const backendPath = matchedRoute.route
-            .replace('{resourceAccessKey}', pathParts[resourceAccessKeyIndex] || '')
-            .replace('{taskId}', pathParts[resourceAccessKeyIndex + 1] || '');
+        // Detect parameter conflict: URL params shadowing context params
+        const paramMapping = config.paramMapping || { resourceKey: 'context' };
+        const contextParams = Object.keys(paramMapping).filter(
+            k => paramMapping[k] === 'context'
+        );
+        const conflictParams = Object.keys(urlParams).filter(
+            k => contextParams.includes(k)
+        );
+        if (conflictParams.length > 0) {
+            res.status(400).json({
+                code: BusinessCodes.PARAM_INVALID_FORMAT,
+                message: `Parameter conflict: URL param shadows context param: ${conflictParams.join(', ')}`,
+            });
+            return;
+        }
+        const context = (req as any).context;
+        const authResource = context?.resource as AuthorizationResult;
+        // Get resourceKey from req.context.resource (set by resourceValidationMiddleware)
+        const resourceKey = authResource?.resourceKey;
 
+        if (!resourceKey) {
+            res.status(400).json({
+                code: BusinessCodes.PARAM_REQUIRED,
+                message: 'Missing resourceKey in request context',
+                context: context
+            });
+            return;
+        }
+
+        // Validate resourceKey exists in route configuration
+        if (!backendPath.includes('{resourceKey}')) {
+            res.status(500).json({
+                code: BusinessCodes.SERVER_INTERNAL,
+                message: 'Invalid route configuration: missing {resourceKey}',
+            });
+            return;
+        }
+
+        // Validate and replace resourceKey
+        if (!validateParamValue(resourceKey || '')) {
+            res.status(400).json({
+                code: BusinessCodes.PARAM_REQUIRED,
+                message: 'Invalid or missing resourceKey',
+            });
+            return;
+        }
+        backendPath = backendPath.replace('{resourceKey}', resourceKey);
+
+        // Validate and replace URL parameters
+        for (const [key, value] of Object.entries(urlParams)) {
+            if (!validateParamValue(value)) {
+                res.status(400).json({
+                    code: BusinessCodes.PARAM_REQUIRED,
+                    message: `Invalid parameter: ${key}`,
+                });
+                return;
+            }
+            backendPath = backendPath.replace(`{${key}}`, value);
+        }
+        console.log(backendPath, '---------- call -----', req.headers)
         const response = await client.request({
-            method: req.method as any,
+            method: config.method as any,
             url: backendPath,
-            data: req.body,
+            data: req.body.business,
             params: req.query as Record<string, string>,
             headers: {
-                ...req.headers as Record<string, string>,
-                'X-Trace-Id': traceId,
+                'x-trace-id': traceId,
             },
         });
+        console.log('---------- response -------', response)
 
         if (typeof response === 'object' && response !== null) {
             res.json(response);
@@ -82,6 +147,24 @@ async function forwardRequest(req: Request, res: Response): Promise<void> {
             res.send(response);
         }
     } catch (error: any) {
+        console.log(error)
+        // Handle specific error cases
+        if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND') {
+            res.status(503).json({
+                code: BusinessCodes.SERVICE_UNAVAILABLE,
+                message: 'Backend service unavailable',
+            });
+            return;
+        }
+
+        if (error?.code === 'ETIMEDOUT' || error?.message?.includes('timeout')) {
+            res.status(504).json({
+                code: BusinessCodes.GATEWAY_TIMEOUT,
+                message: 'Backend service timeout',
+            });
+            return;
+        }
+
         const code = error?.response?.status || error?.code || 500;
         const message = error?.response?.data?.message || error.message || 'Forwarding error';
         res.status(code).json({

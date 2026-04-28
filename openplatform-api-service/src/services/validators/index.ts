@@ -16,7 +16,6 @@ export type {
 
 // Common validator utilities
 export {
-    ValidationErrorCodes,
     TIMESTAMP_TOLERANCE,
     isValidUUID,
     isTimestampValid,
@@ -31,6 +30,7 @@ export {
     verifyBasicSignature,
     verifyResourceSignature,
     maskSignature,
+    validateAppSecret,
 } from './common.validator';
 
 // BasicValidator 及其类型和提取函数
@@ -46,7 +46,6 @@ export type {
 // ResourceValidator 及其类型和提取函数
 export {
     ResourceValidator,
-    ResourceValidationErrorCodes,
     createResourceValidator,
     createBasicValidator,
     extractBasicInfoWithAuthorization,

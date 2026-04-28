@@ -1,5 +1,7 @@
 import { Request, Response } from 'express'
 import { dashboardStatsService, DashboardStatsResponse, DashboardTrendResponse, DashboardDetailStatsResponse } from '../services/dashboard-stats.service'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 
 // ============================================
 // Dashboard Statistics Controller
@@ -34,8 +36,8 @@ export async function getDashboardStats(req: Request, res: Response): Promise<vo
     })
   } catch (error) {
     console.error('Get dashboard stats error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get dashboard statistics',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -52,8 +54,8 @@ export async function getDashboardTrends(req: Request, res: Response): Promise<v
     const days = parseInt((req.query.days as string) || '7')
 
     if (days < 1 || days > 30) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'Days parameter must be between 1 and 30',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -79,8 +81,8 @@ export async function getDashboardTrends(req: Request, res: Response): Promise<v
     })
   } catch (error) {
     console.error('Get dashboard trends error:', error)
-    res.status(500).json({
-      code: 50002,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get dashboard trends',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -114,8 +116,8 @@ export async function getDashboardDetails(req: Request, res: Response): Promise<
     })
   } catch (error) {
     console.error('Get dashboard details error:', error)
-    res.status(500).json({
-      code: 50003,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get dashboard details',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -139,8 +141,8 @@ export async function refreshDashboardStats(req: Request, res: Response): Promis
     })
   } catch (error) {
     console.error('Refresh dashboard stats error:', error)
-    res.status(500).json({
-      code: 50004,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to refresh dashboard statistics',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -164,8 +166,8 @@ export async function getDashboardHealth(req: Request, res: Response): Promise<v
     })
   } catch (error) {
     console.error('Get dashboard health error:', error)
-    res.status(500).json({
-      code: 50005,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get dashboard health',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''

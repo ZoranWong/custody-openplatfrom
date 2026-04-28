@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 import {
   verifyAccessToken,
   decodeToken,
@@ -10,18 +12,6 @@ import {
   JWTAuthMiddlewareConfig,
   TokenBlacklist,
 } from '../types/jwt.types';
-
-/**
- * Error codes for JWT authentication
- */
-export enum JWTErrorCode {
-  MISSING_TOKEN = 40105,
-  INVALID_TOKEN = 40105,
-  EXPIRED_TOKEN = 40106,
-  INVALID_REFRESH_TOKEN = 40107,
-  REVOKED_TOKEN = 40108,
-  INVALID_TOKEN_TYPE = 40109,
-}
 
 /**
  * Default configuration for JWT middleware
@@ -74,8 +64,8 @@ export function createJWTAuthMiddleware(
       if (finalConfig.allowNoAuth) {
         return next();
       }
-      res.status(401).json({
-        code: JWTErrorCode.MISSING_TOKEN,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_MISSING_HEADERS,
         message: 'Missing or invalid Authorization header',
         trace_id: traceId,
       } as { code: number; message: string; trace_id: string });
@@ -84,8 +74,8 @@ export function createJWTAuthMiddleware(
 
     // Validate Bearer format
     if (!authHeader.startsWith('Bearer ')) {
-      res.status(401).json({
-        code: JWTErrorCode.INVALID_TOKEN,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_SIGNATURE,
         message: 'Invalid Authorization header format. Expected: Bearer <token>',
         trace_id: traceId,
       } as { code: number; message: string; trace_id: string });
@@ -104,20 +94,20 @@ export function createJWTAuthMiddleware(
       // Try to decode to provide better error message
       const decoded = decodeToken(token);
       if (decoded && decoded.type === 'refresh') {
-        res.status(401).json({
-          code: JWTErrorCode.INVALID_TOKEN_TYPE,
+        res.status(HttpCodes.UNAUTHORIZED).json({
+          code: BusinessCodes.AUTH_INVALID_REFRESH_TOKEN,
           message: 'Invalid token type: use access_token for authentication',
           trace_id: traceId,
         } as { code: number; message: string; trace_id: string });
       } else if (decoded && decoded.exp && isTokenExpired(decoded.exp as number)) {
-        res.status(401).json({
-          code: JWTErrorCode.EXPIRED_TOKEN,
+        res.status(HttpCodes.UNAUTHORIZED).json({
+          code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
           message: 'Token expired, please refresh',
           trace_id: traceId,
         } as { code: number; message: string; trace_id: string });
       } else {
-        res.status(401).json({
-          code: JWTErrorCode.INVALID_TOKEN,
+        res.status(HttpCodes.UNAUTHORIZED).json({
+          code: BusinessCodes.AUTH_INVALID_SIGNATURE,
           message: 'Invalid or malformed token',
           trace_id: traceId,
         } as { code: number; message: string; trace_id: string });
@@ -127,8 +117,8 @@ export function createJWTAuthMiddleware(
 
     // Check expiration
     if (isTokenExpired(payload.exp)) {
-      res.status(401).json({
-        code: JWTErrorCode.EXPIRED_TOKEN,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
         message: 'Token expired, please refresh',
         trace_id: traceId,
       } as { code: number; message: string; trace_id: string });
@@ -137,8 +127,8 @@ export function createJWTAuthMiddleware(
 
     // Check blacklist for immediate revocation
     if (blacklist && (await blacklist.isBlacklisted(payload.jti))) {
-      res.status(401).json({
-        code: JWTErrorCode.REVOKED_TOKEN,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_APP_NOT_ACTIVE,
         message: 'Token has been revoked',
         trace_id: traceId,
       } as { code: number; message: string; trace_id: string });
@@ -178,8 +168,8 @@ export function requireAuth(
     const traceId = res.getHeader('X-Trace-Id') ||
       `jwt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-    res.status(401).json({
-      code: JWTErrorCode.MISSING_TOKEN,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_MISSING_HEADERS,
       message: 'Authentication required',
       trace_id: traceId,
     } as { code: number; message: string; trace_id: string });

@@ -23,7 +23,6 @@ import { Request, Response, NextFunction } from 'express';
 // import { getAuthorizationService } from '../services/resource-authorization.service';
 import { logger } from '../utils/logger';
 import {
-    ValidationErrorCodes,
     ValidationError,
     // maskSignature,
 } from '../services/validators';
@@ -36,6 +35,8 @@ import { NonceCache } from '../middleware/nonce-cache';
 import { IRequestValidator } from '../services/validators/interfaces';
 import { BasicValidator } from '../services/validators/basic.validator';
 import { ResourceValidator } from '../services/validators/resource.validator';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 
 /**
  * Get or generate trace ID for the request
@@ -74,17 +75,13 @@ function sendValidationErrorResponse(
 
     if (firstError) {
         switch (firstError.code) {
-            case ValidationErrorCodes.MISSING_FIELD:
-                httpStatus = 400;
+            case BusinessCodes.PARAM_REQUIRED:
+            case BusinessCodes.PARAM_INVALID_FORMAT:
+                httpStatus = HttpCodes.BAD_REQUEST;
                 break;
-            case ValidationErrorCodes.INVALID_FORMAT:
-                httpStatus = 400;
-                break;
-            case ValidationErrorCodes.TIMESTAMP_EXPIRED:
-                httpStatus = 401;
-                break;
-            case ValidationErrorCodes.INVALID_SIGNATURE:
-                httpStatus = 401;
+            case BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN:
+            case BusinessCodes.AUTH_INVALID_SIGNATURE:
+                httpStatus = HttpCodes.UNAUTHORIZED;
                 break;
         }
     }
@@ -145,6 +142,9 @@ export function createRequestValidatorMiddleware(
         next: NextFunction,
     ): Promise<void> => {
         const traceId = getTraceId(req);
+        req.headers['x-trace-id'] = traceId;
+        res.setHeader('x-trace-id', traceId);
+
         // Skip excluded paths
         if (excludePaths.some((path) => req.path.startsWith(path))) {
             return next();
@@ -152,8 +152,8 @@ export function createRequestValidatorMiddleware(
 
         // Only allow POST method
         if (req.method !== 'POST') {
-            res.status(405).json({
-                code: 40501,
+            res.status(HttpCodes.METHOD_NOT_ALLOWED).json({
+                code: BusinessCodes.METHOD_NOT_ALLOWED,
                 message: 'Method not allowed. Only POST is supported.',
                 trace_id: traceId,
             });
@@ -168,8 +168,8 @@ export function createRequestValidatorMiddleware(
 
             // appId is required for validation
             if (!appId) {
-                res.status(400).json({
-                    code: 40001,
+                res.status(HttpCodes.BAD_REQUEST).json({
+                    code: BusinessCodes.PARAM_REQUIRED,
                     message: 'Missing required field: appId',
                     trace_id: traceId,
                 });
@@ -183,8 +183,8 @@ export function createRequestValidatorMiddleware(
 
             // Verify application exists
             if (!application) {
-                res.status(401).json({
-                    code: 40103,
+                res.status(HttpCodes.UNAUTHORIZED).json({
+                    code: BusinessCodes.AUTH_INVALID_SIGNATURE,
                     message: 'Invalid appId: application not found',
                     trace_id: traceId,
                 });
@@ -193,8 +193,8 @@ export function createRequestValidatorMiddleware(
 
             // Verify application status
             if (application.status !== 'active') {
-                res.status(401).json({
-                    code: 40104,
+                res.status(HttpCodes.UNAUTHORIZED).json({
+                    code: BusinessCodes.AUTH_DUPLICATE_NONCE,
                     message: 'Application is not active',
                     trace_id: traceId,
                 });
@@ -206,8 +206,8 @@ export function createRequestValidatorMiddleware(
 
             // Verify developer status
             if (!developer || developer.status !== 'active') {
-                res.status(401).json({
-                    code: 40105,
+                res.status(HttpCodes.UNAUTHORIZED).json({
+                    code: BusinessCodes.AUTH_APP_NOT_ACTIVE,
                     message: 'Developer account is not active',
                     trace_id: traceId,
                 });
@@ -222,8 +222,8 @@ export function createRequestValidatorMiddleware(
                     nonce,
                 );
                 if (isDuplicate) {
-                    res.status(401).json({
-                        code: 40109,
+                    res.status(HttpCodes.UNAUTHORIZED).json({
+                        code: BusinessCodes.AUTH_DUPLICATE_NONCE,
                         message: 'Duplicate nonce detected',
                         trace_id: traceId,
                     });
@@ -235,6 +235,7 @@ export function createRequestValidatorMiddleware(
             req.context = {
                 application,
                 developer,
+                traceId,
             };
 
             // Use validator.validateRequest() for complete validation
@@ -262,25 +263,21 @@ export function createRequestValidatorMiddleware(
             }
 
             // Attach context to request
-            req.context = {
-                application,
-                developer,
-                traceId
-            };
 
             next();
         } catch (error) {
+            const errorTraceId = req.context?.traceId || traceId;
             logger.error('Request validation error', {
                 type: 'error',
                 event: 'request_validation_error',
                 error: error instanceof Error ? error.message : String(error),
                 stack: error instanceof Error ? error.stack : undefined,
-                trace_id: traceId,
+                trace_id: errorTraceId,
             });
-            res.status(500).json({
-                code: 50001,
+            res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+                code: BusinessCodes.SERVER_INTERNAL,
                 message: 'Internal server error during validation',
-                trace_id: traceId,
+                trace_id: errorTraceId,
             });
         }
     };

@@ -1,4 +1,6 @@
 import { Request, Response } from 'express'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 import { adminService, tokenBlacklistService } from '../services/admin-auth.service'
@@ -143,8 +145,8 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
 
     // Validate input
     if (!email || !password) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'Invalid credentials',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -153,8 +155,8 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
 
     // Check rate limit
     if (!checkLoginRateLimit(email)) {
-      res.status(429).json({
-        code: 42901,
+      res.status(HttpCodes.TOO_MANY_REQUESTS).json({
+        code: BusinessCodes.RATE_LIMIT_EXCEEDED,
         message: 'Too many login attempts. Please try again later.',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -167,8 +169,8 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
 
     // Generic error message - don't reveal if email exists
     if (!admin) {
-      res.status(401).json({
-        code: 40101,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
         message: 'Invalid credentials',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -177,8 +179,8 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
 
     // Check if admin is active
     if (admin.status !== 'active') {
-      res.status(403).json({
-        code: 40301,
+      res.status(HttpCodes.FORBIDDEN).json({
+        code: BusinessCodes.AUTHZ_ACCESS_DENIED,
         message: 'Account is not active',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -194,8 +196,8 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
     const isValidPassword = await bcrypt.compare(password, admin.passwordHash)
     console.log('[Login] Password valid:', isValidPassword)
     if (!isValidPassword) {
-      res.status(401).json({
-        code: 40101,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
         message: 'Invalid credentials',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -231,8 +233,8 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Admin login error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error',
       trace_id: req.headers['x-trace-id'] as string || ''
     })
@@ -247,8 +249,8 @@ export async function adminRefreshToken(req: Request, res: Response): Promise<vo
     const refreshToken = req.cookies?.adminRefreshToken || req.body?.refreshToken
 
     if (!refreshToken) {
-      res.status(400).json({
-        code: 40002,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_INVALID_FORMAT,
         message: 'Refresh token is required',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -257,8 +259,8 @@ export async function adminRefreshToken(req: Request, res: Response): Promise<vo
 
     // Check rate limit for refresh attempts
     if (!checkRefreshRateLimit(refreshToken)) {
-      res.status(429).json({
-        code: 42902,
+      res.status(HttpCodes.TOO_MANY_REQUESTS).json({
+        code: BusinessCodes.RATE_LIMIT_STRICT,
         message: 'Too many refresh attempts. Please try again later.',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -268,8 +270,8 @@ export async function adminRefreshToken(req: Request, res: Response): Promise<vo
     // Check if token is blacklisted
     const isBlacklisted = await tokenBlacklistService.isBlacklisted(refreshToken)
     if (isBlacklisted) {
-      res.status(401).json({
-        code: 40103,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
         message: 'Token has been revoked',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -282,8 +284,8 @@ export async function adminRefreshToken(req: Request, res: Response): Promise<vo
       const { secret } = getJwtConfig()
       decoded = jwt.verify(refreshToken, secret) as { adminId: string }
     } catch (error) {
-      res.status(401).json({
-        code: 40102,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_SIGNATURE,
         message: 'Invalid or expired refresh token',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -293,8 +295,8 @@ export async function adminRefreshToken(req: Request, res: Response): Promise<vo
     // Get admin
     const admin = await adminService.findById(decoded.adminId)
     if (!admin || admin.status !== 'active') {
-      res.status(401).json({
-        code: 40103,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
         message: 'Admin not found or inactive',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -321,8 +323,8 @@ export async function adminRefreshToken(req: Request, res: Response): Promise<vo
     })
   } catch (error) {
     console.error('Token refresh error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error',
       trace_id: req.headers['x-trace-id'] as string || ''
     })
@@ -351,8 +353,8 @@ export async function adminLogout(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Logout error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error',
       trace_id: req.headers['x-trace-id'] as string || ''
     })
@@ -368,8 +370,8 @@ export async function adminChangePassword(req: Request, res: Response): Promise<
     const { currentPassword, newPassword } = req.body
 
     if (!currentPassword || !newPassword) {
-      res.status(400).json({
-        code: 40003,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_BUSINESS_RULE,
         message: 'Current password and new password are required',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -379,8 +381,8 @@ export async function adminChangePassword(req: Request, res: Response): Promise<
     // Validate new password strength
     const passwordValidation = adminService.validatePasswordStrength(newPassword)
     if (!passwordValidation.valid) {
-      res.status(400).json({
-        code: 40004,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_DUPLICATE,
         message: passwordValidation.message,
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -390,8 +392,8 @@ export async function adminChangePassword(req: Request, res: Response): Promise<
     // Get admin
     const admin = await adminService.findById(adminId)
     if (!admin) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Admin not found',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -401,8 +403,8 @@ export async function adminChangePassword(req: Request, res: Response): Promise<
     // Verify current password
     const isValidPassword = await bcrypt.compare(currentPassword, admin.passwordHash)
     if (!isValidPassword) {
-      res.status(401).json({
-        code: 40101,
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
         message: 'Current password is incorrect',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -428,8 +430,8 @@ export async function adminChangePassword(req: Request, res: Response): Promise<
     })
   } catch (error) {
     console.error('Change password error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error',
       trace_id: req.headers['x-trace-id'] as string || ''
     })
@@ -443,8 +445,8 @@ export async function getAdminProfile(req: Request, res: Response): Promise<void
 
     const admin = await adminService.findById(adminId)
     if (!admin) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Admin not found',
         trace_id: req.headers['x-trace-id'] as string || ''
       })
@@ -467,8 +469,8 @@ export async function getAdminProfile(req: Request, res: Response): Promise<void
     })
   } catch (error) {
     console.error('Get admin profile error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error',
       trace_id: req.headers['x-trace-id'] as string || ''
     })

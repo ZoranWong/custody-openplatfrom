@@ -4,6 +4,8 @@ import { auditLogService, AuditAction, AuditResult } from '../services/admin-aud
 import { skipAudit } from '../middleware/admin-audit.middleware'
 import { adminAuthMiddleware } from '../middleware/admin-auth.middleware'
 import { requireSuperAdmin } from '../middleware/admin-permission.middleware'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 
 const router = Router()
 
@@ -49,8 +51,8 @@ router.get('/query', adminAuthMiddleware, requireSuperAdmin, async (req: Request
       trace_id: (req.headers['x-trace-id'] as string) || ''
     })
   } catch (error) {
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to query audit logs',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -66,8 +68,8 @@ router.get('/logs/:id', adminAuthMiddleware, requireSuperAdmin, async (req: Requ
     const log = await auditLogService.getById(id)
 
     if (!log) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Audit log not found',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -82,8 +84,8 @@ router.get('/logs/:id', adminAuthMiddleware, requireSuperAdmin, async (req: Requ
       trace_id: (req.headers['x-trace-id'] as string) || ''
     })
   } catch (error) {
-    res.status(500).json({
-      code: 50002,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_UNAVAILABLE,
       message: 'Failed to get audit log',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -97,8 +99,8 @@ router.get('/export', adminAuthMiddleware, requireSuperAdmin, async (req: Reques
     const { startDate, endDate, format } = req.query
 
     if (!startDate || !endDate) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'startDate and endDate are required',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -119,8 +121,8 @@ router.get('/export', adminAuthMiddleware, requireSuperAdmin, async (req: Reques
 
     res.send(output)
   } catch (error) {
-    res.status(500).json({
-      code: 50003,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_DATABASE,
       message: 'Failed to export audit logs',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -140,8 +142,8 @@ router.get('/stats', adminAuthMiddleware, requireSuperAdmin, async (req: Request
       trace_id: (req.headers['x-trace-id'] as string) || ''
     })
   } catch (error) {
-    res.status(500).json({
-      code: 50004,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_CACHE,
       message: 'Failed to get audit stats',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''

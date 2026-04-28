@@ -7,6 +7,8 @@ import { Request, Response, NextFunction } from 'express';
 import { BillingService, createBillingService } from '../services/billing.service';
 import { ISVAuthRequest, isvAuth } from '../middleware/isv-auth.middleware';
 import { errorMapper } from '../services/error-mapper.service';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 
 /**
  * Create billing controller with service
@@ -23,8 +25,8 @@ export function createBillingController(billingService: BillingService = createB
         const isvUser = (req as ISVAuthRequest).isvUser;
 
         if (!isvUser) {
-          res.status(401).json(
-            errorMapper.mapError({ code: 40101, message: 'Unauthorized' }, traceId)
+          res.status(HttpCodes.UNAUTHORIZED).json(
+            errorMapper.mapError({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' }, traceId)
           );
           return;
         }
@@ -32,8 +34,8 @@ export function createBillingController(billingService: BillingService = createB
         const { period_start, period_end } = req.body;
 
         if (!period_start || !period_end) {
-          res.status(400).json(
-            errorMapper.mapError({ code: 40001, message: 'Missing required fields: period_start, period_end' }, traceId)
+          res.status(HttpCodes.BAD_REQUEST).json(
+            errorMapper.mapError({ code: BusinessCodes.PARAM_REQUIRED, message: 'Missing required fields: period_start, period_end' }, traceId)
           );
           return;
         }
@@ -44,7 +46,7 @@ export function createBillingController(billingService: BillingService = createB
           period_end
         );
 
-        res.status(201).json({
+        res.status(HttpCodes.CREATED).json({
           code: 0,
           message: 'success',
           data: {
@@ -76,8 +78,8 @@ export function createBillingController(billingService: BillingService = createB
         const isvUser = (req as ISVAuthRequest).isvUser;
 
         if (!isvUser) {
-          res.status(401).json(
-            errorMapper.mapError({ code: 40101, message: 'Unauthorized' }, traceId)
+          res.status(HttpCodes.UNAUTHORIZED).json(
+            errorMapper.mapError({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' }, traceId)
           );
           return;
         }
@@ -86,8 +88,8 @@ export function createBillingController(billingService: BillingService = createB
         const invoice = await billingService.getInvoice(invoiceId);
 
         if (!invoice) {
-          res.status(404).json(
-            errorMapper.mapError({ code: 40401, message: 'Invoice not found' }, traceId)
+          res.status(HttpCodes.NOT_FOUND).json(
+            errorMapper.mapError({ code: BusinessCodes.NOT_FOUND_RESOURCE, message: 'Invoice not found' }, traceId)
           );
           return;
         }
@@ -126,8 +128,8 @@ export function createBillingController(billingService: BillingService = createB
         const isvUser = (req as ISVAuthRequest).isvUser;
 
         if (!isvUser) {
-          res.status(401).json(
-            errorMapper.mapError({ code: 40101, message: 'Unauthorized' }, traceId)
+          res.status(HttpCodes.UNAUTHORIZED).json(
+            errorMapper.mapError({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' }, traceId)
           );
           return;
         }
@@ -162,8 +164,8 @@ export function createBillingController(billingService: BillingService = createB
         const isvUser = (req as ISVAuthRequest).isvUser;
 
         if (!isvUser) {
-          res.status(401).json(
-            errorMapper.mapError({ code: 40101, message: 'Unauthorized' }, traceId)
+          res.status(HttpCodes.UNAUTHORIZED).json(
+            errorMapper.mapError({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' }, traceId)
           );
           return;
         }
@@ -198,8 +200,8 @@ export function createBillingController(billingService: BillingService = createB
         const isvUser = (req as ISVAuthRequest).isvUser;
 
         if (!isvUser) {
-          res.status(401).json(
-            errorMapper.mapError({ code: 40101, message: 'Unauthorized' }, traceId)
+          res.status(HttpCodes.UNAUTHORIZED).json(
+            errorMapper.mapError({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' }, traceId)
           );
           return;
         }
@@ -256,8 +258,8 @@ export function createBillingController(billingService: BillingService = createB
         const isvUser = (req as ISVAuthRequest).isvUser;
 
         if (!isvUser) {
-          res.status(401).json(
-            errorMapper.mapError({ code: 40101, message: 'Unauthorized' }, traceId)
+          res.status(HttpCodes.UNAUTHORIZED).json(
+            errorMapper.mapError({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' }, traceId)
           );
           return;
         }
@@ -289,8 +291,8 @@ export function createBillingController(billingService: BillingService = createB
         const isvUser = (req as ISVAuthRequest).isvUser;
 
         if (!isvUser) {
-          res.status(401).json(
-            errorMapper.mapError({ code: 40101, message: 'Unauthorized' }, traceId)
+          res.status(HttpCodes.UNAUTHORIZED).json(
+            errorMapper.mapError({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' }, traceId)
           );
           return;
         }
@@ -325,8 +327,8 @@ export function createBillingController(billingService: BillingService = createB
         const isvUser = (req as ISVAuthRequest).isvUser;
 
         if (!isvUser) {
-          res.status(401).json(
-            errorMapper.mapError({ code: 40101, message: 'Unauthorized' }, traceId)
+          res.status(HttpCodes.UNAUTHORIZED).json(
+            errorMapper.mapError({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' }, traceId)
           );
           return;
         }
@@ -335,8 +337,8 @@ export function createBillingController(billingService: BillingService = createB
         const invoice = await billingService.getInvoice(id);
 
         if (!invoice) {
-          res.status(404).json(
-            errorMapper.mapError({ code: 40401, message: 'Invoice not found' }, traceId)
+          res.status(HttpCodes.NOT_FOUND).json(
+            errorMapper.mapError({ code: BusinessCodes.NOT_FOUND_RESOURCE, message: 'Invoice not found' }, traceId)
           );
           return;
         }
@@ -373,8 +375,8 @@ export function createBillingController(billingService: BillingService = createB
         const isvUser = (req as ISVAuthRequest).isvUser;
 
         if (!isvUser) {
-          res.status(401).json(
-            errorMapper.mapError({ code: 40101, message: 'Unauthorized' }, traceId)
+          res.status(HttpCodes.UNAUTHORIZED).json(
+            errorMapper.mapError({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' }, traceId)
           );
           return;
         }
@@ -409,8 +411,8 @@ export function createBillingController(billingService: BillingService = createB
         const isvUser = (req as ISVAuthRequest).isvUser;
 
         if (!isvUser) {
-          res.status(401).json(
-            errorMapper.mapError({ code: 40101, message: 'Unauthorized' }, traceId)
+          res.status(HttpCodes.UNAUTHORIZED).json(
+            errorMapper.mapError({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' }, traceId)
           );
           return;
         }

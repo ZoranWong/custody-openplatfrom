@@ -3,6 +3,7 @@ import { config } from 'dotenv'
 config()
 
 import express, { Request, Response, NextFunction } from 'express'
+import { HttpCodes } from './enums/http-codes.enum'
 import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
@@ -120,7 +121,7 @@ app.use('/metrics', metricsRoutes)
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
-    res.status(404).json({
+    res.status(HttpCodes.NOT_FOUND).json({
         code: 40401,
         message: 'Not found',
         trace_id: _req.headers['x-trace-id'] as string || ''
@@ -130,7 +131,7 @@ app.use((_req: Request, res: Response) => {
 // Error handler
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error('Error:', err)
-    res.status(500).json({
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
         code: 50001,
         message: 'Internal server error',
         trace_id: _req.headers['x-trace-id'] as string || ''

@@ -22,6 +22,8 @@ import {
   RateLimiter,
 } from '../types/jwt.types';
 
+import { BusinessCodes } from '../enums/business-codes.enum';
+
 /**
  * AppToken payload interface
  * Used for simple hash-based tokens from third-party developers
@@ -46,15 +48,6 @@ export interface AppTokenValidationResult {
   };
 }
 
-/**
- * Error codes for token operations
- */
-export enum TokenErrorCode {
-  INVALID_CREDENTIALS = 40110,
-  INVALID_REFRESH_TOKEN = 40107,
-  RATE_LIMIT_EXCEEDED = 42901,
-  TOKEN_NOT_FOUND = 40401,
-}
 
 /**
  * Configuration for token service
@@ -116,7 +109,7 @@ export class TokenService {
     if (rateLimit.limited) {
       return {
         error: {
-          code: TokenErrorCode.RATE_LIMIT_EXCEEDED,
+          code: BusinessCodes.RATE_LIMIT_EXCEEDED,
           message: 'Too many requests. Please try again later.',
         },
       };
@@ -131,7 +124,7 @@ export class TokenService {
     if (!credentialResult.valid) {
       return {
         error: {
-          code: TokenErrorCode.INVALID_CREDENTIALS,
+          code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
           message: 'Invalid credentials',
         },
       };
@@ -202,7 +195,7 @@ export class TokenService {
     if (rateLimit.limited) {
       return {
         error: {
-          code: TokenErrorCode.RATE_LIMIT_EXCEEDED,
+          code: BusinessCodes.RATE_LIMIT_EXCEEDED,
           message: 'Too many requests. Please try again later.',
         },
       };
@@ -216,7 +209,7 @@ export class TokenService {
     if (!decodedToken) {
       return {
         error: {
-          code: TokenErrorCode.INVALID_REFRESH_TOKEN,
+          code: BusinessCodes.AUTH_INVALID_REFRESH_TOKEN,
           message: 'Invalid or expired refresh token',
         },
       };
@@ -226,7 +219,7 @@ export class TokenService {
     if (decodedToken.appid !== appid) {
       return {
         error: {
-          code: TokenErrorCode.INVALID_REFRESH_TOKEN,
+          code: BusinessCodes.AUTH_INVALID_REFRESH_TOKEN,
           message: 'Token does not match application',
         },
       };
@@ -236,7 +229,7 @@ export class TokenService {
     if (isTokenExpired(decodedToken.exp)) {
       return {
         error: {
-          code: TokenErrorCode.INVALID_REFRESH_TOKEN,
+          code: BusinessCodes.AUTH_INVALID_REFRESH_TOKEN,
           message: 'Refresh token has expired',
         },
       };
@@ -248,7 +241,7 @@ export class TokenService {
     if (!existingRecord) {
       return {
         error: {
-          code: TokenErrorCode.INVALID_REFRESH_TOKEN,
+          code: BusinessCodes.AUTH_INVALID_REFRESH_TOKEN,
           message: 'Refresh token not found',
         },
       };
@@ -257,7 +250,7 @@ export class TokenService {
     if (existingRecord.revoked) {
       return {
         error: {
-          code: TokenErrorCode.INVALID_REFRESH_TOKEN,
+          code: BusinessCodes.AUTH_INVALID_REFRESH_TOKEN,
           message: 'Refresh token has been revoked',
         },
       };
@@ -266,7 +259,7 @@ export class TokenService {
     if (existingRecord.replaced_by_jti) {
       return {
         error: {
-          code: TokenErrorCode.INVALID_REFRESH_TOKEN,
+          code: BusinessCodes.AUTH_INVALID_REFRESH_TOKEN,
           message: 'Refresh token has been replaced',
         },
       };
@@ -349,7 +342,7 @@ export class TokenService {
     } catch {
       return {
         error: {
-          code: TokenErrorCode.TOKEN_NOT_FOUND,
+          code: BusinessCodes.AUTH_TOKEN_NOT_FOUND,
           message: 'Failed to revoke token',
         },
       };
@@ -369,7 +362,7 @@ export class TokenService {
     if (!decoded) {
       return {
         error: {
-          code: TokenErrorCode.INVALID_REFRESH_TOKEN,
+          code: BusinessCodes.AUTH_INVALID_REFRESH_TOKEN,
           message: 'Invalid refresh token',
         },
       };
@@ -380,7 +373,7 @@ export class TokenService {
     if (!revoked) {
       return {
         error: {
-          code: TokenErrorCode.INVALID_REFRESH_TOKEN,
+          code: BusinessCodes.AUTH_INVALID_REFRESH_TOKEN,
           message: 'Refresh token not found or already revoked',
         },
       };
@@ -502,7 +495,7 @@ export class TokenService {
       return {
         valid: false,
         error: {
-          code: 40103,
+          code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
           message: 'Invalid token',
         },
       };
@@ -527,7 +520,7 @@ export class TokenService {
         return {
           valid: false,
           error: {
-            code: 40101,
+            code: BusinessCodes.AUTH_MISSING_HEADERS,
             message: 'Invalid token: missing required claims',
           },
         };
@@ -539,7 +532,7 @@ export class TokenService {
         return {
           valid: false,
           error: {
-            code: 40102,
+            code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
             message: 'Token expired',
           },
         };
@@ -554,7 +547,7 @@ export class TokenService {
         return {
           valid: false,
           error: {
-            code: 40102,
+            code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
             message: 'Token expired',
           },
         };
@@ -564,7 +557,7 @@ export class TokenService {
         return {
           valid: false,
           error: {
-            code: 40103,
+            code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
             message: 'Invalid token',
           },
         };
@@ -573,7 +566,7 @@ export class TokenService {
       return {
         valid: false,
         error: {
-          code: 40103,
+          code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
           message: 'Invalid token',
         },
       };
@@ -596,7 +589,7 @@ export class TokenService {
       return {
         valid: false,
         error: {
-          code: 40103,
+          code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
           message: 'Invalid token format',
         },
       };
@@ -610,7 +603,7 @@ export class TokenService {
       return {
         valid: false,
         error: {
-          code: 40103,
+          code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
           message: 'Invalid token: invalid timestamp',
         },
       };
@@ -622,7 +615,7 @@ export class TokenService {
       return {
         valid: false,
         error: {
-          code: 40102,
+          code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
           message: 'Token expired or not yet valid',
         },
       };
@@ -639,7 +632,7 @@ export class TokenService {
       return {
         valid: false,
         error: {
-          code: 40103,
+          code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
           message: 'Invalid token: hash mismatch',
         },
       };

@@ -4,6 +4,8 @@
  */
 
 import { Request, Response } from 'express';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 import { signJWT, verifyJWT } from '../utils/jwt.util';
 import { ResourceValidationRequest } from '../middleware/resource-validation.middleware';
 import { getApplicationRepository, getOauthResourceRepository } from '../repositories/repository.factory';
@@ -41,8 +43,8 @@ export async function issueOauthToken(req: ResourceValidationRequest, res: Respo
 
     // Validate oauthUserId is present
     if (!oauthUserId) {
-        res.status(400).json({
-            code: 40001,
+        res.status(HttpCodes.BAD_REQUEST).json({
+            code: BusinessCodes.PARAM_REQUIRED,
             message: 'Missing required parameter: oauthUserId',
         });
         return;
@@ -50,16 +52,16 @@ export async function issueOauthToken(req: ResourceValidationRequest, res: Respo
 
     // Validate oauthUserId is not empty string
     if (typeof oauthUserId !== 'string' || oauthUserId.trim().length === 0) {
-        res.status(400).json({
-            code: 40002,
+        res.status(HttpCodes.BAD_REQUEST).json({
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: 'oauthUserId must be a non-empty string',
         });
         return;
     }
 
     if (!appId) {
-        res.status(401).json({
-            code: 40101,
+        res.status(HttpCodes.UNAUTHORIZED).json({
+            code: BusinessCodes.AUTH_MISSING_HEADERS,
             message: 'Invalid request: missing appId',
         });
         return;
@@ -118,8 +120,8 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
     const appId = req.context?.application?.id;
 
     if (!appId) {
-        res.status(401).json({
-            code: 40101,
+        res.status(HttpCodes.UNAUTHORIZED).json({
+            code: BusinessCodes.AUTH_MISSING_HEADERS,
             message: 'Invalid request: missing appId',
         });
         return;
@@ -127,16 +129,16 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
 
     const application = req.context?.application as unknown as Application;
     if (!application) {
-        res.status(404).json({
-            code: 40401,
+        res.status(HttpCodes.NOT_FOUND).json({
+            code: BusinessCodes.NOT_FOUND_RESOURCE,
             message: 'Application not found',
         });
         return;
     }
 
     if (application.status !== 'active') {
-        res.status(403).json({
-            code: 40301,
+        res.status(HttpCodes.FORBIDDEN).json({
+            code: BusinessCodes.AUTHZ_ACCESS_DENIED,
             message: 'Application is not active',
         });
         return;
@@ -224,8 +226,8 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
 
     // Validate resourceKey
     if (!resourceKey) {
-        res.status(400).json({
-            code: 40001,
+        res.status(HttpCodes.BAD_REQUEST).json({
+            code: BusinessCodes.PARAM_REQUIRED,
             message: 'Missing required parameter: resourceKey',
         });
         return;
@@ -233,8 +235,8 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
 
     // Validate oauthToken
     if (!oauthToken) {
-        res.status(400).json({
-            code: 40001,
+        res.status(HttpCodes.BAD_REQUEST).json({
+            code: BusinessCodes.PARAM_REQUIRED,
             message: 'Missing required parameter: oauthToken',
         });
         return;
@@ -250,8 +252,8 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
     }>(oauthToken);
 
     if (!payload) {
-        res.status(401).json({
-            code: 40101,
+        res.status(HttpCodes.UNAUTHORIZED).json({
+            code: BusinessCodes.AUTH_MISSING_HEADERS,
             message: 'Invalid or expired oauthToken',
         });
         return;
@@ -260,8 +262,8 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
     const { appId } = payload;
 
     if (!appId) {
-        res.status(401).json({
-            code: 40101,
+        res.status(HttpCodes.UNAUTHORIZED).json({
+            code: BusinessCodes.AUTH_MISSING_HEADERS,
             message: 'Invalid token payload: missing appId',
         });
         return;
@@ -273,8 +275,8 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
 
         const application = await appRepo.findByAppId(appId)
         if (!application) {
-            res.status(404).json({
-                code: 40401,
+            res.status(HttpCodes.NOT_FOUND).json({
+                code: BusinessCodes.NOT_FOUND_RESOURCE,
                 message: 'Application not exist.'
             })
             return
@@ -330,15 +332,15 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
     } catch (error) {
         // Handle unique constraint violation
         if (error instanceof Error && error.message.includes('Unique constraint')) {
-            res.status(409).json({
-                code: 40901,
+            res.status(HttpCodes.CONFLICT).json({
+                code: BusinessCodes.CONFLICT_DUPLICATE,
                 message: 'Authorization already exists for this appId, userId, and resourceKey',
             });
             return;
         }
 
-        res.status(500).json({
-            code: 50001,
+        res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+            code: BusinessCodes.SERVER_INTERNAL,
             message: 'Internal server error',
         });
     }

@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 
 // ============================================
 // Admin Rate Limiting Middleware
@@ -238,8 +240,8 @@ export function createRateLimitMiddleware(options?: Partial<RateLimitConfig>) {
       res.setHeader('X-RateLimit-Reset', Math.ceil(resetTime / 1000))
       res.setHeader('Retry-After', retryAfter)
 
-      res.status(429).json({
-        code: 42901,
+      res.status(HttpCodes.TOO_MANY_REQUESTS).json({
+        code: BusinessCodes.RATE_LIMIT_EXCEEDED,
         message: 'Too many requests. Please try again later.',
         data: {
           retry_after: retryAfter,
@@ -283,8 +285,8 @@ export function strictRateLimit(req: Request, res: Response, next: NextFunction)
     res.setHeader('X-RateLimit-Reset', Math.ceil(resetTime / 1000))
     res.setHeader('Retry-After', retryAfter)
 
-    res.status(429).json({
-      code: 42902,
+    res.status(HttpCodes.TOO_MANY_REQUESTS).json({
+      code: BusinessCodes.RATE_LIMIT_EXCEEDED,
       message: 'Rate limit exceeded for sensitive operation',
       data: {
         retry_after: retryAfter,
@@ -324,8 +326,8 @@ export function lenientRateLimit(req: Request, res: Response, next: NextFunction
     res.setHeader('X-RateLimit-Reset', Math.ceil(resetTime / 1000))
     res.setHeader('Retry-After', retryAfter)
 
-    res.status(429).json({
-      code: 42903,
+    res.status(HttpCodes.TOO_MANY_REQUESTS).json({
+      code: BusinessCodes.RATE_LIMIT_EXCEEDED,
       message: 'Too many read requests',
       data: {
         retry_after: retryAfter,

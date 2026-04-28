@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 import { Resource, hasPermission, getPermissionsForRole } from '../constants/admin-permissions'
 
 // Extend Express Request to include permission info
@@ -55,8 +57,8 @@ export function requirePermission(requiredPermission: PermissionCheck) {
     req.permissionGranted = hasAccess
 
     if (!hasAccess) {
-      res.status(403).json({
-        code: 40302,
+      res.status(HttpCodes.FORBIDDEN).json({
+        code: BusinessCodes.AUTHZ_PERMISSION_DENIED,
         message: 'Permission denied',
         data: {
           required: Array.isArray(requiredPermission)
@@ -97,8 +99,8 @@ export function requireAllPermissions(requiredPermissions: Resource[]) {
     )
 
     if (!hasAll) {
-      res.status(403).json({
-        code: 40302,
+      res.status(HttpCodes.FORBIDDEN).json({
+        code: BusinessCodes.AUTHZ_PERMISSION_DENIED,
         message: 'Permission denied - insufficient permissions',
         data: {
           required: requiredPermissions,
@@ -120,8 +122,8 @@ export function requireAdminRole(req: Request, res: Response, next: NextFunction
   const adminRole = (req as any).adminRole
 
   if (adminRole === 'operator') {
-    res.status(403).json({
-      code: 40303,
+    res.status(HttpCodes.FORBIDDEN).json({
+      code: BusinessCodes.AUTHZ_OPERATOR_DENIED,
       message: 'Operator role cannot access this resource',
       trace_id: req.headers['x-trace-id'] as string || ''
     })
@@ -138,8 +140,8 @@ export function requireSuperAdmin(req: Request, res: Response, next: NextFunctio
   const adminRole = (req as any).adminRole
 
   if (adminRole !== 'super_admin') {
-    res.status(403).json({
-      code: 40304,
+    res.status(HttpCodes.FORBIDDEN).json({
+      code: BusinessCodes.AUTHZ_SUPER_ADMIN_REQUIRED,
       message: 'Super admin access required',
       trace_id: req.headers['x-trace-id'] as string || ''
     })

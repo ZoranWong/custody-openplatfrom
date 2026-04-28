@@ -295,6 +295,64 @@
         3. 点击"打开授权"完成钱包授权<br>
         4. 注意：appSecret 是应用密钥，生产环境应通过后端代理获取
       </div>
+
+      <!-- 步骤 2: 创建 Treasury Unit -->
+      <div style="margin-top: 30px; border-top: 2px solid #e5e7eb; padding-top: 24px;">
+        <h2 style="font-size: 18px; margin-bottom: 16px; color: #333;">步骤 2: 创建 Treasury Unit</h2>
+
+        <div class="form-group">
+          <label>Authorization ID</label>
+          <input type="text" id="authorizationId" placeholder="授权成功后自动填入，或手动输入" oninput="handleAuthorizationIdInput()">
+        </div>
+
+        <div class="form-group">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="debugLog" style="width: auto;">
+            显示 Debug 日志
+          </label>
+        </div>
+
+        <div class="form-group">
+          <details>
+            <summary style="cursor: pointer; font-weight: 600; color: #333; font-size: 14px;">模拟数据预览</summary>
+            <pre id="mockDataPreview" style="background: #f9fafb; padding: 12px; border-radius: 8px; margin-top: 8px; overflow-x: auto; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;"></pre>
+          </details>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-secondary" id="generateMockDataBtn" style="font-size: 14px; padding: 12px 24px;">生成模拟数据</button>
+          <button class="btn btn-primary" id="createUnitBtn" disabled>创建 Unit</button>
+          <button class="btn btn-secondary" id="resetUnitBtn" style="font-size: 14px; padding: 12px 24px;">重置表单</button>
+        </div>
+
+        <div class="result" id="createUnitResult"></div>
+      </div>
+
+      <!-- 步骤 3: 查询 Unit 列表 -->
+      <div style="margin-top: 30px; border-top: 2px solid #e5e7eb; padding-top: 24px;">
+        <h2 style="font-size: 18px; margin-bottom: 16px; color: #333;">步骤 3: 查询 Unit 列表</h2>
+
+        <div class="form-group">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="debugLogQuery" style="width: auto;">
+            显示 Debug 日志
+          </label>
+        </div>
+
+        <div class="form-group">
+          <details>
+            <summary style="cursor: pointer; font-weight: 600; color: #333; font-size: 14px;">查询结果预览</summary>
+            <pre id="queryResultPreview" style="background: #f9fafb; padding: 12px; border-radius: 8px; margin-top: 8px; overflow-x: auto; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;"></pre>
+          </details>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" id="queryUnitBtn" disabled>查询</button>
+          <button class="btn btn-secondary" id="resetQueryBtn" style="font-size: 14px; padding: 12px 24px;">重置</button>
+        </div>
+
+        <div class="result" id="queryUnitResult"></div>
+      </div>
     </div>
   </div>
 
@@ -312,6 +370,7 @@
     let sdk = null;
     let currentAuthorizeUrl = null;
     let isAuthorizing = false;
+    let currentMockData = null;
 
     // ============================================================
     // DOM 元素
@@ -324,31 +383,49 @@
     const authStatus = document.getElementById('authStatus');
     const authorizeIdEl = document.getElementById('authorizeId');
     const authorizeUrlDisplay = document.getElementById('authorizeUrlDisplay');
+    const authorizationIdInput = document.getElementById('authorizationId');
+    const createUnitBtn = document.getElementById('createUnitBtn');
+    const generateMockDataBtn = document.getElementById('generateMockDataBtn');
+    const resetUnitBtn = document.getElementById('resetUnitBtn');
+    const mockDataPreview = document.getElementById('mockDataPreview');
+    const createUnitResult = document.getElementById('createUnitResult');
+    const debugLogCheckbox = document.getElementById('debugLog');
+    // 步骤 3 DOM 元素
+    const queryUnitBtn = document.getElementById('queryUnitBtn');
+    const resetQueryBtn = document.getElementById('resetQueryBtn');
+    const queryUnitResult = document.getElementById('queryUnitResult');
+    const queryResultPreview = document.getElementById('queryResultPreview');
+    const debugLogQuery = document.getElementById('debugLogQuery');
 
     // ============================================================
     // 签名工具函数
     // ============================================================
 
     /**
-     * 递归排序对象的 key
+     * 递归排序对象的 key（与后端 sortObjectKeys 保持一致）
+     * 注意：数组内的对象也会递归排序 key
      */
     function sortKeys(obj) {
       if (obj === null || obj === undefined) {
         return obj;
       }
-      const sorted = {};
-      const keys = Object.keys(obj).sort();
-      for (const key of keys) {
-        const value = obj[key];
-        if (value !== null && value !== undefined) {
-          if (typeof value === 'object' && !Array.isArray(value)) {
+      // 数组：递归排序每个元素的 key
+      if (Array.isArray(obj)) {
+        return obj.map((item) => sortKeys(item));
+      }
+      // 对象：排序 key
+      if (typeof obj === 'object') {
+        const sorted = {};
+        const keys = Object.keys(obj).sort();
+        for (const key of keys) {
+          const value = obj[key];
+          if (value !== null && value !== undefined) {
             sorted[key] = sortKeys(value);
-          } else {
-            sorted[key] = value;
           }
         }
+        return sorted;
       }
-      return sorted;
+      return obj;
     }
 
     /**
@@ -372,11 +449,45 @@
       if (typeof md5 !== 'function') {
         throw new Error('MD5 library not loaded. Please ensure md5.min.js is available.');
       }
-      const serializedBusiness = JSON.stringify(sortKeys(business));
+      // Normalize null/undefined to empty object for consistent signing
+      const normalizedBusiness = business || {};
+      const serializedBusiness = JSON.stringify(sortKeys(normalizedBusiness));
       const businessMd5 = md5(serializedBusiness);
       const signString = `${appId}${timestamp}${nonce}${businessMd5}`;
       const signature = md5(`${appSecret}${signString}`);
       return signature;
+    }
+
+    /**
+     * 计算 Resource 签名（用于 /api/thirdparty/treasury/create 接口）
+     * 公式: MD5(appSecret + appId + authorizationId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))
+     */
+    function calculateResourceSignature({ appId, appSecret, timestamp, nonce, authorizationId, business }) {
+      const md5 = window.md5;
+      if (typeof md5 !== 'function') {
+        throw new Error('MD5 library not loaded. Please ensure md5.min.js is available.');
+      }
+      // Normalize null/undefined to empty object for consistent signing
+      const normalizedBusiness = business || {};
+      const serializedBusiness = JSON.stringify(sortKeys(normalizedBusiness));
+      const businessMd5 = md5(serializedBusiness);
+      const signString = `${appId}${authorizationId}${timestamp}${nonce}${businessMd5}`;
+      const signature = md5(`${appSecret}${signString}`);
+      return signature;
+    }
+
+    /**
+     * 构建带 Authorization 的 Basic 对象
+     */
+    function buildBasicInfoWithAuthorization({ appId, appSecret, timestamp, nonce, authorizationId, business }) {
+      const signature = calculateResourceSignature({ appId, appSecret, timestamp, nonce, authorizationId, business });
+      return {
+        appId,
+        timestamp,
+        nonce,
+        signature,
+        authorizationId,
+      };
     }
 
     // ============================================================
@@ -496,6 +607,12 @@
           updateStatus(authStatus, '已授权', 'success');
           authorizeIdEl.textContent = authorizeId || '-';
           showResult('success', '授权成功！', { authorizeId });
+          // 自动填入 authorizationId 到步骤 2
+          if (authorizationIdInput) {
+            authorizationIdInput.value = authorizeId || '';
+            updateCreateUnitButtonState();
+            updateQueryUnitButtonState();
+          }
         },
         onAuthorizationError: (error) => {
           console.error('授权错误:', error);
@@ -574,6 +691,12 @@
           updateStatus(authStatus, '已授权', 'success');
           authorizeIdEl.textContent = authResult.authorizeId || '-';
           showResult('success', '授权成功！', authResult);
+          // 自动填入 authorizationId 到步骤 2 和步骤 3
+          if (authorizationIdInput) {
+            authorizationIdInput.value = authResult.authorizeId || '';
+            updateCreateUnitButtonState();
+            updateQueryUnitButtonState();
+          }
         } else if (authResult.status === 'cancelled') {
           updateStatus(authStatus, '已取消', 'pending');
           showResult('cancelled', '用户取消了授权', authResult);
@@ -597,6 +720,320 @@
         sdk.closeModal();
         updateStatus(authStatus, '已关闭', 'pending');
       }
+    });
+
+    // ============================================================
+    // 步骤 2: 创建 Treasury Unit
+    // ============================================================
+
+    /**
+     * 生成模拟数据
+     */
+    function generateMockData() {
+      return {
+        businessScope: 'OPEN_API_PROXY',
+        topology: 'QUAD_SMART_ISOLATION',
+        coinIds: [{ coinId: 'CLCC', network: 'ethereum-sepolia' }],
+        primaryManager: [{
+          coinId: 'CLCC',
+          fundControlRules: [{
+            guardians: ['0x742d35Cc6634C0532925a3b844Bc9e7595f5eE2B', '0x5aAeb6053F3E94C9b9A09f33669435E8bF7E1a8D'],
+            threshold: '1',
+            perTransferLimit: '1000',
+            dailyTransferLimit: '10000',
+          }],
+        }],
+        payoutManager: [{
+          coinId: 'CLCC',
+          fundControlRules: [{
+            guardians: ['0x742d35Cc6634C0532925a3b844Bc9e7595f5eE2B', '0x5aAeb6053F3E94C9b9A09f33669435E8bF7E1a8D'],
+            threshold: '1',
+            perTransferLimit: '1000',
+            dailyTransferLimit: '10000',
+          }],
+        }],
+        riskManager: [{
+          coinId: 'CLCC',
+          fundControlRules: [{
+            guardians: ['0x742d35Cc6634C0532925a3b844Bc9e7595f5eE2B', '0x5aAeb6053F3E94C9b9A09f33669435E8bF7E1a8D'],
+            threshold: '1',
+            perTransferLimit: '1000',
+            dailyTransferLimit: '10000',
+          }],
+        }],
+      };
+    }
+
+    /**
+     * 显示 Unit 创建结果
+     */
+    function showCreateUnitResult(type, message, data) {
+      createUnitResult.className = 'result show ' + type;
+      createUnitResult.innerHTML = `
+        <h3>${type === 'success' ? '创建成功' : type === 'error' ? '错误' : '超时'}</h3>
+        <p>${escapeHtml(message)}</p>
+        ${data ? '<pre>' + JSON.stringify(data, null, 2) + '</pre>' : ''}
+      `;
+    }
+
+    /**
+     * 更新 "创建 Unit" 按钮状态
+     */
+    function updateCreateUnitButtonState() {
+      const authId = authorizationIdInput.value.trim();
+      const hasMockData = currentMockData !== null;
+      createUnitBtn.disabled = !authId || !hasMockData;
+    }
+
+    /**
+     * authorizationId 输入变化处理
+     */
+    function handleAuthorizationIdInput() {
+      updateCreateUnitButtonState();
+      updateQueryUnitButtonState();
+    }
+    // Expose to global scope for the oninput attribute
+    window.handleAuthorizationIdInput = handleAuthorizationIdInput;
+
+    /**
+     * 更新 "查询 Unit 列表" 按钮状态
+     */
+    function updateQueryUnitButtonState() {
+      const authId = authorizationIdInput.value.trim();
+      queryUnitBtn.disabled = !authId;
+    }
+
+    /**
+     * 生成模拟数据按钮
+     */
+    generateMockDataBtn.addEventListener('click', () => {
+      currentMockData = generateMockData();
+      mockDataPreview.textContent = JSON.stringify(currentMockData, null, 2);
+      updateCreateUnitButtonState();
+    });
+
+    /**
+     * 创建 Unit 按钮
+     */
+    createUnitBtn.addEventListener('click', async () => {
+      const appId = document.getElementById('appId').value.trim();
+      const appSecret = document.getElementById('appSecret').value.trim();
+      const baseUrl = document.getElementById('baseUrl').value.trim() || 'http://localhost:1002';
+      const authorizationId = authorizationIdInput.value.trim();
+
+      if (!appId || !appSecret) {
+        showCreateUnitResult('error', '请输入 App ID 和 App Secret');
+        return;
+      }
+
+      if (!authorizationId) {
+        showCreateUnitResult('error', '请输入 Authorization ID');
+        return;
+      }
+
+      if (!currentMockData) {
+        showCreateUnitResult('error', '请先生成模拟数据');
+        return;
+      }
+
+      const timestamp = Math.floor(Date.now() / 1000);
+      const nonce = generateNonce();
+
+      const basic = buildBasicInfoWithAuthorization({
+        appId,
+        appSecret,
+        timestamp,
+        nonce,
+        authorizationId,
+        business: currentMockData,
+      });
+
+      // Debug logging
+      if (debugLogCheckbox.checked) {
+        console.log('=== Treasury Unit Create Debug ===');
+        console.log('appId:', appId);
+        console.log('authorizationId:', authorizationId);
+        console.log('timestamp:', timestamp);
+        console.log('nonce:', nonce);
+        console.log('business:', JSON.stringify(sortKeys(currentMockData), null, 2));
+        console.log('signString:', `${appId}${authorizationId}${timestamp}${nonce}${window.md5(JSON.stringify(sortKeys(currentMockData)))}`);
+        console.log('signature:', basic.signature);
+        console.log('basic:', JSON.stringify(basic, null, 2));
+      }
+
+      createUnitBtn.disabled = true;
+      createUnitBtn.textContent = '创建中...';
+      createUnitResult.className = 'result';
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      try {
+        const response = await fetch(`${baseUrl}/api/thirdparty/treasury/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ basic, business: currentMockData }),
+          signal: controller.signal,
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          const errorMsg = data?.message || `HTTP ${response.status}: ${response.statusText}`;
+          showCreateUnitResult('error', `创建失败: ${errorMsg}`, debugLogCheckbox.checked ? data : null);
+          return;
+        }
+
+        // Response may be wrapped in { code, message, data } or direct
+        const resultData = data?.data || data;
+        showCreateUnitResult('success', 'Treasury Unit 创建成功！', resultData);
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          showCreateUnitResult('cancelled', '请求超时，请检查网络连接');
+        } else {
+          showCreateUnitResult('error', '网络错误: ' + error.message);
+        }
+      } finally {
+        clearTimeout(timeoutId);
+        createUnitBtn.disabled = false;
+        createUnitBtn.textContent = '创建 Unit';
+      }
+    });
+
+    /**
+     * 重置表单
+     */
+    resetUnitBtn.addEventListener('click', () => {
+      authorizationIdInput.value = '';
+      currentMockData = null;
+      mockDataPreview.textContent = '';
+      createUnitResult.className = 'result';
+      createUnitResult.innerHTML = '';
+      updateCreateUnitButtonState();
+    });
+
+    // ============================================================
+    // 步骤 3: 查询 Unit 列表
+    // ============================================================
+
+    /**
+     * 显示查询结果
+     */
+    function showQueryResult(type, message, data) {
+      queryUnitResult.className = 'result show ' + type;
+      queryUnitResult.innerHTML = `
+        <h3>${type === 'success' ? '查询成功' : type === 'error' ? '错误' : '超时'}</h3>
+        <p>${escapeHtml(message)}</p>
+        ${data ? '<pre>' + JSON.stringify(data, null, 2) + '</pre>' : ''}
+      `;
+      if (data) {
+        queryResultPreview.textContent = JSON.stringify(data, null, 2);
+      } else {
+        queryResultPreview.textContent = '';
+      }
+    }
+
+    /**
+     * 查询 Unit 列表按钮
+     */
+    queryUnitBtn.addEventListener('click', async () => {
+      const appId = document.getElementById('appId').value.trim();
+      const appSecret = document.getElementById('appSecret').value.trim();
+      const baseUrl = document.getElementById('baseUrl').value.trim() || 'http://localhost:1002';
+      const authorizationId = authorizationIdInput.value.trim();
+
+      if (!appId || !appSecret) {
+        showQueryResult('error', '请输入 App ID 和 App Secret');
+        return;
+      }
+
+      if (!authorizationId) {
+        showQueryResult('error', '请输入 Authorization ID');
+        return;
+      }
+
+      const timestamp = Math.floor(Date.now() / 1000);
+      const nonce = generateNonce();
+      const business = null;
+
+      const basic = buildBasicInfoWithAuthorization({
+        appId,
+        appSecret,
+        timestamp,
+        nonce,
+        authorizationId,
+        business,
+      });
+
+      // Debug logging
+      if (debugLogQuery.checked) {
+        console.log('=== Treasury Unit List Query Debug ===');
+        console.log('appId:', appId);
+        console.log('authorizationId:', authorizationId);
+        console.log('timestamp:', timestamp);
+        console.log('nonce:', nonce);
+        console.log('business:', JSON.stringify(sortKeys(business), null, 2));
+        console.log('signString:', `${appId}${authorizationId}${timestamp}${nonce}${window.md5(JSON.stringify(sortKeys(business)))}`);
+        console.log('signature:', basic.signature);
+        console.log('basic:', JSON.stringify(basic, null, 2));
+      }
+
+      queryUnitBtn.disabled = true;
+      queryUnitBtn.textContent = '查询中...';
+      queryUnitResult.className = 'result';
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      try {
+        const response = await fetch(`${baseUrl}/api/thirdparty/treasury/list`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ basic, business }),
+          signal: controller.signal,
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          const errorMsg = data?.message || `HTTP ${response.status}: ${response.statusText}`;
+          showQueryResult('error', `查询失败: ${errorMsg}`, debugLogQuery.checked ? data : null);
+          return;
+        }
+
+        const resultData = data?.data || data;
+        // Check if list is empty - handle various response formats
+        const items = Array.isArray(resultData?.items) ? resultData.items
+          : Array.isArray(resultData?.list) ? resultData.list
+          : Array.isArray(resultData) ? resultData
+          : null;
+        if (items !== null && items.length === 0) {
+          showQueryResult('success', '暂无数据', null);
+          queryResultPreview.textContent = '[]';
+        } else {
+          showQueryResult('success', 'Treasury Unit 列表查询成功！', resultData);
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          showQueryResult('cancelled', '请求超时，请检查网络连接');
+        } else {
+          showQueryResult('error', '网络错误: ' + error.message);
+        }
+      } finally {
+        clearTimeout(timeoutId);
+        queryUnitBtn.disabled = false;
+        queryUnitBtn.textContent = '查询';
+      }
+    });
+
+    /**
+     * 重置查询
+     */
+    resetQueryBtn.addEventListener('click', () => {
+      queryUnitResult.className = 'result';
+      queryUnitResult.innerHTML = '';
+      queryResultPreview.textContent = '';
+      updateQueryUnitButtonState();
     });
 
     // 页面卸载时清理

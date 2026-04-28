@@ -4,6 +4,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 import { AuthenticatedRequest } from '../types/jwt.types';
 import { ValidationRule } from '../types/validation.types';
 import { ValidationService } from '../services/validation.service';
@@ -92,10 +94,10 @@ export function createValidationMiddleware(
           traceId,
         });
 
-        res.status(400).json(
+        res.status(HttpCodes.BAD_REQUEST).json(
           errorMapper.mapError(
             {
-              code: 40002,
+              code: BusinessCodes.PARAM_INVALID_FORMAT,
               message: 'Content-Type must be application/json',
             },
             traceId
@@ -121,7 +123,7 @@ export function createValidationMiddleware(
           traceId,
         });
 
-        res.status(400).json(error);
+        res.status(HttpCodes.BAD_REQUEST).json(error);
         return;
       }
     }
@@ -143,7 +145,7 @@ export function createValidationMiddleware(
           traceId,
         });
 
-        res.status(400).json(error);
+        res.status(HttpCodes.BAD_REQUEST).json(error);
         return;
       }
     }
@@ -198,7 +200,7 @@ export function createEndpointValidationMiddleware(
         traceId,
       });
 
-      res.status(400).json(error);
+      res.status(HttpCodes.BAD_REQUEST).json(error);
       return;
     }
 
@@ -242,10 +244,10 @@ export function createBusinessRuleValidationMiddleware(
         traceId,
       });
 
-      res.status(400).json(
+      res.status(HttpCodes.BAD_REQUEST).json(
         errorMapper.mapError(
           {
-            code: 40003,
+            code: BusinessCodes.PARAM_BUSINESS_RULE,
             message: result.errors.join('; '),
           },
           traceId

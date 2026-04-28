@@ -4,6 +4,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 import { AuthenticatedRequest } from '../types/jwt.types';
 import {
   RateLimitService,
@@ -126,7 +128,7 @@ export function createRateLimitMiddleware(
 
         res.setHeader('Retry-After', violation.retryAfter);
 
-        res.status(429).json(
+        res.status(HttpCodes.TOO_MANY_REQUESTS).json(
           errorMapper.mapError(
             {
               code: violation.code,
@@ -237,8 +239,8 @@ export function createStrictRateLimitMiddleware(
 
     if (!result.allowed) {
       res.setHeader('Retry-After', '60');
-      res.status(429).json({
-        code: 42901,
+      res.status(HttpCodes.TOO_MANY_REQUESTS).json({
+        code: BusinessCodes.RATE_LIMIT_EXCEEDED,
         message: 'Rate limit exceeded. Please try again later.',
       });
       return;

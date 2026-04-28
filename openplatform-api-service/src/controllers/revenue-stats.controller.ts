@@ -1,5 +1,7 @@
 import { Request, Response } from 'express'
 import { dashboardStatsService, RevenueStatsSummary, RevenueByDeveloper, RevenueTrend, RevenueForecast } from '../services/dashboard-stats.service'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 
 // ============================================
 // Revenue Statistics Controller (B.3.2)
@@ -21,8 +23,8 @@ export async function getRevenueSummary(req: Request, res: Response): Promise<vo
     })
   } catch (error) {
     console.error('Get revenue summary error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get revenue summary',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -40,8 +42,8 @@ export async function getRevenueByDeveloper(req: Request, res: Response): Promis
     const timeRange = (req.query.timeRange as string) || '7d'
 
     if (limit < 1 || limit > 100) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'Limit must be between 1 and 100',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -50,8 +52,8 @@ export async function getRevenueByDeveloper(req: Request, res: Response): Promis
     }
 
     if (!['24h', '7d', '30d', '90d'].includes(timeRange)) {
-      res.status(400).json({
-        code: 40002,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_INVALID_FORMAT,
         message: 'Invalid timeRange. Must be one of: 24h, 7d, 30d, 90d',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -69,8 +71,8 @@ export async function getRevenueByDeveloper(req: Request, res: Response): Promis
     })
   } catch (error) {
     console.error('Get revenue by developer error:', error)
-    res.status(500).json({
-      code: 50002,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_UNAVAILABLE,
       message: 'Failed to get revenue by developer',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -87,8 +89,8 @@ export async function getRevenueTrends(req: Request, res: Response): Promise<voi
     const days = parseInt((req.query.days as string) || '7')
 
     if (days < 1 || days > 90) {
-      res.status(400).json({
-        code: 40003,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_BUSINESS_RULE,
         message: 'Days parameter must be between 1 and 90',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -106,8 +108,8 @@ export async function getRevenueTrends(req: Request, res: Response): Promise<voi
     })
   } catch (error) {
     console.error('Get revenue trends error:', error)
-    res.status(500).json({
-      code: 50003,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_DATABASE,
       message: 'Failed to get revenue trends',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -124,8 +126,8 @@ export async function getRevenueForecast(req: Request, res: Response): Promise<v
     const days = parseInt((req.query.days as string) || '7')
 
     if (days < 1 || days > 30) {
-      res.status(400).json({
-        code: 40004,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_DUPLICATE,
         message: 'Days parameter must be between 1 and 30',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -143,8 +145,8 @@ export async function getRevenueForecast(req: Request, res: Response): Promise<v
     })
   } catch (error) {
     console.error('Get revenue forecast error:', error)
-    res.status(500).json({
-      code: 50004,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_CACHE,
       message: 'Failed to get revenue forecast',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -161,8 +163,8 @@ export async function getDeveloperRevenueDetail(req: Request, res: Response): Pr
     const { developerId } = req.params
 
     if (!developerId) {
-      res.status(400).json({
-        code: 40005,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_INVALID_STATE,
         message: 'Developer ID is required',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -175,8 +177,8 @@ export async function getDeveloperRevenueDetail(req: Request, res: Response): Pr
     const developerData = revenueByDev.find(d => d.developerId === developerId)
 
     if (!developerData) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Developer not found',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -192,8 +194,8 @@ export async function getDeveloperRevenueDetail(req: Request, res: Response): Pr
     })
   } catch (error) {
     console.error('Get developer revenue detail error:', error)
-    res.status(500).json({
-      code: 50005,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get developer revenue detail',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -210,8 +212,8 @@ export async function exportRevenueStats(req: Request, res: Response): Promise<v
     const timeRange = (req.query.timeRange as string) || '7d'
 
     if (!['24h', '7d', '30d', '90d'].includes(timeRange)) {
-      res.status(400).json({
-        code: 40006,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_INVALID_FORMAT,
         message: 'Invalid timeRange. Must be one of: 24h, 7d, 30d, 90d',
         data: null,
         trace_id: (req.headers['x-trace-id'] as string) || ''
@@ -228,8 +230,8 @@ export async function exportRevenueStats(req: Request, res: Response): Promise<v
     res.send(csv)
   } catch (error) {
     console.error('Export revenue stats error:', error)
-    res.status(500).json({
-      code: 50006,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to export revenue statistics',
       data: null,
       trace_id: (req.headers['x-trace-id'] as string) || ''

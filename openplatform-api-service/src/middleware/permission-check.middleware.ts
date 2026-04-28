@@ -9,6 +9,8 @@ import {
   PermissionCheckService,
   createPermissionCheckService,
 } from '../services/permission-check.service';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 
 /**
  * Configuration for permission check middleware
@@ -109,7 +111,7 @@ export function createPermissionCheckMiddleware(
     );
 
     if (!result.allowed) {
-      res.status(403).json({
+      res.status(HttpCodes.FORBIDDEN).json({
         code: result.error_code,
         message: result.error_message,
         trace_id: traceId,
@@ -176,8 +178,8 @@ export function requirePermission(permission: string) {
         res.getHeader('X-Trace-Id') ||
         `perm_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-      res.status(403).json({
-        code: 40305,
+      res.status(HttpCodes.FORBIDDEN).json({
+        code: BusinessCodes.AUTHZ_INSUFFICIENT_PERMISSIONS,
         message: `Permission denied. Required: ${permission}`,
         trace_id: traceId,
         missing_permissions: [permission],
@@ -215,8 +217,8 @@ export function requireAnyPermission(permissions: string[]) {
         res.getHeader('X-Trace-Id') ||
         `perm_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-      res.status(403).json({
-        code: 40305,
+      res.status(HttpCodes.FORBIDDEN).json({
+        code: BusinessCodes.AUTHZ_INSUFFICIENT_PERMISSIONS,
         message: `Permission denied. Required one of: ${permissions.join(', ')}`,
         trace_id: traceId,
         missing_permissions: permissions.filter(

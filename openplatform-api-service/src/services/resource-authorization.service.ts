@@ -41,14 +41,14 @@ export interface AuthorizationCheckOptions {
 export class ResourceAuthorizationService {
   async checkAuthorization(
     appId: string,
-    resourceKey: string,
+      authorizationId: string,
     options: AuthorizationCheckOptions = {}
   ): Promise<AuthorizationResult> {
     const { operation, checkExpiration = true } = options
 
     if (checkExpiration) {
       const cache = getAuthorizationCache()
-      const cachedResult = cache.get(appId, resourceKey)
+        const cachedResult = cache.get(appId, authorizationId)
       if (cachedResult) {
         return cachedResult
       }
@@ -57,10 +57,10 @@ export class ResourceAuthorizationService {
     const repo = getOauthResourceRepository()
 
     try {
-      const oauthResource = await repo.findByAppAndResource(appId, resourceKey)
+        const oauthResource = await repo.findById(authorizationId)
 
       if (!oauthResource) {
-        logAuthorizationFailure(appId, resourceKey, 'resource_not_authorized')
+          logAuthorizationFailure(appId, authorizationId, 'resource_not_authorized')
         return {
           authorized: false,
           errorCode: 'RESOURCE_NOT_AUTHORIZED',
@@ -69,7 +69,7 @@ export class ResourceAuthorizationService {
       }
 
       if (oauthResource.status !== 'active') {
-        logAuthorizationFailure(appId, resourceKey, 'authorization_inactive', {
+          logAuthorizationFailure(appId, authorizationId, 'authorization_inactive', {
           status: oauthResource.status,
         })
         return {
@@ -81,7 +81,7 @@ export class ResourceAuthorizationService {
 
       if (checkExpiration && oauthResource.expiresAt) {
         if (oauthResource.expiresAt < new Date()) {
-          logAuthorizationFailure(appId, resourceKey, 'authorization_expired', {
+            logAuthorizationFailure(appId, authorizationId, 'authorization_expired', {
             expiresAt: oauthResource.expiresAt.toISOString(),
           })
           return {
@@ -105,7 +105,7 @@ export class ResourceAuthorizationService {
 
       if (checkExpiration) {
         const cache = getAuthorizationCache()
-        cache.set(appId, resourceKey, result)
+          cache.set(appId, authorizationId, result)
       }
 
       return result
@@ -115,7 +115,7 @@ export class ResourceAuthorizationService {
         event: 'authorization_check_error',
         error: error instanceof Error ? error.message : String(error),
         appId,
-        resourceKey,
+          authorizationId,
       })
       return {
         authorized: false,

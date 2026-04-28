@@ -60,7 +60,7 @@ test_patterns: []
     ...
   />
   <p class="mt-1 text-xs text-gray-400">
-    Used to receive Webhook notifications. Please ensure it is a valid HTTPS URL.
+    Used to receive platform event notifications. Please ensure it is a valid HTTPS URL.
   </p>
 </div>
 ```

@@ -268,23 +268,23 @@ export async function submitAuthorization(params: {
         const response = await apiRequest<{
             code: number
             data?: {
-                id?: number
-                appId?: string
-                ecode?: string
+                authorizeId?: string
                 resourceAccessKey?: string
-                status?: string
-                appToken?: string | null
-                createTime?: string
-                updateTime?: string
+                id?: number
             }
             message?: string
         }>(`/internal/third-party/authorize?${queryParams.toString()}`, {
             method: 'POST',
         })
 
-        if (response.code === 200 && response.data) {
-            const authId = response.data.resourceAccessKey || String(response.data.id) || 'auth-' + Date.now()
-            return { authorizationId: authId }
+        if (response.data) {
+            const authId = response.data.authorizeId
+                || response.data.resourceAccessKey
+                || (response.data.id ? String(response.data.id) : null)
+
+            if (authId) {
+                return { authorizationId: authId }
+            }
         }
 
         throw new Error(response.message || 'Authorization failed')

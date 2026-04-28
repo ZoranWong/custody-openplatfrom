@@ -7,6 +7,8 @@ import { Request, Response } from 'express'
 import { Prisma } from '@prisma/client'
 import { getIsvDeveloperRepository, getISVUserRepository } from '../repositories/repository.factory'
 import { IsvDeveloper } from '../repositories/repository.interfaces'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 
 /**
  * GET /admin/developers
@@ -59,8 +61,8 @@ export async function getDevelopers(req: Request, res: Response): Promise<void> 
     })
   } catch (error) {
     console.error('Failed to get developers:', error)
-    res.status(500).json({
-      code: 500,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get developers',
     })
   }
@@ -78,8 +80,8 @@ export async function getDeveloperById(req: Request, res: Response): Promise<voi
     const isv = await isvRepo.findById(id)
 
     if (!isv) {
-      res.status(404).json({
-        code: 404,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Developer not found',
       })
       return
@@ -107,8 +109,8 @@ export async function getDeveloperById(req: Request, res: Response): Promise<voi
     })
   } catch (error) {
     console.error('Failed to get developer detail:', error)
-    res.status(500).json({
-      code: 500,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get developer detail',
     })
   }
@@ -139,8 +141,8 @@ export async function getDeveloperUsers(req: Request, res: Response): Promise<vo
     })
   } catch (error) {
     console.error('Failed to get developer users:', error)
-    res.status(500).json({
-      code: 500,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get developer users',
     })
   }
@@ -159,12 +161,12 @@ export async function approveDeveloper(req: Request, res: Response): Promise<voi
     const isv = await isvRepo.findById(id)
 
     if (!isv) {
-      res.status(404).json({ code: 404, message: 'Developer not found' })
+      res.status(HttpCodes.NOT_FOUND).json({ code: BusinessCodes.NOT_FOUND_RESOURCE, message: 'Developer not found' })
       return
     }
 
     if (isv.kybStatus === 'approved') {
-      res.status(400).json({ code: 400, message: 'Developer is already approved' })
+      res.status(HttpCodes.BAD_REQUEST).json({ code: BusinessCodes.PARAM_REQUIRED, message: 'Developer is already approved' })
       return
     }
 
@@ -178,7 +180,7 @@ export async function approveDeveloper(req: Request, res: Response): Promise<voi
     res.json({ code: 0, message: 'Developer approved successfully' })
   } catch (error) {
     console.error('Failed to approve developer:', error)
-    res.status(500).json({ code: 500, message: 'Failed to approve developer' })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to approve developer' })
   }
 }
 
@@ -193,7 +195,7 @@ export async function rejectDeveloper(req: Request, res: Response): Promise<void
     const adminEmail = (req as any).user?.email || 'admin@cregis.com'
 
     if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
-      res.status(400).json({ code: 400, message: 'Rejection reason is required' })
+      res.status(HttpCodes.BAD_REQUEST).json({ code: BusinessCodes.PARAM_REQUIRED, message: 'Rejection reason is required' })
       return
     }
 
@@ -201,12 +203,12 @@ export async function rejectDeveloper(req: Request, res: Response): Promise<void
     const isv = await isvRepo.findById(id)
 
     if (!isv) {
-      res.status(404).json({ code: 404, message: 'Developer not found' })
+      res.status(HttpCodes.NOT_FOUND).json({ code: BusinessCodes.NOT_FOUND_RESOURCE, message: 'Developer not found' })
       return
     }
 
     if (isv.kybStatus === 'rejected') {
-      res.status(400).json({ code: 400, message: 'Developer is already rejected' })
+      res.status(HttpCodes.BAD_REQUEST).json({ code: BusinessCodes.PARAM_REQUIRED, message: 'Developer is already rejected' })
       return
     }
 
@@ -220,7 +222,7 @@ export async function rejectDeveloper(req: Request, res: Response): Promise<void
     res.json({ code: 0, message: 'Developer rejected successfully' })
   } catch (error) {
     console.error('Failed to reject developer:', error)
-    res.status(500).json({ code: 500, message: 'Failed to reject developer' })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to reject developer' })
   }
 }
 
@@ -235,12 +237,12 @@ export async function activateDeveloper(req: Request, res: Response): Promise<vo
     const isv = await isvRepo.findById(id)
 
     if (!isv) {
-      res.status(404).json({ code: 404, message: 'Developer not found' })
+      res.status(HttpCodes.NOT_FOUND).json({ code: BusinessCodes.NOT_FOUND_RESOURCE, message: 'Developer not found' })
       return
     }
 
     if (isv.status === 'active') {
-      res.status(400).json({ code: 400, message: 'Developer is already active' })
+      res.status(HttpCodes.BAD_REQUEST).json({ code: BusinessCodes.PARAM_REQUIRED, message: 'Developer is already active' })
       return
     }
 
@@ -249,7 +251,7 @@ export async function activateDeveloper(req: Request, res: Response): Promise<vo
     res.json({ code: 0, message: 'Developer activated successfully' })
   } catch (error) {
     console.error('Failed to activate developer:', error)
-    res.status(500).json({ code: 500, message: 'Failed to activate developer' })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to activate developer' })
   }
 }
 
@@ -264,12 +266,12 @@ export async function suspendDeveloper(req: Request, res: Response): Promise<voi
     const isv = await isvRepo.findById(id)
 
     if (!isv) {
-      res.status(404).json({ code: 404, message: 'Developer not found' })
+      res.status(HttpCodes.NOT_FOUND).json({ code: BusinessCodes.NOT_FOUND_RESOURCE, message: 'Developer not found' })
       return
     }
 
     if (isv.status === 'suspended') {
-      res.status(400).json({ code: 400, message: 'Developer is already suspended' })
+      res.status(HttpCodes.BAD_REQUEST).json({ code: BusinessCodes.PARAM_REQUIRED, message: 'Developer is already suspended' })
       return
     }
 
@@ -278,7 +280,7 @@ export async function suspendDeveloper(req: Request, res: Response): Promise<voi
     res.json({ code: 0, message: 'Developer suspended successfully' })
   } catch (error) {
     console.error('Failed to suspend developer:', error)
-    res.status(500).json({ code: 500, message: 'Failed to suspend developer' })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to suspend developer' })
   }
 }
 
@@ -291,7 +293,7 @@ export async function banDeveloper(req: Request, res: Response): Promise<void> {
     const { reason } = req.body
 
     if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
-      res.status(400).json({ code: 400, message: 'Ban reason is required' })
+      res.status(HttpCodes.BAD_REQUEST).json({ code: BusinessCodes.PARAM_REQUIRED, message: 'Ban reason is required' })
       return
     }
 
@@ -299,12 +301,12 @@ export async function banDeveloper(req: Request, res: Response): Promise<void> {
     const isv = await isvRepo.findById(id)
 
     if (!isv) {
-      res.status(404).json({ code: 404, message: 'Developer not found' })
+      res.status(HttpCodes.NOT_FOUND).json({ code: BusinessCodes.NOT_FOUND_RESOURCE, message: 'Developer not found' })
       return
     }
 
     if (isv.status === 'banned') {
-      res.status(400).json({ code: 400, message: 'Developer is already banned' })
+      res.status(HttpCodes.BAD_REQUEST).json({ code: BusinessCodes.PARAM_REQUIRED, message: 'Developer is already banned' })
       return
     }
 
@@ -313,7 +315,7 @@ export async function banDeveloper(req: Request, res: Response): Promise<void> {
     res.json({ code: 0, message: 'Developer banned successfully' })
   } catch (error) {
     console.error('Failed to ban developer:', error)
-    res.status(500).json({ code: 500, message: 'Failed to ban developer' })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to ban developer' })
   }
 }
 
@@ -355,6 +357,6 @@ export async function getDeveloperStats(req: Request, res: Response): Promise<vo
     })
   } catch (error) {
     console.error('Failed to get developer stats:', error)
-    res.status(500).json({ code: 500, message: 'Failed to get developer stats' })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to get developer stats' })
   }
 }

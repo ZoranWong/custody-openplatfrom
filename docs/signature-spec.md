@@ -175,6 +175,18 @@ signature = MD5(appSecret + appId + authorizationId + timestamp + nonce + MD5(JS
 
 **关键区别：** Resource 签名在签名字符串中包含 `authorizationId`，与授权资源绑定。
 
+### business 空值处理规则
+
+当 `business` 为 `null`、`undefined` 或空对象 `{}` 时，统一视为空对象 `{}` 进行签名计算：
+
+```
+1. 归一化: if (business == null || Object.keys(business).length === 0) business = {}
+2. 排序序列化: JSON.stringify(sortKeys(business)) → "{}"
+3. 计算 MD5: MD5("{}") = e3d974191d03905c53f39002987cc56f
+```
+
+此规则确保客户端与服务端对空 business 的签名结果完全一致。
+
 ---
 
 ## 签名验证规则

@@ -468,6 +468,7 @@
                 <div class="toc-title">目录</div>
                 <ul class="toc-list">
                     <li><a href="#overview">概述</a></li>
+                    <li><a href="#preparation">集成前准备</a></li>
                     <li><a href="#flow">接入流程</a></li>
                     <li><a href="#auth">授权接口</a></li>
                     <li><a href="#callback">回调通知机制</a></li>
@@ -484,24 +485,64 @@
             <section id="overview" class="section">
                 <h2>概述</h2>
                 <p>本文档描述第三方开发者如何接入开放平台，包含授权流程和接口对接规范。</p>
+            </section>
 
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-color phase1"></div>
-                        <span>阶段一：获取授权 URL</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color phase2"></div>
-                        <span>阶段二：发起授权</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color phase3"></div>
-                        <span>阶段三：调用业务接口</span>
-                    </div>
-                </div>
+            <!-- Preparation Section -->
+            <section id="preparation" class="section">
+                <h2>集成前准备</h2>
+                <p>在开始对接之前，需要完成以下准备工作：</p>
+
+                <h3>1. 注册开发者账号</h3>
+                <p>访问开发者平台完成注册：<a href="http://api.vaulink.com/openplatform/developer/" target="_blank">http://api.vaulink.com/openplatform/developer/</a>（测试环境）</p>
+
+                <h3>2. 等待审核</h3>
+                <p>提交注册信息后，等待开放平台管理后台审核通过。</p>
+
+                <h3>3. 创建应用</h3>
+                <p>审核通过后，登录开发者平台，在管理后台创建应用。填写应用名称、描述、回调地址等信息。</p>
+
+                <h3>4. 保存凭证</h3>
+                <p>应用创建成功后，保存系统生成的 <code>appId</code> 和 <code>appSecret</code>。这两个值是调用开放平台接口的认证凭证，请妥善保管：</p>
+
+                <table>
+                    <thead>
+                        <tr><th>凭证</th><th>说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>appId</code></td>
+                            <td>应用唯一标识，用于接口调用时的身份标识</td>
+                        </tr>
+                        <tr>
+                            <td><code>appSecret</code></td>
+                            <td>应用密钥，用于签名计算，<strong>切勿泄露到客户端</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>5. 下载 SDK</h3>
+                <p>根据开发需求下载对应的 SDK：</p>
+
+                <table>
+                    <thead>
+                        <tr><th>SDK</th><th>用途</th><th>安装方式</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Node.js SDK</strong></td>
+                            <td>后端业务接口调用</td>
+                            <td><code>npm install @cregis-kit/openplatform-node</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Web SDK</strong></td>
+                            <td>前端授权页面嵌入</td>
+                            <td><code>npm install @cregis-kit/openplatform-webkit</code></td>
+                        </tr>
+                    </tbody>
+                </table>
 
                 <div class="note">
-                    <strong>接入前提：</strong>开发者需要在开放平台注册应用，获取 <code>appId</code> 和 <code>appSecret</code>。
+                    <strong>注意：</strong>测试环境网关地址为 <code>http://api.vaulink.com/openplatform/</code>，正式上线时请替换为生产环境地址。
                 </div>
             </section>
 
@@ -1127,7 +1168,7 @@ app.post('/callback', (req, res) => {
                         </tr>
                         <tr>
                             <td><strong>Resource 签名</strong></td>
-                            <td><code>/third-party/*</code></td>
+                            <td><code>/thirdparty/*</code></td>
                             <td><code>appId + authorizationId + timestamp + nonce + md5(business)</code></td>
                         </tr>
                     </tbody>
@@ -1175,7 +1216,7 @@ app.post('/callback', (req, res) => {
                 <pre><code>signature = MD5(appSecret + appId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))</code></pre>
 
                 <h3>2.3 Resource 签名计算步骤</h3>
-                <p>适用于 <code>/third-party/*</code> 接口。</p>
+                <p>适用于 <code>/thirdparty/*</code> 接口。</p>
                 <table>
                     <thead>
                         <tr>
@@ -1215,7 +1256,15 @@ app.post('/callback', (req, res) => {
                 <p><strong>公式：</strong></p>
                 <pre><code>signature = MD5(appSecret + appId + authorizationId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))</code></pre>
 
-                <h3>2.4 签名示例（Basic 签名）</h3>
+                <h3>2.5 business 空值处理规则</h3>
+                <p>当 <code>business</code> 为 <code>null</code>、<code>undefined</code> 或空对象 <code>{}</code> 时，统一视为空对象 <code>{}</code> 进行签名计算：</p>
+                <pre><code>1. 归一化: if (business == null || Object.keys(business).length === 0) business = {}
+2. 排序序列化: JSON.stringify(sortKeys(business)) → "{}"
+3. 计算 MD5: MD5("{}") = e3d974191d03905c53f39002987cc56f</code></pre>
+                <p><strong>典型场景：</strong>查询类接口（如 <code>/api/thirdparty/treasury/list</code>）通常不传业务参数，<code>business</code> 传 <code>{}</code> 即可。</p>
+                <p><strong>重要：</strong>客户端与服务端必须使用相同的空值处理逻辑，否则签名校验会失败。</p>
+
+                <h3>2.6 签名示例（Basic 签名）</h3>
                 <p>假设：</p>
                 <ul>
                     <li><code>appId</code> = <code>550e8400-e29b-41d4-a716-446655440000</code></li>
@@ -1241,7 +1290,7 @@ signString = "550e8400-e29b-41d4-a716-446655440000" +
 // 4. 最终签名
 signature = MD5("secret123" + signString)</code></pre>
 
-                <h3>2.5 签名验证规则</h3>
+                <h3>2.7 签名验证规则</h3>
                 <table>
                     <thead>
                         <tr>
@@ -1265,7 +1314,7 @@ signature = MD5("secret123" + signString)</code></pre>
                     </tbody>
                 </table>
 
-                <h3>2.4 请求认证结构</h3>
+                <h3>2.8 请求认证结构</h3>
                 <p>开放平台 API 将开发者请求分为两类，分别使用不同的认证结构：</p>
 
                 <h4>BasicInfo - 基础认证结构</h4>
@@ -1304,7 +1353,7 @@ signature = MD5("secret123" + signString)</code></pre>
                 </table>
 
                 <h4>BasicInfoWithAuthorization - 资源认证结构</h4>
-                <p>用于涉及资源操作的接口（所有 <code>/third-party/*</code> 接口）：</p>
+                <p>用于涉及资源操作的接口（所有 <code>/thirdparty/*</code> 接口）：</p>
 
                 <h5>结构定义</h5>
                 <div class="code-block"><span class="string">{
@@ -1348,7 +1397,7 @@ signature = MD5("secret123" + signString)</code></pre>
                     </thead>
                     <tbody>
                         <tr><td>BasicValidator</td><td>appId, timestamp, nonce, signature</td><td>/oauth/*</td></tr>
-                        <tr><td>ResourceValidator</td><td>BasicInfo + authorizationId</td><td>/third-party/*</td></tr>
+                        <tr><td>ResourceValidator</td><td>BasicInfo + authorizationId</td><td>/thirdparty/*</td></tr>
                     </tbody>
                 </table>
             </section>
@@ -1736,7 +1785,7 @@ signature = MD5("secret123" + signString)</code></pre>
             <section id="sdk" class="section">
                 <h2>SDK 示例</h2>
 
-                <h3>5.1 签名计算（Basic 签名）</h3>
+                <h3>5.1 签名计算</h3>
                 <pre><code>import crypto from 'crypto';
 
 /**
@@ -1746,8 +1795,10 @@ signature = MD5("secret123" + signString)</code></pre>
  * 公式：signature = MD5(appSecret + appId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))
  */
 function sortKeys(obj: Record&lt;string, unknown&gt;): Record&lt;string, unknown&gt; {
-  if (obj === null || typeof obj !== 'object') return obj;
+  // Normalize null/undefined to empty object for consistent signing
+  if (obj === null || obj === undefined) return {};
   if (Array.isArray(obj)) return obj.map(sortKeys) as unknown as Record&lt;string, unknown&gt;;
+  if (typeof obj !== 'object') return obj as Record&lt;string, unknown&gt;;
 
   return Object.keys(obj).sort().reduce((result, key) =&gt; {
     result[key] = sortKeys((obj as Record&lt;string, unknown&gt;)[key] as Record&lt;string, unknown&gt;);
@@ -1762,8 +1813,13 @@ function calculateBasicSignature(
   nonce: string,
   business: Record&lt;string, unknown&gt;
 ): string {
+  // Normalize empty business to {} for consistent signing
+  const normalizedBusiness = (!business || Object.keys(business).length === 0)
+    ? {}
+    : business;
+
   // 1. Sort and stringify business
-  const sortedBusiness = sortKeys(business);
+  const sortedBusiness = sortKeys(normalizedBusiness);
   const businessJson = JSON.stringify(sortedBusiness);
 
   // 2. Business MD5
@@ -1833,30 +1889,29 @@ const signature = calculateBasicSignature(
                 <pre><code>import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
 
 const sdk = new CregisWebSDK({
-  appId: 'your-app-id',
-  container: document.getElementById('auth-container'),
-  authUrl: 'https://openplatform.cregis.com/openplatform/auth/authorize',
-  mode: 'popup', // popup | tab | window
+  container: '#auth-container',    // CSS 选择器或 DOM 元素
+  mode: 'popup',                   // 'popup' | 'tab' | 'window'，默认 'popup'
+  debug: false,
 
   // 事件回调
   onReady: ({ uuid }) =&gt; {
-    console.log('授权页面已就绪, UUID:', uuid);
+    console.log('SDK 已就绪, UUID:', uuid);
   },
 
   onAuthorizationStarted: () =&gt; {
-    console.log('用户点击了授权按钮');
+    console.log('授权流程已开始');
   },
 
   onAuthorizationComplete: ({ authorizeId }) =&gt; {
-    console.log('授权成功, authorizeId:', authorizeId);
+    console.log('授权完成:', authorizeId);
   },
 
-  onAuthorizationError: ({ code, message }) =&gt; {
-    console.error('授权失败:', code, message);
+  onAuthorizationError: (error) =&gt; {
+    console.error('授权错误:', error.message);
   },
 
   onAuthorizationCancelled: () =&gt; {
-    console.log('用户取消授权');
+    console.log('授权已取消');
   },
 });
 
@@ -1874,14 +1929,18 @@ async function authorize() {
   // mode: 'popup' (默认) - iframe 弹窗
   // mode: 'tab' - 新开浏览器标签页
   // mode: 'window' - 浏览器弹窗
-  const result = await sdk.openAuthorization(authorizeUrl);
+  try {
+    const authResult = await sdk.openAuthorization(authorizeUrl);
 
-  if (result.status === 'success') {
-    console.log('授权成功, authorizeId:', result.authorizeId);
-  } else if (result.status === 'cancelled') {
-    console.log('用户取消授权');
-  } else {
-    console.error('授权失败:', result.error);
+    if (authResult.status === 'success') {
+      console.log('授权成功, authorizeId:', authResult.authorizeId);
+    } else if (authResult.status === 'cancelled') {
+      console.log('用户取消授权');
+    } else {
+      console.error('授权失败:', authResult.error?.message);
+    }
+  } catch (error) {
+    console.error('授权异常:', error.message);
   }
 }</code></pre>
 
@@ -2007,7 +2066,6 @@ async function authorize() {
                         <tr><td>财务单元</td><td><code>createTreasuryUnit()</code></td><td>创建托管钱包</td></tr>
                         <tr><td>出金操作</td><td><code>createPayout()</code></td><td>发起加密资产转账</td></tr>
                         <tr><td>任务审批</td><td><code>submitTask()</code></td><td>提交多签审批</td></tr>
-                        <tr><td>Webhooks</td><td><code>registerWebhook()</code></td><td>接收平台事件通知</td></tr>
                     </tbody>
                 </table>
 
@@ -2061,7 +2119,7 @@ sequenceDiagram
                 <pre><code>import { CregisSDK } from '@cregis-kit/openplatform-node';
 
 const sdk = new CregisSDK({
-  baseUrl: 'https://api.cregis.com',
+  baseUrl: 'http://api.vaulink.com/openplatform/',  // 测试沙盒网关地址
   appId: 'your-app-id-uuid',
   appSecret: 'your-app-secret',
 });
@@ -2122,18 +2180,6 @@ const result = await sdk.submitTask(authorizeId, taskId, {
 });
                 </code></pre>
 
-                <h4>Webhook 管理</h4>
-                <pre><code>// 注册 Webhook
-const webhook = await sdk.registerWebhook({
-  url: 'https://your-app.com/webhook',
-  eventTypes: ['payout.completed', 'payout.failed'],
-});
-
-// 查询和删除
-const webhooks = await sdk.listWebhooks();
-await sdk.deleteWebhook(webhookId);
-                </code></pre>
-
                 <h4>错误处理</h4>
                 <pre><code>import { CregisSDK, SDKError, SDKErrorCode } from '@cregis-kit/openplatform-node';
 
@@ -2166,30 +2212,59 @@ try {
                 <pre><code>import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
 
 const sdk = new CregisWebSDK({
-  appId: 'your-app-id',
-  authUrl: 'https://openplatform.cregis.com/openplatform/auth/authorize',
-  container: '#auth-container',
-  mode: 'popup',
+  container: '#auth-container',    // CSS 选择器或 DOM 元素（必填）
+  mode: 'popup',                   // 'popup' | 'tab' | 'window'，默认 'popup'
+  debug: false,                    // 调试模式，开发环境建议开启
+  // allowedOrigins: ['https://your-app.com'],  // 可选：限制 postMessage 来源
 
+  // 事件回调
   onReady: ({ uuid }) => {
-    console.log('授权页面已就绪, SDK UUID:', uuid);
+    console.log('SDK 已就绪, UUID:', uuid);
+  },
+
+  onAuthorizationStarted: () => {
+    console.log('授权流程已开始');
   },
 
   onAuthorizationComplete: ({ authorizeId }) => {
-    console.log('授权成功, authorizeId:', authorizeId);
+    console.log('授权完成:', authorizeId);
+    // 将 authorizeId 发送给后端，用于后续业务接口调用
+    fetch('/api/bind-authorization', {
+      method: 'POST',
+      body: JSON.stringify({ authorizeId }),
+    });
   },
 
-  onAuthorizationError: ({ code, message }) => {
-    console.error('授权失败:', code, message);
+  onAuthorizationError: (error) => {
+    console.error('授权错误:', error.message);
+  },
+
+  onAuthorizationCancelled: () => {
+    console.log('授权已取消');
   },
 });
 
-// 打开授权页面
-const result = await sdk.openAuthorization(authorizeUrl);
+// 打开授权页面（authorizeUrl 由后端提供）
+async function startAuthorization(authorizeUrl: string) {
+  try {
+    const authResult = await sdk.openAuthorization(authorizeUrl);
 
-if (result.status === 'success') {
-  console.log('授权成功, authorizeId:', result.authorizeId);
+    if (authResult.status === 'success') {
+      console.log('授权成功, authorizeId:', authResult.authorizeId);
+    } else if (authResult.status === 'cancelled') {
+      console.log('用户取消授权');
+    } else {
+      console.error('授权失败:', authResult.error?.message);
+    }
+  } catch (error) {
+    console.error('授权异常:', error.message);
+  }
 }
+
+// 页面卸载时清理资源
+window.addEventListener('beforeunload', () => {
+  sdk.destroy();
+});
                 </code></pre>
 
                 <h4>转账任务详情组件</h4>
@@ -2266,7 +2341,7 @@ sequenceDiagram
 import { CregisSDK } from '@cregis-kit/openplatform-node';
 
 const sdk = new CregisSDK({
-  baseUrl: 'https://api.cregis.com',
+  baseUrl: 'http://api.vaulink.com/openplatform/',  // 测试沙盒网关地址
   appId: process.env.APP_ID,
   appSecret: process.env.APP_SECRET,
 });
@@ -2334,20 +2409,20 @@ app.post('/api/payout', requireAuth, async (req, res) => {
 import { CregisWebSDK, openTransferTaskDetailDialog } from '@cregis-kit/openplatform-webkit';
 
 const sdk = new CregisWebSDK({
-  appId: 'your-app-id',
-  authUrl: 'https://openplatform.cregis.com/openplatform/auth/authorize',
+  container: '#auth-container',
+  mode: 'popup',
+  debug: false,
 
-  onAuthorizationComplete: async ({ oauthToken, status }) => {
-    if (status === 'success' && oauthToken) {
-      // 将 oauthToken 提交给后端验证
-      const response = await fetch('/api/callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oauthToken }),
-      });
-      const result = await response.json();
-      console.log('授权完成, authorizeId:', result.authorizeId);
-    }
+  onAuthorizationComplete: async ({ authorizeId }) => {
+    console.log('授权完成, authorizeId:', authorizeId);
+  },
+
+  onAuthorizationError: (error) => {
+    console.error('授权失败:', error.message);
+  },
+
+  onAuthorizationCancelled: () => {
+    console.log('用户取消授权');
   },
 });
 
@@ -2355,12 +2430,28 @@ const sdk = new CregisWebSDK({
 async function startAuthorization() {
   const resp = await fetch('/api/authorize-url', { method: 'POST' });
   const { authorizeUrl } = await resp.json();
-  await sdk.openAuthorization(authorizeUrl);
+  try {
+    const authResult = await sdk.openAuthorization(authorizeUrl);
+    if (authResult.status === 'success') {
+      console.log('授权成功, authorizeId:', authResult.authorizeId);
+    } else if (authResult.status === 'cancelled') {
+      console.log('用户取消授权');
+    } else {
+      console.error('授权失败:', authResult.error?.message);
+    }
+  } catch (error) {
+    console.error('授权异常:', error.message);
+  }
 }
+
+// 页面卸载时清理资源
+window.addEventListener('beforeunload', () => {
+  sdk.destroy();
+});
 
 // 显示转账审批弹窗
 function showPayoutDialog(taskId) {
-  const taskData = await fetchTaskDetails(taskId);
+  const taskData = fetchTaskDetails(taskId);
   openTransferTaskDetailDialog(taskData, {
     onClose: () => console.log('审批弹窗已关闭'),
   });
@@ -2368,6 +2459,16 @@ function showPayoutDialog(taskId) {
                 </code></pre>
 
                 <h3 id="sdk-security">6.7 安全模型</h3>
+
+                <h4>签名机制</h4>
+                <p>SDK 自动处理签名，无需手动计算：</p>
+                <ul>
+                    <li><strong>Basic Signature</strong>: 用于 OAuth 接口（<code>getAuthorizationUrl</code>）</li>
+                    <li><strong>Resource Signature</strong>: 用于业务接口（所有需要 <code>authorizeId</code> 的方法）</li>
+                </ul>
+                <pre><code>Basic Signature = MD5(appSecret + appId + timestamp + nonce + MD5(sortedBusinessJSON))
+Resource Signature = MD5(appSecret + appId + authorizationId + timestamp + nonce + MD5(sortedBusinessJSON))</code></pre>
+                <p><strong>空 business 处理：</strong>当 <code>business</code> 为 <code>null</code>/<code>undefined</code>/<code>{}</code> 时，统一使用 <code>MD5("{}")</code> = <code>e3d974191d03905c53f39002987cc56f</code>。</p>
 
                 <h4>Node.js SDK 安全措施</h4>
                 <table>

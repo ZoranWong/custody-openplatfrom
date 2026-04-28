@@ -1,5 +1,7 @@
 import { Request, Response } from 'express'
 import { kybReviewService, KYBStatus, ISVStatus, type ISVStatusAction, type ISVStatusHistoryItem } from '../services/kyb-review.service'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 
 // ============================================
 // Types for request/body parameters
@@ -37,8 +39,8 @@ export async function getISVStatus(req: Request, res: Response): Promise<void> {
     const isv = kybReviewService.getISVById(id)
 
     if (!isv) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'ISV account not found',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || ''
@@ -66,8 +68,8 @@ export async function getISVStatus(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Get ISV status error:', error)
-    res.status(500).json({
-      code: 50020,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get ISV status',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''
@@ -94,8 +96,8 @@ export async function activateISV(req: Request, res: Response): Promise<void> {
     const result = kybReviewService.changeISVStatus(id, adminId, action)
 
     if (!result.success) {
-      res.status(400).json({
-        code: 40021,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_BUSINESS_RULE,
         message: result.error || 'Failed to activate ISV',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || ''
@@ -111,8 +113,8 @@ export async function activateISV(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Activate ISV error:', error)
-    res.status(500).json({
-      code: 50021,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to activate ISV',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''
@@ -138,8 +140,8 @@ export async function suspendISV(req: Request, res: Response): Promise<void> {
     const result = kybReviewService.changeISVStatus(id, adminId, action)
 
     if (!result.success) {
-      res.status(400).json({
-        code: 40022,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_BUSINESS_RULE,
         message: result.error || 'Failed to suspend ISV',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || ''
@@ -155,8 +157,8 @@ export async function suspendISV(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Suspend ISV error:', error)
-    res.status(500).json({
-      code: 50022,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to suspend ISV',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''
@@ -175,8 +177,8 @@ export async function banISV(req: Request, res: Response): Promise<void> {
     const adminId = req.headers['x-admin-id'] as string || 'unknown'
 
     if (!reason) {
-      res.status(400).json({
-        code: 40023,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'Ban reason is required',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || ''
@@ -192,8 +194,8 @@ export async function banISV(req: Request, res: Response): Promise<void> {
     const result = kybReviewService.changeISVStatus(id, adminId, action)
 
     if (!result.success) {
-      res.status(400).json({
-        code: 40024,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_BUSINESS_RULE,
         message: result.error || 'Failed to ban ISV',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || ''
@@ -209,8 +211,8 @@ export async function banISV(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Ban ISV error:', error)
-    res.status(500).json({
-      code: 50023,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to ban ISV',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''
@@ -236,8 +238,8 @@ export async function getISVStatusHistory(req: Request, res: Response): Promise<
     })
   } catch (error) {
     console.error('Get ISV status history error:', error)
-    res.status(500).json({
-      code: 50024,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get ISV status history',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''

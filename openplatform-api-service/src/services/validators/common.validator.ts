@@ -9,14 +9,7 @@
  */
 
 import * as crypto from 'crypto';
-
-// 错误码定义
-export const ValidationErrorCodes = {
-    MISSING_FIELD: '40104',       // 缺少必填字段
-    INVALID_FORMAT: '40002',      // 格式错误
-    TIMESTAMP_EXPIRED: '40102',   // 时间戳过期
-    INVALID_SIGNATURE: '40101',   // 签名验证失败
-} as const;
+import { BusinessCodes } from '../../enums/business-codes.enum';
 
 export interface ValidationResult {
     valid: boolean;
@@ -25,7 +18,7 @@ export interface ValidationResult {
 
 export interface ValidationError {
     field: string;
-    code: string;
+    code: number;
     message: string;
 }
 
@@ -63,7 +56,7 @@ export function validateAppId(appId: string | undefined, errors: ValidationError
     if (!appId) {
         errors.push({
             field: 'appId',
-            code: ValidationErrorCodes.MISSING_FIELD,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: 'appId is required',
         });
         return;
@@ -72,7 +65,7 @@ export function validateAppId(appId: string | undefined, errors: ValidationError
     if (!isValidUUID(appId)) {
         errors.push({
             field: 'appId',
-            code: ValidationErrorCodes.INVALID_FORMAT,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: 'appId must be a valid UUID format (e.g., 550e8400-e29b-41d4-a716-446655440000)',
         });
     }
@@ -85,7 +78,7 @@ export function validateTimestamp(timestamp: number | undefined, errors: Validat
     if (timestamp === undefined || timestamp === null) {
         errors.push({
             field: 'timestamp',
-            code: ValidationErrorCodes.MISSING_FIELD,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: 'timestamp is required',
         });
         return;
@@ -94,7 +87,7 @@ export function validateTimestamp(timestamp: number | undefined, errors: Validat
     if (!isTimestampValid(timestamp)) {
         errors.push({
             field: 'timestamp',
-            code: ValidationErrorCodes.TIMESTAMP_EXPIRED,
+            code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
             message: `timestamp is expired or invalid. Must be within ${TIMESTAMP_TOLERANCE / 60} minutes of current time`,
         });
     }
@@ -107,7 +100,7 @@ export function validateNonce(nonce: string | undefined, errors: ValidationError
     if (!nonce) {
         errors.push({
             field: 'nonce',
-            code: ValidationErrorCodes.MISSING_FIELD,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: 'nonce is required',
         });
     }
@@ -123,7 +116,7 @@ export function validateAppSecret(appSecret: string | undefined, errors: Validat
     if (!appSecret) {
         errors.push({
             field: 'appSecret',
-            code: ValidationErrorCodes.MISSING_FIELD,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: 'appSecret is required for signature verification',
         });
     }
@@ -136,7 +129,7 @@ export function validateSignatureFormat(signature: string | undefined, errors: V
     if (!signature) {
         errors.push({
             field: 'signature',
-            code: ValidationErrorCodes.MISSING_FIELD,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: 'signature is required',
         });
         return;
@@ -145,7 +138,7 @@ export function validateSignatureFormat(signature: string | undefined, errors: V
     if (!isValidSignatureFormat(signature)) {
         errors.push({
             field: 'signature',
-            code: ValidationErrorCodes.INVALID_FORMAT,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: 'signature must be a valid MD5 hash (32 hex characters)',
         });
     }
@@ -181,8 +174,9 @@ export function sortObjectKeys(obj: Record<string, unknown>): Record<string, unk
  * 计算 business JSON 的 MD5
  */
 export function calculateBusinessMd5(businessData: Record<string, unknown> | null | undefined): string {
+    // Normalize null/undefined/empty to {} for consistent signing
     if (!businessData || Object.keys(businessData).length === 0) {
-        return crypto.createHash('md5').update('').digest('hex');
+        return crypto.createHash('md5').update('{}').digest('hex');
     }
 
     const sorted = sortObjectKeys(businessData);
@@ -197,7 +191,7 @@ export function validateAuthorizationId(authorizationId: string | undefined, err
     if (!authorizationId) {
         errors.push({
             field: 'authorizationId',
-            code: ValidationErrorCodes.MISSING_FIELD,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: 'authorizationId is required for resource operations',
         });
         return;
@@ -206,7 +200,7 @@ export function validateAuthorizationId(authorizationId: string | undefined, err
     if (!isValidUUID(authorizationId)) {
         errors.push({
             field: 'authorizationId',
-            code: ValidationErrorCodes.INVALID_FORMAT,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: 'authorizationId must be a valid UUID format',
         });
     }

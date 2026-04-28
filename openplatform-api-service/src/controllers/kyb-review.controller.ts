@@ -1,5 +1,7 @@
 import { Request, Response } from 'express'
 import { kybReviewService, KYBStatus } from '../services/kyb-review.service'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 
 // ============================================
 // Types for request bodies
@@ -93,8 +95,8 @@ export async function getPendingKYB(req: Request, res: Response): Promise<void> 
     })
   } catch (error) {
     console.error('Get pending KYB error:', error)
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get pending KYB applications',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''
@@ -146,8 +148,8 @@ export async function getAllKYB(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Get all KYB error:', error)
-    res.status(500).json({
-      code: 50002,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_UNAVAILABLE,
       message: 'Failed to get KYB applications',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''
@@ -166,8 +168,8 @@ export async function getKYBById(req: Request, res: Response): Promise<void> {
     const application = kybReviewService.getApplicationById(id)
 
     if (!application) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'KYB application not found',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || ''
@@ -206,8 +208,8 @@ export async function getKYBById(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Get KYB by ID error:', error)
-    res.status(500).json({
-      code: 50003,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_DATABASE,
       message: 'Failed to get KYB application',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''
@@ -231,8 +233,8 @@ export async function approveKYB(req: Request, res: Response): Promise<void> {
     })
 
     if (!result.success) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: result.error || 'Failed to approve KYB application',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || ''
@@ -252,8 +254,8 @@ export async function approveKYB(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Approve KYB error:', error)
-    res.status(500).json({
-      code: 50004,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_CACHE,
       message: 'Failed to approve KYB application',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''
@@ -272,8 +274,8 @@ export async function rejectKYB(req: Request, res: Response): Promise<void> {
     const body = req.body as ReviewRequestBody
 
     if (!body.comment || body.comment.trim().length === 0) {
-      res.status(400).json({
-        code: 40002,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_INVALID_FORMAT,
         message: 'Rejection reason is required',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || ''
@@ -287,8 +289,8 @@ export async function rejectKYB(req: Request, res: Response): Promise<void> {
     })
 
     if (!result.success) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: result.error || 'Failed to reject KYB application',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || ''
@@ -308,8 +310,8 @@ export async function rejectKYB(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Reject KYB error:', error)
-    res.status(500).json({
-      code: 50005,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to reject KYB application',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''
@@ -333,8 +335,8 @@ export async function requestInfoKYB(req: Request, res: Response): Promise<void>
     })
 
     if (!result.success) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: result.error || 'Failed to request additional information',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || ''
@@ -354,8 +356,8 @@ export async function requestInfoKYB(req: Request, res: Response): Promise<void>
     })
   } catch (error) {
     console.error('Request info KYB error:', error)
-    res.status(500).json({
-      code: 50006,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to request additional information',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''
@@ -386,8 +388,8 @@ export async function getKYBStats(req: Request, res: Response): Promise<void> {
     })
   } catch (error) {
     console.error('Get KYB stats error:', error)
-    res.status(500).json({
-      code: 50007,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get KYB statistics',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''

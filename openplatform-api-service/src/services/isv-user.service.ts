@@ -175,16 +175,18 @@ export const isvUserService = {
 export const isvApplicationService = {
     async createApplication(params: {
         isvDeveloperId: string
-        name: string
-        description?: string
+        appName: string
+        appType: 'corporate' | 'payment' | 'custody'
+        appDescription?: string
         appLogoUrl?: string
         callbackUrl?: string
     }): Promise<Application> {
         const repo = getApplicationRepository()
         return repo.create({
             isvDeveloper: { connect: { id: params.isvDeveloperId } },
-            appName: params.name,
-            appDescription: params.description,
+            appName: params.appName,
+            appDescription: params.appDescription,
+            appType: params.appType,
             appLogoUrl: params.appLogoUrl,
             appSecret: `sk_${Date.now().toString(36)}${Math.random().toString(36).substring(2, 10)}`,
             callbackUrl: params.callbackUrl,

@@ -13,16 +13,6 @@ export interface SignatureParams {
 }
 
 /**
- * Error codes for signature verification
- */
-export enum SignatureErrorCode {
-  MISSING_HEADERS = 40101,
-  INVALID_SIGNATURE = 40102,
-  EXPIRED_TIMESTAMP = 40103,
-  DUPLICATE_NONCE = 40104,
-}
-
-/**
  * Computes HMAC-SHA256 signature for request authentication
  *
  * @param secretKey - The application secret key

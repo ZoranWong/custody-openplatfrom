@@ -4,9 +4,11 @@
  */
 
 import { Request, Response } from 'express';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 import { getApplicationRepository } from '../repositories/repository.factory';
 import { getAuthorizationRepository } from '../repositories/repository.factory';
-import { computeSignature, verifySignature, SignatureErrorCode } from '../utils/signature.util';
+import { computeSignature, verifySignature } from '../utils/signature.util';
 import { OauthResource } from '../repositories/repository.interfaces';
 import { getApplicationCallbackService } from '../services/application-callback.service';
 import { logger } from '../utils/logger';
@@ -70,40 +72,40 @@ export async function createAuthorization(req: Request, res: Response): Promise<
 
   // Validate required fields
   if (!appId) {
-    res.status(400).json({
-      code: 40001,
+    res.status(HttpCodes.BAD_REQUEST).json({
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Missing required parameter: appId',
     });
     return;
   }
 
   if (!timestamp) {
-    res.status(400).json({
-      code: 40001,
+    res.status(HttpCodes.BAD_REQUEST).json({
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Missing required parameter: timestamp',
     });
     return;
   }
 
   if (!nonce) {
-    res.status(400).json({
-      code: 40001,
+    res.status(HttpCodes.BAD_REQUEST).json({
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Missing required parameter: nonce',
     });
     return;
   }
 
   if (!signature) {
-    res.status(400).json({
-      code: 40101,
+    res.status(HttpCodes.BAD_REQUEST).json({
+      code: BusinessCodes.AUTH_MISSING_HEADERS,
       message: 'Missing signature',
     });
     return;
   }
 
   if (!resourceKey) {
-    res.status(400).json({
-      code: 40001,
+    res.status(HttpCodes.BAD_REQUEST).json({
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Missing required parameter: resourceKey',
     });
     return;
@@ -112,16 +114,16 @@ export async function createAuthorization(req: Request, res: Response): Promise<
   // Validate resourceKey format
   const resourceKeyPattern = /^[a-zA-Z0-9_-]+$/;
   if (!resourceKeyPattern.test(resourceKey)) {
-    res.status(400).json({
-      code: 40001,
+    res.status(HttpCodes.BAD_REQUEST).json({
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Invalid resourceKey format',
     });
     return;
   }
 
   if (!permissions || !Array.isArray(permissions)) {
-    res.status(400).json({
-      code: 40001,
+    res.status(HttpCodes.BAD_REQUEST).json({
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Missing required parameter: permissions',
     });
     return;
@@ -132,16 +134,16 @@ export async function createAuthorization(req: Request, res: Response): Promise<
   const application = await applicationRepo.findByAppId(appId);
 
   if (!application) {
-    res.status(404).json({
-      code: 40401,
+    res.status(HttpCodes.NOT_FOUND).json({
+      code: BusinessCodes.NOT_FOUND_RESOURCE,
       message: 'Application not found',
     });
     return;
   }
 
   if (application.status !== 'active') {
-    res.status(403).json({
-      code: 40301,
+    res.status(HttpCodes.FORBIDDEN).json({
+      code: BusinessCodes.AUTHZ_ACCESS_DENIED,
       message: 'Application is not active',
     });
     return;
@@ -149,8 +151,8 @@ export async function createAuthorization(req: Request, res: Response): Promise<
 
   const appSecret = application.appSecret;
   if (!appSecret) {
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Application secret not configured',
     });
     return;
@@ -180,8 +182,8 @@ export async function createAuthorization(req: Request, res: Response): Promise<
   });
 
   if (!isValid) {
-    res.status(401).json({
-      code: SignatureErrorCode.INVALID_SIGNATURE,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_INVALID_SIGNATURE,
       message: 'Invalid signature',
     });
     return;
@@ -191,8 +193,8 @@ export async function createAuthorization(req: Request, res: Response): Promise<
   const currentTime = Math.floor(Date.now() / 1000);
   const timeDiff = Math.abs(currentTime - timestamp);
   if (timeDiff > 300) {
-    res.status(401).json({
-      code: SignatureErrorCode.EXPIRED_TIMESTAMP,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
       message: 'Timestamp expired',
     });
     return;
@@ -207,8 +209,8 @@ export async function createAuthorization(req: Request, res: Response): Promise<
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
     });
 
-    res.status(200).json({
-      code: 200,
+    res.status(HttpCodes.OK).json({
+      code: 0,
       data: {
         authorizationId: authorization.id,
         createdAt: authorization.createdAt,
@@ -228,8 +230,8 @@ export async function createAuthorization(req: Request, res: Response): Promise<
     }).catch((err) => logger.error('Callback push failed:', err));
 
   } catch (error) {
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to store authorization',
     });
   }
@@ -256,32 +258,32 @@ export async function getAuthorization(req: Request, res: Response): Promise<voi
 
   // Validate required headers
   if (!appId) {
-    res.status(401).json({
-      code: SignatureErrorCode.MISSING_HEADERS,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_MISSING_HEADERS,
       message: 'Missing required header: X-App-Id',
     });
     return;
   }
 
   if (!timestamp) {
-    res.status(401).json({
-      code: SignatureErrorCode.MISSING_HEADERS,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_MISSING_HEADERS,
       message: 'Missing required header: X-Timestamp',
     });
     return;
   }
 
   if (!nonce) {
-    res.status(401).json({
-      code: SignatureErrorCode.MISSING_HEADERS,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_MISSING_HEADERS,
       message: 'Missing required header: X-Nonce',
     });
     return;
   }
 
   if (!signature) {
-    res.status(401).json({
-      code: SignatureErrorCode.MISSING_HEADERS,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_MISSING_HEADERS,
       message: 'Missing required header: X-Signature',
     });
     return;
@@ -291,8 +293,8 @@ export async function getAuthorization(req: Request, res: Response): Promise<voi
   const currentTime = Math.floor(Date.now() / 1000);
   const timeDiff = Math.abs(currentTime - timestamp);
   if (timeDiff > 300) {
-    res.status(401).json({
-      code: SignatureErrorCode.EXPIRED_TIMESTAMP,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
       message: 'Timestamp expired',
     });
     return;
@@ -303,16 +305,16 @@ export async function getAuthorization(req: Request, res: Response): Promise<voi
   const application = await applicationRepo.findByAppId(appId);
 
   if (!application) {
-    res.status(404).json({
-      code: 40401,
+    res.status(HttpCodes.NOT_FOUND).json({
+      code: BusinessCodes.NOT_FOUND_RESOURCE,
       message: 'Application not found',
     });
     return;
   }
 
   if (application.status !== 'active') {
-    res.status(403).json({
-      code: 40301,
+    res.status(HttpCodes.FORBIDDEN).json({
+      code: BusinessCodes.AUTHZ_ACCESS_DENIED,
       message: 'Application is not active',
     });
     return;
@@ -320,8 +322,8 @@ export async function getAuthorization(req: Request, res: Response): Promise<voi
 
   const appSecret = application.appSecret;
   if (!appSecret) {
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Application secret not configured',
     });
     return;
@@ -341,8 +343,8 @@ export async function getAuthorization(req: Request, res: Response): Promise<voi
   });
 
   if (!isValid) {
-    res.status(401).json({
-      code: SignatureErrorCode.INVALID_SIGNATURE,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_INVALID_SIGNATURE,
       message: 'Invalid signature',
     });
     return;
@@ -354,8 +356,8 @@ export async function getAuthorization(req: Request, res: Response): Promise<voi
     const authorization = await authorizationRepo.findById(id);
 
     if (!authorization) {
-      res.status(404).json({
-        code: 40401,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Authorization not found',
       });
       return;
@@ -371,8 +373,8 @@ export async function getAuthorization(req: Request, res: Response): Promise<voi
     }
 
     // Return authorization details
-    res.status(200).json({
-      code: 200,
+    res.status(HttpCodes.OK).json({
+      code: 0,
       data: {
         authorizationId: authorization.id,
         appId: authorization.appId,
@@ -384,8 +386,8 @@ export async function getAuthorization(req: Request, res: Response): Promise<voi
       },
     });
   } catch (error) {
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get authorization',
     });
   }

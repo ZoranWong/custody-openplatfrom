@@ -183,7 +183,9 @@ export function createRequestLoggingMiddleware() {
         // Capture response body for logging
         const originalJson = res.json.bind(res);
         const originalSend = res.send.bind(res);
-
+        const traceId = req.headers['x-trace-id'] as string || uuidv4();
+        req.headers['x-trace-id'] = traceId; // Ensure trace ID is set in headers for downstream services
+        res.setHeader('x-trace-id', traceId); // Include trace ID in response headers
         res.json = (body: any) => {
             // Store response body on request for morgan token
             (req as any)._responseBody = typeof body === 'string' ? body : JSON.stringify(body);

@@ -3,6 +3,7 @@
  * Core validation logic for API request validation
  */
 
+import { BusinessCodes } from '../enums/business-codes.enum';
 import {
   ValidationResult,
   ValidationError,
@@ -62,7 +63,7 @@ export class ValidationService {
         errors: [
           {
             field: 'body',
-            code: 40001,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: 'Request body is required and must be an object',
           },
         ],
@@ -81,7 +82,7 @@ export class ValidationService {
       if (value === undefined || value === null || value === '') {
         errors.push({
           field: rule.field,
-          code: 40001,
+          code: BusinessCodes.PARAM_REQUIRED,
           message: rule.message || `${rule.field} is required`,
         });
       }
@@ -117,7 +118,7 @@ export class ValidationService {
         if (value === undefined || value === null || value === '') {
           return {
             field: rule.field,
-            code: 40001,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: rule.message || `${rule.field} is required`,
           };
         }
@@ -127,14 +128,14 @@ export class ValidationService {
         if (typeof value !== 'string') {
           return {
             field: rule.field,
-            code: 40002,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: rule.message || `${rule.field} must be a string`,
           };
         }
         if (rule.minLength !== undefined && value.length < rule.minLength) {
           return {
             field: rule.field,
-            code: 40001,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: rule.message ||
               `${rule.field} must be at least ${rule.minLength} characters`,
           };
@@ -142,7 +143,7 @@ export class ValidationService {
         if (rule.maxLength !== undefined && value.length > rule.maxLength) {
           return {
             field: rule.field,
-            code: 40001,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: rule.message ||
               `${rule.field} must be at most ${rule.maxLength} characters`,
           };
@@ -150,7 +151,7 @@ export class ValidationService {
         if (rule.pattern && !rule.pattern.test(value)) {
           return {
             field: rule.field,
-            code: 40002,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: rule.message || `Invalid format for ${rule.field}`,
           };
         }
@@ -161,14 +162,14 @@ export class ValidationService {
         if (isNaN(num) || !isFinite(num)) {
           return {
             field: rule.field,
-            code: 40002,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: rule.message || `${rule.field} must be a valid number`,
           };
         }
         if (rule.min !== undefined && num < rule.min) {
           return {
             field: rule.field,
-            code: 40001,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: rule.message ||
               `${rule.field} must be at least ${rule.min}`,
           };
@@ -176,7 +177,7 @@ export class ValidationService {
         if (rule.max !== undefined && num > rule.max) {
           return {
             field: rule.field,
-            code: 40001,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: rule.message ||
               `${rule.field} must be at most ${rule.max}`,
           };
@@ -187,7 +188,7 @@ export class ValidationService {
         if (typeof value !== 'boolean') {
           return {
             field: rule.field,
-            code: 40002,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: rule.message || `${rule.field} must be a boolean`,
           };
         }
@@ -197,7 +198,7 @@ export class ValidationService {
         if (rule.enum && !rule.enum.includes(value as string | number)) {
           return {
             field: rule.field,
-            code: 40002,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: rule.message ||
               `${rule.field} must be one of: ${rule.enum.join(', ')}`,
           };
@@ -208,14 +209,14 @@ export class ValidationService {
         if (typeof value !== 'string') {
           return {
             field: rule.field,
-            code: 40002,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: rule.message || `${rule.field} must be a string`,
           };
         }
         if (rule.pattern && !rule.pattern.test(value)) {
           return {
             field: rule.field,
-            code: 40002,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: rule.message || `Invalid format for ${rule.field}`,
           };
         }
@@ -225,14 +226,14 @@ export class ValidationService {
         if (!Array.isArray(value)) {
           return {
             field: rule.field,
-            code: 40002,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: rule.message || `${rule.field} must be an array`,
           };
         }
         if (rule.min !== undefined && value.length < rule.min) {
           return {
             field: rule.field,
-            code: 40001,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: rule.message ||
               `${rule.field} must have at least ${rule.min} items`,
           };
@@ -240,7 +241,7 @@ export class ValidationService {
         if (rule.max !== undefined && value.length > rule.max) {
           return {
             field: rule.field,
-            code: 40001,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: rule.message ||
               `${rule.field} must have at most ${rule.max} items`,
           };
@@ -251,7 +252,7 @@ export class ValidationService {
         if (rule.custom && !rule.custom(value)) {
           return {
             field: rule.field,
-            code: 40002,
+            code: BusinessCodes.PARAM_INVALID_FORMAT,
             message: rule.message || `Invalid value for ${rule.field}`,
           };
         }
@@ -271,7 +272,7 @@ export class ValidationService {
         errors: [
           {
             field: 'body',
-            code: 40001,
+            code: BusinessCodes.PARAM_REQUIRED,
             message: 'Request body is required',
           },
         ],

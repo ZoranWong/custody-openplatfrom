@@ -3,6 +3,7 @@
  * Core rate limiting logic using sliding window counter algorithm
  */
 
+import { BusinessCodes } from '../enums/business-codes.enum';
 import {
   RateLimitTier,
   RateLimitTierConfig,
@@ -382,7 +383,7 @@ export class RateLimitService {
     const ttl = Math.ceil((result.resetAt - Date.now()) / 1000);
 
     return {
-      code: 42901,
+      code: BusinessCodes.RATE_LIMIT_EXCEEDED,
       message: 'Rate limit exceeded. Please try again later.',
       retryAfter: ttl,
       limit: result.limit,

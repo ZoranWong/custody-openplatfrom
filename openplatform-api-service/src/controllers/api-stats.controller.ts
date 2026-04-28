@@ -5,6 +5,8 @@
 
 import { Request, Response } from 'express'
 import { v4 as uuidv4 } from 'uuid'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 
 interface APIStats {
   date: string
@@ -90,7 +92,7 @@ export async function getOverview(req: Request, res: Response): Promise<void> {
       trace_id: req.headers['x-trace-id'] as string || uuidv4()
     })
   } catch (error) {
-    res.status(500).json({ code: 50001, message: 'Failed to get API overview', trace_id: req.headers['x-trace-id'] as string })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to get API overview', trace_id: req.headers['x-trace-id'] as string })
   }
 }
 
@@ -112,7 +114,7 @@ export async function getTopApplications(req: Request, res: Response): Promise<v
 
     res.json({ code: 0, data: topApps, trace_id: req.headers['x-trace-id'] as string || uuidv4() })
   } catch (error) {
-    res.status(500).json({ code: 50002, message: 'Failed to get top applications', trace_id: req.headers['x-trace-id'] as string })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to get top applications', trace_id: req.headers['x-trace-id'] as string })
   }
 }
 
@@ -145,7 +147,7 @@ export async function getResponseTimeTrend(req: Request, res: Response): Promise
 
     res.json({ code: 0, data: trend, trace_id: req.headers['x-trace-id'] as string || uuidv4() })
   } catch (error) {
-    res.status(500).json({ code: 50003, message: 'Failed to get response time trend', trace_id: req.headers['x-trace-id'] as string })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to get response time trend', trace_id: req.headers['x-trace-id'] as string })
   }
 }
 
@@ -179,7 +181,7 @@ export async function getErrorRateTrend(req: Request, res: Response): Promise<vo
 
     res.json({ code: 0, data: trend, trace_id: req.headers['x-trace-id'] as string || uuidv4() })
   } catch (error) {
-    res.status(500).json({ code: 50004, message: 'Failed to get error rate trend', trace_id: req.headers['x-trace-id'] as string })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to get error rate trend', trace_id: req.headers['x-trace-id'] as string })
   }
 }
 
@@ -202,7 +204,7 @@ export async function getStatsByEndpoint(req: Request, res: Response): Promise<v
 
     res.json({ code: 0, data: stats, trace_id: req.headers['x-trace-id'] as string || uuidv4() })
   } catch (error) {
-    res.status(500).json({ code: 50005, message: 'Failed to get stats by endpoint', trace_id: req.headers['x-trace-id'] as string })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to get stats by endpoint', trace_id: req.headers['x-trace-id'] as string })
   }
 }
 
@@ -227,7 +229,7 @@ export async function getAppStatsDetail(req: Request, res: Response): Promise<vo
       trace_id: req.headers['x-trace-id'] as string || uuidv4()
     })
   } catch (error) {
-    res.status(500).json({ code: 50007, message: 'Failed to get app stats detail', trace_id: req.headers['x-trace-id'] as string })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to get app stats detail', trace_id: req.headers['x-trace-id'] as string })
   }
 }
 
@@ -238,7 +240,7 @@ export async function recordAPICall(req: Request, res: Response): Promise<void> 
     apiStats.push({ date: today, endpoint: endpoint || '/api/v1/unknown', method: method || 'GET', calls: 1, avgResponseTime: responseTime || 100, errors: statusCode && statusCode >= 400 ? 1 : 0 })
     res.json({ code: 0, message: 'API call recorded', trace_id: req.headers['x-trace-id'] as string || uuidv4() })
   } catch (error) {
-    res.status(500).json({ code: 50008, message: 'Failed to record API call', trace_id: req.headers['x-trace-id'] as string })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to record API call', trace_id: req.headers['x-trace-id'] as string })
   }
 }
 
@@ -250,6 +252,6 @@ export async function exportAPIStats(req: Request, res: Response): Promise<void>
     res.setHeader('Content-Disposition', 'attachment; filename=api-stats.csv')
     res.send(csv)
   } catch (error) {
-    res.status(500).json({ code: 50009, message: 'Failed to export API stats', trace_id: req.headers['x-trace-id'] as string })
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to export API stats', trace_id: req.headers['x-trace-id'] as string })
   }
 }

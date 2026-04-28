@@ -5,6 +5,8 @@
 
 import { Router } from 'express'
 import { v4 as uuidv4 } from 'uuid'
+import { HttpCodes } from '../../enums/http-codes.enum'
+import { BusinessCodes } from '../../enums/business-codes.enum'
 import { isvAuth, requireOwner, ISVAuthRequest } from '../../middleware/isv-auth.middleware'
 import {
   ownerLogin,
@@ -50,7 +52,7 @@ router.post('/auth/forgot-password', (req, res) => {
 
   if (!email) {
     res.status(400).json({
-      code: 40001,
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Email is required'
     })
     return
@@ -73,7 +75,7 @@ router.post('/auth/reset-password', (req, res) => {
 
   if (!token || !password) {
     res.status(400).json({
-      code: 40001,
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Token and password are required'
     })
     return
@@ -81,7 +83,7 @@ router.post('/auth/reset-password', (req, res) => {
 
   if (password.length < 8) {
     res.status(400).json({
-      code: 40002,
+      code: BusinessCodes.PARAM_INVALID_FORMAT,
       message: 'Password must be at least 8 characters'
     })
     return
@@ -135,7 +137,7 @@ router.get('/applications/:id', isvAuth, async (req, res) => {
 
     if (!app) {
       res.status(404).json({
-        code: 40401,
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Application not found'
       })
       return
@@ -145,7 +147,7 @@ router.get('/applications/:id', isvAuth, async (req, res) => {
 
     if (!canAccess) {
       res.status(403).json({
-        code: 40301,
+        code: BusinessCodes.AUTHZ_ACCESS_DENIED,
         message: 'Access denied'
       })
       return
@@ -159,7 +161,7 @@ router.get('/applications/:id', isvAuth, async (req, res) => {
   } catch (error) {
     console.error('Get application error:', error)
     res.status(500).json({
-      code: 50001,
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }
@@ -194,7 +196,7 @@ router.post('/users', isvAuth, requireOwner, async (req, res) => {
 
     if (!email || !password || !name) {
       res.status(400).json({
-        code: 40001,
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'Missing required fields: email, password, name'
       })
       return
@@ -211,7 +213,7 @@ router.post('/users', isvAuth, requireOwner, async (req, res) => {
 
     if (!result.success) {
       res.status(400).json({
-        code: 40002,
+        code: BusinessCodes.PARAM_INVALID_FORMAT,
         message: result.error || 'Failed to add developer'
       })
       return
@@ -225,7 +227,7 @@ router.post('/users', isvAuth, requireOwner, async (req, res) => {
   } catch (error) {
     console.error('Add developer error:', error)
     res.status(500).json({
-      code: 50001,
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }
@@ -252,19 +254,19 @@ router.get('/applications/all', isvAuth, requireOwner, async (req, res) => {
 router.post('/applications', isvAuth, requireOwner, async (req, res) => {
   try {
     const isvUser = (req as ISVAuthRequest).isvUser
-    const { name, description, type } = req.body
+    const { appName, appDescription, appType, callbackUrl } = req.body
 
-    if (!name) {
+    if (!appName) {
       res.status(400).json({
-        code: 40001,
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'Application name is required'
       })
       return
     }
 
-    if (!type || !['corporate', 'payment', 'custody'].includes(type)) {
+    if (!appType || !['corporate', 'payment', 'custody'].includes(appType)) {
       res.status(400).json({
-        code: 40002,
+        code: BusinessCodes.PARAM_INVALID_FORMAT,
         message: 'Application type is required and must be corporate, payment, or custody'
       })
       return
@@ -274,7 +276,7 @@ router.post('/applications', isvAuth, requireOwner, async (req, res) => {
     const isv = await isvService.getISVById(isvUser!.isvDeveloperId)
     if (!isv) {
       res.status(404).json({
-        code: 40401,
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'ISV not found'
       })
       return
@@ -282,7 +284,7 @@ router.post('/applications', isvAuth, requireOwner, async (req, res) => {
 
     if (isv.kybStatus !== 'approved') {
       res.status(403).json({
-        code: 40303,
+        code: BusinessCodes.AUTHZ_OPERATOR_DENIED,
         message: 'KYB approval required before creating applications'
       })
       return
@@ -290,8 +292,10 @@ router.post('/applications', isvAuth, requireOwner, async (req, res) => {
 
     const app = await isvApplicationService.createApplication({
       isvDeveloperId: isvUser!.isvDeveloperId,
-      name,
-      description,
+      appName,
+      appDescription,
+      appType,
+      callbackUrl
     })
 
     res.status(201).json({
@@ -302,7 +306,7 @@ router.post('/applications', isvAuth, requireOwner, async (req, res) => {
   } catch (error) {
     console.error('Create application error:', error)
     res.status(500).json({
-      code: 50001,
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }
@@ -313,7 +317,7 @@ router.post('/applications', isvAuth, requireOwner, async (req, res) => {
  * Update application user permissions (Owner only)
  */
 router.put('/applications/:appId/permissions', isvAuth, requireOwner, async (req, res) => {
-  res.status(501).json({ code: 50101, message: 'User-level application permissions not supported' })
+  res.status(HttpCodes.NOT_IMPLEMENTED).json({ code: BusinessCodes.NOT_IMPLEMENTED, message: 'User-level application permissions not supported' })
 })
 
 /**
@@ -323,13 +327,13 @@ router.put('/applications/:appId/permissions', isvAuth, requireOwner, async (req
 router.put('/applications/:id', isvAuth, requireOwner, async (req, res) => {
   try {
     const { id } = req.params
-    const { name, description, status } = req.body
+    const { appName, appDescription, callbackUrl } = req.body
     const isvUser = (req as ISVAuthRequest).isvUser
 
     const app = await isvApplicationService.getApplicationById(id)
     if (!app) {
       res.status(404).json({
-        code: 40401,
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Application not found'
       })
       return
@@ -337,13 +341,18 @@ router.put('/applications/:id', isvAuth, requireOwner, async (req, res) => {
 
     if (app.isvDeveloperId !== isvUser!.isvDeveloperId) {
       res.status(403).json({
-        code: 40301,
+        code: BusinessCodes.AUTHZ_ACCESS_DENIED,
         message: 'Access denied'
       })
       return
     }
 
-    const updated = await isvApplicationService.updateApplication(id, { appName: name, appDescription: description, status })
+    const updateData: Record<string, any> = {}
+    if (appName !== undefined) updateData.appName = appName
+    if (appDescription !== undefined) updateData.appDescription = appDescription
+    if (callbackUrl !== undefined) updateData.callbackUrl = callbackUrl
+
+    const updated = await isvApplicationService.updateApplication(id, updateData)
     const { appSecret: _, ...result } = updated!
     res.json({
       code: 0,
@@ -353,7 +362,7 @@ router.put('/applications/:id', isvAuth, requireOwner, async (req, res) => {
   } catch (error) {
     console.error('Update application error:', error)
     res.status(500).json({
-      code: 50001,
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }
@@ -371,7 +380,7 @@ router.delete('/applications/:id', isvAuth, requireOwner, async (req, res) => {
     const app = await isvApplicationService.getApplicationById(id)
     if (!app) {
       res.status(404).json({
-        code: 40401,
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Application not found'
       })
       return
@@ -379,7 +388,7 @@ router.delete('/applications/:id', isvAuth, requireOwner, async (req, res) => {
 
     if (app.isvDeveloperId !== isvUser!.isvDeveloperId) {
       res.status(403).json({
-        code: 40301,
+        code: BusinessCodes.AUTHZ_ACCESS_DENIED,
         message: 'Access denied'
       })
       return
@@ -393,7 +402,7 @@ router.delete('/applications/:id', isvAuth, requireOwner, async (req, res) => {
   } catch (error) {
     console.error('Delete application error:', error)
     res.status(500).json({
-      code: 50001,
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }
@@ -411,7 +420,7 @@ router.post('/applications/:id/regenerate-secret', isvAuth, requireOwner, async 
     const app = await isvApplicationService.getApplicationById(id)
     if (!app) {
       res.status(404).json({
-        code: 40401,
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
         message: 'Application not found'
       })
       return
@@ -419,7 +428,7 @@ router.post('/applications/:id/regenerate-secret', isvAuth, requireOwner, async 
 
     if (app.isvDeveloperId !== isvUser!.isvDeveloperId) {
       res.status(403).json({
-        code: 40301,
+        code: BusinessCodes.AUTHZ_ACCESS_DENIED,
         message: 'Access denied'
       })
       return
@@ -436,7 +445,7 @@ router.post('/applications/:id/regenerate-secret', isvAuth, requireOwner, async 
   } catch (error) {
     console.error('Regenerate secret error:', error)
     res.status(500).json({
-      code: 50001,
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
   }

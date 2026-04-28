@@ -6,6 +6,7 @@
  * 验证时调用 ResourceAuthorizationService 检查授权
  */
 
+import { BusinessCodes } from '../../enums/business-codes.enum';
 import {
     BasicWithAuthorizationValidationRequest,
     BasicInfoWithAuthorization,
@@ -31,15 +32,8 @@ export const maskSignature = common.maskSignature;
 export const validateAppSecret = common.validateAppSecret;
 
 // Types
-export const ValidationErrorCodes = common.ValidationErrorCodes;
 export type ValidationResult = common.ValidationResult;
 export type ValidationError = common.ValidationError;
-
-// 扩展错误码
-export const ResourceValidationErrorCodes = {
-    ...ValidationErrorCodes,
-    INVALID_AUTHORIZATION: '40301',  // 授权无效或不属于当前应用
-} as const;
 
 /**
  * 从 Express Request 中提取 BasicInfoWithAuthorization
@@ -112,7 +106,7 @@ export class ResourceValidator extends BasicValidator implements IRequestValidat
                 valid: false,
                 errors: [{
                     field: 'basic',
-                    code: ValidationErrorCodes.MISSING_FIELD,
+                    code: BusinessCodes.PARAM_REQUIRED,
                     message: 'Missing or incomplete basic info in request body. Required format: { basic: { appId, timestamp, nonce, signature, authorizationId }, business: { ... } }',
                 }],
             };
@@ -142,7 +136,7 @@ export class ResourceValidator extends BasicValidator implements IRequestValidat
         if (!authResult.authorized) {
             errors.push({
                 field: 'authorizationId',
-                code: ResourceValidationErrorCodes.INVALID_AUTHORIZATION,
+                code: BusinessCodes.AUTHZ_ACCESS_DENIED,
                 message: authResult.errorMessage || 'Authorization is not valid for this application',
             });
             return { valid: false, errors };
@@ -164,11 +158,14 @@ export class ResourceValidator extends BasicValidator implements IRequestValidat
         if (!isValidSignature) {
             errors.push({
                 field: 'signature',
-                code: ValidationErrorCodes.INVALID_SIGNATURE,
+                code: BusinessCodes.AUTH_INVALID_SIGNATURE,
                 message: 'Invalid signature',
             });
         }
-
+        if (!req.context) {
+            req.context = {}
+        }
+        req.context['resource'] = authResult
         return {
             valid: errors.length === 0,
             errors,

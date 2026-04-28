@@ -7,6 +7,8 @@
 import { Request, Response } from 'express';
 import { tokenService } from '../services/token.service';
 import { getApplicationRepository } from '../repositories/repository.factory';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 
 /**
  * POST /oauth/token
@@ -26,8 +28,8 @@ export async function oauthToken(req: Request, res: Response): Promise<void> {
 
   // Validate grant_type is present
   if (!grant_type) {
-    res.status(400).json({
-      code: 40001,
+    res.status(HttpCodes.BAD_REQUEST).json({
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Missing required parameter: grant_type',
     });
     return;
@@ -36,8 +38,8 @@ export async function oauthToken(req: Request, res: Response): Promise<void> {
   // Handle client_credentials grant
   if (grant_type === 'client_credentials') {
     if (!appid || !appsecret) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'Missing required parameters: appid and appsecret',
       });
       return;
@@ -64,8 +66,8 @@ export async function oauthToken(req: Request, res: Response): Promise<void> {
   // Handle refresh_token grant
   if (grant_type === 'refresh_token') {
     if (!appid || !refresh_token) {
-      res.status(400).json({
-        code: 40001,
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
         message: 'Missing required parameters: appid and refresh_token',
       });
       return;
@@ -87,8 +89,8 @@ export async function oauthToken(req: Request, res: Response): Promise<void> {
   }
 
   // Invalid grant_type
-  res.status(400).json({
-    code: 40002,
+  res.status(HttpCodes.BAD_REQUEST).json({
+    code: BusinessCodes.PARAM_INVALID_FORMAT,
     message: `Invalid grant_type: ${grant_type}. Supported values: client_credentials, refresh_token`,
   });
 }
@@ -106,8 +108,8 @@ export async function oauthRevoke(req: Request, res: Response): Promise<void> {
   const { refresh_token } = req.body;
 
   if (!refresh_token) {
-    res.status(400).json({
-      code: 40001,
+    res.status(HttpCodes.BAD_REQUEST).json({
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Missing required parameter: refresh_token',
     });
     return;
@@ -131,19 +133,19 @@ function handleTokenError(
   error: { code: number; message: string }
 ): void {
   // Map error codes to appropriate HTTP status codes
-  let httpStatus = 401;
+  let httpStatus = HttpCodes.UNAUTHORIZED;
   const { code: errorCode } = error;
 
   switch (errorCode) {
-    case 42901: // RATE_LIMIT_EXCEEDED
-      httpStatus = 429;
+    case BusinessCodes.RATE_LIMIT_EXCEEDED: // RATE_LIMIT_EXCEEDED
+      httpStatus = HttpCodes.TOO_MANY_REQUESTS;
       break;
-    case 40110: // INVALID_CREDENTIALS
-    case 40107: // INVALID_REFRESH_TOKEN
-      httpStatus = 401;
+    case BusinessCodes.AUTH_INVALID_CREDENTIALS: // INVALID_CREDENTIALS
+    case BusinessCodes.AUTH_INVALID_REFRESH_TOKEN: // INVALID_REFRESH_TOKEN
+      httpStatus = HttpCodes.UNAUTHORIZED;
       break;
-    case 40401: // TOKEN_NOT_FOUND
-      httpStatus = 404;
+    case BusinessCodes.NOT_FOUND_RESOURCE: // TOKEN_NOT_FOUND
+      httpStatus = HttpCodes.NOT_FOUND;
       break;
   }
 
@@ -171,16 +173,16 @@ export async function validateAppToken(req: Request, res: Response): Promise<voi
   const appToken = req.body.appToken as string;
 
   if (!appId) {
-    res.status(400).json({
-      code: 40001,
+    res.status(HttpCodes.BAD_REQUEST).json({
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Missing required parameter: appId',
     });
     return;
   }
 
   if (!appToken) {
-    res.status(400).json({
-      code: 40001,
+    res.status(HttpCodes.BAD_REQUEST).json({
+      code: BusinessCodes.PARAM_REQUIRED,
       message: 'Missing required parameter: appToken',
     });
     return;
@@ -191,16 +193,16 @@ export async function validateAppToken(req: Request, res: Response): Promise<voi
   const application = await applicationRepo.findByAppId(appId);
 
   if (!application) {
-    res.status(404).json({
-      code: 40401,
+    res.status(HttpCodes.NOT_FOUND).json({
+      code: BusinessCodes.NOT_FOUND_RESOURCE,
       message: 'Application not found',
     });
     return;
   }
 
   if (application.status !== 'active') {
-    res.status(403).json({
-      code: 40301,
+    res.status(HttpCodes.FORBIDDEN).json({
+      code: BusinessCodes.AUTHZ_ACCESS_DENIED,
       message: 'Application is not active',
     });
     return;
@@ -209,8 +211,8 @@ export async function validateAppToken(req: Request, res: Response): Promise<voi
   const appSecret = application.appSecret;
 
   if (!appSecret) {
-    res.status(500).json({
-      code: 50001,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Application secret not configured',
     });
     return;
@@ -219,11 +221,11 @@ export async function validateAppToken(req: Request, res: Response): Promise<voi
   const result = await tokenService.validateAppToken(appToken, appSecret, appId);
 
   if (!result.valid) {
-    const errorCode = result.error?.code || 40103;
-    let httpStatus = 401;
+    const errorCode = result.error?.code || BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN;
+    let httpStatus = HttpCodes.UNAUTHORIZED;
 
-    if (errorCode === 40102) {
-      httpStatus = 401;
+    if (errorCode === BusinessCodes.AUTH_INVALID_SIGNATURE) {
+      httpStatus = HttpCodes.UNAUTHORIZED;
     }
 
     res.status(httpStatus).json({
@@ -235,8 +237,8 @@ export async function validateAppToken(req: Request, res: Response): Promise<voi
 
   // Verify that the appId in the token matches the appId in the request
   if (result.claims?.appId !== appId) {
-    res.status(401).json({
-      code: 40103,
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
       message: 'Invalid token: appId mismatch',
     });
     return;
@@ -244,7 +246,7 @@ export async function validateAppToken(req: Request, res: Response): Promise<voi
 
   // Return validation success with claims
   res.json({
-    code: 200,
+    code: HttpCodes.OK,
     data: {
       valid: true,
       claims: {

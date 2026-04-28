@@ -3,6 +3,7 @@
  * Maps Custody error codes to platform unified error codes
  */
 
+import { BusinessCodes } from '../enums/business-codes.enum';
 import { ErrorMappingConfig } from '../types/routing.types';
 
 /**
@@ -24,54 +25,53 @@ import { ErrorMappingConfig } from '../types/routing.types';
  */
 const DEFAULT_ERROR_MAPPINGS: ErrorMappingConfig[] = [
   // 400 Parameter errors
-  { custodyCode: 40001, platformCode: 40001, defaultMessage: 'Parameter error' },
-  { custodyCode: 40002, platformCode: 40002, defaultMessage: 'Format error' },
-  { custodyCode: 40003, platformCode: 40003, defaultMessage: 'Business rule error' },
-  { custodyCode: 40004, platformCode: 40004, defaultMessage: 'Duplicate request' },
-  { custodyCode: 40005, platformCode: 40005, defaultMessage: 'Invalid state' },
+  { custodyCode: BusinessCodes.PARAM_REQUIRED, platformCode: BusinessCodes.PARAM_REQUIRED, defaultMessage: 'Parameter error' },
+  { custodyCode: BusinessCodes.PARAM_INVALID_FORMAT, platformCode: BusinessCodes.PARAM_INVALID_FORMAT, defaultMessage: 'Format error' },
+  { custodyCode: BusinessCodes.PARAM_BUSINESS_RULE, platformCode: BusinessCodes.PARAM_BUSINESS_RULE, defaultMessage: 'Business rule error' },
+  { custodyCode: BusinessCodes.PARAM_DUPLICATE, platformCode: BusinessCodes.PARAM_DUPLICATE, defaultMessage: 'Duplicate request' },
+  { custodyCode: BusinessCodes.PARAM_INVALID_STATE, platformCode: BusinessCodes.PARAM_INVALID_STATE, defaultMessage: 'Invalid state' },
 
   // 401 Authentication errors
-  { custodyCode: 40101, platformCode: 40101, defaultMessage: 'Authentication required' },
-  { custodyCode: 40102, platformCode: 40102, defaultMessage: 'Token expired' },
-  { custodyCode: 40103, platformCode: 40103, defaultMessage: 'Invalid signature' },
+  { custodyCode: BusinessCodes.AUTH_MISSING_HEADERS, platformCode: BusinessCodes.AUTH_MISSING_HEADERS, defaultMessage: 'Authentication required' },
+  { custodyCode: BusinessCodes.AUTH_INVALID_SIGNATURE, platformCode: BusinessCodes.AUTH_INVALID_SIGNATURE, defaultMessage: 'Token expired' },
+  { custodyCode: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN, platformCode: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN, defaultMessage: 'Invalid signature' },
 
   // 403 Authorization errors
-  { custodyCode: 40301, platformCode: 40301, defaultMessage: 'Access denied' },
-  { custodyCode: 40302, platformCode: 40302, defaultMessage: 'Resource not found' },
-  { custodyCode: 40303, platformCode: 40303, defaultMessage: 'Operation not permitted' },
-  { custodyCode: 40304, platformCode: 40304, defaultMessage: 'Rate limit exceeded' },
-  { custodyCode: 40305, platformCode: 40305, defaultMessage: 'Insufficient permissions' },
-  { custodyCode: 40306, platformCode: 40306, defaultMessage: 'Permission configuration not found' },
+  { custodyCode: BusinessCodes.AUTHZ_ACCESS_DENIED, platformCode: BusinessCodes.AUTHZ_ACCESS_DENIED, defaultMessage: 'Access denied' },
+  { custodyCode: BusinessCodes.AUTHZ_PERMISSION_DENIED, platformCode: BusinessCodes.AUTHZ_PERMISSION_DENIED, defaultMessage: 'Resource not found' },
+  { custodyCode: BusinessCodes.AUTHZ_OPERATOR_DENIED, platformCode: BusinessCodes.AUTHZ_OPERATOR_DENIED, defaultMessage: 'Operation not permitted' },
+  { custodyCode: BusinessCodes.AUTHZ_SUPER_ADMIN_REQUIRED, platformCode: BusinessCodes.AUTHZ_SUPER_ADMIN_REQUIRED, defaultMessage: 'Rate limit exceeded' },
+  { custodyCode: BusinessCodes.AUTHZ_INSUFFICIENT_PERMISSIONS, platformCode: BusinessCodes.AUTHZ_INSUFFICIENT_PERMISSIONS, defaultMessage: 'Insufficient permissions' },
+  { custodyCode: BusinessCodes.AUTHZ_PERMISSION_CONFIG_NOT_FOUND, platformCode: BusinessCodes.AUTHZ_PERMISSION_CONFIG_NOT_FOUND, defaultMessage: 'Permission configuration not found' },
 
   // 404 Not found errors
-  { custodyCode: 40401, platformCode: 40401, defaultMessage: 'Resource not found' },
-  { custodyCode: 40402, platformCode: 40402, defaultMessage: 'Endpoint not found' },
+  { custodyCode: BusinessCodes.NOT_FOUND_RESOURCE, platformCode: BusinessCodes.NOT_FOUND_RESOURCE, defaultMessage: 'Resource not found' },
+  { custodyCode: BusinessCodes.NOT_FOUND_ENDPOINT, platformCode: BusinessCodes.NOT_FOUND_ENDPOINT, defaultMessage: 'Endpoint not found' },
 
   // 409 Conflict errors
-  { custodyCode: 40901, platformCode: 40901, defaultMessage: 'Resource conflict' },
-  { custodyCode: 40902, platformCode: 40902, defaultMessage: 'Duplicate resource' },
+  { custodyCode: BusinessCodes.CONFLICT_DUPLICATE, platformCode: BusinessCodes.CONFLICT_DUPLICATE, defaultMessage: 'Resource conflict' },
 
   // 422 Validation errors
-  { custodyCode: 42201, platformCode: 40001, defaultMessage: 'Validation error' },
+  { custodyCode: 42201, platformCode: BusinessCodes.PARAM_REQUIRED, defaultMessage: 'Validation error' },
 
   // 429 Rate limit errors
-  { custodyCode: 42901, platformCode: 42901, defaultMessage: 'Too many requests' },
+  { custodyCode: BusinessCodes.RATE_LIMIT_EXCEEDED, platformCode: BusinessCodes.RATE_LIMIT_EXCEEDED, defaultMessage: 'Too many requests' },
 
   // 500 Internal server errors
-  { custodyCode: 50001, platformCode: 50001, defaultMessage: 'Internal server error' },
-  { custodyCode: 50002, platformCode: 50002, defaultMessage: 'Service temporarily unavailable' },
-  { custodyCode: 50003, platformCode: 50003, defaultMessage: 'Database error' },
-  { custodyCode: 50004, platformCode: 50004, defaultMessage: 'Cache error' },
+  { custodyCode: BusinessCodes.SERVER_INTERNAL, platformCode: BusinessCodes.SERVER_INTERNAL, defaultMessage: 'Internal server error' },
+  { custodyCode: BusinessCodes.SERVER_UNAVAILABLE, platformCode: BusinessCodes.SERVER_UNAVAILABLE, defaultMessage: 'Service temporarily unavailable' },
+  { custodyCode: BusinessCodes.SERVER_DATABASE, platformCode: BusinessCodes.SERVER_DATABASE, defaultMessage: 'Database error' },
+  { custodyCode: BusinessCodes.SERVER_CACHE, platformCode: BusinessCodes.SERVER_CACHE, defaultMessage: 'Cache error' },
 
   // 502 Bad Gateway
-  { custodyCode: 50201, platformCode: 50401, defaultMessage: 'Bad gateway' },
+  { custodyCode: BusinessCodes.BAD_GATEWAY, platformCode: BusinessCodes.GATEWAY_TIMEOUT, defaultMessage: 'Bad gateway' },
 
   // 503 Service unavailable
-  { custodyCode: 50301, platformCode: 50402, defaultMessage: 'Service temporarily unavailable' },
+  { custodyCode: BusinessCodes.SERVICE_UNAVAILABLE, platformCode: BusinessCodes.UPSTREAM_TIMEOUT, defaultMessage: 'Service temporarily unavailable' },
 
   // 504 Gateway timeout
-  { custodyCode: 50401, platformCode: 50401, defaultMessage: 'Gateway timeout' },
-  { custodyCode: 50402, platformCode: 50402, defaultMessage: 'Upstream timeout' },
+  { custodyCode: BusinessCodes.GATEWAY_TIMEOUT, platformCode: BusinessCodes.GATEWAY_TIMEOUT, defaultMessage: 'Gateway timeout' },
+  { custodyCode: BusinessCodes.UPSTREAM_TIMEOUT, platformCode: BusinessCodes.UPSTREAM_TIMEOUT, defaultMessage: 'Upstream timeout' },
 ];
 
 /**
@@ -117,13 +117,13 @@ export class ErrorMapper {
 
     // Default fallback for unknown codes
     if (custodyCode >= 500) {
-      return 50001; // Internal server error
+      return BusinessCodes.SERVER_INTERNAL;
     }
     if (custodyCode >= 400) {
-      return 40001; // Parameter error
+      return BusinessCodes.PARAM_REQUIRED;
     }
 
-    return 50001;
+    return BusinessCodes.SERVER_INTERNAL;
   }
 
   /**
@@ -181,7 +181,7 @@ export class ErrorMapper {
   ): PlatformErrorResponse {
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
       return {
-        code: 50401,
+        code: BusinessCodes.GATEWAY_TIMEOUT,
         message: 'Gateway timeout',
         trace_id: traceId,
         details: {
@@ -193,7 +193,7 @@ export class ErrorMapper {
 
     if (error.code === 'ECONNREFUSED') {
       return {
-        code: 50402,
+        code: BusinessCodes.UPSTREAM_TIMEOUT,
         message: 'Service unavailable',
         trace_id: traceId,
         details: {
@@ -204,7 +204,7 @@ export class ErrorMapper {
     }
 
     return {
-      code: 50001,
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error',
       trace_id: traceId,
       details: {

@@ -4,10 +4,8 @@
  */
 
 import { EndpointPermission } from '@prisma/client'
-import {
-  PermissionCheckResult,
-  PermissionErrorCode,
-} from '../types/permission.types'
+import { BusinessCodes } from '../enums/business-codes.enum'
+import type { PermissionCheckResult } from '../types/permission.types'
 import {
   EndpointPermissionRepository,
 } from '../repositories/repository.interfaces'
@@ -61,7 +59,7 @@ export class PermissionCheckService {
       logger.warn('permission_check_invalid_input', { reason: 'invalid_appid', appid, path, method })
       return {
         allowed: false,
-        error_code: PermissionErrorCode.INSUFFICIENT_PERMISSIONS,
+        error_code: BusinessCodes.AUTHZ_INSUFFICIENT_PERMISSIONS,
         error_message: 'Invalid appid: must be a non-empty string',
       }
     }
@@ -69,7 +67,7 @@ export class PermissionCheckService {
       logger.warn('permission_check_invalid_input', { reason: 'invalid_path', appid, path, method })
       return {
         allowed: false,
-        error_code: PermissionErrorCode.INSUFFICIENT_PERMISSIONS,
+        error_code: BusinessCodes.AUTHZ_INSUFFICIENT_PERMISSIONS,
         error_message: 'Invalid path: must be a non-empty string',
       }
     }
@@ -77,7 +75,7 @@ export class PermissionCheckService {
       logger.warn('permission_check_invalid_input', { reason: 'invalid_method', appid, path, method })
       return {
         allowed: false,
-        error_code: PermissionErrorCode.INSUFFICIENT_PERMISSIONS,
+        error_code: BusinessCodes.AUTHZ_INSUFFICIENT_PERMISSIONS,
         error_message: 'Invalid method: must be a non-empty string',
       }
     }
@@ -89,7 +87,7 @@ export class PermissionCheckService {
       logger.warn('permission_config_not_found', { appid, enterpriseId, path, method: normalizedMethod })
       return {
         allowed: false,
-        error_code: PermissionErrorCode.PERMISSION_CONFIG_NOT_FOUND,
+        error_code: BusinessCodes.AUTHZ_PERMISSION_CONFIG_NOT_FOUND,
         error_message: 'Permission configuration not found for this endpoint',
       }
     }
@@ -113,7 +111,7 @@ export class PermissionCheckService {
 
     if (missingPermissions.length > 0) {
       result.missing_permissions = missingPermissions
-      result.error_code = PermissionErrorCode.INSUFFICIENT_PERMISSIONS
+      result.error_code = BusinessCodes.AUTHZ_INSUFFICIENT_PERMISSIONS
       result.error_message = `Insufficient permissions. Required: ${missingPermissions.join(', ')}`
       logger.warn('permission_check_denied', { appid, enterpriseId, path, method: normalizedMethod, missing: missingPermissions })
     } else {

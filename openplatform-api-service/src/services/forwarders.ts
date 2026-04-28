@@ -8,6 +8,8 @@ import { RouteConfig, Forwarder, ForwardRouteConfig } from '../types/routing.typ
 import { HttpClient } from './http-client.service'
 import { getCurrentTraceId } from './trace.service'
 import { ResourceValidationRequest } from '../middleware/resource-validation.middleware'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 
 /**
  * Simple logger (consistent with other services)
@@ -143,7 +145,7 @@ export class CustodyForwarder implements Forwarder {
     const body = req.body as Record<string, any> | undefined
     if (!body?.basic) {
       throw {
-        code: 40101,
+        code: BusinessCodes.AUTH_MISSING_HEADERS,
         message: 'Missing basic info in request body',
       }
     }
@@ -153,7 +155,7 @@ export class CustodyForwarder implements Forwarder {
     // Validate required fields
     if (!appId || !resourceKey || !timestamp || !nonce || !signature) {
       throw {
-        code: 40101,
+        code: BusinessCodes.AUTH_MISSING_HEADERS,
         message: 'Missing required basic fields',
       }
     }
@@ -213,7 +215,7 @@ export class CustodyForwarder implements Forwarder {
       }
 
       throw {
-        code: 50201,
+        code: BusinessCodes.BAD_GATEWAY,
         message: 'Failed to forward to custody service',
       }
     }

@@ -232,7 +232,8 @@ export class HttpClient {
    * Generic request method
    */
   async request<T = any>(config: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.request<T>(config);
+      const response = await this.client.request<T>(config)
+      console.log(response.config.baseURL, response.config.url, '======== ====== =====')
     return response.data;
   }
 

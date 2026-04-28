@@ -3,7 +3,6 @@ import {
   verifySignature,
   isTimestampValid,
   buildSignString,
-  SignatureErrorCode,
   NonceCache,
   InMemoryNonceCache,
 } from '../utils/signature.util';
@@ -13,6 +12,8 @@ import {
   SIGNATURE_HEADERS,
   SignatureVerificationResult,
 } from '../types/signature.types';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 
 /**
  * Default configuration for signature middleware
@@ -103,9 +104,9 @@ export function createSignatureMiddleware(
       .map(([key]) => key);
 
     if (missingHeaders.length > 0) {
-      logRequest(req, traceId, 'reject', { code: SignatureErrorCode.MISSING_HEADERS, reason: 'missing_headers', missing: missingHeaders });
-      res.status(401).json({
-        code: SignatureErrorCode.MISSING_HEADERS,
+      logRequest(req, traceId, 'reject', { code: BusinessCodes.AUTH_MISSING_HEADERS, reason: 'missing_headers', missing: missingHeaders });
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_MISSING_HEADERS,
         message: `Missing signature headers: ${missingHeaders.join(', ')}`,
         trace_id: traceId,
       });
@@ -115,9 +116,9 @@ export function createSignatureMiddleware(
     // Parse and validate timestamp
     const timestamp = parseInt(headers.timestamp!, 10);
     if (isNaN(timestamp) || !isTimestampValid(timestamp, finalConfig.timestampWindow)) {
-      logRequest(req, traceId, 'reject', { code: SignatureErrorCode.EXPIRED_TIMESTAMP, reason: 'expired_timestamp' });
-      res.status(401).json({
-        code: SignatureErrorCode.EXPIRED_TIMESTAMP,
+      logRequest(req, traceId, 'reject', { code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN, reason: 'expired_timestamp' });
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
         message: 'Request timestamp expired or invalid',
         trace_id: traceId,
       });
@@ -127,9 +128,9 @@ export function createSignatureMiddleware(
     // Check for nonce replay
     const isDuplicate = await nonceCacheInstance.isDuplicate(headers.appid!, headers.nonce!);
     if (isDuplicate) {
-      logRequest(req, traceId, 'reject', { code: SignatureErrorCode.DUPLICATE_NONCE, reason: 'duplicate_nonce' });
-      res.status(401).json({
-        code: SignatureErrorCode.DUPLICATE_NONCE,
+      logRequest(req, traceId, 'reject', { code: BusinessCodes.AUTH_DUPLICATE_NONCE, reason: 'duplicate_nonce' });
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_DUPLICATE_NONCE,
         message: 'Duplicate nonce detected',
         trace_id: traceId,
       });
@@ -139,9 +140,9 @@ export function createSignatureMiddleware(
     // Get app secret
     const secretKey = await getAppSecret(headers.appid!);
     if (!secretKey) {
-      logRequest(req, traceId, 'reject', { code: SignatureErrorCode.INVALID_SIGNATURE, reason: 'invalid_appid' });
-      res.status(401).json({
-        code: SignatureErrorCode.INVALID_SIGNATURE,
+      logRequest(req, traceId, 'reject', { code: BusinessCodes.AUTH_INVALID_SIGNATURE, reason: 'invalid_appid' });
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_SIGNATURE,
         message: 'Invalid application ID',
         trace_id: traceId,
       });
@@ -163,9 +164,9 @@ export function createSignatureMiddleware(
     });
 
     if (!isValid) {
-      logRequest(req, traceId, 'reject', { code: SignatureErrorCode.INVALID_SIGNATURE, reason: 'invalid_signature' });
-      res.status(401).json({
-        code: SignatureErrorCode.INVALID_SIGNATURE,
+      logRequest(req, traceId, 'reject', { code: BusinessCodes.AUTH_INVALID_SIGNATURE, reason: 'invalid_signature' });
+      res.status(HttpCodes.UNAUTHORIZED).json({
+        code: BusinessCodes.AUTH_INVALID_SIGNATURE,
         message: 'Invalid signature',
         trace_id: traceId,
       });
@@ -251,7 +252,7 @@ export async function verifyRequestSignature(
   if (!isTimestampValid(timestamp, config.timestampWindow)) {
     return {
       valid: false,
-      errorCode: SignatureErrorCode.EXPIRED_TIMESTAMP,
+      errorCode: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
       errorMessage: 'Request timestamp expired or invalid',
     };
   }
@@ -260,7 +261,7 @@ export async function verifyRequestSignature(
   if (await nonceCache.isDuplicate(appid, nonce)) {
     return {
       valid: false,
-      errorCode: SignatureErrorCode.DUPLICATE_NONCE,
+      errorCode: BusinessCodes.AUTH_DUPLICATE_NONCE,
       errorMessage: 'Duplicate nonce detected',
     };
   }
@@ -270,7 +271,7 @@ export async function verifyRequestSignature(
   if (!secretKey) {
     return {
       valid: false,
-      errorCode: SignatureErrorCode.INVALID_SIGNATURE,
+      errorCode: BusinessCodes.AUTH_INVALID_SIGNATURE,
       errorMessage: 'Invalid application ID',
     };
   }
@@ -288,7 +289,7 @@ export async function verifyRequestSignature(
   if (!isValid) {
     return {
       valid: false,
-      errorCode: SignatureErrorCode.INVALID_SIGNATURE,
+      errorCode: BusinessCodes.AUTH_INVALID_SIGNATURE,
       errorMessage: 'Invalid signature',
     };
   }

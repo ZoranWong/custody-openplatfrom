@@ -4,6 +4,8 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { HttpCodes } from '../enums/http-codes.enum';
+import { BusinessCodes } from '../enums/business-codes.enum';
 import { getMetricsCollector } from '../services/metrics-collector.service';
 
 const router = Router();
@@ -26,7 +28,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
     res.send(metrics);
   } catch (error) {
     console.error('Error fetching metrics:', error);
-    res.status(500).json({
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
       error: 'Failed to fetch metrics',
     });
   }
@@ -47,7 +49,7 @@ router.get('/summary', (_req: Request, res: Response): void => {
     });
   } catch (error) {
     console.error('Error fetching metrics summary:', error);
-    res.status(500).json({
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
       error: 'Failed to fetch metrics summary',
     });
   }
@@ -64,7 +66,7 @@ router.get('/app/:appid', (req: Request, res: Response): void => {
     const appMetrics = metricsCollector.getAppMetrics(appid);
 
     if (!appMetrics) {
-      res.status(404).json({
+      res.status(HttpCodes.NOT_FOUND).json({
         error: 'App metrics not found',
         appid,
       });
@@ -101,7 +103,7 @@ router.get('/app/:appid', (req: Request, res: Response): void => {
     });
   } catch (error) {
     console.error('Error fetching app metrics:', error);
-    res.status(500).json({
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
       error: 'Failed to fetch app metrics',
     });
   }
@@ -142,7 +144,7 @@ router.get('/apps', (_req: Request, res: Response): void => {
     });
   } catch (error) {
     console.error('Error fetching all app metrics:', error);
-    res.status(500).json({
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
       error: 'Failed to fetch app metrics',
     });
   }
@@ -163,7 +165,7 @@ router.post('/reset', (_req: Request, res: Response): void => {
     });
   } catch (error) {
     console.error('Error resetting metrics:', error);
-    res.status(500).json({
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
       error: 'Failed to reset metrics',
     });
   }

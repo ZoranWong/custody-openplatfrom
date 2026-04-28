@@ -1,5 +1,7 @@
 import { Request, Response } from 'express'
 import { kybReviewService, KYBStatus, type HistoryFilters, type KYBHistoryItem } from '../services/kyb-review.service'
+import { HttpCodes } from '../enums/http-codes.enum'
+import { BusinessCodes } from '../enums/business-codes.enum'
 
 // ============================================
 // Types for request/query parameters
@@ -94,8 +96,8 @@ export async function getKYBHistory(req: Request, res: Response): Promise<void> 
     })
   } catch (error) {
     console.error('Get KYB history error:', error)
-    res.status(500).json({
-      code: 50010,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get KYB history',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''
@@ -114,8 +116,8 @@ export async function getKYBHistoryById(req: Request, res: Response): Promise<vo
     const application = kybReviewService.getHistoryApplicationById(id)
 
     if (!application) {
-      res.status(404).json({
-        code: 40402,
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_ENDPOINT,
         message: 'KYB history application not found',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || ''
@@ -154,8 +156,8 @@ export async function getKYBHistoryById(req: Request, res: Response): Promise<vo
     })
   } catch (error) {
     console.error('Get KYB history by ID error:', error)
-    res.status(500).json({
-      code: 50011,
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_DATABASE,
       message: 'Failed to get KYB history application',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || ''

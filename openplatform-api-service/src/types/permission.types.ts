@@ -4,14 +4,6 @@
  */
 
 /**
- * Permission error codes
- */
-export enum PermissionErrorCode {
-  INSUFFICIENT_PERMISSIONS = 40305,
-  PERMISSION_CONFIG_NOT_FOUND = 40306,
-}
-
-/**
  * Endpoint permission configuration
  */
 export interface EndpointPermissionConfig {
