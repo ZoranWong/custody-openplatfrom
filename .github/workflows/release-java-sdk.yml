@@ -44,5 +44,5 @@ jobs:
         run: |
           git add openplatform-sdk/java/
           git commit -m "chore: release Java SDK v${{ inputs.version }}"
-          git tag java-sdk-v${{ inputs.version }}
-          git push --follow-tags
+          git tag -a java-sdk-v${{ inputs.version }} -m "Java SDK release ${{ inputs.version }}"
+          git push origin main --tags
