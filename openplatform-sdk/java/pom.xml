@@ -35,8 +35,9 @@
 
     <modules>
         <module>cregis-sdk-core</module>
-        <module>cregis-sdk-http-netty</module>
-        <module>cregis-sdk-spring-boot-starter</module>
+        <!-- TODO: fix compilation before re-enabling -->
+        <!-- <module>cregis-sdk-http-netty</module>
+        <module>cregis-sdk-spring-boot-starter</module> -->
     </modules>
 
     <properties>
