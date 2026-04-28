@@ -43,6 +43,10 @@ jobs:
       - name: Commit version and create tag
         run: |
           git add openplatform-sdk/java/
-          git commit -m "chore: release Java SDK v${{ inputs.version }}"
-          git tag -a java-sdk-v${{ inputs.version }} -m "Java SDK release ${{ inputs.version }}"
-          git push origin main --tags
+          if git diff --cached --quiet; then
+            echo "No changes to commit, skipping commit"
+          else
+            git commit -m "chore: release Java SDK v${{ inputs.version }}"
+          fi
+          git tag -a java-sdk-v${{ inputs.version }} -m "Java SDK release ${{ inputs.version }}" || echo "Tag already exists"
+          git push origin main --tags || git push origin --tags
