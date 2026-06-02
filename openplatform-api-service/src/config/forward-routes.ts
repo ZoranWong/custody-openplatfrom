@@ -47,100 +47,149 @@ export const BACKEND_CLIENTS: BackendClientConfig[] = [
 
 /**
  * Forward routes configuration
- * Based on docs/thirdparty-integration-guide.md - Third-Party Treasury Unit Management
+ * Based on Apifox Custody-backend (13 APIs):
+ *   https://s.apifox.cn/f3031687-1674-45bb-b4fd-13d3bf8cf910/llms.txt
+ *   docs/thirdparty-integration-guide.md - Third-Party Treasury Unit Management
  */
 export const FORWARD_ROUTES: ForwardRouteConfig[] = [
-    // ===== Third-Party Treasury Unit Management =====
+  // ===== Third-Party Treasury Unit Management =====
 
-    // Create treasury unit
-    {
-        routeId: 'treasury-create',
-        inboundPath: '/api/thirdparty/treasury/create',
-        route: '/api/third-party/create/{resourceKey}',
-        method: 'POST',
-        clientName: 'custodyService',
-        paramMapping: { resourceKey: 'context' }
-    },
+  // Create treasury unit
+  {
+    routeId: 'treasury-create',
+    inboundPath: '/api/thirdparty/treasury/create',
+    route: '/api/third-party/create/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
 
-    // List treasury units
-    {
-        routeId: 'treasury-list',
-        inboundPath: '/api/thirdparty/treasury/list',
-        route: '/api/third-party/list/{resourceKey}',
-        method: 'POST',
-        clientName: 'custodyService',
-        paramMapping: { resourceKey: 'context' }
-    },
+  // List treasury units
+  {
+    routeId: 'treasury-list',
+    inboundPath: '/api/thirdparty/treasury/list',
+    route: '/api/third-party/list/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
 
-    // Get treasury unit address
-    {
-        routeId: 'treasury-address',
-        inboundPath: '/api/thirdparty/treasury/address',
-        route: '/api/third-party/get-unit-address/{resourceKey}',
-        method: 'POST',
-        clientName: 'custodyService',
-        paramMapping: { resourceKey: 'context' }
-    },
+  // Get treasury unit address
+  {
+    routeId: 'treasury-address',
+    inboundPath: '/api/thirdparty/treasury/address',
+    route: '/api/third-party/get-unit-address/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
 
-    // Payout (出金)
-    {
-        routeId: 'treasury-payout',
-        inboundPath: '/api/thirdparty/treasury/payout',
-        route: '/api/third-party/payout/{resourceKey}',
-        method: 'POST',
-        clientName: 'custodyService',
-        paramMapping: { resourceKey: 'context' }
-    },
+  // Payout (出金)
+  {
+    routeId: 'treasury-payout',
+    inboundPath: '/api/thirdparty/treasury/payout',
+    route: '/api/third-party/payout/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
 
-    // Submit task
-    {
-        routeId: 'treasury-submit-task',
-        inboundPath: '/api/thirdparty/treasury/submit-task/{taskId}',
-        route: '/api/third-party/submit/task/{resourceKey}/{taskId}',
-        method: 'POST',
-        clientName: 'custodyService',
-        paramMapping: { resourceKey: 'context', taskId: 'url' }
-    },
+  // Submit task
+  {
+    routeId: 'treasury-submit-task',
+    inboundPath: '/api/thirdparty/treasury/submit-task/{taskId}',
+    route: '/api/third-party/submit/task/{resourceKey}/{taskId}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context', taskId: 'url' },
+  },
 
-    // Query activities
-    {
-        routeId: 'treasury-activities',
-        inboundPath: '/api/thirdparty/treasury/activities',
-        route: '/api/third-party/activities/{resourceKey}',
-        method: 'POST',
-        clientName: 'custodyService',
-        paramMapping: { resourceKey: 'context' }
-    },
+  // Query activities
+  {
+    routeId: 'treasury-activities',
+    inboundPath: '/api/thirdparty/treasury/activities',
+    route: '/api/third-party/activities/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
 
-    // Query transfer-out orders
-    {
-        routeId: 'treasury-transfer-out',
-        inboundPath: '/api/thirdparty/treasury/transfer-out-orders',
-        route: '/api/third-party/transfer-out-orders/{resourceKey}',
-        method: 'POST',
-        clientName: 'custodyService',
-        paramMapping: { resourceKey: 'context' }
-    },
+  // Query transfer-out orders
+  {
+    routeId: 'treasury-transfer-out',
+    inboundPath: '/api/thirdparty/treasury/transfer-out-orders',
+    route: '/api/third-party/transfer-out-orders/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
 
-    // Query transfer-in orders
-    {
-        routeId: 'treasury-transfer-in',
-        inboundPath: '/api/thirdparty/treasury/transfer-in-orders',
-        route: '/api/third-party/transfer-in-orders/{resourceKey}',
-        method: 'POST',
-        clientName: 'custodyService',
-        paramMapping: { resourceKey: 'context' }
-    },
+  // Query transfer-in orders
+  {
+    routeId: 'treasury-transfer-in',
+    inboundPath: '/api/thirdparty/treasury/transfer-in-orders',
+    route: '/api/third-party/transfer-in-orders/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
 
-    // Query fund records
-    {
-        routeId: 'treasury-fund-records',
-        inboundPath: '/api/thirdparty/treasury/fund-records',
-        route: '/api/third-party/fund-records/{resourceKey}',
-        method: 'POST',
-        clientName: 'custodyService',
-        paramMapping: { resourceKey: 'context' }
+  // Query fund records
+  {
+    routeId: 'treasury-fund-records',
+    inboundPath: '/api/thirdparty/treasury/fund-records',
+    route: '/api/third-party/fund-records/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
+  // Query unit fund records
+  {
+    routeId: 'treasury-unit-fund-records',
+    inboundPath: '/api/thirdparty/treasury/unit-fund-records',
+    route: '/api/third-party/unit-fund-records/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
+
+  // Pooling request (归集请求)
+  {
+    routeId: 'treasury-pooling',
+    inboundPath: '/api/thirdparty/treasury/pooling',
+    route: '/api/third-party/pooling/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
+
+  // Create unit address (创建地址)
+  // Note: backend uses 'accountTypy' (original spelling), inbound matches this
+  {
+    routeId: 'treasury-create-unit-address',
+    inboundPath: '/api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number}',
+    route: '/api/third-party/create-unit-address/{resourceKey}/{unitId}/{accountTypy}/{network}/{coinId}/{number}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: {
+      resourceKey: 'context',
+      unitId: 'url',
+      accountTypy: 'url',
+      network: 'url',
+      coinId: 'url',
+      number: 'url',
     },
+  },
+
+  // List unit accounts (查询账户列表)
+  {
+    routeId: 'treasury-list-unit-account',
+    inboundPath: '/api/thirdparty/treasury/list-unit-account/{unitId}',
+    route: '/api/third-party/list-unit-account/{resourceKey}/{unitId}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context', unitId: 'url' },
+  },
 ];
 
 // Validate forward routes on module load

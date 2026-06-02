@@ -607,14 +607,18 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | /api/thirdparty/treasury/create | 创建财务单元 |
+| POST | /api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number} | 创建财务单元地址 |
 | POST | /api/thirdparty/treasury/list | 查询财务单元列表 |
+| POST | /api/thirdparty/treasury/list-unit-account/{unitId} | 查询财务单元账户列表 |
 | POST | /api/thirdparty/treasury/address | 获取财务单元地址 |
+| POST | /api/thirdparty/treasury/pooling | 发起归集请求 |
 | POST | /api/thirdparty/treasury/payout | 出金操作 |
 | POST | /api/thirdparty/treasury/submit-task/{taskId} | 提交任务审批 |
 | POST | /api/thirdparty/treasury/activities | 查询活动记录 |
 | POST | /api/thirdparty/treasury/transfer-out-orders | 查询出金订单 |
 | POST | /api/thirdparty/treasury/transfer-in-orders | 查询入金订单 |
-| POST | /api/thirdparty/treasury/fund-records | 查询资金流水 |
+| POST | /api/thirdparty/treasury/fund-records | 查询资金流水（账户级） |
+| POST | /api/thirdparty/treasury/unit-fund-records | 查询资金流水（财务单元级） |
 
 ### 3.2 通用请求格式
 
@@ -647,23 +651,41 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 
 ```json
 {
+  "unitName": "My Treasury Unit",
   "businessScope": "DEDICATED_ACCOUNT",
+  "businessPurpose": "Payment processing",
   "topology": "ORBIT",
   "coinIds": [{"coinId": "USDT", "network": "TRC20"}],
+  "autoSignUrl": "https://example.com/auto-sign",
   "primaryManager": [{"coinId": "USDT", "fundControlRules": [{"guardians": ["user@email.com"], "threshold": "1", "perTransferLimit": "1000", "dailyTransferLimit": "50000"}]}],
+  "primaryWhiteList": [{"network": "TRC20", "address": "0x...", "alias": "partner"}],
+  "primaryAnycallRules": [{"guardians": ["user@email.com"], "threshold": "1", "allowedCommands": ["withdraw", "allocate"]}],
+  "thirdPartyEcode": "TP-001",
+  "remark": "备注信息",
   "payoutManager": [{"coinId": "USDT", "fundControlRules": [{"guardians": ["user@email.com"], "threshold": "1", "perTransferLimit": "1000", "dailyTransferLimit": "50000"}]}],
-  "riskManager": [{"coinId": "USDT", "fundControlRules": [{"guardians": ["user@email.com"], "threshold": "1", "perTransferLimit": "1000", "dailyTransferLimit": "50000"]]}]
+  "payinAnycallRules": [{"guardians": ["user@email.com"], "threshold": "1", "allowedCommands": ["deposit"]}],
+  "payoutAnycallRules": [{"guardians": ["user@email.com"], "threshold": "1", "allowedCommands": ["withdraw"]}],
+  "riskAnycallRules": [{"guardians": ["user@email.com"], "threshold": "2", "allowedCommands": ["lock", "release"]}]
 }
 ```
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| businessScope | string | 是 | 业务类型：`DEDICATED_ACCOUNT`(专属账户) / `OMNIBUS_ACCOUNT`( Omnibus账户) / `OPEN_API_PROXY`(开放API代理) |
-| topology | string | 是 | 账本拓扑结构：`ORBIT` / `SINGLE_GENERAL` / `QUAD_SMART_ISOLATION` |
-| coinIds | array | 是 | 币种信息列表 |
-| primaryManager | array | 是 | 资金管理员配置 |
-| payoutManager | array | 是 | 出金管理员配置 |
-| riskManager | array | 是 | 风控管理员配置 |
+| unitName | string | **是** | 财务单元名称 |
+| businessScope | string | **是** | 业务类型：`DEDICATED_ACCOUNT`(专属账户) / `OMNIBUS_ACCOUNT`(Omnibus账户) / `OPEN_API_PROXY`(开放API代理) |
+| businessPurpose | string | 否 | 业务用途描述 |
+| topology | string | **是** | 账本拓扑结构：`ORBIT` / `SINGLE_GENERAL` / `QUAD_SMART_ISOLATION` |
+| coinIds | array | **是** | 币种信息列表 |
+| autoSignUrl | string | 否 | 自动签入地址 |
+| primaryManager | array | **是** | 资金管理员配置 |
+| primaryWhiteList | array | 否 | 资金白名单（出金地址白名单） |
+| primaryAnycallRules | array | 否 | 通用调用控制信息（主账户） |
+| thirdPartyEcode | string | 否 | 三方平台 ecode，用于标识三方平台身份 |
+| remark | string | 否 | 备注信息 |
+| payoutManager | array | **是** | 出金管理员配置 |
+| payinAnycallRules | array | 否 | 收款账户通用调用控制信息 |
+| payoutAnycallRules | array | 否 | 付款通用调用控制信息 |
+| riskAnycallRules | array | 否 | 风控账户出金通用调用控制信息 |
 
 **coinIds 子参数说明**
 
@@ -672,7 +694,7 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 | coinId | string | 是 | 币种 ID，如 `USDT`、`BTC`、`ETH` |
 | network | string | 是 | 网络类型，如 `TRC20`、`ERC20`、`BEP20` |
 
-**manager 配置子参数说明 (primaryManager / payoutManager / riskManager)**
+**manager 配置子参数说明 (primaryManager / payoutManager)**
 
 每个 manager 配置包含以下字段：
 
@@ -706,6 +728,22 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 }
 ```
 
+**primaryWhiteList 子参数说明**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| network | string | **是** | 网络类型 |
+| address | string | **是** | 出金地址 |
+| alias | string | 否 | 地址别名 |
+
+**AnyCallRule 子参数说明 (primaryAnycallRules / payinAnycallRules / payoutAnycallRules / riskAnycallRules)**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| guardians | array | **是** | 守护人邮箱列表 |
+| threshold | string | **是** | 审批阈值 |
+| allowedCommands | array | **是** | 允许执行的指令列表 |
+
 **响应示例**
 
 ```json
@@ -730,7 +768,35 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 }
 ```
 
-#### 3.3.2 查询财务单元列表
+#### 3.3.2 创建财务单元地址
+
+**POST** `/api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number}`
+
+为财务单元的指定账户类型创建链上地址。
+
+> Path Parameters
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| unitId | integer | **是** | 财务单元 ID |
+| accountTypy | string | **是** | 账户类型：`PRIMARY`(主账户) / `PAYOUT`(出金账户) / `PAYIN`(收款账户) |
+| network | string | **是** | 网络类型 |
+| coinId | string | **是** | 币种 ID |
+| number | integer | **是** | 创建地址数量 |
+
+> 注意：`accountTypy` 为 Custody 后端原始拼写，保持与后端参数名一致。
+
+**响应示例**
+
+```json
+{
+  "code": 0,
+  "message": "Success",
+  "data": null
+}
+```
+
+#### 3.3.3 查询财务单元列表
 
 **POST** `/api/thirdparty/treasury/list`
 
@@ -779,7 +845,7 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 }
 ```
 
-#### 3.3.3 获取财务单元地址
+#### 3.3.4 获取财务单元地址
 
 **POST** `/api/thirdparty/treasury/address`
 
@@ -807,7 +873,109 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 | pageSize | integer | 否 | 每页数量 |
 | pageNum | integer | 否 | 页码 |
 
-#### 3.3.4 出金操作
+#### 3.3.5 查询财务单元账户列表
+
+**POST** `/api/thirdparty/treasury/list-unit-account/{unitId}`
+
+查询指定财务单元下的所有账户及其余额信息。
+
+> Path Parameters
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| unitId | integer | **是** | 财务单元 ID |
+
+**响应示例**
+
+```json
+{
+  "code": 0,
+  "message": "Success",
+  "data": [
+    {
+      "id": 1,
+      "ecode": "TU-001",
+      "vaultCode": "VLT-xxx",
+      "treasuryUnitId": 1,
+      "accountName": "PRIMARY",
+      "type": "PRIMARY",
+      "balance": 100000,
+      "freezeBalance": 0,
+      "holdBalance": 5000,
+      "coinId": "USDT",
+      "network": "TRC20",
+      "isSmart": true,
+      "status": 1,
+      "income": 500000,
+      "outcome": 400000,
+      "createTime": "2026-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+**响应字段说明**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| id | integer | 账户 ID |
+| ecode | string | 企业 code |
+| treasuryUnitId | integer | 所属财务单元 ID |
+| accountName | string | 账户名称 |
+| type | string | 账户类型：`PRIMARY` / `PAYOUT` / `PAYIN` / `QUARANTINE` / `RECEIVABLE` / `GENERAL_GAS` / `FREEZE` / `DEPOSIT` / `DIRTY` |
+| balance | integer | 主账户余额 |
+| freezeBalance | integer | 冻结余额 |
+| holdBalance | integer | 隔离余额（合规待确认/待复核的入金隔离资金） |
+| coinId | string | 币种 ID |
+| network | string | 网络 |
+| isSmart | boolean | 是否是智能账户 |
+| status | integer | 状态：0 不可用 / 1 可用 |
+| income | integer | 账户总入金 |
+| outcome | integer | 账户总出金 |
+
+#### 3.3.6 发起归集请求
+
+**POST** `/api/thirdparty/treasury/pooling`
+
+发起资金归集请求，将指定地址列表的资金归集到主账户。
+
+> Body Parameters
+
+```json
+{
+  "unitId": 1,
+  "amount": 100,
+  "lang": "zh_CN",
+  "coinId": "USDT",
+  "network": "TRC20",
+  "note": "日常归集",
+  "includes": ["0xabc..."],
+  "excludes": ["0xdef..."]
+}
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| unitId | integer | **是** | 财务单元 ID |
+| amount | integer | **是** | 归集门限金额（超过此金额才触发归集） |
+| coinId | string | **是** | 币种 ID |
+| network | string | **是** | 网络 |
+| lang | string | 否 | 语言，如 `zh_CN`、`en_US` 等 |
+| note | string | 否 | 备注 |
+| includes | array | 否 | 包含地址列表（只归集这些地址） |
+| excludes | array | 否 | 排除地址列表（不归集这些地址） |
+
+**响应示例**
+
+```json
+{
+  "code": 0,
+  "message": "Success",
+  "data": null
+}
+```
+
+#### 3.3.7 出金操作
 
 **POST** `/api/thirdparty/treasury/payout`
 
@@ -846,7 +1014,7 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 | merchantType | string | 是 | 商户类型 |
 | travelRule | object | 否 | Travel Rule 信息 |
 
-#### 3.3.5 提交任务审批
+#### 3.3.8 提交任务审批
 
 **POST** `/api/thirdparty/treasury/submit-task/{taskId}`
 
@@ -866,7 +1034,7 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 | signatures | object | 否 | 签名结果，key为taskId，value为签名字符串列表 |
 | confirmed | boolean | 是 | 操作确认：`true`同意 / `false`拒绝 |
 
-#### 3.3.6 查询活动记录
+#### 3.3.9 查询活动记录
 
 **POST** `/api/thirdparty/treasury/activities`
 
@@ -930,7 +1098,7 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 }
 ```
 
-#### 3.3.7 查询出金订单
+#### 3.3.10 查询出金订单
 
 **POST** `/api/thirdparty/treasury/transfer-out-orders`
 
@@ -989,7 +1157,7 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 }
 ```
 
-#### 3.3.8 查询入金订单
+#### 3.3.11 查询入金订单
 
 **POST** `/api/thirdparty/treasury/transfer-in-orders`
 
@@ -1047,7 +1215,7 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 }
 ```
 
-#### 3.3.9 查询资金流水
+#### 3.3.12 查询资金流水（账户级）
 
 **POST** `/api/thirdparty/treasury/fund-records`
 
@@ -1119,6 +1287,68 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
 | POOL_OUT | 归集转出 |
 | GAS_OUT | Gas消耗 |
 | FEE_OUT | 手续费 |
+
+#### 3.3.13 查询资金流水（财务单元级）
+
+**POST** `/api/thirdparty/treasury/unit-fund-records`
+
+分页查询财务单元级别的资金流水，汇总财务单元下所有账户的资金变动。
+
+> Body Parameters
+
+```json
+{
+  "pageIndex": 0,
+  "pageSize": 20,
+  "sortFields": "createTime_d",
+  "queryList": [
+    {"key": "unitId", "value": 1, "oper": "=", "join": "and"},
+    {"key": "coinId", "value": "USDT", "oper": "=", "join": "and"},
+    {"key": "txType", "value": "TRANSFER_OUT", "oper": "=", "join": "and"}
+  ]
+}
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| pageIndex | integer | 否 | 页码索引，从 0 开始，默认 0 |
+| pageSize | integer | 否 | 每页数量，默认 20 |
+| sortFields | string | 否 | 排序字段，格式：`字段名_asc/desc` |
+| queryList | array | 否 | 查询条件列表 |
+| queryList[].key | string | 否 | 查询字段名，可选值：`unitId` / `coinId` / `network` / `txType` |
+| queryList[].value | string/number | 否 | 查询值 |
+| queryList[].oper | string | 否 | 操作符：`=` / `!=` / `>` / `<` / `like` |
+| queryList[].join | string | 否 | 连接方式：`and` / `or` |
+
+**响应示例**
+
+```json
+{
+  "code": 0,
+  "message": "Success",
+  "data": {
+    "records": [
+      {
+        "id": 1,
+        "txId": "0x...",
+        "coinId": "USDT",
+        "network": "TRC20",
+        "amount": "100",
+        "preBalance": "1000",
+        "postBalance": "900",
+        "fee": "1",
+        "txType": "TRANSFER_OUT",
+        "createTime": "2026-04-13T10:00:00Z"
+      }
+    ],
+    "total": 200,
+    "size": 20,
+    "current": 1
+  }
+}
+```
+
+- `txType` 枚举值与 3.3.12 账户级流水一致。
 
 ---
 

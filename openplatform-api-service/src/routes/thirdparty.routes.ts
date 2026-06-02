@@ -191,6 +191,17 @@ router.post('/oauth/verify', verifyOauthToken);
 // Third-party Resource Endpoints - Use ResourceValidator (BasicInfoWithAuthorization)
 // =============================================================================
 
+// Custody callback test endpoint
+router.post('/custody/callback', (req: Request, res: Response) => {
+  res.json({
+    code: HttpCodes.OK,
+    message: 'Test endpoint reached successfully',
+    requestBody: req.body,
+    requestQuery: req.query,
+    requestContext: (req as any).context,
+  });
+});
+
 // Catch-all: Forward matched routes to backend services (POST only)
 // These routes require authorizationId in the request body
 router.post('*', resourceValidationMiddleware, forwardRequest);
