@@ -16,7 +16,7 @@
           v-model="account"
           type="text"
           placeholder="Please enter username/email"
-          :disabled="loading"
+          :disabled="loading || captchaActive"
           autocomplete="username"
         />
       </div>
@@ -29,7 +29,7 @@
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
             placeholder="Please enter password"
-            :disabled="loading"
+            :disabled="loading || captchaActive"
             autocomplete="current-password"
           />
           <button
@@ -52,8 +52,9 @@
         {{ errorMessage }}
       </div>
 
-      <button type="submit" class="submit-btn" :disabled="loading || !isValid">
+      <button type="submit" class="submit-btn" :disabled="loading || captchaActive || !isValid">
         <span v-if="loading">Signing in...</span>
+        <span v-else-if="captchaActive">Verifying...</span>
         <span v-else>Login</span>
       </button>
     </form>
@@ -72,6 +73,7 @@ const props = defineProps<{
   loading?: boolean;
   errorMessage?: string;
   failedAttempts?: number;
+  captchaActive?: boolean;
 }>();
 
 const emit = defineEmits<{

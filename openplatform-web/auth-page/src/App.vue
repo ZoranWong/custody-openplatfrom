@@ -24,6 +24,7 @@
       :loading="submitting"
       :error-message="loginError"
       :failed-attempts="failedAttempts"
+      :captcha-active="showCaptcha"
       @submit="handleLogin"
     />
 
@@ -83,6 +84,12 @@
         <p class="success-info">This window will close automatically in {{ countdown }}s</p>
       </div>
     </div>
+
+    <!-- Captcha Verification Dialog -->
+    <VerificationDialog
+      v-model:visible="showCaptcha"
+      @verify="handleCaptchaVerify"
+    />
   </div>
 </template>
 
@@ -91,6 +98,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import LoginForm from './components/LoginForm.vue'
 import TotpForm from './components/TotpForm.vue'
 import OrganizationSelector from './components/OrganizationSelector.vue'
+import VerificationDialog from './components/VerificationDialog.vue'
 // sendEventToParent auto-injects SDK UUID from module-level sdkUuid variable
 import { listenFromParent, sendEventToParent, sendSuccessToParent, sendFailedToParent } from './utils/postMessage'
 import { login, secondAuthenticate, submitAuthorization } from './services/auth'
@@ -120,6 +128,10 @@ const mfaToken = ref('')
 const failedAttempts = ref(0)
 const totpFailedAttempts = ref(0)
 const selectedOrganization = ref<Organization | null>(null)
+
+// Captcha state
+const showCaptcha = ref(false)
+const pendingCredentials = ref<{ type: 'PASSWORD' | 'EMAIL'; account: string; password: string } | null>(null)
 
 let unsubscribe: (() => void) | null = null
 
@@ -318,6 +330,9 @@ function resetFlow() {
   email.value = '';
   mfaToken.value = '';
   selectedOrganization.value = null;
+  // Clean up captcha state
+  showCaptcha.value = false;
+  pendingCredentials.value = null;
 
   initTimeout = setTimeout(() => {
     if (currentView.value === 'loading' && authData.value) {
@@ -339,45 +354,61 @@ function goBackToTotp() {
 }
 
 async function handleLogin(credentials: { type: 'PASSWORD' | 'EMAIL'; account: string; password: string }) {
-  if (!authData.value) return;
+  if (!authData.value) return
 
-  submitting.value = true;
-  loginError.value = '';
+  // Step 1: Save credentials and show captcha dialog
+  pendingCredentials.value = credentials
+  showCaptcha.value = true
+}
+
+function handleCaptchaVerify(code: string) {
+  if (!pendingCredentials.value) return
+
+  doLogin(pendingCredentials.value, code)
+}
+
+async function doLogin(credentials: { type: 'PASSWORD' | 'EMAIL'; account: string; password: string }, code: string) {
+  if (!authData.value) return
+
+  submitting.value = true
+  loginError.value = ''
 
   try {
-    const response = await login(credentials);
+    const response = await login({ ...credentials, captchaCode: code })
 
     if (response.success && response.data) {
-      username.value = credentials.account;
-      email.value = response.data.email || credentials.account;
+      username.value = credentials.account
+      email.value = response.data.email || credentials.account
 
       if (response.data.mfaRequired && response.data.mfaToken) {
-        mfaToken.value = response.data.mfaToken;
-        currentView.value = 'totp';
+        mfaToken.value = response.data.mfaToken
+        currentView.value = 'totp'
       } else {
-        const mockToken = 'dev-token-' + Date.now();
-        setToken(mockToken, 24 * 60 * 60 * 1000);
+        const mockToken = 'dev-token-' + Date.now()
+        setToken(mockToken, 24 * 60 * 60 * 1000)
         setUserInfo({
           userId: '1',
           email: email.value,
           role: ['user'],
           permission: ['read'],
           username: username.value,
-        });
-        currentView.value = 'organization';
+        })
+        currentView.value = 'organization'
       }
     } else {
-      failedAttempts.value++;
-      loginError.value = response.error?.message || 'Login failed';
+      failedAttempts.value++
+      loginError.value = response.error?.message || 'Login failed'
 
       if (failedAttempts.value >= MAX_FAILED_ATTEMPTS) {
-        loginError.value = `Account locked after ${MAX_FAILED_ATTEMPTS} failed attempts. Try again later.`;
+        loginError.value = `Account locked after ${MAX_FAILED_ATTEMPTS} failed attempts. Try again later.`
       }
     }
   } catch (error) {
-    loginError.value = 'Network error. Please try again.';
+    loginError.value = 'Network error. Please try again.'
   } finally {
-    submitting.value = false;
+    submitting.value = false
+    // Clean up captcha state
+    pendingCredentials.value = null
   }
 }
 

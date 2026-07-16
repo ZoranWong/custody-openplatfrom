@@ -92,6 +92,7 @@ export interface LoginRequest {
     type: 'PASSWORD' | 'EMAIL'
     account: string
     password: string
+    captchaCode?: string
 }
 
 /**
@@ -113,21 +114,28 @@ interface ApiResponse<T> {
  *
  * @param account - email or username
  * @param password - password
+ * @param captchaCode - slider captcha temp code (optional)
  * @returns FirstAuthResponse or null on failure
  */
 export async function firstAuthenticate(
     account: string,
-    password: string
+    password: string,
+    captchaCode?: string
 ): Promise<FirstAuthResponse | null> {
     try {
+        const body: Record<string, string> = {
+            account,
+            password,
+            type: 'PASSWORD',
+            userType: 'USER'
+        }
+        if (captchaCode) {
+            body.sliderCaptchaTempCode = captchaCode
+        }
+
         const response = await apiRequest<ApiResponse<FirstAuthResponse>>('/v1/auth/login', {
             method: 'POST',
-            body: JSON.stringify({
-                account,
-                password,
-                type: 'PASSWORD',
-                userType: 'USER'
-            }),
+            body: JSON.stringify(body),
         })
 
         return response.code === 200 && response.data ? response.data : null
@@ -186,7 +194,7 @@ export async function login(request: LoginRequest): Promise<{
     }
     error?: { code: string; message: string }
 }> {
-    const result = await firstAuthenticate(request.account, request.password)
+    const result = await firstAuthenticate(request.account, request.password, request.captchaCode)
 
     if (result) {
         return {
