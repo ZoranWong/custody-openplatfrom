@@ -276,45 +276,32 @@ export async function submitAuthorization(params: {
     })
 
     const response = await apiRequest<{
-        code: number
-        data?: {
-            authorizeId?: string
-            resourceAccessKey?: string
-            id?: number
-        }
-        message?: string
+      code: number;
+      data?: {
+        authorizeId?: string;
+      };
+      message?: string;
     }>(`/internal/third-party/authorize?${queryParams.toString()}`, {
-        method: 'POST',
-    })
-
-    // Only accept a valid UUID as authorizationId
-    // Reject resourceAccessKey (not a UUID) and numeric id (not a UUID)
-    if (response.data?.authorizeId && isValidUUID(response.data.authorizeId)) {
-        return { authorizationId: response.data.authorizeId }
+      method: 'POST',
+    });
+    const authorizationId = response.data?.authorizeId || null;
+    if (authorizationId) {
+      return { authorizationId };
     }
 
     // Log sanitized failure info for debugging
     const debugInfo = {
-        code: response.code,
-        message: response.message || '(empty)',
-        hasData: !!response.data,
-        hasAuthorizeId: !!response.data?.authorizeId,
-        hasResourceAccessKey: !!response.data?.resourceAccessKey,
-        hasNumericId: !!response.data?.id,
-    }
+      code: response.code,
+      message: response.message || '(empty)',
+      hasData: !!response.data,
+      hasAuthorizeId: !!response.data?.authorizeId,
+    };
     console.error('[auth] Authorization failed:', JSON.stringify(debugInfo))
 
     throw new Error(
         response.message
         || `Authorization failed (code: ${response.code})`
     )
-}
-
-/**
- * Validate UUID v4 format
- */
-function isValidUUID(str: string): boolean {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str)
 }
 
 /**
