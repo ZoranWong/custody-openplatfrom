@@ -258,48 +258,63 @@ export async function verifySecondFactor(params: {
 /**
  * Submit authorization
  * POST /custody/internal/third-party/authorize
+ *
+ * Returns the authorizationId ONLY when the API returns a valid UUID.
+ * Throws on any failure — no mock fallback.
  */
 export async function submitAuthorization(params: {
     appId: string
     organizationId: string
 }): Promise<{ authorizationId: string }> {
-    try {
-        const urlParams = new URLSearchParams(window.location.search)
-        const appToken = urlParams.get('appToken') || ''
+    const urlParams = new URLSearchParams(window.location.search)
+    const appToken = urlParams.get('appToken') || ''
 
-        const queryParams = new URLSearchParams({
-            appId: params.appId,
-            ecode: params.organizationId,
-            appToken: appToken,
-        })
+    const queryParams = new URLSearchParams({
+        appId: params.appId,
+        ecode: params.organizationId,
+        appToken: appToken,
+    })
 
-        const response = await apiRequest<{
-            code: number
-            data?: {
-                authorizeId?: string
-                resourceAccessKey?: string
-                id?: number
-            }
-            message?: string
-        }>(`/internal/third-party/authorize?${queryParams.toString()}`, {
-            method: 'POST',
-        })
-
-        if (response.data) {
-            const authId = response.data.authorizeId
-                || response.data.resourceAccessKey
-                || (response.data.id ? String(response.data.id) : null)
-
-            if (authId) {
-                return { authorizationId: authId }
-            }
+    const response = await apiRequest<{
+        code: number
+        data?: {
+            authorizeId?: string
+            resourceAccessKey?: string
+            id?: number
         }
+        message?: string
+    }>(`/internal/third-party/authorize?${queryParams.toString()}`, {
+        method: 'POST',
+    })
 
-        throw new Error(response.message || 'Authorization failed')
-    } catch (error) {
-        console.warn('Authorization API not available, using mock')
-        return { authorizationId: 'auth-' + Date.now() }
+    // Only accept a valid UUID as authorizationId
+    // Reject resourceAccessKey (not a UUID) and numeric id (not a UUID)
+    if (response.data?.authorizeId && isValidUUID(response.data.authorizeId)) {
+        return { authorizationId: response.data.authorizeId }
     }
+
+    // Log sanitized failure info for debugging
+    const debugInfo = {
+        code: response.code,
+        message: response.message || '(empty)',
+        hasData: !!response.data,
+        hasAuthorizeId: !!response.data?.authorizeId,
+        hasResourceAccessKey: !!response.data?.resourceAccessKey,
+        hasNumericId: !!response.data?.id,
+    }
+    console.error('[auth] Authorization failed:', JSON.stringify(debugInfo))
+
+    throw new Error(
+        response.message
+        || `Authorization failed (code: ${response.code})`
+    )
+}
+
+/**
+ * Validate UUID v4 format
+ */
+function isValidUUID(str: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str)
 }
 
 /**
