@@ -49,3 +49,6 @@ logs/
 
 .dev-pids
 .dev-logs
+
+# Git worktrees
+.worktrees/
