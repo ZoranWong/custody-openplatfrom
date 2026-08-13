@@ -188,13 +188,8 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
     }
 
     // Verify password
-    console.log('[Login] Password verification:', {
-      inputPassword: password,
-      storedHash: admin.passwordHash.substring(0, 20) + '...',
-      inputLength: password.length
-    })
     const isValidPassword = await bcrypt.compare(password, admin.passwordHash)
-    console.log('[Login] Password valid:', isValidPassword)
+    console.log('[Login] Password verification result:', { email, valid: isValidPassword, timestamp: new Date().toISOString() })
     if (!isValidPassword) {
       res.status(HttpCodes.UNAUTHORIZED).json({
         code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
