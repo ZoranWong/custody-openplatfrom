@@ -2,7 +2,7 @@
 
 **日期:** 2026-08-13
 **状态:** 待实施
-**版本:** v3.0
+**版本:** v4.0
 
 ---
 
@@ -63,8 +63,12 @@ Cregis Custody OpenPlatform 是一个银行级加密货币托管开放平台，�
 | Minor | 18 | 加固与规范性改进 |
 | API 组织优化 | 8 | 代码结构优化 |
 | 注释完善 | 6 | 关键代码注释 |
+| Mock→真实 | 7 | 内存/mock 数据迁移为真实实现 |
+| Admin Portal | 6 | 管理后台新功能 |
+| Developer Portal | 9 | 开发者门户新功能 |
+| SDK 完善 | 4 | SDK 补齐遗漏 |
 | UI 改造 | 6 | Art Design Pro 迁移 |
-| 新功能 | 5 | 新增业务能力 |
+| 其他 | 5 | 测试、监控、验证、插件页面 |
 
 ---
 
@@ -515,25 +519,226 @@ console.log('[Login] Password verification:', {
 
 ## 9. 新功能规划
 
-### NEW-1: Webhook 管理页面
+### 9.1 Mock → 真实实现
 
-**目标:** 在 Developer Portal 增加 Webhook 配置管理页面（注册、列表、删除、测试发送）。
+以下功能当前使用 mock 数据或内存存储，需要实现为真实的数据存储和业务逻辑。
 
-### NEW-2: KYB 进度可视化
+#### REAL-1: Billing 计费服务真实化
 
-**目标:** 在 Developer Portal 增加 KYB 审核进度页面（已提交 → 审核中 → 补充材料 → 通过/驳回 → 已激活）。
+**当前状态:** `billing.service.ts` 返回硬编码的 MOCK_INVOICES、MOCK_PAYMENTS、MOCK_USAGE_STATS。
 
-### NEW-3: API 日志查询页面
+**目标:** 基于 Prisma 实现真实计费：
+- 新增 Package（套餐配置）、Subscription（ISV 订阅）、Order（订单）、Payment（支付记录）模型
+- 套餐支持多地区（`package_code + region`），不同地区独立定价、独立文案
+- 支持体验卡（免费30天）、月卡、年卡（折扣可配置）
+- 所有套餐参数（名称、价格、日调用量、折扣、有效期、功能权限）在 Admin Portal 后台可配置
+- 注册审核通过后自动发放体验卡
+- 实现套餐查询、下单、支付回调、订阅状态、用量检查 API
 
-**目标:** 在 Admin Portal 增加 API 调用日志查询页面，支持按 appId、时间范围、状态码、端点过滤。
+#### REAL-2: Dashboard 统计真实化
 
-### NEW-4: Admin Portal 测试覆盖
+**当前状态:** `dashboard-stats.service.ts` 使用 `Math.random()` 生成所有统计数据。
 
-**目标:** 为关键页面编写单元测试（vitest + @vue/test-utils）。
+**目标:** 基于 `ApiLog`、`Metric` 表实现真实数据聚合。
 
-### NEW-5: 监控告警
+#### REAL-3: KYB 审核服务迁移到 Prisma
 
-**目标:** 基于 Prometheus 指标增加阈值告警通知。
+**当前状态:** `kyb-review.service.ts` 使用内存 Map（`kybStore.applications`、`kybStore.isvAccounts`）存储 KYB 审核数据和 ISV 状态。`kyb-review.controller.ts`、`kyb-history.controller.ts`、`isv-status.controller.ts` 均依赖此内存数据。但 `developer.controller.ts` 操作的是 Prisma `IsvDeveloper` 表，形成两套并行的开发者管理系统。
+
+**目标:** 将 KYB 审核、历史、ISV 状态管理统一迁移到 Prisma `IsvDeveloper` 模型，移除内存 Map。
+
+#### REAL-4: Audit 日志迁移到 Prisma
+
+**当前状态:** `admin-audit.service.ts` 使用内存 Map。
+
+**目标:** 迁移到 Prisma `ApiLog` 模型。
+
+#### REAL-5: Trace 服务迁移到 Prisma
+
+**当前状态:** `trace-storage.service.ts` 使用内存存储。
+
+**目标:** 迁移到 Prisma `Trace` 模型。
+
+#### REAL-6: Auth-page 移除 mock 降级
+
+**当前状态:** `getOrganizationList` 仍有 mock 回退，`mockFirstAuthenticate`/`mockSecondAuthenticate` 含硬编码凭证。
+
+**目标:** 移除所有 mock 函数和回退逻辑。
+
+#### REAL-7: Developer Portal 移除 mock 数据
+
+**当前状态:** `services/mockData.ts` 虽未被使用但保留在代码中；`RegisterPage.vue` 中注册流程未与后端完全同步。
+
+**目标:** 清理 mock 数据，确保所有功能使用真实 API。
+
+---
+
+### 9.2 Admin Portal 新功能
+
+#### ADMIN-1: 管理员账号管理
+
+**说明:** 当前 `Admin` Prisma 模型支持多角色但无管理页面。`GET /api/v1/admin/admins` 路由错误指向 `getAdminProfile`（P1-1）。
+
+**目标:**
+- 修复 `/admins` 路由，实现管理员列表查询
+- 实现创建管理员、编辑角色、启用/禁用管理员
+- 仅 super_admin 可操作
+
+#### ADMIN-2: 审计日志查看
+
+**说明:** 后端已有完整的审计日志 API（`/audit/query`、`/audit/logs/:id`、`/audit/export`、`/audit/stats`），但 Admin Portal 无对应页面。
+
+**目标:** 增加审计日志查看页面，支持按操作人、时间范围、操作类型过滤，支持导出。
+
+#### ADMIN-3: API 调用日志查询
+
+**说明:** Prisma 已有 `ApiLog` 模型，但无前后端实现。
+
+**目标:** 实现 API 日志查询 API + Admin Portal 页面，支持按 appId、时间范围、状态码、端点过滤。
+
+#### ADMIN-4: 套餐管理
+
+**说明:** 配合 REAL-1 计费体系。
+
+**目标:** Admin Portal 增加套餐配置页面：
+- 套餐 CRUD（名称、价格、日调用量、折扣、有效期、功能权限）
+- 多地区配置（`package_code + region`）
+- 启用/禁用套餐
+
+#### ADMIN-5: 订单与支付管理
+
+**说明:** 配合 REAL-1 计费体系。
+
+**目标:** Admin Portal 增加订单列表、支付审核（线下转账确认）、退款处理。
+
+#### ADMIN-6: 系统公告管理
+
+**说明:** 发布系统公告给 ISV。
+
+**目标:** 公告 CRUD，支持定向推送（全部 ISV / 按套餐等级 / 按地区）。
+
+---
+
+### 9.3 Developer Portal 新功能
+
+#### DEV-1: 套餐购买与续费
+
+**说明:** 配合 REAL-1 计费体系。
+
+**目标:** ISV 可查看套餐列表（按地区展示对应价格和文案）、选择套餐和周期（月卡/年卡）、下单支付、查看订单历史。
+
+#### DEV-2: 消费明细
+
+**说明:** ISV 需要查看详细的 API 调用计费记录。
+
+**目标:** 展示每日 API 调用量、剩余额度、消费趋势图。
+
+#### DEV-3: 账户充值
+
+**说明:** 配合 REAL-1 计费体系。
+
+**目标:** 支持在线充值、线下转账凭证上传。
+
+#### DEV-4: KYB 审核进度
+
+**说明:** 当前 `ProfilePage.vue` 仅显示 KYB 状态标签，无进度展示。
+
+**目标:** 增加 KYB 审核进度页面：已提交 → 审核中 → 补充材料 → 通过/驳回 → 已激活。支持补充材料提交。
+
+#### DEV-5: 团队成员管理
+
+**说明:** 后端已有 `GET /isv/users`、`POST /isv/users` API，但 Developer Portal 无对应页面。
+
+**目标:** ISV Owner 可添加/删除开发者成员，分配应用访问权限。
+
+#### DEV-6: Webhook 配置管理
+
+**说明:** Node SDK 已有 WebhookService，但后端路由不存在，前端无页面。
+
+**目标:**
+- 后端：实现 Webhook CRUD API（`/api/v1/isv/webhooks`）
+- 前端：Webhook 配置页面（注册、列表、编辑、删除、测试发送）
+- 展示 Webhook 推送日志和重试历史
+
+#### DEV-7: API 密钥管理
+
+**说明:** ISV 需要查看和重新生成 appSecret。
+
+**目标:** 在应用详情页增加 appSecret 查看（脱敏）和重新生成功能。
+
+#### DEV-8: 通知中心
+
+**说明:** ISV 需要接收系统通知。
+
+**目标:** 通知列表（系统公告、审核结果、额度告警、套餐到期提醒），支持已读/未读状态。
+
+#### DEV-9: SDK 下载入口
+
+**说明:** ISV 需要获取各语言 SDK。
+
+**目标:** 在 Developer Portal 增加 SDK 下载页面（Java/Node.js/Web），包含安装命令和快速开始示例。
+
+---
+
+### 9.4 SDK 完善
+
+#### SDK-1: Node SDK 补齐遗漏方法
+
+**说明:** 对接文档文档中 13 个 treasury 端点，Node SDK 只实现了 7 个。遗漏：`pooling`（归集）、`createUnitAddress`（创建地址）、`listUnitAccounts`（查询账户余额）。
+
+**目标:** 补齐遗漏的 3 个方法，确保 Node SDK 覆盖全部 13 个端点。
+
+#### SDK-2: Java SDK 补齐遗漏方法
+
+**说明:** 与 Node SDK 同理，且缺少 WebhookService。
+
+**目标:** 补齐遗漏的 treasury 方法和 Webhook 服务。
+
+#### SDK-3: Java SDK 启用 netty 和 spring-boot-starter 模块
+
+**说明:** `pom.xml` 中两个模块被注释掉。
+
+**目标:** 修复编译问题，启用模块。
+
+#### SDK-4: Web SDK 测试修复
+
+**说明:** `src/index.test.ts` 中测试用例与当前实现不一致。
+
+**目标:** 修复测试，使其与当前 `SDKConfig` 和 `openAuthorization` 签名一致。
+
+---
+
+### 9.5 其他
+
+#### OTH-1: Admin Portal 测试覆盖
+
+**说明:** admin-portal 当前零测试。
+
+**目标:** 为关键页面编写单元测试（登录、Dashboard、KYB 审核、开发者管理）。
+
+#### OTH-2: 监控告警
+
+**说明:** 基于已有的 Prometheus 指标。
+
+**目标:** 定义关键指标告警阈值（错误率、延迟、QPS 异常），实现告警通知（邮件/Webhook）。
+
+#### OTH-3: 邮件/短信验证
+
+**说明:** 注册流程缺少邮箱/手机验证，`forgot-password` 是 stub。
+
+**目标:** 实现邮箱验证码发送 + 密码重置流程。
+
+#### OTH-4: ISV 忘记密码/重置密码
+
+**说明:** 当前是 demo 桩。
+
+**目标:** 实现邮箱验证码 + 密码重置。
+
+#### OTH-5: 嵌入式插件页面（PRD 规划）
+
+**说明:** PRD 指定四个嵌入式插件页面，当前仅实现了 OAuth 授权页和 TransferTaskDetailDialog。
+
+**目标:** 补充 Treasury Unit 创建授权页、Policy 配置页、Policy 签名页。
 
 ---
 
@@ -563,13 +768,52 @@ console.log('[Login] Password verification:', {
 - [ ] ORG-1 ~ ORG-8: API 代码组织优化
 - [ ] DOC-1 ~ DOC-6: 代码注释完善
 
-### 阶段四：UI 改造（预计 4-6 周）
+### 阶段四：Mock → 真实实现（预计 4-6 周）
+
+- [ ] REAL-1: Billing 计费服务真实化（套餐模型 + 订阅 + 订单 + 支付）
+- [ ] REAL-2: Dashboard 统计真实化
+- [ ] REAL-3: KYB 审核服务迁移到 Prisma
+- [ ] REAL-4: Audit 日志迁移到 Prisma
+- [ ] REAL-5: Trace 服务迁移到 Prisma
+- [ ] REAL-6: Auth-page 移除 mock 降级
+- [ ] REAL-7: Developer Portal 移除 mock 数据
+
+### 阶段五：Admin Portal 新功能（预计 3-4 周）
+
+- [ ] ADMIN-1: 管理员账号管理
+- [ ] ADMIN-2: 审计日志查看
+- [ ] ADMIN-3: API 调用日志查询
+- [ ] ADMIN-4: 套餐管理
+- [ ] ADMIN-5: 订单与支付管理
+- [ ] ADMIN-6: 系统公告管理
+
+### 阶段六：Developer Portal 新功能（预计 3-4 周）
+
+- [ ] DEV-1: 套餐购买与续费
+- [ ] DEV-2: 消费明细
+- [ ] DEV-3: 账户充值
+- [ ] DEV-4: KYB 审核进度
+- [ ] DEV-5: 团队成员管理
+- [ ] DEV-6: Webhook 配置管理
+- [ ] DEV-7: API 密钥管理
+- [ ] DEV-8: 通知中心
+- [ ] DEV-9: SDK 下载入口
+
+### 阶段七：SDK 完善（预计 2-3 周）
+
+- [ ] SDK-1: Node SDK 补齐遗漏方法
+- [ ] SDK-2: Java SDK 补齐遗漏方法
+- [ ] SDK-3: Java SDK 启用 netty 和 spring-boot-starter
+- [ ] SDK-4: Web SDK 测试修复
+
+### 阶段八：UI 改造 + 其他（预计 4-6 周）
 
 - [ ] UI-1 ~ UI-6: Art Design Pro 迁移
-
-### 阶段五：新功能（预计 2-3 周）
-
-- [ ] NEW-1 ~ NEW-5: 新功能实现
+- [ ] OTH-1: Admin Portal 测试覆盖
+- [ ] OTH-2: 监控告警
+- [ ] OTH-3: 邮件/短信验证
+- [ ] OTH-4: ISV 忘记密码/重置密码
+- [ ] OTH-5: 嵌入式插件页面
 
 ---
 
