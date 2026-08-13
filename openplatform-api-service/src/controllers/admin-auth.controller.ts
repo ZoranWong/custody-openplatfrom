@@ -471,3 +471,37 @@ export async function getAdminProfile(req: Request, res: Response): Promise<void
     })
   }
 }
+
+export async function listAdmins(req: Request, res: Response): Promise<void> {
+  try {
+    const admins = await adminService.findAll()
+
+    // Filter out sensitive fields (passwordHash)
+    const list = admins.map(admin => ({
+      id: admin.id,
+      email: admin.email,
+      name: admin.name,
+      role: admin.role,
+      status: admin.status,
+      lastLoginAt: admin.lastLoginAt,
+      createdAt: admin.createdAt,
+    }))
+
+    res.json({
+      code: 0,
+      message: 'success',
+      data: {
+        list,
+        total: list.length,
+      },
+      trace_id: req.headers['x-trace-id'] as string || ''
+    })
+  } catch (error) {
+    console.error('List admins error:', error)
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
+      message: 'Internal server error',
+      trace_id: req.headers['x-trace-id'] as string || ''
+    })
+  }
+}

@@ -4,7 +4,8 @@ import {
   adminRefreshToken,
   adminLogout,
   adminChangePassword,
-  getAdminProfile
+  getAdminProfile,
+  listAdmins
 } from '../../controllers/admin-auth.controller'
 import { adminAuthMiddleware, requireRole } from '../../middleware/admin-auth.middleware'
 import {
@@ -30,7 +31,7 @@ router.post('/auth/change-password', adminAuthMiddleware, adminChangePassword)
 router.get('/profile', adminAuthMiddleware, getAdminProfile)
 
 // Admin management routes (super_admin only)
-router.get('/admins', adminAuthMiddleware, requireRole('super_admin'), getAdminProfile)
+router.get('/admins', adminAuthMiddleware, requireRole('super_admin'), listAdmins)
 
 // Developer management routes
 router.get('/developers', adminAuthMiddleware, getDevelopers)
