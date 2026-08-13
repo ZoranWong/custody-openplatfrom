@@ -5,6 +5,7 @@
 
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
 import {
   signAccessToken,
   signRefreshToken,
@@ -16,11 +17,13 @@ import {
   TokenPair,
   TokenClaims,
   RefreshTokenRecord,
-  RefreshTokenRepository,
+  RefreshTokenRepository as JwtRefreshTokenRepository,
   TokenBlacklist,
   CredentialService,
   RateLimiter,
 } from '../types/jwt.types';
+import { getApplicationRepository } from '../repositories/repository.factory';
+import { getRefreshTokenRepository } from '../repositories/repository.factory';
 
 import { BusinessCodes } from '../enums/business-codes.enum';
 
@@ -66,14 +69,14 @@ export interface TokenServiceConfig {
  */
 export class TokenService {
   private readonly blacklist: TokenBlacklist;
-  private readonly refreshTokenRepo: RefreshTokenRepository;
+  private readonly refreshTokenRepo: JwtRefreshTokenRepository;
   private readonly credentialService: CredentialService;
   private readonly rateLimiter: RateLimiter;
   private readonly config: TokenServiceConfig;
 
   constructor(
     blacklist: TokenBlacklist,
-    refreshTokenRepo: RefreshTokenRepository,
+    refreshTokenRepo: JwtRefreshTokenRepository,
     credentialService: CredentialService,
     rateLimiter: RateLimiter,
     config?: Partial<TokenServiceConfig>
@@ -159,7 +162,7 @@ export class TokenService {
       jti: refreshTokenResult.jti,
       appid,
       user_id: effectiveUserId,
-      expires_at: refreshTokenResult.expiresAt,
+      expires_at: refreshTokenResult.expiresAt * 1000, // Convert seconds to milliseconds
       revoked: false,
       replaced_by_jti: null,
       created_at: Date.now(),
@@ -655,7 +658,7 @@ export class TokenService {
  */
 export function createTokenService(
   blacklist: TokenBlacklist,
-  refreshTokenRepo: RefreshTokenRepository,
+  refreshTokenRepo: JwtRefreshTokenRepository,
   credentialService: CredentialService,
   rateLimiter: RateLimiter,
   config?: Partial<TokenServiceConfig>
@@ -670,6 +673,129 @@ export function createTokenService(
 }
 
 // ============================================
+// Real Credential Service
+// ============================================
+
+/**
+ * Create a real credential service that validates appId + appSecret
+ * against the Application table in the database.
+ */
+function createRealCredentialService(): CredentialService {
+  return {
+    validateCredentials: async (appid: string, appsecret: string) => {
+      const appRepo = getApplicationRepository();
+      const app = await appRepo.findByAppId(appid);
+
+      if (!app || app.status !== 'active') {
+        return { valid: false };
+      }
+
+      // If appsecret is empty (refresh flow), only validate appid exists and is active
+      if (!appsecret) {
+        return {
+          valid: true,
+          user_id: app.isvDeveloperId,
+          enterprise_id: undefined,
+          permissions: [],
+        };
+      }
+
+      const isValid = await bcrypt.compare(appsecret, app.appSecret);
+      if (!isValid) {
+        return { valid: false };
+      }
+
+      return {
+        valid: true,
+        user_id: app.isvDeveloperId,
+        enterprise_id: undefined,
+        permissions: [],
+      };
+    },
+  };
+}
+
+// ============================================
+// RefreshTokenRepository Adapter
+// Bridges between Prisma Repository and JWT types
+// ============================================
+
+/**
+ * Convert Prisma RefreshToken to JWT RefreshTokenRecord
+ */
+function toRefreshTokenRecord(prismaToken: {
+  id: bigint;
+  jti: string;
+  appid: string;
+  user_id: string;
+  expires_at: bigint;
+  revoked: boolean;
+  replaced_by_jti: string | null;
+  created_at: bigint;
+  last_used_at: bigint | null;
+}): RefreshTokenRecord {
+  return {
+    id: prismaToken.id,
+    jti: prismaToken.jti,
+    appid: prismaToken.appid,
+    user_id: prismaToken.user_id,
+    expires_at: Number(prismaToken.expires_at),
+    revoked: prismaToken.revoked,
+    replaced_by_jti: prismaToken.replaced_by_jti,
+    created_at: Number(prismaToken.created_at),
+    last_used_at: prismaToken.last_used_at ? Number(prismaToken.last_used_at) : null,
+  };
+}
+
+/**
+ * Create a refresh token repository adapter that bridges
+ * between the Prisma-based repository and the JWT types.
+ */
+function createRefreshTokenRepoAdapter(): JwtRefreshTokenRepository {
+  const repo = getRefreshTokenRepository();
+
+  return {
+    create: async (record) => {
+      const result = await repo.create({
+        jti: record.jti,
+        appid: record.appid,
+        user_id: record.user_id,
+        expires_at: BigInt(record.expires_at),
+        revoked: record.revoked,
+        replaced_by_jti: record.replaced_by_jti,
+        created_at: BigInt(record.created_at),
+        last_used_at: record.last_used_at ? BigInt(record.last_used_at) : null,
+      });
+      return toRefreshTokenRecord(result);
+    },
+
+    findByJti: async (jti) => {
+      const result = await repo.findByJti(jti);
+      return result ? toRefreshTokenRecord(result) : null;
+    },
+
+    findByAppid: async (appid) => {
+      const results = await repo.findByAppid(appid);
+      return results.map(toRefreshTokenRecord);
+    },
+
+    update: async () => null,
+
+    revoke: async (jti) => {
+      return repo.revoke(jti);
+    },
+
+    markReplaced: async (jti, replacedByJti) => {
+      return repo.markReplaced(jti, replacedByJti);
+    },
+
+    deleteExpired: async () => {
+      return repo.deleteExpired();
+    },
+  };
+}
+
+// ============================================
 // Default Token Service Instance (for DI)
 // ============================================
 
@@ -678,25 +804,6 @@ const defaultBlacklist: TokenBlacklist = {
   blacklist: async () => {},
   isBlacklisted: async () => false,
   remove: async () => {},
-};
-
-const defaultRefreshTokenRepo: RefreshTokenRepository = {
-  create: async (record) => ({
-    ...record,
-    id: 0n,
-  }),
-  findByJti: async () => null,
-  findByAppid: async () => [],
-  update: async () => null,
-  revoke: async () => false,
-  markReplaced: async () => false,
-  deleteExpired: async () => 0,
-};
-
-const defaultCredentialService: CredentialService = {
-  validateCredentials: async () => ({
-    valid: false,
-  }),
 };
 
 const defaultRateLimiter: RateLimiter = {
@@ -709,15 +816,25 @@ const defaultRateLimiter: RateLimiter = {
 };
 
 /**
+ * Real token service instance with database-backed implementations.
+ * Uses the real credential service and refresh token repository.
+ */
+function createRealTokenService(config?: Partial<TokenServiceConfig>): TokenService {
+  return createTokenService(
+    defaultBlacklist,
+    createRefreshTokenRepoAdapter(),
+    createRealCredentialService(),
+    defaultRateLimiter,
+    config
+  );
+}
+
+/**
  * Default token service instance
  * Use this for dependency injection in controllers/routes
  *
- * NOTE: In production, this should be replaced with a properly configured instance
- * that uses Redis for blacklist and repository, and real credential validation.
+ * NOTE: This is now backed by real database implementations.
+ * The credential service validates against the Application table,
+ * and refresh tokens are persisted in the refresh_tokens table.
  */
-export const tokenService = createTokenService(
-  defaultBlacklist,
-  defaultRefreshTokenRepo,
-  defaultCredentialService,
-  defaultRateLimiter
-);
+export const tokenService = createRealTokenService();

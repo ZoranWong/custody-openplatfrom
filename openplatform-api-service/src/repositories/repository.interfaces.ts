@@ -11,6 +11,7 @@ import {
   Application,
   OauthResource,
   EndpointPermission,
+  RefreshToken,
 } from '@prisma/client'
 
 export {
@@ -20,6 +21,7 @@ export {
   Application,
   OauthResource,
   EndpointPermission,
+  RefreshToken,
 }
 
 export interface IsvDeveloperRepository {
@@ -81,4 +83,22 @@ export interface OauthResourceRepository {
   create(data: Prisma.OauthResourceCreateInput): Promise<OauthResource>
   update(id: string, data: Prisma.OauthResourceUpdateInput): Promise<OauthResource>
   delete(id: string): Promise<boolean>
+}
+
+export interface RefreshTokenRepository {
+  create(record: {
+    jti: string
+    appid: string
+    user_id: string
+    expires_at: bigint
+    revoked: boolean
+    replaced_by_jti: string | null
+    created_at: bigint
+    last_used_at: bigint | null
+  }): Promise<RefreshToken>
+  findByJti(jti: string): Promise<RefreshToken | null>
+  findByAppid(appid: string): Promise<RefreshToken[]>
+  revoke(jti: string): Promise<boolean>
+  markReplaced(jti: string, replacedByJti: string): Promise<boolean>
+  deleteExpired(): Promise<number>
 }

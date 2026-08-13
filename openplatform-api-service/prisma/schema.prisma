@@ -318,6 +318,34 @@ model EndpointPermission {
 }
 
 // ============================================
+// RefreshToken - 刷新令牌表
+// ============================================
+model RefreshToken {
+  /// 记录唯一标识（自增）
+  id              BigInt   @id @default(autoincrement())
+  /// JWT Token ID
+  jti             String   @unique
+  /// 关联的应用ID
+  appid           String
+  /// 用户ID
+  user_id         String
+  /// 过期时间（Unix timestamp，毫秒）
+  expires_at      BigInt
+  /// 是否已撤销
+  revoked         Boolean  @default(false)
+  /// 替换此令牌的JTI（令牌轮换时使用）
+  replaced_by_jti String?
+  /// 创建时间（Unix timestamp，毫秒）
+  created_at      BigInt
+  /// 最后使用时间（Unix timestamp，毫秒）
+  last_used_at    BigInt?
+
+  @@index([appid])
+  @@index([jti])
+  @@map("refresh_tokens")
+}
+
+// ============================================
 // Admin - 管理员表
 // ============================================
 model Admin {
