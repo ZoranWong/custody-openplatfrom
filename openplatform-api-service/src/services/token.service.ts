@@ -307,7 +307,7 @@ export class TokenService {
       jti: newRefreshToken.jti,
       appid,
       user_id: existingRecord.user_id,
-      expires_at: newRefreshToken.expiresAt,
+      expires_at: newRefreshToken.expiresAt * 1000,
       revoked: false,
       replaced_by_jti: null,
       created_at: Date.now(),
