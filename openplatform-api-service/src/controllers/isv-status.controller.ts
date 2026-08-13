@@ -85,7 +85,7 @@ export async function activateISV(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params
     const { reason } = req.body as StatusActionBody
-    const adminId = req.headers['x-admin-id'] as string || 'unknown'
+    const adminId = (req as any).adminId || 'unknown'
 
     // Validate status is valid
     const action: ISVStatusAction = {
@@ -130,7 +130,7 @@ export async function suspendISV(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params
     const { reason } = req.body as StatusActionBody
-    const adminId = req.headers['x-admin-id'] as string || 'unknown'
+    const adminId = (req as any).adminId || 'unknown'
 
     const action: ISVStatusAction = {
       status: ISVStatus.SUSPENDED,
@@ -174,7 +174,7 @@ export async function banISV(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params
     const { reason } = req.body as StatusActionBody
-    const adminId = req.headers['x-admin-id'] as string || 'unknown'
+    const adminId = (req as any).adminId || 'unknown'
 
     if (!reason) {
       res.status(HttpCodes.BAD_REQUEST).json({

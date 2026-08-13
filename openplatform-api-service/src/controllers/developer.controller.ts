@@ -155,7 +155,7 @@ export async function getDeveloperUsers(req: Request, res: Response): Promise<vo
 export async function approveDeveloper(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params
-    const adminEmail = (req as any).user?.email || 'admin@cregis.com'
+    const adminEmail = (req as any).adminEmail || 'unknown'
 
     const isvRepo = getIsvDeveloperRepository()
     const isv = await isvRepo.findById(id)
@@ -192,7 +192,7 @@ export async function rejectDeveloper(req: Request, res: Response): Promise<void
   try {
     const { id } = req.params
     const { reason } = req.body
-    const adminEmail = (req as any).user?.email || 'admin@cregis.com'
+    const adminEmail = (req as any).adminEmail || 'unknown'
 
     if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
       res.status(HttpCodes.BAD_REQUEST).json({ code: BusinessCodes.PARAM_REQUIRED, message: 'Rejection reason is required' })
