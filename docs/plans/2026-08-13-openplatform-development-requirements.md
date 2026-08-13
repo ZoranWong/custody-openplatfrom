@@ -63,12 +63,13 @@ Cregis Custody OpenPlatform 是一个银行级加密货币托管开放平台，�
 | Minor | 18 | 加固与规范性改进 |
 | API 组织优化 | 8 | 代码结构优化 |
 | 注释完善 | 6 | 关键代码注释 |
+| UI 改造 | 6 | Art Design Pro 迁移 |
 | Mock→真实 | 7 | 内存/mock 数据迁移为真实实现 |
 | Admin Portal | 6 | 管理后台新功能 |
 | Developer Portal | 9 | 开发者门户新功能 |
 | SDK 完善 | 4 | SDK 补齐遗漏 |
-| UI 改造 | 6 | Art Design Pro 迁移 |
 | 其他 | 5 | 测试、监控、验证、插件页面 |
+| 补充功能 | 8 | 后期迭代（注销、导出、日志、发票等） |
 
 ---
 
@@ -742,6 +743,58 @@ console.log('[Login] Password verification:', {
 
 ---
 
+### 9.6 补充功能（后期迭代）
+
+#### LATE-1: ISV 自助注销
+
+**说明:** 当前 `IsvDeveloper.status` 有 `deleted` 状态，但无对应的注销 API。
+
+**目标:** ISV 可申请注销账号，管理员审核后执行注销。
+
+#### LATE-2: 数据导出
+
+**说明:** ISV 需要导出自己的 API 调用记录和消费明细。
+
+**目标:** 支持 CSV/Excel 导出，按时间范围筛选。
+
+#### LATE-3: ISV 侧操作日志
+
+**说明:** ISV 需要查看团队成员的操作记录（谁创建了应用、谁修改了 Webhook 配置等）。
+
+**目标:** 在 Developer Portal 增加操作日志页面。
+
+#### LATE-4: API 调用限流通知
+
+**说明:** 当日调用量接近上限时提前通知 ISV。
+
+**目标:** 在用量达到 80%/90%/100% 时分别发送通知（邮件/站内信），引导升级套餐。
+
+#### LATE-5: 发票管理
+
+**说明:** ISV 购买套餐后需要开具发票。
+
+**目标:** 支持发票申请（填写抬头、税号），管理员审核开票，ISV 查看发票历史。
+
+#### LATE-6: Admin 多因子认证（MFA）
+
+**说明:** 管理后台登录需要 MFA 保护。
+
+**目标:** Admin 登录后需要 TOTP 验证，复用 auth-page 已有的 TOTP 流程。
+
+#### LATE-7: IP 白名单
+
+**说明:** ISV 可配置 API 调用的 IP 白名单。
+
+**目标:** 在应用详情中增加 IP 白名单配置，API 网关层校验。
+
+#### LATE-8: 应用转让
+
+**说明:** ISV 将应用转让给另一个 ISV。
+
+**目标:** 支持应用转让申请 + 接收方确认流程。
+
+---
+
 ## 10. 执行清单
 
 ### 阶段一：P0 安全修复（预计 1 周）
@@ -768,7 +821,11 @@ console.log('[Login] Password verification:', {
 - [ ] ORG-1 ~ ORG-8: API 代码组织优化
 - [ ] DOC-1 ~ DOC-6: 代码注释完善
 
-### 阶段四：Mock → 真实实现（预计 4-6 周）
+### 阶段四：UI 改造（预计 4-6 周）
+
+- [ ] UI-1 ~ UI-6: Art Design Pro 迁移
+
+### 阶段五：Mock → 真实实现（预计 4-6 周）
 
 - [ ] REAL-1: Billing 计费服务真实化（套餐模型 + 订阅 + 订单 + 支付）
 - [ ] REAL-2: Dashboard 统计真实化
@@ -778,7 +835,7 @@ console.log('[Login] Password verification:', {
 - [ ] REAL-6: Auth-page 移除 mock 降级
 - [ ] REAL-7: Developer Portal 移除 mock 数据
 
-### 阶段五：Admin Portal 新功能（预计 3-4 周）
+### 阶段六：Admin Portal 新功能（预计 3-4 周）
 
 - [ ] ADMIN-1: 管理员账号管理
 - [ ] ADMIN-2: 审计日志查看
@@ -787,7 +844,7 @@ console.log('[Login] Password verification:', {
 - [ ] ADMIN-5: 订单与支付管理
 - [ ] ADMIN-6: 系统公告管理
 
-### 阶段六：Developer Portal 新功能（预计 3-4 周）
+### 阶段七：Developer Portal 新功能（预计 3-4 周）
 
 - [ ] DEV-1: 套餐购买与续费
 - [ ] DEV-2: 消费明细
@@ -799,21 +856,28 @@ console.log('[Login] Password verification:', {
 - [ ] DEV-8: 通知中心
 - [ ] DEV-9: SDK 下载入口
 
-### 阶段七：SDK 完善（预计 2-3 周）
+### 阶段八：SDK 完善 + 其他（预计 2-3 周）
 
 - [ ] SDK-1: Node SDK 补齐遗漏方法
 - [ ] SDK-2: Java SDK 补齐遗漏方法
 - [ ] SDK-3: Java SDK 启用 netty 和 spring-boot-starter
 - [ ] SDK-4: Web SDK 测试修复
-
-### 阶段八：UI 改造 + 其他（预计 4-6 周）
-
-- [ ] UI-1 ~ UI-6: Art Design Pro 迁移
 - [ ] OTH-1: Admin Portal 测试覆盖
 - [ ] OTH-2: 监控告警
 - [ ] OTH-3: 邮件/短信验证
 - [ ] OTH-4: ISV 忘记密码/重置密码
 - [ ] OTH-5: 嵌入式插件页面
+
+### 阶段九：补充功能（后期迭代，预计 3-4 周）
+
+- [ ] LATE-1: ISV 自助注销
+- [ ] LATE-2: 数据导出
+- [ ] LATE-3: ISV 侧操作日志
+- [ ] LATE-4: API 调用限流通知
+- [ ] LATE-5: 发票管理
+- [ ] LATE-6: Admin 多因子认证（MFA）
+- [ ] LATE-7: IP 白名单
+- [ ] LATE-8: 应用转让
 
 ---
 
