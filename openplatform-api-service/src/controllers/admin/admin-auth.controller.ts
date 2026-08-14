@@ -151,16 +151,6 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
   try {
     const { email, password } = req.body
 
-    // Validate input
-    if (!email || !password) {
-      res.status(HttpCodes.BAD_REQUEST).json({
-        code: BusinessCodes.PARAM_REQUIRED,
-        message: 'Invalid credentials',
-        trace_id: req.headers['x-trace-id'] as string || ''
-      })
-      return
-    }
-
     // Check rate limit
     if (!await checkLoginRateLimit(email)) {
       res.status(HttpCodes.TOO_MANY_REQUESTS).json({
@@ -250,15 +240,6 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
 export async function adminRefreshToken(req: Request, res: Response): Promise<void> {
   try {
     const refreshToken = req.cookies?.adminRefreshToken || req.body?.refreshToken
-
-    if (!refreshToken) {
-      res.status(HttpCodes.BAD_REQUEST).json({
-        code: BusinessCodes.PARAM_INVALID_FORMAT,
-        message: 'Refresh token is required',
-        trace_id: req.headers['x-trace-id'] as string || ''
-      })
-      return
-    }
 
     // Check rate limit for refresh attempts
     if (!await checkRefreshRateLimit(refreshToken)) {
@@ -371,15 +352,6 @@ export async function adminChangePassword(req: Request, res: Response): Promise<
   try {
     const adminId = (req as any).adminId
     const { currentPassword, newPassword } = req.body
-
-    if (!currentPassword || !newPassword) {
-      res.status(HttpCodes.BAD_REQUEST).json({
-        code: BusinessCodes.PARAM_BUSINESS_RULE,
-        message: 'Current password and new password are required',
-        trace_id: req.headers['x-trace-id'] as string || ''
-      })
-      return
-    }
 
     // Validate new password strength
     const passwordValidation = adminService.validatePasswordStrength(newPassword)

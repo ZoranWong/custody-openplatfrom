@@ -194,11 +194,6 @@ export async function rejectDeveloper(req: Request, res: Response): Promise<void
     const { reason } = req.body
     const adminEmail = (req as any).adminEmail || 'unknown'
 
-    if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
-      res.status(HttpCodes.BAD_REQUEST).json({ code: BusinessCodes.PARAM_REQUIRED, message: 'Rejection reason is required' })
-      return
-    }
-
     const isvRepo = getIsvDeveloperRepository()
     const isv = await isvRepo.findById(id)
 
@@ -291,11 +286,6 @@ export async function banDeveloper(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params
     const { reason } = req.body
-
-    if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
-      res.status(HttpCodes.BAD_REQUEST).json({ code: BusinessCodes.PARAM_REQUIRED, message: 'Ban reason is required' })
-      return
-    }
 
     const isvRepo = getIsvDeveloperRepository()
     const isv = await isvRepo.findById(id)

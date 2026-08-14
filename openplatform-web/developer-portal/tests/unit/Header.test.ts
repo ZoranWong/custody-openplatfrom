@@ -19,8 +19,8 @@ describe('Header', () => {
   it('displays navigation links', () => {
     const wrapper = mount(Header)
 
-    expect(wrapper.text()).toContain('文档')
-    expect(wrapper.text()).toContain('API 参考')
+    expect(wrapper.text()).toContain('Docs')
+    expect(wrapper.text()).toContain('API Reference')
     expect(wrapper.text()).toContain('SDK')
     expect(wrapper.text()).toContain('GitHub')
   })
@@ -28,21 +28,21 @@ describe('Header', () => {
   it('has login button', () => {
     const wrapper = mount(Header)
 
-    const loginButton = wrapper.findAll('button').find(b => b.text().includes('登录'))
+    const loginButton = wrapper.findAll('button').find(b => b.text().includes('Sign In'))
     expect(loginButton).toBeDefined()
   })
 
   it('has Get Started button', () => {
     const wrapper = mount(Header)
 
-    const startButton = wrapper.findAll('button').find(b => b.text().includes('开始使用'))
+    const startButton = wrapper.findAll('button').find(b => b.text().includes('Get Started'))
     expect(startButton).toBeDefined()
   })
 
   it('has mobile menu button', () => {
     const wrapper = mount(Header)
 
-    const mobileButton = wrapper.find('button.md\\:hidden')
+    const mobileButton = wrapper.find('button[aria-label="Toggle mobile menu"]')
     expect(mobileButton.exists()).toBe(true)
   })
 
@@ -50,14 +50,13 @@ describe('Header', () => {
     const wrapper = mount(Header)
 
     // Initially mobile menu should be hidden
-    const mobileMenu = wrapper.find('.md\\:hidden + *') // Mobile menu is the div after button
-    expect(wrapper.find('.md\\:hidden + *').exists()).toBe(false) // v-if makes it not exist
+    expect(wrapper.find('#mobile-menu').exists()).toBe(false)
 
     // Click mobile menu button
-    await wrapper.find('button.md\\:hidden').trigger('click')
+    await wrapper.find('button[aria-label="Toggle mobile menu"]').trigger('click')
 
     // Mobile menu should now be visible
-    expect(wrapper.find('.md\\:hidden + *').exists()).toBe(true)
+    expect(wrapper.find('#mobile-menu').exists()).toBe(true)
   })
 
   it('uses brand color for hover states', () => {
@@ -71,7 +70,7 @@ describe('Header', () => {
   it('navigation links have correct href attributes', () => {
     const wrapper = mount(Header)
 
-    const docsLink = wrapper.findAll('a').find(a => a.text().includes('文档'))
+    const docsLink = wrapper.findAll('a').find(a => a.text().includes('Docs'))
     expect(docsLink).toBeDefined()
     expect(docsLink?.attributes('href')).toBe('/docs')
   })

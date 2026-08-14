@@ -21,6 +21,8 @@ import {
     validateParamValue,
 } from '../config/forward-routes';
 import { basicValidationMiddleware, resourceValidationMiddleware } from '../middleware/resource-validation.middleware';
+import { validateVerifyOAuthToken } from '../validate/rules';
+
 import { AuthorizationResult } from '../services/resource-authorization.service';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
@@ -185,7 +187,7 @@ router.post('/oauth/token', basicValidationMiddleware, issueOauthToken);
 router.post('/oauth/authorizeUrl', basicValidationMiddleware, buildAuthorizeUrl);
 
 // POST /api/thirdparty/oauth/verify - Verify OAuth token and save OauthResource (no validation)
-router.post('/oauth/verify', verifyOauthToken);
+router.post('/oauth/verify', validateVerifyOAuthToken, verifyOauthToken);
 
 // =============================================================================
 // Third-party Resource Endpoints - Use ResourceValidator (BasicInfoWithAuthorization)

@@ -5,5 +5,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['src/**/*.test.ts'],
+    server: {
+      deps: {
+        inline: ['lodash', 'sealx-sdk'],
+      },
+    },
   },
 });

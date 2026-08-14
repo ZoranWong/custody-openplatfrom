@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { HttpCodes } from '../../enums/http-codes.enum'
 import { BusinessCodes } from '../../enums/business-codes.enum'
 import { isvAuth, requireOwner, ISVAuthRequest } from '../../middleware/isv-auth.middleware'
+import { validateRegister, validateISVLogin, validateCreateApplication } from '../../validate/rules'
+
 import {
   ownerLogin,
   register,
@@ -29,13 +31,13 @@ const router = Router()
  * POST /isv/auth/register
  * ISV Owner registration
  */
-router.post('/auth/register', register)
+router.post('/auth/register', validateRegister, register)
 
 /**
  * POST /isv/auth/login
  * ISV Owner/Developer login
  */
-router.post('/auth/login', ownerLogin)
+router.post('/auth/login', validateISVLogin, ownerLogin)
 
 /**
  * POST /isv/auth/logout
@@ -251,18 +253,10 @@ router.get('/applications/all', isvAuth, requireOwner, async (req, res) => {
  * POST /isv/applications
  * Create new application (Owner only)
  */
-router.post('/applications', isvAuth, requireOwner, async (req, res) => {
+router.post('/applications', isvAuth, requireOwner, validateCreateApplication, async (req, res) => {
   try {
     const isvUser = (req as ISVAuthRequest).isvUser
     const { appName, appDescription, appType, callbackUrl } = req.body
-
-    if (!appName) {
-      res.status(400).json({
-        code: BusinessCodes.PARAM_REQUIRED,
-        message: 'Application name is required'
-      })
-      return
-    }
 
     if (!appType || !['corporate', 'payment', 'custody'].includes(appType)) {
       res.status(400).json({

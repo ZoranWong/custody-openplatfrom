@@ -273,16 +273,6 @@ export async function rejectKYB(req: Request, res: Response): Promise<void> {
     const adminId = (req as any).adminId || 'unknown'
     const body = req.body as ReviewRequestBody
 
-    if (!body.comment || body.comment.trim().length === 0) {
-      res.status(HttpCodes.BAD_REQUEST).json({
-        code: BusinessCodes.PARAM_INVALID_FORMAT,
-        message: 'Rejection reason is required',
-        data: null,
-        trace_id: req.headers['x-trace-id'] as string || ''
-      })
-      return
-    }
-
     const result = kybReviewService.reviewApplication(id, adminId, {
       status: KYBStatus.REJECTED,
       comment: body.comment

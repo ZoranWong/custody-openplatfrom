@@ -11,7 +11,7 @@ import apiService from '@/services/api'
 vi.mock('@/services/api', () => ({
   default: {
     login: vi.fn(),
-    logout: vi.fn(),
+    logout: vi.fn().mockResolvedValue(undefined),
     getISVProfile: vi.fn().mockResolvedValue({ code: 0, data: { user: null } }),
     getISVInfo: vi.fn().mockResolvedValue({ code: 0, data: {} }),
     updateISVProfile: vi.fn().mockResolvedValue({ code: 0, data: { user: null } })
@@ -210,7 +210,8 @@ describe('useAuthStore', () => {
       ;(apiService.logout as any).mockRejectedValue(new Error('Network error'))
 
       const store = useAuthStore()
-      await store.logout()
+      // logout() throws after cleanup, but cleanup (localStorage removal) still happens
+      await expect(store.logout()).rejects.toThrow('Network error')
 
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('accessToken')
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('refreshToken')
@@ -221,6 +222,7 @@ describe('useAuthStore', () => {
     it('fetches user profile when authenticated', async () => {
       localStorageMock.store['accessToken'] = 'test-token'
       const mockUser = { id: '1', email: 'test@test.com' }
+      // Set up the mock BEFORE init so it resolves properly
       ;(apiService.getISVProfile as any).mockResolvedValue({
         code: 0,
         data: { user: mockUser }
@@ -228,7 +230,9 @@ describe('useAuthStore', () => {
 
       const store = useAuthStore()
       store.init()
-      await Promise.resolve() // Wait for async init
+      // init() calls fetchProfile() but doesn't await it. We need to wait for
+      // the async operation to complete. Use a small delay to flush microtasks.
+      await new Promise(resolve => setTimeout(resolve, 10))
 
       expect(apiService.getISVProfile).toHaveBeenCalled()
       expect(store.user).toEqual(mockUser)
@@ -252,6 +256,10 @@ describe('useAuthStore', () => {
       })
 
       const store = useAuthStore()
+      store.init()
+      // Wait for init to complete (fetchProfile is fire-and-forget)
+      await new Promise(resolve => setTimeout(resolve, 10))
+      // Now token is set, call fetchISVInfo
       await store.fetchISVInfo()
 
       expect(apiService.getISVInfo).toHaveBeenCalled()

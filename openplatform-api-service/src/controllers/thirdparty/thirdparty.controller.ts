@@ -224,24 +224,6 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
 export async function verifyOauthToken(req: Request, res: Response): Promise<void> {
     const { resourceKey, oauthToken } = req.body;
 
-    // Validate resourceKey
-    if (!resourceKey) {
-        res.status(HttpCodes.BAD_REQUEST).json({
-            code: BusinessCodes.PARAM_REQUIRED,
-            message: 'Missing required parameter: resourceKey',
-        });
-        return;
-    }
-
-    // Validate oauthToken
-    if (!oauthToken) {
-        res.status(HttpCodes.BAD_REQUEST).json({
-            code: BusinessCodes.PARAM_REQUIRED,
-            message: 'Missing required parameter: oauthToken',
-        });
-        return;
-    }
-
     // Verify and decode the JWT
     const payload = verifyJWT<{
         appId: string;

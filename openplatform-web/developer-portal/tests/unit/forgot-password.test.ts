@@ -68,7 +68,7 @@ describe('ForgotPasswordPage', () => {
     })
 
     it('renders email input field', () => {
-      const emailInput = wrapper.find('input[type="email"], .el-input-stub input')
+      const emailInput = wrapper.find('.el-input-stub')
       expect(emailInput.exists()).toBe(true)
     })
 
@@ -85,48 +85,48 @@ describe('ForgotPasswordPage', () => {
 
   describe('Email Validation', () => {
     it('shows error for empty email on submit', async () => {
-      const button = wrapper.find('button.button-stub')
-      await button.trigger('submit.prevent')
+      const form = wrapper.find('form')
+      await form.trigger('submit.prevent')
 
       expect(wrapper.vm.error).toBe('请输入邮箱地址')
     })
 
     it('shows error for invalid email format', async () => {
-      const emailInput = wrapper.find('input[type="email"], .el-input-stub input')
+      const emailInput = wrapper.find('.el-input-stub')
       await emailInput.setValue('invalid-email')
 
-      const button = wrapper.find('button.button-stub')
-      await button.trigger('submit.prevent')
+      const form = wrapper.find('form')
+      await form.trigger('submit.prevent')
 
       expect(wrapper.vm.error).toBe('请输入有效的邮箱地址')
     })
 
     it('accepts valid email format', async () => {
-      const emailInput = wrapper.find('input[type="email"], .el-input-stub input')
+      const emailInput = wrapper.find('.el-input-stub')
       await emailInput.setValue('test@example.com')
 
-      const button = wrapper.find('button.button-stub')
-      await button.trigger('submit.prevent')
+      const form = wrapper.find('form')
+      await form.trigger('submit.prevent')
 
       expect(wrapper.vm.error).toBe('')
     })
 
     it('accepts email with subdomain', async () => {
-      const emailInput = wrapper.find('input[type="email"], .el-input-stub input')
+      const emailInput = wrapper.find('.el-input-stub')
       await emailInput.setValue('test@mail.example.com')
 
-      const button = wrapper.find('button.button-stub')
-      await button.trigger('submit.prevent')
+      const form = wrapper.find('form')
+      await form.trigger('submit.prevent')
 
       expect(wrapper.vm.error).toBe('')
     })
 
     it('accepts email with plus sign', async () => {
-      const emailInput = wrapper.find('input[type="email"], .el-input-stub input')
+      const emailInput = wrapper.find('.el-input-stub')
       await emailInput.setValue('test+tag@example.com')
 
-      const button = wrapper.find('button.button-stub')
-      await button.trigger('submit.prevent')
+      const form = wrapper.find('form')
+      await form.trigger('submit.prevent')
 
       expect(wrapper.vm.error).toBe('')
     })
@@ -136,11 +136,11 @@ describe('ForgotPasswordPage', () => {
     it('calls forgotPassword API with email on submit', async () => {
       ;(apiService.forgotPassword as any).mockResolvedValue({ code: 0 })
 
-      const emailInput = wrapper.find('input[type="email"], .el-input-stub input')
+      const emailInput = wrapper.find('.el-input-stub')
       await emailInput.setValue('test@example.com')
 
-      const button = wrapper.find('button.button-stub')
-      await button.trigger('submit.prevent')
+      const form = wrapper.find('form')
+      await form.trigger('submit.prevent')
 
       expect(apiService.forgotPassword).toHaveBeenCalledWith({ email: 'test@example.com' })
     })
@@ -148,11 +148,11 @@ describe('ForgotPasswordPage', () => {
     it('sets loading state during API call', async () => {
       ;(apiService.forgotPassword as any).mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
 
-      const emailInput = wrapper.find('input[type="email"], .el-input-stub input')
+      const emailInput = wrapper.find('.el-input-stub')
       await emailInput.setValue('test@example.com')
 
-      const button = wrapper.find('button.button-stub')
-      await button.trigger('submit.prevent')
+      const form = wrapper.find('form')
+      await form.trigger('submit.prevent')
 
       expect(wrapper.vm.loading).toBe(true)
     })
@@ -160,24 +160,31 @@ describe('ForgotPasswordPage', () => {
     it('navigates to login on success', async () => {
       ;(apiService.forgotPassword as any).mockResolvedValue({ code: 0 })
 
-      const emailInput = wrapper.find('input[type="email"], .el-input-stub input')
+      const emailInput = wrapper.find('.el-input-stub')
       await emailInput.setValue('test@example.com')
 
-      const button = wrapper.find('button.button-stub')
-      await button.trigger('submit.prevent')
+      const form = wrapper.find('form')
+      await form.trigger('submit.prevent')
 
-      // Check navigation was called (router.push)
+      // Wait for async handler and router navigation to complete
+      await wrapper.vm.$nextTick()
+      await router.isReady()
+
       expect(router.currentRoute.value.path).toBe('/login')
     })
 
     it('always navigates to login even on API error (security)', async () => {
       ;(apiService.forgotPassword as any).mockRejectedValue(new Error('API Error'))
 
-      const emailInput = wrapper.find('input[type="email"], .el-input-stub input')
+      const emailInput = wrapper.find('.el-input-stub')
       await emailInput.setValue('test@example.com')
 
-      const button = wrapper.find('button.button-stub')
-      await button.trigger('submit.prevent')
+      const form = wrapper.find('form')
+      await form.trigger('submit.prevent')
+
+      // Wait for async handler and router navigation to complete
+      await wrapper.vm.$nextTick()
+      await router.isReady()
 
       // Should still navigate to login for security (don't reveal if email exists)
       expect(router.currentRoute.value.path).toBe('/login')
@@ -186,11 +193,11 @@ describe('ForgotPasswordPage', () => {
 
   describe('Error Handling', () => {
     it('clears error when user types', async () => {
-      const button = wrapper.find('button.button-stub')
-      await button.trigger('submit.prevent')
+      const form = wrapper.find('form')
+      await form.trigger('submit.prevent')
       expect(wrapper.vm.error).toBeTruthy()
 
-      const emailInput = wrapper.find('input[type="email"], .el-input-stub input')
+      const emailInput = wrapper.find('.el-input-stub')
       await emailInput.setValue('newvalue')
 
       expect(wrapper.vm.error).toBe('')

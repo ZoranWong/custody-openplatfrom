@@ -53,15 +53,6 @@ export async function register(req: Request, res: Response): Promise<void> {
       uboInfo
     } = req.body
 
-    // Validate required fields
-    if (!email || !password || !legalName || !registrationNumber || !jurisdiction || !dateOfIncorporation || !registeredAddress) {
-      res.status(HttpCodes.BAD_REQUEST).json({
-        code: BusinessCodes.PARAM_REQUIRED,
-        message: 'Missing required fields: email, password, legalName, registrationNumber, jurisdiction, dateOfIncorporation, registeredAddress'
-      })
-      return
-    }
-
     // Validate UBO info
     if (!uboInfo || !Array.isArray(uboInfo) || uboInfo.length === 0) {
       res.status(HttpCodes.BAD_REQUEST).json({
@@ -146,14 +137,6 @@ export async function register(req: Request, res: Response): Promise<void> {
 export async function ownerLogin(req: Request, res: Response): Promise<void> {
   try {
     const { email, password } = req.body
-
-    if (!email || !password) {
-      res.status(HttpCodes.BAD_REQUEST).json({
-        code: BusinessCodes.PARAM_REQUIRED,
-        message: 'Missing required fields: email, password'
-      })
-      return
-    }
 
     // Find user by email first to get isvId
     const userByEmail = await isvUserService.getUserByEmail(email)

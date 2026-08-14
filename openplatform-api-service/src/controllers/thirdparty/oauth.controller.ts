@@ -26,25 +26,8 @@ export async function oauthToken(req: Request, res: Response): Promise<void> {
   const { grant_type, appid, appsecret, refresh_token } = req.body;
   const clientIp = req.ip || 'unknown';
 
-  // Validate grant_type is present
-  if (!grant_type) {
-    res.status(HttpCodes.BAD_REQUEST).json({
-      code: BusinessCodes.PARAM_REQUIRED,
-      message: 'Missing required parameter: grant_type',
-    });
-    return;
-  }
-
   // Handle client_credentials grant
   if (grant_type === 'client_credentials') {
-    if (!appid || !appsecret) {
-      res.status(HttpCodes.BAD_REQUEST).json({
-        code: BusinessCodes.PARAM_REQUIRED,
-        message: 'Missing required parameters: appid and appsecret',
-      });
-      return;
-    }
-
     const result = await tokenService.issueTokens(
       appid,
       appsecret,
@@ -65,14 +48,6 @@ export async function oauthToken(req: Request, res: Response): Promise<void> {
 
   // Handle refresh_token grant
   if (grant_type === 'refresh_token') {
-    if (!appid || !refresh_token) {
-      res.status(HttpCodes.BAD_REQUEST).json({
-        code: BusinessCodes.PARAM_REQUIRED,
-        message: 'Missing required parameters: appid and refresh_token',
-      });
-      return;
-    }
-
     const result = await tokenService.refreshAccessToken(
       refresh_token,
       appid,
@@ -106,14 +81,6 @@ export async function oauthToken(req: Request, res: Response): Promise<void> {
  */
 export async function oauthRevoke(req: Request, res: Response): Promise<void> {
   const { refresh_token } = req.body;
-
-  if (!refresh_token) {
-    res.status(HttpCodes.BAD_REQUEST).json({
-      code: BusinessCodes.PARAM_REQUIRED,
-      message: 'Missing required parameter: refresh_token',
-    });
-    return;
-  }
 
   const result = await tokenService.revokeRefreshToken(refresh_token);
 
@@ -171,22 +138,6 @@ export async function validateAppToken(req: Request, res: Response): Promise<voi
   // Extract appId and appToken from request body
   const appId = req.body.appId as string;
   const appToken = req.body.appToken as string;
-
-  if (!appId) {
-    res.status(HttpCodes.BAD_REQUEST).json({
-      code: BusinessCodes.PARAM_REQUIRED,
-      message: 'Missing required parameter: appId',
-    });
-    return;
-  }
-
-  if (!appToken) {
-    res.status(HttpCodes.BAD_REQUEST).json({
-      code: BusinessCodes.PARAM_REQUIRED,
-      message: 'Missing required parameter: appToken',
-    });
-    return;
-  }
 
   // Look up appSecret from database using appId
   const applicationRepo = getApplicationRepository();

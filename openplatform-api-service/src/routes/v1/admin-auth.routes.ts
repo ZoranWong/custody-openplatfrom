@@ -10,6 +10,7 @@ import {
 import { adminAuthMiddleware, requireRole } from '../../middleware/admin-auth.middleware'
 import { requirePermission } from '../../middleware/admin-permission.middleware'
 import { Resource } from '../../constants/admin-permissions'
+import { validateLogin, validateRefreshToken, validateChangePassword, validateBanDeveloper } from '../../validate/rules'
 import {
   getDevelopers,
   getDeveloperById,
@@ -24,12 +25,12 @@ import {
 const router = Router()
 
 // Admin auth routes (public)
-router.post('/auth/login', adminLogin)
-router.post('/auth/refresh', adminRefreshToken)
+router.post('/auth/login', validateLogin, adminLogin)
+router.post('/auth/refresh', validateRefreshToken, adminRefreshToken)
 
 // Protected routes (require authentication)
 router.post('/auth/logout', adminAuthMiddleware, adminLogout)
-router.post('/auth/change-password', adminAuthMiddleware, adminChangePassword)
+router.post('/auth/change-password', adminAuthMiddleware, validateChangePassword, adminChangePassword)
 router.get('/profile', adminAuthMiddleware, getAdminProfile)
 
 // Admin management routes (super_admin only)
@@ -44,8 +45,8 @@ router.get('/developers/:id', adminAuthMiddleware, getDeveloperById)
 
 // Mutation routes - need KYB approval permission
 router.post('/developers/:id/approve', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), approveDeveloper)
-router.post('/developers/:id/reject', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), rejectDeveloper)
-router.post('/developers/:id/ban', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), banDeveloper)
+router.post('/developers/:id/reject', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), validateBanDeveloper, rejectDeveloper)
+router.post('/developers/:id/ban', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), validateBanDeveloper, banDeveloper)
 
 // Status management routes - need ISV status permission
 router.post('/developers/:id/activate', adminAuthMiddleware, requirePermission(Resource.ISV_STATUS), activateDeveloper)
