@@ -6,7 +6,7 @@ import {
   adminChangePassword,
   getAdminProfile,
   listAdmins
-} from '../../controllers/admin-auth.controller'
+} from '../../controllers/admin/admin-auth.controller'
 import { adminAuthMiddleware, requireRole } from '../../middleware/admin-auth.middleware'
 import { requirePermission } from '../../middleware/admin-permission.middleware'
 import { Resource } from '../../constants/admin-permissions'
@@ -19,7 +19,7 @@ import {
   suspendDeveloper,
   banDeveloper,
   getDeveloperStats
-} from '../../controllers/developer.controller'
+} from '../../controllers/admin/developer.controller'
 
 const router = Router()
 

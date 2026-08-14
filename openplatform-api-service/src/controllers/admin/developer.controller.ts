@@ -5,10 +5,10 @@
 
 import { Request, Response } from 'express'
 import { Prisma } from '@prisma/client'
-import { getIsvDeveloperRepository, getISVUserRepository } from '../repositories/repository.factory'
-import { IsvDeveloper } from '../repositories/repository.interfaces'
-import { HttpCodes } from '../enums/http-codes.enum'
-import { BusinessCodes } from '../enums/business-codes.enum'
+import { getIsvDeveloperRepository, getISVUserRepository } from '../../repositories/repository.factory'
+import { IsvDeveloper } from '../../repositories/repository.interfaces'
+import { HttpCodes } from '../../enums/http-codes.enum'
+import { BusinessCodes } from '../../enums/business-codes.enum'
 
 /**
  * GET /admin/developers

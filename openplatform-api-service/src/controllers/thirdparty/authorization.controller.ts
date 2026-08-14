@@ -4,14 +4,14 @@
  */
 
 import { Request, Response } from 'express';
-import { HttpCodes } from '../enums/http-codes.enum';
-import { BusinessCodes } from '../enums/business-codes.enum';
-import { getApplicationRepository } from '../repositories/repository.factory';
-import { getAuthorizationRepository } from '../repositories/repository.factory';
-import { computeSignature, verifySignature } from '../utils/signature.util';
-import { OauthResource } from '../repositories/repository.interfaces';
-import { getApplicationCallbackService } from '../services/application-callback.service';
-import { logger } from '../utils/logger';
+import { HttpCodes } from '../../enums/http-codes.enum';
+import { BusinessCodes } from '../../enums/business-codes.enum';
+import { getApplicationRepository } from '../../repositories/repository.factory';
+import { getAuthorizationRepository } from '../../repositories/repository.factory';
+import { computeSignature, verifySignature } from '../../utils/signature.util';
+import { OauthResource } from '../../repositories/repository.interfaces';
+import { getApplicationCallbackService } from '../../services/application-callback.service';
+import { logger } from '../../utils/logger';
 
 /**
  * Sort object keys recursively for consistent JSON serialization

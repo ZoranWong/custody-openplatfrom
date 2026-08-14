@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as crypto from 'crypto';
-import { getAuthorization } from '../../src/controllers/authorization.controller';
+import { getAuthorization } from '../../src/controllers/thirdparty/authorization.controller';
 import { Request, Response } from 'express';
 
 // Mock repositories

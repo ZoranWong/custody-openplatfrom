@@ -12,7 +12,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { HttpCodes } from '../enums/http-codes.enum';
 import { BusinessCodes } from '../enums/business-codes.enum';
-import { issueOauthToken, verifyOauthToken, buildAuthorizeUrl } from '../controllers/thirdparty.controller';
+import { issueOauthToken, verifyOauthToken, buildAuthorizeUrl } from '../controllers/thirdparty/thirdparty.controller';
 import { createHttpClient, HttpClient } from '../services/http-client.service';
 import {
     BACKEND_CLIENTS,

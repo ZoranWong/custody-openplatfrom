@@ -72,7 +72,7 @@ describe('OAuth Controller', () => {
   describe('Parameter Validation', () => {
     it('should require grant_type parameter', async () => {
       // Import dynamically to avoid module caching issues
-      const { oauthToken } = await import('../../src/controllers/oauth.controller');
+      const { oauthToken } = await import('../../src/controllers/thirdparty/oauth.controller');
       mockReq.body = { appid: 'test_app', appsecret: 'secret' };
 
       await oauthToken(mockReq as Request, mockRes as Response);
@@ -85,7 +85,7 @@ describe('OAuth Controller', () => {
     });
 
     it('should require both appid and appsecret for client_credentials', async () => {
-      const { oauthToken } = await import('../../src/controllers/oauth.controller');
+      const { oauthToken } = await import('../../src/controllers/thirdparty/oauth.controller');
       mockReq.body = { grant_type: 'client_credentials' };
 
       await oauthToken(mockReq as Request, mockRes as Response);
@@ -98,7 +98,7 @@ describe('OAuth Controller', () => {
     });
 
     it('should require both appid and refresh_token for refresh_token grant', async () => {
-      const { oauthToken } = await import('../../src/controllers/oauth.controller');
+      const { oauthToken } = await import('../../src/controllers/thirdparty/oauth.controller');
       mockReq.body = { grant_type: 'refresh_token' };
 
       await oauthToken(mockReq as Request, mockRes as Response);
@@ -111,7 +111,7 @@ describe('OAuth Controller', () => {
     });
 
     it('should reject invalid grant_type', async () => {
-      const { oauthToken } = await import('../../src/controllers/oauth.controller');
+      const { oauthToken } = await import('../../src/controllers/thirdparty/oauth.controller');
       mockReq.body = { grant_type: 'password' };
 
       await oauthToken(mockReq as Request, mockRes as Response);
@@ -124,7 +124,7 @@ describe('OAuth Controller', () => {
     });
 
     it('should require refresh_token for revoke endpoint', async () => {
-      const { oauthRevoke } = await import('../../src/controllers/oauth.controller');
+      const { oauthRevoke } = await import('../../src/controllers/thirdparty/oauth.controller');
       mockReq.body = {};
 
       await oauthRevoke(mockReq as Request, mockRes as Response);
@@ -139,7 +139,7 @@ describe('OAuth Controller', () => {
 
   describe('validateAppToken - Parameter Validation', () => {
     it('should require appId parameter', async () => {
-      const { validateAppToken } = await import('../../src/controllers/oauth.controller');
+      const { validateAppToken } = await import('../../src/controllers/thirdparty/oauth.controller');
       mockReq.body = { appToken: 'some-token' };
 
       await validateAppToken(mockReq as Request, mockRes as Response);
@@ -152,7 +152,7 @@ describe('OAuth Controller', () => {
     });
 
     it('should require appToken parameter', async () => {
-      const { validateAppToken } = await import('../../src/controllers/oauth.controller');
+      const { validateAppToken } = await import('../../src/controllers/thirdparty/oauth.controller');
       mockReq.body = { appId: 'app-123' };
 
       await validateAppToken(mockReq as Request, mockRes as Response);
@@ -165,7 +165,7 @@ describe('OAuth Controller', () => {
     });
 
     it('should require both appId and appToken parameters', async () => {
-      const { validateAppToken } = await import('../../src/controllers/oauth.controller');
+      const { validateAppToken } = await import('../../src/controllers/thirdparty/oauth.controller');
       mockReq.body = {};
 
       await validateAppToken(mockReq as Request, mockRes as Response);
@@ -180,7 +180,7 @@ describe('OAuth Controller', () => {
 
   describe('validateAppToken - Hash-based Token', () => {
     it('should return error for invalid token format', async () => {
-      const { validateAppToken } = await import('../../src/controllers/oauth.controller');
+      const { validateAppToken } = await import('../../src/controllers/thirdparty/oauth.controller');
       mockReq.body = { appId: 'app-123', appToken: 'invalid-format' };
 
       mockTokenService.validateAppToken.mockResolvedValue({
@@ -201,7 +201,7 @@ describe('OAuth Controller', () => {
     });
 
     it('should return error for hash mismatch', async () => {
-      const { validateAppToken } = await import('../../src/controllers/oauth.controller');
+      const { validateAppToken } = await import('../../src/controllers/thirdparty/oauth.controller');
       // Generate token with wrong secret
       const wrongSecret = 'wrong-secret';
       const token = generateHashToken('app-123', wrongSecret);

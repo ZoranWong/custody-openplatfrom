@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { Request, Response } from 'express'
-import { register, ownerLogin, generateToken, verifyToken } from '../../src/controllers/isv-auth.controller'
+import { register, ownerLogin, generateToken, verifyToken } from '../../src/controllers/isv/isv-auth.controller'
 import { isvService, isvUserService } from '../../src/services/isv-user.service'
 
 // Mock dependencies

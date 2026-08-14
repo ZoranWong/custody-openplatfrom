@@ -79,7 +79,7 @@ describe('listAdmins Controller (Task 2.1)', () => {
     mockAdminService.findAll.mockResolvedValue(admins)
 
     const { listAdmins } = await import(
-      '../../src/controllers/admin-auth.controller'
+      '../../src/controllers/admin/admin-auth.controller'
     )
     await listAdmins(mockReq as Request, mockRes as Response)
 
@@ -104,7 +104,7 @@ describe('listAdmins Controller (Task 2.1)', () => {
     mockAdminService.findAll.mockResolvedValue([])
 
     const { listAdmins } = await import(
-      '../../src/controllers/admin-auth.controller'
+      '../../src/controllers/admin/admin-auth.controller'
     )
     await listAdmins(mockReq as Request, mockRes as Response)
 
@@ -127,7 +127,7 @@ describe('listAdmins Controller (Task 2.1)', () => {
     mockAdminService.findAll.mockResolvedValue([admin])
 
     const { listAdmins } = await import(
-      '../../src/controllers/admin-auth.controller'
+      '../../src/controllers/admin/admin-auth.controller'
     )
     await listAdmins(mockReq as Request, mockRes as Response)
 
@@ -161,7 +161,7 @@ describe('listAdmins Controller (Task 2.1)', () => {
     mockAdminService.findAll.mockResolvedValue(admins)
 
     const { listAdmins } = await import(
-      '../../src/controllers/admin-auth.controller'
+      '../../src/controllers/admin/admin-auth.controller'
     )
     await listAdmins(mockReq as Request, mockRes as Response)
 
@@ -186,7 +186,7 @@ describe('listAdmins Controller (Task 2.1)', () => {
     mockAdminService.findAll.mockRejectedValue(new Error('Database connection failed'))
 
     const { listAdmins } = await import(
-      '../../src/controllers/admin-auth.controller'
+      '../../src/controllers/admin/admin-auth.controller'
     )
     await listAdmins(mockReq as Request, mockRes as Response)
 
@@ -205,7 +205,7 @@ describe('listAdmins Controller (Task 2.1)', () => {
     mockAdminService.findAll.mockRejectedValue(new Error('DB error'))
 
     const { listAdmins } = await import(
-      '../../src/controllers/admin-auth.controller'
+      '../../src/controllers/admin/admin-auth.controller'
     )
     await listAdmins(mockReq as Request, mockRes as Response)
 

@@ -4,9 +4,9 @@
  */
 
 import { Request, Response } from 'express';
-import { getTraceStorage } from '../services/trace-storage.service';
-import { HttpCodes } from '../enums/http-codes.enum';
-import { BusinessCodes } from '../enums/business-codes.enum';
+import { getTraceStorage } from '../../services/trace-storage.service';
+import { HttpCodes } from '../../enums/http-codes.enum';
+import { BusinessCodes } from '../../enums/business-codes.enum';
 
 /**
  * Get trace by ID

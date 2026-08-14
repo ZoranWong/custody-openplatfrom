@@ -1,11 +1,11 @@
 import { Request, Response } from 'express'
 import { Router } from 'express'
-import { auditLogService, AuditAction, AuditResult } from '../services/admin-audit.service'
-import { skipAudit } from '../middleware/admin-audit.middleware'
-import { adminAuthMiddleware } from '../middleware/admin-auth.middleware'
-import { requireSuperAdmin } from '../middleware/admin-permission.middleware'
-import { HttpCodes } from '../enums/http-codes.enum'
-import { BusinessCodes } from '../enums/business-codes.enum'
+import { auditLogService, AuditAction, AuditResult } from '../../services/admin-audit.service'
+import { skipAudit } from '../../middleware/admin-audit.middleware'
+import { adminAuthMiddleware } from '../../middleware/admin-auth.middleware'
+import { requireSuperAdmin } from '../../middleware/admin-permission.middleware'
+import { HttpCodes } from '../../enums/http-codes.enum'
+import { BusinessCodes } from '../../enums/business-codes.enum'
 
 const router = Router()
 

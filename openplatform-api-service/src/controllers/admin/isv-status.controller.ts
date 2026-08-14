@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
-import { kybReviewService, KYBStatus, ISVStatus, type ISVStatusAction, type ISVStatusHistoryItem } from '../services/kyb-review.service'
-import { HttpCodes } from '../enums/http-codes.enum'
-import { BusinessCodes } from '../enums/business-codes.enum'
+import { kybReviewService, KYBStatus, ISVStatus, type ISVStatusAction, type ISVStatusHistoryItem } from '../../services/kyb-review.service'
+import { HttpCodes } from '../../enums/http-codes.enum'
+import { BusinessCodes } from '../../enums/business-codes.enum'
 
 // ============================================
 // Types for request/body parameters

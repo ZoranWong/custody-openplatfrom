@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { getTraceById, listTraces, getTraceStats } from '../../controllers/trace.controller';
+import { getTraceById, listTraces, getTraceStats } from '../../controllers/admin/trace.controller';
 import { adminAuthMiddleware } from '../../middleware/admin-auth.middleware';
 import { requirePermission } from '../../middleware/admin-permission.middleware';
 import { Resource } from '../../constants/admin-permissions';

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
-import { dashboardStatsService, HealthStatsSummary, ServiceHealth, ResourceUsage, HealthHistory } from '../services/dashboard-stats.service'
-import { HttpCodes } from '../enums/http-codes.enum'
-import { BusinessCodes } from '../enums/business-codes.enum'
+import { dashboardStatsService, HealthStatsSummary, ServiceHealth, ResourceUsage, HealthHistory } from '../../services/dashboard-stats.service'
+import { HttpCodes } from '../../enums/http-codes.enum'
+import { BusinessCodes } from '../../enums/business-codes.enum'
 
 // ============================================
 // Health Statistics Controller (B.3.3)

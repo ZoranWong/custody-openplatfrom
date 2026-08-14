@@ -6,7 +6,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { HttpCodes } from '../enums/http-codes.enum'
 import { BusinessCodes } from '../enums/business-codes.enum'
-import { verifyToken } from '../controllers/isv-auth.controller'
+import { verifyToken } from '../controllers/isv/isv-auth.controller'
 import { isvUserService } from '../services/isv-user.service'
 
 export interface ISVAuthRequest extends Request {

@@ -4,13 +4,13 @@
  */
 
 import { Request, Response } from 'express';
-import { HttpCodes } from '../enums/http-codes.enum';
-import { BusinessCodes } from '../enums/business-codes.enum';
-import { signJWT, verifyJWT } from '../utils/jwt.util';
-import { ResourceValidationRequest } from '../middleware/resource-validation.middleware';
-import { getApplicationRepository, getOauthResourceRepository } from '../repositories/repository.factory';
-import { getApplicationCallbackService } from '../services/application-callback.service';
-import { logger } from '../utils/logger';
+import { HttpCodes } from '../../enums/http-codes.enum';
+import { BusinessCodes } from '../../enums/business-codes.enum';
+import { signJWT, verifyJWT } from '../../utils/jwt.util';
+import { ResourceValidationRequest } from '../../middleware/resource-validation.middleware';
+import { getApplicationRepository, getOauthResourceRepository } from '../../repositories/repository.factory';
+import { getApplicationCallbackService } from '../../services/application-callback.service';
+import { logger } from '../../utils/logger';
 import { Application } from '@prisma/client';
 
 /**

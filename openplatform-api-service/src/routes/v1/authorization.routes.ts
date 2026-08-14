@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { createAuthorization, getAuthorization } from '../../controllers/authorization.controller';
+import { createAuthorization, getAuthorization } from '../../controllers/thirdparty/authorization.controller';
 
 const router = Router();
 

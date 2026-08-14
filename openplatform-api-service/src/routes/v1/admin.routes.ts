@@ -5,8 +5,8 @@ import {
   getDashboardDetails,
   refreshDashboardStats,
   getDashboardHealth
-} from '../../controllers/dashboard.controller'
-import adminAuditRouter from '../../controllers/admin.controller'
+} from '../../controllers/admin/dashboard.controller'
+import adminAuditRouter from '../../controllers/admin/admin-audit.controller'
 import {
   getPendingKYB,
   getAllKYB,
@@ -15,18 +15,18 @@ import {
   rejectKYB,
   requestInfoKYB,
   getKYBStats
-} from '../../controllers/kyb-review.controller'
+} from '../../controllers/admin/kyb-review.controller'
 import {
   getKYBHistory,
   getKYBHistoryById
-} from '../../controllers/kyb-history.controller'
+} from '../../controllers/admin/kyb-history.controller'
 import {
   getISVStatus,
   activateISV,
   suspendISV,
   banISV,
   getISVStatusHistory
-} from '../../controllers/isv-status.controller'
+} from '../../controllers/admin/isv-status.controller'
 import {
   getAPIStatsSummary,
   getAPITopApps,
@@ -35,7 +35,7 @@ import {
   getAppStatsDetail,
   recordAPICall,
   exportAPIStats
-} from '../../controllers/api-stats.controller'
+} from '../../controllers/admin/api-stats.controller'
 import {
   getRevenueSummary,
   getRevenueByDeveloper,
@@ -43,7 +43,7 @@ import {
   getRevenueForecast,
   getDeveloperRevenueDetail,
   exportRevenueStats
-} from '../../controllers/revenue-stats.controller'
+} from '../../controllers/admin/revenue-stats.controller'
 import {
   getHealthStatus,
   getServicesHealth,
@@ -51,7 +51,7 @@ import {
   getHealthHistory,
   getServiceDetail,
   refreshHealthData
-} from '../../controllers/health.controller'
+} from '../../controllers/admin/health.controller'
 import { adminAuthMiddleware } from '../../middleware/admin-auth.middleware'
 import { requirePermission } from '../../middleware/admin-permission.middleware'
 import { Resource } from '../../constants/admin-permissions'

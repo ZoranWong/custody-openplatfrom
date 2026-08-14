@@ -7,7 +7,7 @@
 
 import { Router } from 'express';
 import { isvAuth, ISVAuthRequest } from '../../middleware/isv-auth.middleware';
-import { billingController } from '../../controllers/billing.controller';
+import { billingController } from '../../controllers/isv/billing.controller';
 
 const router = Router();
 

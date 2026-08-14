@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
-import { dashboardStatsService, DashboardStatsResponse, DashboardTrendResponse, DashboardDetailStatsResponse } from '../services/dashboard-stats.service'
-import { HttpCodes } from '../enums/http-codes.enum'
-import { BusinessCodes } from '../enums/business-codes.enum'
+import { dashboardStatsService, DashboardStatsResponse, DashboardTrendResponse, DashboardDetailStatsResponse } from '../../services/dashboard-stats.service'
+import { HttpCodes } from '../../enums/http-codes.enum'
+import { BusinessCodes } from '../../enums/business-codes.enum'
 
 // ============================================
 // Dashboard Statistics Controller

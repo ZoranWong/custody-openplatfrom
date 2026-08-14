@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express';
-import { oauthToken, oauthRevoke, validateAppToken } from '../controllers/oauth.controller';
+import { oauthToken, oauthRevoke, validateAppToken } from '../controllers/thirdparty/oauth.controller';
 
 const router = Router();
 

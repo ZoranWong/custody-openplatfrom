@@ -81,7 +81,7 @@ describe('Admin Audit Identity (Task 1.2)', () => {
       mockChangeISVStatus.mockReturnValue({ success: true })
 
       const { activateISV } = await import(
-        '../../src/controllers/isv-status.controller'
+        '../../src/controllers/admin/isv-status.controller'
       )
       await activateISV(mockReq as Request, mockRes as Response)
 
@@ -104,7 +104,7 @@ describe('Admin Audit Identity (Task 1.2)', () => {
       mockChangeISVStatus.mockReturnValue({ success: true })
 
       const { activateISV } = await import(
-        '../../src/controllers/isv-status.controller'
+        '../../src/controllers/admin/isv-status.controller'
       )
       await activateISV(mockReq as Request, mockRes as Response)
 
@@ -132,7 +132,7 @@ describe('Admin Audit Identity (Task 1.2)', () => {
       mockChangeISVStatus.mockReturnValue({ success: true })
 
       const { suspendISV } = await import(
-        '../../src/controllers/isv-status.controller'
+        '../../src/controllers/admin/isv-status.controller'
       )
       await suspendISV(mockReq as Request, mockRes as Response)
 
@@ -154,7 +154,7 @@ describe('Admin Audit Identity (Task 1.2)', () => {
       mockChangeISVStatus.mockReturnValue({ success: true })
 
       const { banISV } = await import(
-        '../../src/controllers/isv-status.controller'
+        '../../src/controllers/admin/isv-status.controller'
       )
       await banISV(mockReq as Request, mockRes as Response)
 
@@ -190,7 +190,7 @@ describe('Admin Audit Identity (Task 1.2)', () => {
       })
 
       const { approveDeveloper } = await import(
-        '../../src/controllers/developer.controller'
+        '../../src/controllers/admin/developer.controller'
       )
       await approveDeveloper(mockReq as Request, mockRes as Response)
 
@@ -225,7 +225,7 @@ describe('Admin Audit Identity (Task 1.2)', () => {
       })
 
       const { approveDeveloper } = await import(
-        '../../src/controllers/developer.controller'
+        '../../src/controllers/admin/developer.controller'
       )
       await approveDeveloper(mockReq as Request, mockRes as Response)
 
@@ -265,7 +265,7 @@ describe('Admin Audit Identity (Task 1.2)', () => {
       })
 
       const { rejectDeveloper } = await import(
-        '../../src/controllers/developer.controller'
+        '../../src/controllers/admin/developer.controller'
       )
       await rejectDeveloper(mockReq as Request, mockRes as Response)
 

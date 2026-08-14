@@ -1,10 +1,10 @@
 import { Request, Response } from 'express'
-import { HttpCodes } from '../enums/http-codes.enum'
-import { BusinessCodes } from '../enums/business-codes.enum'
+import { HttpCodes } from '../../enums/http-codes.enum'
+import { BusinessCodes } from '../../enums/business-codes.enum'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
-import { adminService, tokenBlacklistService } from '../services/admin-auth.service'
-import { getCache } from '../services/cache.service'
+import { adminService, tokenBlacklistService } from '../../services/admin-auth.service'
+import { getCache } from '../../services/cache.service'
 
 // Get JWT config from environment or defaults
 function getJwtConfig() {

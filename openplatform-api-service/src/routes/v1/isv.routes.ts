@@ -16,7 +16,7 @@ import {
   updateProfile,
   getISVInfo,
   getMyApplications
-} from '../../controllers/isv-auth.controller'
+} from '../../controllers/isv/isv-auth.controller'
 import { isvUserService, isvApplicationService, isvService } from '../../services/isv-user.service'
 
 const router = Router()

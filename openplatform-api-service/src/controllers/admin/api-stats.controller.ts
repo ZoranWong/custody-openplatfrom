@@ -5,8 +5,8 @@
 
 import { Request, Response } from 'express'
 import { v4 as uuidv4 } from 'uuid'
-import { HttpCodes } from '../enums/http-codes.enum'
-import { BusinessCodes } from '../enums/business-codes.enum'
+import { HttpCodes } from '../../enums/http-codes.enum'
+import { BusinessCodes } from '../../enums/business-codes.enum'
 
 interface APIStats {
   date: string

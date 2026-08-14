@@ -5,12 +5,12 @@
  */
 
 import { Request, Response } from 'express'
-import { HttpCodes } from '../enums/http-codes.enum'
-import { BusinessCodes } from '../enums/business-codes.enum'
+import { HttpCodes } from '../../enums/http-codes.enum'
+import { BusinessCodes } from '../../enums/business-codes.enum'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
-import { isvUserService, isvService, isvApplicationService } from '../services/isv-user.service'
-import { getEnvOrDefault } from '../utils/env'
+import { isvUserService, isvService, isvApplicationService } from '../../services/isv-user.service'
+import { getEnvOrDefault } from '../../utils/env'
 
 // Get JWT config from environment or defaults
 function getJwtConfig() {

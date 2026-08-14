@@ -5,10 +5,10 @@
  */
 
 import { Request, Response } from 'express';
-import { tokenService } from '../services/token.service';
-import { getApplicationRepository } from '../repositories/repository.factory';
-import { HttpCodes } from '../enums/http-codes.enum';
-import { BusinessCodes } from '../enums/business-codes.enum';
+import { tokenService } from '../../services/token.service';
+import { getApplicationRepository } from '../../repositories/repository.factory';
+import { HttpCodes } from '../../enums/http-codes.enum';
+import { BusinessCodes } from '../../enums/business-codes.enum';
 
 /**
  * POST /oauth/token
