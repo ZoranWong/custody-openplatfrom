@@ -34,21 +34,10 @@
  * @module utils/sys/upgrade
  * @author Art Design Pro Team
  */
-import { ref } from 'vue'
+import { upgradeLogList } from '@/mock/upgrade/changeLog'
 import { ElNotification } from 'element-plus'
 import { useUserStore } from '@/store/modules/user'
 import { StorageConfig } from '@/utils/storage/storage-config'
-
-interface UpgradeLog {
-  version: string
-  title: string
-  date: string
-  detail?: string[]
-  requireReLogin?: boolean
-  remark?: string
-}
-
-const upgradeLogList = ref<UpgradeLog[]>([])
 
 /**
  * 版本管理器

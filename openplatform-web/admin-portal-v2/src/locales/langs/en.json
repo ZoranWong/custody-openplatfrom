@@ -161,7 +161,6 @@
       "user": "User"
     },
     "placeholder": {
-      "email": "Please enter your email",
       "username": "Please enter your account",
       "password": "Please enter your password",
       "slider": "Please slide to verify"
@@ -264,29 +263,6 @@
       "role": "Role Manage",
       "userCenter": "User Center",
       "menu": "Menu Manage"
-    },
-    "developer": {
-      "title": "Developer Management",
-      "list": "Developer List",
-      "detail": "Developer Detail",
-      "review": "Developer Review"
-    },
-    "kyb": {
-      "title": "KYB Certification",
-      "pending": "Pending Review",
-      "history": "History",
-      "detail": "KYB Detail"
-    },
-    "isv": {
-      "title": "ISV Management",
-      "list": "ISV List",
-      "detail": "ISV Detail"
-    },
-    "stats": {
-      "title": "Statistics",
-      "api": "API Stats",
-      "revenue": "Revenue",
-      "health": "System Health"
     }
   },
   "table": {

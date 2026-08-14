@@ -18,11 +18,23 @@
             @keyup.enter="handleSubmit"
             style="margin-top: 25px"
           >
-            <ElFormItem prop="email">
+            <ElFormItem prop="account">
+              <ElSelect v-model="formData.account" @change="setupAccount">
+                <ElOption
+                  v-for="account in accounts"
+                  :key="account.key"
+                  :label="account.label"
+                  :value="account.key"
+                >
+                  <span>{{ account.label }}</span>
+                </ElOption>
+              </ElSelect>
+            </ElFormItem>
+            <ElFormItem prop="username">
               <ElInput
                 class="custom-height"
-                :placeholder="$t('login.placeholder.email')"
-                v-model.trim="formData.email"
+                :placeholder="$t('login.placeholder.username')"
+                v-model.trim="formData.username"
               />
             </ElFormItem>
             <ElFormItem prop="password">
@@ -81,6 +93,13 @@
                 {{ $t('login.btnText') }}
               </ElButton>
             </div>
+
+            <div class="mt-5 text-sm text-gray-600">
+              <span>{{ $t('login.noAccount') }}</span>
+              <RouterLink class="text-theme" :to="{ name: 'Register' }">{{
+                $t('login.register')
+              }}</RouterLink>
+            </div>
           </ElForm>
         </div>
       </div>
@@ -93,7 +112,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { useI18n } from 'vue-i18n'
   import { HttpError } from '@/utils/http/error'
-  import { fetchAdminLogin } from '@/api/auth'
+  import { fetchLogin } from '@/api/auth'
   import { ElNotification, type FormInstance, type FormRules } from 'element-plus'
   import { useSettingStore } from '@/store/modules/setting'
 
@@ -109,6 +128,40 @@
     formKey.value++
   })
 
+  type AccountKey = 'super' | 'admin' | 'user'
+
+  export interface Account {
+    key: AccountKey
+    label: string
+    userName: string
+    password: string
+    roles: string[]
+  }
+
+  const accounts = computed<Account[]>(() => [
+    {
+      key: 'super',
+      label: t('login.roles.super'),
+      userName: 'Super',
+      password: '123456',
+      roles: ['R_SUPER']
+    },
+    {
+      key: 'admin',
+      label: t('login.roles.admin'),
+      userName: 'Admin',
+      password: '123456',
+      roles: ['R_ADMIN']
+    },
+    {
+      key: 'user',
+      label: t('login.roles.user'),
+      userName: 'User',
+      password: '123456',
+      roles: ['R_USER']
+    }
+  ])
+
   const dragVerify = ref()
 
   const userStore = useUserStore()
@@ -121,17 +174,30 @@
   const formRef = ref<FormInstance>()
 
   const formData = reactive({
-    email: '',
+    account: '',
+    username: '',
     password: '',
     rememberPassword: true
   })
 
   const rules = computed<FormRules>(() => ({
-    email: [{ required: true, message: t('login.placeholder.email'), trigger: 'blur' }],
+    username: [{ required: true, message: t('login.placeholder.username'), trigger: 'blur' }],
     password: [{ required: true, message: t('login.placeholder.password'), trigger: 'blur' }]
   }))
 
   const loading = ref(false)
+
+  onMounted(() => {
+    setupAccount('super')
+  })
+
+  // 设置账号
+  const setupAccount = (key: AccountKey) => {
+    const selectedAccount = accounts.value.find((account: Account) => account.key === key)
+    formData.account = key
+    formData.username = selectedAccount?.userName ?? ''
+    formData.password = selectedAccount?.password ?? ''
+  }
 
   // 登录
   const handleSubmit = async () => {
@@ -151,19 +217,20 @@
       loading.value = true
 
       // 登录请求
-      const { email, password } = formData
+      const { username, password } = formData
 
-      const res = await fetchAdminLogin({ email, password })
+      const { token, refreshToken } = await fetchLogin({
+        userName: username,
+        password
+      })
 
-      // 验证返回数据
-      if (res.code !== 0 || !res.data?.accessToken) {
+      // 验证token
+      if (!token) {
         throw new Error('Login failed - no token received')
       }
 
-      const { accessToken, refreshToken } = res.data
-
       // 存储 token 和登录状态
-      userStore.setToken(accessToken, refreshToken)
+      userStore.setToken(token, refreshToken)
       userStore.setLoginStatus(true)
 
       // 登录成功处理
@@ -178,6 +245,7 @@
         // console.log(error.code)
       } else {
         // 处理非 HttpError
+        // ElMessage.error('登录失败，请稍后重试')
         console.error('[Login] Unexpected error:', error)
       }
     } finally {

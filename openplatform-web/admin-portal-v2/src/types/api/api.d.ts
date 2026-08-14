@@ -83,47 +83,6 @@ declare namespace Api {
       email: string
       avatar?: string
     }
-
-    /** Admin 登录参数 */
-    interface AdminLoginParams {
-      email: string
-      password: string
-    }
-
-    /** Admin 登录响应 */
-    interface AdminLoginResponse {
-      accessToken: string
-      refreshToken: string
-      user: AdminUserInfo
-    }
-
-    /** Admin 用户信息 */
-    interface AdminUserInfo {
-      id: string
-      email: string
-      name: string
-      role: 'super_admin' | 'admin' | 'operator'
-      status: 'active' | 'inactive' | 'suspended'
-      createdAt: string
-      updatedAt: string
-    }
-
-    /** Admin 刷新 Token 参数 */
-    interface AdminRefreshTokenParams {
-      refreshToken: string
-    }
-
-    /** Admin 刷新 Token 响应 */
-    interface AdminRefreshTokenResponse {
-      accessToken: string
-      refreshToken: string
-    }
-
-    /** Admin 修改密码参数 */
-    interface AdminChangePasswordParams {
-      currentPassword: string
-      newPassword: string
-    }
   }
 
   /** 系统管理类型 */
