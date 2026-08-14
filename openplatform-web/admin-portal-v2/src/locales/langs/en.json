@@ -162,6 +162,7 @@
     },
     "placeholder": {
       "username": "Please enter your account",
+      "email": "Please enter your email",
       "password": "Please enter your password",
       "slider": "Please slide to verify"
     },

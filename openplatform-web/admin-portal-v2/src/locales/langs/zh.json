@@ -162,6 +162,7 @@
     },
     "placeholder": {
       "username": "请输入账号",
+      "email": "请输入邮箱",
       "password": "请输入密码",
       "slider": "请拖动滑块完成验证"
     },
