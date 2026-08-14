@@ -15,6 +15,15 @@ import { injectDialogStyles } from './styles';
 import { signBySealx, closeSealx } from 'sealx-sdk';
 
 /**
+ * Escape HTML special characters to prevent XSS
+ */
+function escapeHtml(str: string): string {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+/**
  * Generate SVG icon elements
  */
 const icons = {
@@ -59,7 +68,7 @@ function createPartyAvatar(party: TransferParty, isSender: boolean): string {
 
     return `
         <div class="transfer-task-dialog-party-avatar ${avatarClass}">
-            ${letter}
+            ${escapeHtml(letter)}
         </div>
     `;
 }
@@ -71,21 +80,21 @@ function createPartyCard(party: TransferParty, label: string, isSender: boolean)
     const travelRuleLabel = isSender ? 'Originator' : 'Beneficiary';
     return `
         <div class="transfer-task-dialog-party-card">
-            <div class="transfer-task-dialog-party-label">${label}</div>
+            <div class="transfer-task-dialog-party-label">${escapeHtml(label)}</div>
             <div class="transfer-task-dialog-party-header">
                 ${createPartyAvatar(party, isSender)}
                 <div>
-                    <div class="transfer-task-dialog-party-name">${party.name}</div>
-                    ${party.id ? `<div class="transfer-task-dialog-party-id">ID: ${party.id}</div>` : ''}
-                    ${party.alias ? `<div class="transfer-task-dialog-party-id">${party.alias}</div>` : ''}
+                    <div class="transfer-task-dialog-party-name">${escapeHtml(party.name)}</div>
+                    ${party.id ? `<div class="transfer-task-dialog-party-id">ID: ${escapeHtml(party.id)}</div>` : ''}
+                    ${party.alias ? `<div class="transfer-task-dialog-party-id">${escapeHtml(party.alias)}</div>` : ''}
                 </div>
             </div>
             <div class="transfer-task-dialog-party-address-label">Address</div>
-            <div class="transfer-task-dialog-party-address" data-address="${party.address}" title="Copy Address">
-                <span>${truncateAddress(party.address)}</span>
+            <div class="transfer-task-dialog-party-address" data-address="${escapeHtml(party.address)}" title="Copy Address">
+                <span>${escapeHtml(truncateAddress(party.address))}</span>
                 ${icons.copy}
             </div>
-            ${party.type ? `<div class="transfer-task-dialog-party-type" style="font-size: 10px; color: #9ca3af; margin-top: 4px;">${party.type === 'account' ? 'Account' : 'External'}</div>` : ''}
+            ${party.type ? `<div class="transfer-task-dialog-party-type" style="font-size: 10px; color: #9ca3af; margin-top: 4px;">${escapeHtml(party.type === 'account' ? 'Account' : 'External')}</div>` : ''}
             ${party.travelRule ? `
                 <div class="transfer-task-dialog-travel-rule-section">
                     ${travelRuleRenderer(party.travelRule, travelRuleLabel)}
@@ -102,12 +111,12 @@ function travelRuleRenderer(travelRule: TravelRuleItem, label: string): string {
             <div class="transfer-task-dialog-travel-rule">
                 <div class="transfer-task-dialog-travel-rule-header">
                     <div class="transfer-task-dialog-travel-rule-dot"></div>
-                    <span class="transfer-task-dialog-travel-rule-label">${label} (Travel Rule)</span>
+                    <span class="transfer-task-dialog-travel-rule-label">${escapeHtml(label)} (Travel Rule)</span>
                 </div>
-                <div class="transfer-task-dialog-travel-rule-name">${name}</div>
+                <div class="transfer-task-dialog-travel-rule-name">${escapeHtml(name)}</div>
                 <div class="transfer-task-dialog-travel-rule-country">
                     ${icons.location}
-                    <span>${country}</span>
+                    <span>${escapeHtml(country)}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
                     ${verified ? `
@@ -116,7 +125,7 @@ function travelRuleRenderer(travelRule: TravelRuleItem, label: string): string {
                             <span>Verified</span>
                         </span>
                     ` : ''}
-                    ${vasp ? `<span class="transfer-task-dialog-travel-rule-vasp">VASP: ${vasp}</span>` : ''}
+                    ${vasp ? `<span class="transfer-task-dialog-travel-rule-vasp">VASP: ${escapeHtml(vasp)}</span>` : ''}
                 </div>
             </div>
         `;
@@ -138,23 +147,23 @@ function createApprovalStepHTML(step: ApprovalStep, _index: number): string {
         statusContent = `
             ${step.actor ? `
                 <div class="transfer-task-dialog-approval-actor">
-                    ${step.actorAvatar ? `<div class="transfer-task-dialog-approval-avatar">${step.actorAvatar}</div>` : ''}
-                    <span class="transfer-task-dialog-approval-actor-name">${step.actor}</span>
+                    ${step.actorAvatar ? `<div class="transfer-task-dialog-approval-avatar">${escapeHtml(step.actorAvatar)}</div>` : ''}
+                    <span class="transfer-task-dialog-approval-actor-name">${escapeHtml(step.actor)}</span>
                 </div>
             ` : ''}
-            ${step.timestamp ? `<div class="transfer-task-dialog-approval-timestamp">${step.timestamp}</div>` : ''}
+            ${step.timestamp ? `<div class="transfer-task-dialog-approval-timestamp">${escapeHtml(step.timestamp)}</div>` : ''}
         `;
     } else if (step.status === 'current') {
         const actorAvatarLetter = step.actorAvatar || (step.actor ? step.actor.charAt(0).toUpperCase() : 'Y');
         statusContent = `
             ${step.actor || step.actorAvatar ? `
                 <div class="transfer-task-dialog-approval-actor">
-                    <div class="transfer-task-dialog-approval-avatar" style="background: #F59E0B; color: #fff; border-radius: 50%;">${actorAvatarLetter}</div>
-                    <span class="transfer-task-dialog-approval-actor-name">${step.actor || 'You'}</span>
+                    <div class="transfer-task-dialog-approval-avatar" style="background: #F59E0B; color: #fff; border-radius: 50%;">${escapeHtml(actorAvatarLetter)}</div>
+                    <span class="transfer-task-dialog-approval-actor-name">${escapeHtml(step.actor || 'You')}</span>
                 </div>
             ` : ''}
-            ${step.note ? `<div class="transfer-task-dialog-approval-note">${step.note}</div>` : ''}
-            ${step.timestamp ? `<div class="transfer-task-dialog-approval-timestamp">${step.timestamp}</div>` : ''}
+            ${step.note ? `<div class="transfer-task-dialog-approval-note">${escapeHtml(step.note)}</div>` : ''}
+            ${step.timestamp ? `<div class="transfer-task-dialog-approval-timestamp">${escapeHtml(step.timestamp)}</div>` : ''}
         `;
     } else {
         statusContent = `<div class="transfer-task-dialog-approval-pending-text">Pending approval</div>`;
@@ -165,7 +174,7 @@ function createApprovalStepHTML(step: ApprovalStep, _index: number): string {
             <div class="transfer-task-dialog-approval-dot ${statusClass}">
                 ${step.status === 'completed' ? icons.check : ''}
             </div>
-            <div class="transfer-task-dialog-approval-name">${step.name}</div>
+            <div class="transfer-task-dialog-approval-name">${escapeHtml(step.name)}</div>
             ${statusContent}
         </div>
     `;
@@ -206,22 +215,22 @@ function createMultipleModeHTML(data: TransferTaskDetailData): string {
             <div class="transfer-task-dialog-recipient-item" data-recipient>
                 <div class="transfer-task-dialog-recipient-header">
                     <div class="transfer-task-dialog-recipient-info">
-                        <div class="transfer-task-dialog-recipient-avatar">${getAvatarLetter(recipient.name)}</div>
+                        <div class="transfer-task-dialog-recipient-avatar">${escapeHtml(getAvatarLetter(recipient.name))}</div>
                         <div>
-                            <div class="transfer-task-dialog-recipient-name">${recipient.name}</div>
-                            ${recipient.alias ? `<div class="transfer-task-dialog-recipient-alias">${recipient.alias}</div>` : ''}
+                            <div class="transfer-task-dialog-recipient-name">${escapeHtml(recipient.name)}</div>
+                            ${recipient.alias ? `<div class="transfer-task-dialog-recipient-alias">${escapeHtml(recipient.alias)}</div>` : ''}
                         </div>
                     </div>
-                    <span class="transfer-task-dialog-recipient-amount">${amount} ${data.coin}</span>
+                    <span class="transfer-task-dialog-recipient-amount">${escapeHtml(amount)} ${escapeHtml(data.coin)}</span>
                 </div>
                 <div class="transfer-task-dialog-recipient-details">
-                    ${country ? `<span>${country}</span>` : ''}
-                    <span class="transfer-task-dialog-recipient-address" data-address="${recipient.address}">${truncateAddress(recipient.address)}</span>
+                    ${country ? `<span>${escapeHtml(country)}</span>` : ''}
+                    <span class="transfer-task-dialog-recipient-address" data-address="${escapeHtml(recipient.address)}">${escapeHtml(truncateAddress(recipient.address))}</span>
                 </div>
                 <div class="transfer-task-dialog-recipient-txid">
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <span style="color: #9ca3af; font-size: 10px;">TXID:</span>
-                        <span class="transfer-task-dialog-recipient-txid-text">${truncateAddress(txid)}</span>
+                        <span class="transfer-task-dialog-recipient-txid-text">${escapeHtml(truncateAddress(txid))}</span>
                         <button class="btn-copy-txid" style="border: none; background: transparent; cursor: pointer; color: #9ca3af; padding: 0;">
                             ${icons.copy}
                         </button>
@@ -244,13 +253,13 @@ function createMultipleModeHTML(data: TransferTaskDetailData): string {
                     <div class="transfer-task-dialog-party-header">
                         ${createPartyAvatar(data.from, true)}
                         <div>
-                            <div class="transfer-task-dialog-party-name">${data.from.name}</div>
-                            ${data.from.id ? `<div class="transfer-task-dialog-party-id">ID: ${data.from.id}</div>` : ''}
+                            <div class="transfer-task-dialog-party-name">${escapeHtml(data.from.name)}</div>
+                            ${data.from.id ? `<div class="transfer-task-dialog-party-id">ID: ${escapeHtml(data.from.id)}</div>` : ''}
                         </div>
                     </div>
                     <div class="transfer-task-dialog-party-address-label">Address</div>
-                    <div class="transfer-task-dialog-party-address" data-address="${data.from.address}" title="Copy Address">
-                        <span>${truncateAddress(data.from.address)}</span>
+                    <div class="transfer-task-dialog-party-address" data-address="${escapeHtml(data.from.address)}" title="Copy Address">
+                        <span>${escapeHtml(truncateAddress(data.from.address))}</span>
                         ${icons.copy}
                     </div>
                 </div>
@@ -268,7 +277,7 @@ function createMultipleModeHTML(data: TransferTaskDetailData): string {
                 <span class="transfer-task-dialog-recipients-label">To <span style="color: #374151;">(Multiple Recipients)</span></span>
                 <div class="transfer-task-dialog-recipients-summary">
                     <span style="color: #6b7280;">Total:</span>
-                    <span class="transfer-task-dialog-recipients-total">${data.amount} ${data.coin}-${data.network}</span>
+                    <span class="transfer-task-dialog-recipients-total">${escapeHtml(data.amount)} ${escapeHtml(data.coin)}-${escapeHtml(data.network)}</span>
                     <span style="color: #9ca3af;">/</span>
                     <span class="transfer-task-dialog-recipients-count">${recipients.length} recipients</span>
                 </div>
@@ -360,10 +369,10 @@ export class TransferTaskDetailDialog {
                             <button class="transfer-task-dialog-back-btn" id="dialog-close-btn">
                                 ${icons.close}
                             </button>
-                            <h1 class="transfer-task-dialog-title">${this.options.title || 'Review Task'} #${data.taskId.replace('#', '')}</h1>
+                            <h1 class="transfer-task-dialog-title">${escapeHtml(this.options.title || 'Review Task')} #${escapeHtml(data.taskId.replace('#', ''))}</h1>
                             <span class="transfer-task-dialog-status-badge ${statusConfig.className}">
                                 <span class="transfer-task-dialog-status-dot ${statusConfig.dotClass.includes('animate-pulse') ? 'animate-pulse' : ''}" style="background: ${statusConfig.dotClass.replace('animate-pulse', '')}"></span>
-                                ${statusConfig.label}
+                                ${escapeHtml(statusConfig.label)}
                             </span>
                         </div>
                     </div>
@@ -386,17 +395,17 @@ export class TransferTaskDetailDialog {
                                         <div class="transfer-task-dialog-amount-box">
                                             <span class="transfer-task-dialog-amount-label">Transfer Amount</span>
                                             <div class="transfer-task-dialog-amount-value">
-                                                ${data.amount} ${data.coin}
+                                                ${escapeHtml(data.amount)} ${escapeHtml(data.coin)}
                                             </div>
                                             <div class="transfer-task-dialog-amount-meta">
                                                 <div class="transfer-task-dialog-network-tag">
                                                     <div style="width: 16px; height: 16px; border-radius: 50%; background: #dcfce7; display: flex; align-items: center; justify-content: center; color: #16a34a; font-size: 10px; font-weight: bold;">T</div>
-                                                    <span>${data.network}</span>
+                                                    <span>${escapeHtml(data.network)}</span>
                                                 </div>
                                                 ${data.contractAddress ? `
                                                     <div class="transfer-task-dialog-contract" title="Copy Contract Address">
                                                         <span>Contract:</span>
-                                                        <span style="font-family: monospace; background: #f3f4f6; padding: 1px 4px; border-radius: 2px;">${truncateAddress(data.contractAddress)}</span>
+                                                        <span style="font-family: monospace; background: #f3f4f6; padding: 1px 4px; border-radius: 2px;">${escapeHtml(truncateAddress(data.contractAddress))}</span>
                                                         ${icons.copy}
                                                     </div>
                                                 ` : ''}
@@ -413,7 +422,7 @@ export class TransferTaskDetailDialog {
                                             <div style="margin-bottom: 24px;">
                                                 <label class="transfer-task-dialog-proposal-label">Proposal</label>
                                                 <div class="transfer-task-dialog-proposal-content">
-                                                    ${data.proposal}
+                                                    ${escapeHtml(data.proposal)}
                                                 </div>
                                             </div>
                                         ` : ''}
@@ -426,20 +435,20 @@ export class TransferTaskDetailDialog {
                                                     <div class="transfer-task-dialog-meta-unit-icon">
                                                         ${icons.folder}
                                                     </div>
-                                                    <span class="transfer-task-dialog-meta-unit-name">${data.meta.unit}</span>
+                                                    <span class="transfer-task-dialog-meta-unit-name">${escapeHtml(data.meta.unit)}</span>
                                                 </div>
                                             </div>
                                             <div class="transfer-task-dialog-meta-item">
                                                 <div class="transfer-task-dialog-meta-label">Created At</div>
-                                                <div class="transfer-task-dialog-meta-value">${data.meta.createdAt}</div>
+                                                <div class="transfer-task-dialog-meta-value">${escapeHtml(data.meta.createdAt)}</div>
                                             </div>
                                             <div class="transfer-task-dialog-meta-item">
                                                 <div class="transfer-task-dialog-meta-label">Expires In</div>
-                                                <div class="transfer-task-dialog-meta-value transfer-task-dialog-meta-value-warning">${data.meta.expiresIn}</div>
+                                                <div class="transfer-task-dialog-meta-value transfer-task-dialog-meta-value-warning">${escapeHtml(data.meta.expiresIn)}</div>
                                             </div>
                                             <div class="transfer-task-dialog-meta-item">
                                                 <div class="transfer-task-dialog-meta-label">Task ID</div>
-                                                <div class="transfer-task-dialog-meta-value">#${data.taskId.replace('#', '')}</div>
+                                                <div class="transfer-task-dialog-meta-value">#${escapeHtml(data.taskId.replace('#', ''))}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -466,7 +475,7 @@ export class TransferTaskDetailDialog {
                     <div class="transfer-task-dialog-action-bar">
                         <div class="transfer-task-dialog-action-bar-content">
                             <div class="transfer-task-dialog-action-info">
-                                Reviewing task <span class="transfer-task-dialog-action-task-id">#${data.taskId.replace('#', '')}</span>
+                                Reviewing task <span class="transfer-task-dialog-action-task-id">#${escapeHtml(data.taskId.replace('#', ''))}</span>
                             </div>
                             <div class="transfer-task-dialog-action-buttons">
                                 <button class="transfer-task-dialog-btn-reject" id="dialog-reject-btn">Reject</button>
