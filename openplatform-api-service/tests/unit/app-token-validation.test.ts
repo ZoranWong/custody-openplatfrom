@@ -84,6 +84,8 @@ describe('AppToken Validation', () => {
         userId: 'user-456',
         enterpriseId: 'ent-789',
         permissions: ['read', 'write'],
+        timestamp: Date.now(),
+        nonce: 'test-nonce-123',
       };
 
       const token = jwt.sign(payload, testAppSecret, {
@@ -119,7 +121,7 @@ describe('AppToken Validation', () => {
       const result = await tokenService.validateAppToken(token, testAppSecret);
 
       expect(result.valid).toBe(false);
-      expect(result.error?.code).toBe(40102);
+      expect(result.error?.code).toBe(40103);
       expect(result.error?.message).toBe('Token expired');
     });
 
@@ -150,7 +152,7 @@ describe('AppToken Validation', () => {
 
       expect(result.valid).toBe(false);
       expect(result.error?.code).toBe(40103);
-      expect(result.error?.message).toBe('Invalid token');
+      expect(result.error?.message).toBe('Invalid token format');
     });
 
     it('should return error for token with missing required claims', async () => {
