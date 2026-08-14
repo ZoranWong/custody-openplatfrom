@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import {
   TokenService,
   createTokenService,
-  TokenErrorCode,
 } from '../../src/services/token.service';
+import { BusinessCodes } from '../../src/enums/business-codes.enum';
 import {
   signRefreshToken,
   generateKeyPair,
@@ -140,7 +140,7 @@ describe('Token Service', () => {
 
       expect('error' in result).toBe(true);
       expect((result as { error: { code: number } }).error.code).toBe(
-        TokenErrorCode.INVALID_CREDENTIALS
+        BusinessCodes.AUTH_INVALID_CREDENTIALS
       );
     });
 
@@ -159,7 +159,7 @@ describe('Token Service', () => {
 
       expect('error' in result).toBe(true);
       expect((result as { error: { code: number } }).error.code).toBe(
-        TokenErrorCode.RATE_LIMIT_EXCEEDED
+        BusinessCodes.RATE_LIMIT_EXCEEDED
       );
     });
 
@@ -230,7 +230,7 @@ describe('Token Service', () => {
 
       expect('error' in result).toBe(true);
       expect((result as { error: { code: number } }).error.code).toBe(
-        TokenErrorCode.INVALID_REFRESH_TOKEN
+        BusinessCodes.AUTH_INVALID_REFRESH_TOKEN
       );
     });
 
@@ -258,7 +258,7 @@ describe('Token Service', () => {
 
       expect('error' in result).toBe(true);
       expect((result as { error: { code: number } }).error.code).toBe(
-        TokenErrorCode.INVALID_REFRESH_TOKEN
+        BusinessCodes.AUTH_INVALID_REFRESH_TOKEN
       );
     });
 
@@ -395,7 +395,7 @@ describe('Token Service', () => {
 
       expect('error' in result).toBe(true);
       expect((result as { error: { code: number } }).error.code).toBe(
-        TokenErrorCode.INVALID_REFRESH_TOKEN
+        BusinessCodes.AUTH_INVALID_REFRESH_TOKEN
       );
     });
 
@@ -412,7 +412,7 @@ describe('Token Service', () => {
 
       expect('error' in result).toBe(true);
       expect((result as { error: { code: number } }).error.code).toBe(
-        TokenErrorCode.INVALID_REFRESH_TOKEN
+        BusinessCodes.AUTH_INVALID_REFRESH_TOKEN
       );
     });
   });
