@@ -83,6 +83,29 @@ declare namespace Api {
       email: string
       avatar?: string
     }
+
+    /** Admin 登录参数 */
+    interface AdminLoginParams {
+      email: string
+      password: string
+    }
+
+    /** Admin 登录响应 */
+    interface AdminLoginResponse {
+      code: number
+      data: {
+        accessToken: string
+        refreshToken: string
+      }
+    }
+
+    /** Admin 用户信息 */
+    interface AdminUserInfo {
+      adminId: string
+      email: string
+      name: string
+      role: string
+    }
   }
 
   /** 系统管理类型 */
