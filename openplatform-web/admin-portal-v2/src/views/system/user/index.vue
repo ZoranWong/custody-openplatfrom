@@ -43,7 +43,16 @@
 
 <script setup lang="ts">
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
-  import { ACCOUNT_TABLE_DATA } from '@/mock/temp/formData'
+  import avatar1 from '@/assets/images/avatar/avatar1.webp'
+  import avatar2 from '@/assets/images/avatar/avatar2.webp'
+  import avatar3 from '@/assets/images/avatar/avatar3.webp'
+  import avatar4 from '@/assets/images/avatar/avatar4.webp'
+  import avatar5 from '@/assets/images/avatar/avatar5.webp'
+  import avatar6 from '@/assets/images/avatar/avatar6.webp'
+  import avatar7 from '@/assets/images/avatar/avatar7.webp'
+  import avatar8 from '@/assets/images/avatar/avatar8.webp'
+  import avatar9 from '@/assets/images/avatar/avatar9.webp'
+  import avatar10 from '@/assets/images/avatar/avatar10.webp'
   import { useTable } from '@/hooks/core/useTable'
   import { fetchGetUserList } from '@/api/system-manage'
   import UserSearch from './modules/user-search.vue'
@@ -91,6 +100,9 @@
       }
     )
   }
+
+  // 本地头像列表，用于替换接口返回的头像
+  const AVATAR_LIST = [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, avatar8, avatar9, avatar10]
 
   const {
     columns,
@@ -195,7 +207,7 @@
         return records.map((item, index: number) => {
           return {
             ...item,
-            avatar: ACCOUNT_TABLE_DATA[index % ACCOUNT_TABLE_DATA.length].avatar
+            avatar: AVATAR_LIST[index % AVATAR_LIST.length]
           }
         })
       }
