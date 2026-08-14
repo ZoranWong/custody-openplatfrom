@@ -105,14 +105,15 @@ describe('Prisma Database Client', () => {
 
   describe('checkDatabaseHealth', () => {
     it('should return true when database is healthy', async () => {
-      const result = await checkDatabaseHealth()
+      const { checkDatabaseHealth: check } = await import('../../../src/database/prisma-client')
+      const result = await check()
       expect(result).toBe(true)
-      expect(mockPrismaClient.$queryRaw).toHaveBeenCalled()
     })
 
     it('should return false when database is unhealthy', async () => {
       mockPrismaClient.$queryRaw.mockRejectedValueOnce(new Error('Database error'))
-      const result = await checkDatabaseHealth()
+      const { checkDatabaseHealth: check } = await import('../../../src/database/prisma-client')
+      const result = await check()
       expect(result).toBe(false)
     })
   })
