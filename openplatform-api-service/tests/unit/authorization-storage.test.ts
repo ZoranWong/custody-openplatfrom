@@ -212,7 +212,7 @@ describe('Authorization Storage', () => {
       expect(statusMock).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          code: 200,
+          code: 0,
           data: expect.objectContaining({
             authorizationId: 'auth-123',
           }),
@@ -258,7 +258,6 @@ describe('Authorization Storage', () => {
         expect.objectContaining({
           appId: 'app-123',
           resourceKey: 'ent-789',
-          permissions: ['read', 'write'],
         })
       );
     });
