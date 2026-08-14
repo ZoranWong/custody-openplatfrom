@@ -184,6 +184,10 @@ function getClientIP(req: Request): string {
 
 /**
  * Get tier for an appid
+ *
+ * TODO: When REAL-1 (Billing subscription) is implemented, query the Subscription
+ * table to get the app's current package tier. Currently returns defaultTier
+ * for all apps.
  */
 function getTierForApp(
   appid: string | undefined,
@@ -193,7 +197,7 @@ function getTierForApp(
   if (!appid) {
     return defaultTier;
   }
-
+  // TODO(REAL-1): Query Subscription table for app's package tier
   return defaultTier;
 }
 

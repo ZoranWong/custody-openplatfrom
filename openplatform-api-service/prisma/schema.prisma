@@ -39,7 +39,7 @@ model IsvDeveloper {
   kybReviewedAt       DateTime? @map("kyb_reviewed_at")
   /// KYB审核人ID
   kybReviewedBy       String?   @map("kyb_reviewed_by")
-  /// 账号状态: active(正常), suspended(停用), deleted(已删除)
+  /// 账号状态: active(正常), suspended(停用), banned(已封禁), deleted(已删除)
   status       String   @default("active")
   /// 创建时间
   createdAt    DateTime @default(now()) @map("created_at")

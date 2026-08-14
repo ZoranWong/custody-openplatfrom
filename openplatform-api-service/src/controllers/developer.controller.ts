@@ -333,7 +333,7 @@ export async function getDeveloperStats(req: Request, res: Response): Promise<vo
     ])
 
     // Use groupBy-style aggregation from the fetched data
-    const statusCounts: Record<string, number> = { active: 0, suspended: 0, deleted: 0 }
+    const statusCounts: Record<string, number> = { active: 0, suspended: 0, banned: 0, deleted: 0 }
     const kybStatusCounts: Record<string, number> = { approved: 0, pending: 0, rejected: 0 }
 
     for (const isv of allDevelopers) {
