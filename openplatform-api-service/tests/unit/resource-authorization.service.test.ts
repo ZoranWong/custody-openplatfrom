@@ -6,7 +6,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Mock prisma client
 const mockOauthResource = {
-  findFirst: vi.fn(),
   findUnique: vi.fn()
 }
 
@@ -50,7 +49,7 @@ describe('ResourceAuthorizationService', () => {
         expiresAt: new Date(Date.now() + 86400000)
       }
 
-      mockOauthResource.findFirst.mockResolvedValue(mockOauth)
+      mockOauthResource.findUnique.mockResolvedValue(mockOauth)
 
       const result = await service.checkAuthorization(appId, resourceKey)
 
@@ -60,7 +59,7 @@ describe('ResourceAuthorizationService', () => {
     })
 
     it('should return unauthorized when OAuthResource not found', async () => {
-      mockOauthResource.findFirst.mockResolvedValue(null)
+      mockOauthResource.findUnique.mockResolvedValue(null)
 
       const result = await service.checkAuthorization(appId, resourceKey)
 
@@ -69,7 +68,7 @@ describe('ResourceAuthorizationService', () => {
     })
 
     it('should return unauthorized when status is not active', async () => {
-      mockOauthResource.findFirst.mockResolvedValue({
+      mockOauthResource.findUnique.mockResolvedValue({
         id: 'oauth-1',
         appId,
         resourceKey,
@@ -83,7 +82,7 @@ describe('ResourceAuthorizationService', () => {
     })
 
     it('should return unauthorized when authorization expired', async () => {
-      mockOauthResource.findFirst.mockResolvedValue({
+      mockOauthResource.findUnique.mockResolvedValue({
         id: 'oauth-1',
         appId,
         resourceKey,
@@ -98,7 +97,7 @@ describe('ResourceAuthorizationService', () => {
     })
 
     it('should skip expiration check when checkExpiration is false', async () => {
-      mockOauthResource.findFirst.mockResolvedValue({
+      mockOauthResource.findUnique.mockResolvedValue({
         id: 'oauth-1',
         appId,
         resourceKey,
@@ -114,7 +113,7 @@ describe('ResourceAuthorizationService', () => {
     })
 
     it('should handle null expiresAt', async () => {
-      mockOauthResource.findFirst.mockResolvedValue({
+      mockOauthResource.findUnique.mockResolvedValue({
         id: 'oauth-1',
         appId,
         resourceKey,
@@ -161,7 +160,7 @@ describe('ResourceAuthorizationService', () => {
     it('should check multiple resources', async () => {
       const resources = ['resource-1', 'resource-2', 'resource-3']
 
-      mockOauthResource.findFirst
+      mockOauthResource.findUnique
         .mockResolvedValueOnce({
           id: 'oauth-1',
           appId: 'app-1',
