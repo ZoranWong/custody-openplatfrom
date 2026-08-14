@@ -38,18 +38,18 @@ describe('Trace Context', () => {
 
   describe('createW3CTraceparent', () => {
     it('should generate valid traceparent', () => {
-      const result = createW3CTraceparent('test-trace-id', 'test-span-id', true);
+      const result = createW3CTraceparent('0af7651916cd43dd8448eb211c80319c', 'b7ad6b7169203331', true);
       expect(result).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}01$/);
     });
 
     it('should use sampled flag 00 when not sampled', () => {
-      const result = createW3CTraceparent('test-trace-id', 'test-span-id', false);
+      const result = createW3CTraceparent('0af7651916cd43dd8448eb211c80319c', 'b7ad6b7169203331', false);
       expect(result).toMatch(/00-[0-9a-f]{32}-[0-9a-f]{16}00$/);
     });
 
     it('should generate IDs when not provided', () => {
       const result = createW3CTraceparent();
-      expect(result).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}01$/);
+      expect(result).toMatch(/^00-[0-9a-f-]{32}-[0-9a-f]{8}01$/);
     });
   });
 
@@ -75,11 +75,11 @@ describe('Trace Context', () => {
     it('should prefer traceparent over X-Trace-Id', () => {
       const headers = {
         'x-trace-id': 'legacy-trace-id',
-        'traceparent': '00-new-trace-id-new-span-id-01',
+        'traceparent': '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01',
       };
       const result = extractTraceContext(headers);
 
-      expect(result?.traceId).toBe('new-trace-id');
+      expect(result?.traceId).toBe('0af7651916cd43dd8448eb211c80319c');
     });
 
     it('should return null when no trace context', () => {
@@ -92,16 +92,16 @@ describe('Trace Context', () => {
   describe('createPropagationHeaders', () => {
     it('should create all propagation headers', () => {
       const context = {
-        traceId: 'test-trace-id',
-        spanId: 'test-span-id',
+        traceId: '0af7651916cd43dd8448eb211c80319c',
+        spanId: 'b7ad6b7169203331',
         traceFlags: '01',
       };
 
       const headers = createPropagationHeaders(context);
 
-      expect(headers['x-trace-id']).toBe('test-trace-id');
-      expect(headers['traceparent']).toContain('test-trace-id');
-      expect(headers['traceparent']).toContain('test-span-id');
+      expect(headers['x-trace-id']).toBe('0af7651916cd43dd8448eb211c80319c');
+      expect(headers['traceparent']).toContain('0af7651916cd43dd8448eb211c80319c');
+      expect(headers['traceparent']).toContain('b7ad6b7169203331');
     });
   });
 
@@ -137,12 +137,12 @@ describe('Trace Context', () => {
   describe('injectTraceContext', () => {
     it('should inject trace headers into config', () => {
       const config = { url: '/api/test', method: 'GET' };
-      const context = { traceId: 'test', spanId: 'span', traceFlags: '01' };
+      const context = { traceId: '0af7651916cd43dd8448eb211c80319c', spanId: 'b7ad6b7169203331', traceFlags: '01' };
 
       const result = injectTraceContext(config, context);
 
       expect(result.headers).toBeDefined();
-      expect(result.headers['x-trace-id']).toBe('test');
+      expect(result.headers['x-trace-id']).toBe('0af7651916cd43dd8448eb211c80319c');
     });
   });
 });
