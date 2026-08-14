@@ -155,14 +155,14 @@ describe('Trace Service', () => {
 
     it('should generate span ID if not provided', () => {
       const context = {
-        traceId: 'test-trace-id',
+        traceId: '0af7651916cd43dd8448eb211c80319c',
         sampled: true,
       };
 
       const headers = propagateTrace(context);
 
-      expect(headers['x-trace-id']).toBe('test-trace-id');
-      expect(headers['traceparent']).toMatch(/00-test-trace-id-[0-9a-f]{16}01$/);
+      expect(headers['x-trace-id']).toBe('0af7651916cd43dd8448eb211c80319c');
+      expect(headers['traceparent']).toMatch(/00-0af7651916cd43dd8448eb211c80319c-[0-9a-f]{8}01$/);
     });
   });
 
