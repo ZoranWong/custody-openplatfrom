@@ -5,8 +5,33 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Request, Response } from 'express';
-import { TokenErrorCode } from '../../src/services/token.service';
+import { BusinessCodes } from '../../src/enums/business-codes.enum';
 import * as crypto from 'crypto';
+
+// Mock application repository for validateAppToken tests
+const mockApplicationRepo = {
+  findByAppId: vi.fn().mockResolvedValue({
+    appId: 'app-123',
+    appSecret: 'test-app-secret',
+    status: 'active',
+  }),
+};
+
+vi.mock('../../src/repositories/repository.factory', () => ({
+  getApplicationRepository: vi.fn(() => mockApplicationRepo),
+}));
+
+// Mock token service to avoid module initialization issues
+const mockTokenService = {
+  issueTokens: vi.fn(),
+  refreshAccessToken: vi.fn(),
+  revokeRefreshToken: vi.fn(),
+  validateAppToken: vi.fn(),
+};
+
+vi.mock('../../src/services/token.service', () => ({
+  tokenService: mockTokenService,
+}));
 
 describe('OAuth Controller', () => {
   let mockReq: Partial<Request>;
@@ -22,6 +47,14 @@ describe('OAuth Controller', () => {
   }
 
   beforeEach(() => {
+    // Reset mock state
+    vi.clearAllMocks();
+    mockApplicationRepo.findByAppId.mockResolvedValue({
+      appId: 'app-123',
+      appSecret: 'test-app-secret',
+      status: 'active',
+    });
+
     // Mock request
     mockReq = {
       body: {},
@@ -107,7 +140,7 @@ describe('OAuth Controller', () => {
   describe('validateAppToken - Parameter Validation', () => {
     it('should require appId parameter', async () => {
       const { validateAppToken } = await import('../../src/controllers/oauth.controller');
-      mockReq.query = { appToken: 'some-token' };
+      mockReq.body = { appToken: 'some-token' };
 
       await validateAppToken(mockReq as Request, mockRes as Response);
 
@@ -120,7 +153,7 @@ describe('OAuth Controller', () => {
 
     it('should require appToken parameter', async () => {
       const { validateAppToken } = await import('../../src/controllers/oauth.controller');
-      mockReq.query = { appId: 'app-123' };
+      mockReq.body = { appId: 'app-123' };
 
       await validateAppToken(mockReq as Request, mockRes as Response);
 
@@ -133,7 +166,7 @@ describe('OAuth Controller', () => {
 
     it('should require both appId and appToken parameters', async () => {
       const { validateAppToken } = await import('../../src/controllers/oauth.controller');
-      mockReq.query = {};
+      mockReq.body = {};
 
       await validateAppToken(mockReq as Request, mockRes as Response);
 
@@ -148,7 +181,15 @@ describe('OAuth Controller', () => {
   describe('validateAppToken - Hash-based Token', () => {
     it('should return error for invalid token format', async () => {
       const { validateAppToken } = await import('../../src/controllers/oauth.controller');
-      mockReq.query = { appId: 'app-123', appToken: 'invalid-format' };
+      mockReq.body = { appId: 'app-123', appToken: 'invalid-format' };
+
+      mockTokenService.validateAppToken.mockResolvedValue({
+        valid: false,
+        error: {
+          code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
+          message: 'Invalid token format',
+        },
+      });
 
       await validateAppToken(mockReq as Request, mockRes as Response);
 
@@ -164,7 +205,15 @@ describe('OAuth Controller', () => {
       // Generate token with wrong secret
       const wrongSecret = 'wrong-secret';
       const token = generateHashToken('app-123', wrongSecret);
-      mockReq.query = { appId: 'app-123', appToken: token };
+      mockReq.body = { appId: 'app-123', appToken: token };
+
+      mockTokenService.validateAppToken.mockResolvedValue({
+        valid: false,
+        error: {
+          code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
+          message: 'Invalid token: hash mismatch',
+        },
+      });
 
       await validateAppToken(mockReq as Request, mockRes as Response);
 
