@@ -8,6 +8,8 @@ import {
   listAdmins
 } from '../../controllers/admin-auth.controller'
 import { adminAuthMiddleware, requireRole } from '../../middleware/admin-auth.middleware'
+import { requirePermission } from '../../middleware/admin-permission.middleware'
+import { Resource } from '../../constants/admin-permissions'
 import {
   getDevelopers,
   getDeveloperById,
@@ -34,13 +36,19 @@ router.get('/profile', adminAuthMiddleware, getAdminProfile)
 router.get('/admins', adminAuthMiddleware, requireRole('super_admin'), listAdmins)
 
 // Developer management routes
+
+// Query routes - all logged-in admins can view
 router.get('/developers', adminAuthMiddleware, getDevelopers)
 router.get('/developers/stats', adminAuthMiddleware, getDeveloperStats)
 router.get('/developers/:id', adminAuthMiddleware, getDeveloperById)
-router.post('/developers/:id/approve', adminAuthMiddleware, approveDeveloper)
-router.post('/developers/:id/reject', adminAuthMiddleware, rejectDeveloper)
-router.post('/developers/:id/activate', adminAuthMiddleware, activateDeveloper)
-router.post('/developers/:id/suspend', adminAuthMiddleware, suspendDeveloper)
-router.post('/developers/:id/ban', adminAuthMiddleware, banDeveloper)
+
+// Mutation routes - need KYB approval permission
+router.post('/developers/:id/approve', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), approveDeveloper)
+router.post('/developers/:id/reject', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), rejectDeveloper)
+router.post('/developers/:id/ban', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), banDeveloper)
+
+// Status management routes - need ISV status permission
+router.post('/developers/:id/activate', adminAuthMiddleware, requirePermission(Resource.ISV_STATUS), activateDeveloper)
+router.post('/developers/:id/suspend', adminAuthMiddleware, requirePermission(Resource.ISV_STATUS), suspendDeveloper)
 
 export default router
