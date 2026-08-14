@@ -71,8 +71,8 @@ describe('HttpClient', () => {
       const traceId1 = generateTraceId();
       const traceId2 = generateTraceId();
 
-      expect(traceId1).toMatch(/^hc_\d+_[a-z0-9]+$/);
-      expect(traceId2).toMatch(/^hc_\d+_[a-z0-9]+$/);
+      expect(traceId1).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+      expect(traceId2).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
       expect(traceId1).not.toBe(traceId2);
     });
   });
