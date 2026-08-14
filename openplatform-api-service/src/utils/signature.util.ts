@@ -93,31 +93,32 @@ export interface NonceCache {
 }
 
 /**
- * In-memory nonce cache for development/testing
- * In production, use Redis-based implementation
+ * Nonce cache implementation using the unified cache layer
+ * (configurable memory/redis/file backend via .env CACHE_DRIVER)
  */
 export class InMemoryNonceCache implements NonceCache {
-  private cache: Map<string, { nonce: string; expiry: number }> = new Map();
+  private cacheInstance: any = null;
+
+  private async ensureCache(): Promise<any> {
+    if (!this.cacheInstance) {
+      // Dynamic import to avoid circular dependencies
+      const { getCache } = await import('../services/cache.service');
+      this.cacheInstance = await getCache();
+    }
+    return this.cacheInstance;
+  }
 
   async isDuplicate(appid: string, nonce: string): Promise<boolean> {
-    const key = `${appid}:${nonce}`;
-    const entry = this.cache.get(key);
-    if (!entry) {
-      return false;
-    }
-    if (Date.now() > entry.expiry) {
-      this.cache.delete(key);
-      return false;
-    }
-    return true;
+    const cache = await this.ensureCache();
+    const key = `signature:nonce:${appid}:${nonce}`;
+    const value = await cache.get(key);
+    return value !== undefined && value !== null;
   }
 
   async record(appid: string, nonce: string, ttlSeconds: number): Promise<void> {
-    const key = `${appid}:${nonce}`;
-    this.cache.set(key, {
-      nonce,
-      expiry: Date.now() + ttlSeconds * 1000,
-    });
+    const cache = await this.ensureCache();
+    const key = `signature:nonce:${appid}:${nonce}`;
+    await cache.set(key, '1', ttlSeconds * 1000);
   }
 }
 

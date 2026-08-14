@@ -4,6 +4,7 @@ import { BusinessCodes } from '../enums/business-codes.enum'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 import { adminService, tokenBlacklistService } from '../services/admin-auth.service'
+import { getCache } from '../services/cache.service'
 
 // Get JWT config from environment or defaults
 function getJwtConfig() {
@@ -33,55 +34,62 @@ function generateTokens(admin: any) {
   return { accessToken, refreshToken }
 }
 
-// Rate limiting store (in-memory for demo, use Redis in production)
-const loginAttempts = new Map<string, { count: number; lastAttempt: number }>()
-const refreshAttempts = new Map<string, { count: number; lastAttempt: number }>()
-
+// Rate limiting using unified cache layer (configurable memory/redis/file via .env CACHE_DRIVER)
 // Rate limiting helper for login
-function checkLoginRateLimit(email: string, maxAttempts: number = 5, windowMs: number = 15 * 60 * 1000): boolean {
+async function checkLoginRateLimit(email: string, maxAttempts: number = 5, windowMs: number = 15 * 60 * 1000): Promise<boolean> {
+  const cache = await getCache()
+  const key = `ratelimit:login:${email}`
   const now = Date.now()
-  const attempts = loginAttempts.get(email)
 
-  if (!attempts) {
-    loginAttempts.set(email, { count: 1, lastAttempt: now })
+  const current = await cache.get(key) as { count: number; lastAttempt: number } | undefined
+
+  if (!current) {
+    await cache.set(key, { count: 1, lastAttempt: now }, windowMs)
     return true
   }
 
-  if (now - attempts.lastAttempt > windowMs) {
-    loginAttempts.set(email, { count: 1, lastAttempt: now })
+  if (now - current.lastAttempt > windowMs) {
+    await cache.set(key, { count: 1, lastAttempt: now }, windowMs)
     return true
   }
 
-  if (attempts.count >= maxAttempts) {
+  if (current.count >= maxAttempts) {
     return false
   }
 
-  attempts.count++
-  attempts.lastAttempt = now
+  current.count++
+  current.lastAttempt = now
+  await cache.set(key, current, windowMs)
   return true
 }
 
 // Rate limiting helper for refresh
-function checkRefreshRateLimit(refreshToken: string, maxAttempts: number = 10, windowMs: number = 15 * 60 * 1000): boolean {
+async function checkRefreshRateLimit(refreshToken: string, maxAttempts: number = 10, windowMs: number = 15 * 60 * 1000): Promise<boolean> {
+  const cache = await getCache()
+  // Hash the token for the key to avoid storing full tokens
+  const tokenHash = Buffer.from(refreshToken.slice(-32)).toString('base64').slice(0, 16)
+  const key = `ratelimit:refresh:${tokenHash}`
   const now = Date.now()
-  const attempts = refreshAttempts.get(refreshToken)
 
-  if (!attempts) {
-    refreshAttempts.set(refreshToken, { count: 1, lastAttempt: now })
+  const current = await cache.get(key) as { count: number; lastAttempt: number } | undefined
+
+  if (!current) {
+    await cache.set(key, { count: 1, lastAttempt: now }, windowMs)
     return true
   }
 
-  if (now - attempts.lastAttempt > windowMs) {
-    refreshAttempts.set(refreshToken, { count: 1, lastAttempt: now })
+  if (now - current.lastAttempt > windowMs) {
+    await cache.set(key, { count: 1, lastAttempt: now }, windowMs)
     return true
   }
 
-  if (attempts.count >= maxAttempts) {
+  if (current.count >= maxAttempts) {
     return false
   }
 
-  attempts.count++
-  attempts.lastAttempt = now
+  current.count++
+  current.lastAttempt = now
+  await cache.set(key, current, windowMs)
   return true
 }
 
@@ -154,7 +162,7 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
     }
 
     // Check rate limit
-    if (!checkLoginRateLimit(email)) {
+    if (!await checkLoginRateLimit(email)) {
       res.status(HttpCodes.TOO_MANY_REQUESTS).json({
         code: BusinessCodes.RATE_LIMIT_EXCEEDED,
         message: 'Too many login attempts. Please try again later.',
@@ -253,7 +261,7 @@ export async function adminRefreshToken(req: Request, res: Response): Promise<vo
     }
 
     // Check rate limit for refresh attempts
-    if (!checkRefreshRateLimit(refreshToken)) {
+    if (!await checkRefreshRateLimit(refreshToken)) {
       res.status(HttpCodes.TOO_MANY_REQUESTS).json({
         code: BusinessCodes.RATE_LIMIT_STRICT,
         message: 'Too many refresh attempts. Please try again later.',

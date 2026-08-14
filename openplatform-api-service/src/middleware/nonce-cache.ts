@@ -1,57 +1,45 @@
-interface CacheEntry {
-    key: string;
-    timestamp: number;
-}
+import { getCache } from '../services/cache.service';
 
 /**
- * In-memory nonce cache for replay attack prevention
+ * Nonce cache for replay attack prevention, using the unified cache layer
+ * (configurable memory/redis/file backend via .env CACHE_DRIVER)
  */
 export class NonceCache {
-    private cache: Map<string, CacheEntry> = new Map();
     private ttl: number;
+    private cacheInstance: any = null;
 
     constructor(ttlSeconds: number = 3600) {
         this.ttl = ttlSeconds * 1000;
     }
 
+    private async ensureCache(): Promise<any> {
+        if (!this.cacheInstance) {
+            this.cacheInstance = await getCache();
+        }
+        return this.cacheInstance;
+    }
+
     private getKey(appId: string, nonce: string): string {
-        return `${appId}:${nonce}`;
+        return `nonce:${appId}:${nonce}`;
     }
 
     async isDuplicate(appId: string, nonce: string): Promise<boolean> {
+        const cache = await this.ensureCache();
         const key = this.getKey(appId, nonce);
-        const entry = this.cache.get(key);
-
-        if (!entry) {
-            return false;
-        }
-
-        // Check if expired - if so, clean up and treat as not duplicate
-        if (Date.now() > entry.timestamp + this.ttl) {
-            this.cache.delete(key);
-            return false;
-        }
-
-        return true;
+        const value = await cache.get(key);
+        return value !== undefined && value !== null;
     }
 
     async record(appId: string, nonce: string): Promise<void> {
+        const cache = await this.ensureCache();
         const key = this.getKey(appId, nonce);
-        const now = Date.now();
-
-        this.cache.set(key, { key, timestamp: now });
-
-        // Periodic cleanup of expired entries
-        if (this.cache.size % 1000 === 0) {
-            for (const [k, v] of this.cache.entries()) {
-                if (now > v.timestamp + this.ttl) {
-                    this.cache.delete(k);
-                }
-            }
-        }
+        await cache.set(key, '1', this.ttl);
     }
 
-    clear(): void {
-        this.cache.clear();
+    async clear(): Promise<void> {
+        const cache = await this.ensureCache();
+        if (typeof cache.clear === 'function') {
+            await cache.clear();
+        }
     }
 }

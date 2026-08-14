@@ -6,6 +6,7 @@
 import bcrypt from 'bcrypt'
 import { getAdminRepository } from '../repositories/repository.factory'
 import { Admin, AdminRepository } from '../repositories/repository.interfaces'
+import { getCache } from '../services/cache.service'
 
 // Password strength validator
 export function validatePasswordStrength(password: string): { valid: boolean; message: string } {
@@ -25,49 +26,41 @@ export function validatePasswordStrength(password: string): { valid: boolean; me
 }
 
 // ============================================
-// Token Blacklist Service (In-memory for demo, use Redis in production)
+// Token Blacklist Service (using unified cache layer)
 // ============================================
 
-interface BlacklistEntry {
-  token: string
-  adminId: string
-  expiresAt: number
-}
-
-interface AdminTokenRecord {
-  adminId: string
-  tokens: Set<string>
-}
-
 class TokenBlacklistService {
-  // In-memory storage (use Redis in production)
-  private blacklistMap: Map<string, BlacklistEntry> = new Map()
-  private adminTokens: Map<string, AdminTokenRecord> = new Map()
+  private readonly BLACKLIST_PREFIX = 'blacklist:token';
+  private readonly ADMIN_TOKENS_PREFIX = 'blacklist:admin';
 
   /**
    * Add a token to the blacklist
    */
   async blacklist(token: string, ttlMs: number = 30 * 24 * 60 * 60 * 1000): Promise<boolean> {
-    if (this.blacklistMap.has(token)) {
-      return false
-    }
-
+    const cache = await getCache()
     const decoded = this.decodeToken(token)
     if (!decoded) {
       return false
     }
 
     const adminId = decoded.adminId
-    const expiresAt = Date.now() + ttlMs
+    const tokenKey = `${this.BLACKLIST_PREFIX}:${token}`
 
-    this.blacklistMap.set(token, { token, adminId, expiresAt })
-
-    if (!this.adminTokens.has(adminId)) {
-      this.adminTokens.set(adminId, { adminId, tokens: new Set() })
+    // Check if already blacklisted
+    const existing = await cache.get(tokenKey)
+    if (existing) {
+      return false
     }
-    this.adminTokens.get(adminId)!.tokens.add(token)
 
-    this.cleanup()
+    // Store the token blacklist entry
+    await cache.set(tokenKey, { adminId, expiresAt: Date.now() + ttlMs }, ttlMs)
+
+    // Track by admin for batch revocation
+    const adminKey = `${this.ADMIN_TOKENS_PREFIX}:${adminId}`
+    const adminTokens = (await cache.get(adminKey)) as string[] || []
+    adminTokens.push(token)
+    await cache.set(adminKey, adminTokens, ttlMs)
+
     return true
   }
 
@@ -75,35 +68,36 @@ class TokenBlacklistService {
    * Check if a token is blacklisted
    */
   async isBlacklisted(token: string): Promise<boolean> {
-    const entry = this.blacklistMap.get(token)
-    if (!entry) return false
-
-    if (Date.now() > entry.expiresAt) {
-      this.blacklistMap.delete(token)
-      return false
-    }
-
-    return true
+    const cache = await getCache()
+    const tokenKey = `${this.BLACKLIST_PREFIX}:${token}`
+    const entry = await cache.get(tokenKey)
+    return entry !== undefined && entry !== null
   }
 
   /**
    * Blacklist all tokens for a specific admin
    */
   async blacklistByAdmin(adminId: string, ttlMs: number = 30 * 24 * 60 * 60 * 1000): Promise<number> {
-    const adminRecord = this.adminTokens.get(adminId)
-    if (!adminRecord) {
+    const cache = await getCache()
+    const adminKey = `${this.ADMIN_TOKENS_PREFIX}:${adminId}`
+    const adminTokens = (await cache.get(adminKey)) as string[] || []
+
+    if (adminTokens.length === 0) {
       return 0
     }
 
     let revokedCount = 0
     const expiresAt = Date.now() + ttlMs
 
-    for (const token of adminRecord.tokens) {
-      this.blacklistMap.set(token, { token, adminId, expiresAt })
+    for (const token of adminTokens) {
+      const tokenKey = `${this.BLACKLIST_PREFIX}:${token}`
+      await cache.set(tokenKey, { adminId, expiresAt }, ttlMs)
       revokedCount++
     }
 
-    this.adminTokens.delete(adminId)
+    // Clear the admin token list
+    await cache.del(adminKey)
+
     return revokedCount
   }
 
@@ -119,31 +113,6 @@ class TokenBlacklistService {
     } catch {
       return null
     }
-  }
-
-  /**
-   * Clean up expired entries
-   */
-  async cleanup(): Promise<number> {
-    const now = Date.now()
-    let removed = 0
-
-    for (const [token, entry] of this.blacklistMap.entries()) {
-      if (now > entry.expiresAt) {
-        this.blacklistMap.delete(token)
-        removed++
-
-        const adminRecord = this.adminTokens.get(entry.adminId)
-        if (adminRecord) {
-          adminRecord.tokens.delete(token)
-          if (adminRecord.tokens.size === 0) {
-            this.adminTokens.delete(entry.adminId)
-          }
-        }
-      }
-    }
-
-    return removed
   }
 }
 
