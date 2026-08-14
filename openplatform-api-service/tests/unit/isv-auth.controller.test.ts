@@ -124,7 +124,7 @@ describe('ISV Auth Controller', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(409)
       expect(mockRes.json).toHaveBeenCalledWith(
-        expect.objectContaining({ code: 40901 })
+        expect.objectContaining({ code: 40902 })
       )
     })
 
@@ -194,7 +194,7 @@ describe('ISV Auth Controller', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(401)
       expect(mockRes.json).toHaveBeenCalledWith(
-        expect.objectContaining({ code: 40101 })
+        expect.objectContaining({ code: 40110 })
       )
     })
 
