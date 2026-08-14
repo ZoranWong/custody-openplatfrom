@@ -29,6 +29,10 @@ import oauthRoutes from './routes/oauth.routes'
 import authorizationRoutes from './routes/v1/authorization.routes'
 import thirdpartyRoutes from './routes/thirdparty.routes'
 
+// Import rate-limit modules
+import { defaultRateLimitMiddleware } from './middleware/rate-limit.middleware'
+import { strictRateLimit } from './middleware/admin-rate-limit.middleware'
+
 // Import metrics modules
 import { createMetricsMiddleware } from './middleware/metrics.middleware'
 import metricsRoutes from './routes/metrics.routes'
@@ -98,6 +102,15 @@ app.get('/health', async (_req: Request, res: Response) => {
         }
     })
 })
+
+// Rate limiting middleware
+// Global rate limiting for all API routes
+app.use('/api', defaultRateLimitMiddleware)
+
+// Strict rate limit for sensitive auth endpoints
+app.use('/api/v1/admin/auth/login', strictRateLimit)
+app.use('/api/v1/admin/auth/refresh', strictRateLimit)
+app.use('/api/v1/admin/auth/change-password', strictRateLimit)
 
 // API Routes
 app.use('/api/v1/admin', adminAuthRoutes)
