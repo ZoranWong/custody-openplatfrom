@@ -128,16 +128,42 @@ console.log('[Login] Password verification:', {
 
 ---
 
-### P1-3: 挂载 API 限流中间件
+### P1-3: 挂载 API 限流中间件（当前已挂载基础版，完整方案待 REAL-1 后优化）
 
 **文件:** `src/main.ts`, `src/middleware/rate-limit.middleware.ts`, `src/middleware/admin-rate-limit.middleware.ts`
 
-**问题:** `rateLimitMiddleware` 和 `adminRateLimitMiddleware` 均已实现但从未挂载到任何路由或全局中间件。当前仅 `admin-auth.controller.ts` 中有登录/刷新限流（内存 Map），其他所有端点无限流保护。
+**当前状态:** `defaultRateLimitMiddleware` 已挂载到 `/api` 全局，`strictRateLimit` 已挂载到登录/刷新/改密端点。但 `getTierForApp` 始终返回 `defaultTier`，所有用户使用相同限流策略。
 
-**目标:** 按路由分组挂载限流中间件：
-- 对外三方 API → 分层限流
-- 管理后台 API → 单独限流策略
-- 登录/注册等敏感端点 → 严格限流
+**问题:**
+1. `createStrictRateLimitMiddleware` 是独立实现，与 `createRateLimitMiddleware` 代码重复
+2. 三方 API、admin、ISV 全部使用相同的 basic 限流，没有区分
+3. 登录前后的限流策略没有根据角色区分
+
+**优化方案（待 REAL-1 计费套餐完成后执行）：**
+
+三层限流架构：
+
+| 层级 | 接口范围 | 限流方式 | 维度 | 默认值 |
+|------|---------|---------|------|--------|
+| 第一层 | 登录/注册 | 严格限流 | IP | 3次/分钟 |
+| 第二层 | 三方 API (`/api/thirdparty`) | 按套餐分层 | appId | 体验卡 1000/天, 基础版 50000/天, 专业版 200000/天, 企业版 1000000/天 |
+| 第三层 | 管理后台 (`/api/v1/admin`, `/api/v1/isv`) | 统一限流 | IP+userId | 100次/分钟 |
+
+```
+// 挂载方式（待 REAL-1 后执行）
+app.use('/api/v1/admin/auth/login', strictRateLimit)
+app.use('/api/v1/isv/auth/login', strictRateLimit)
+app.use('/api/v1/isv/auth/register', strictRateLimit)
+app.use('/api/thirdparty', tieredRateLimit)      // 根据 Subscription 查询套餐
+app.use('/api/v1/admin', adminRateLimit)
+app.use('/api/v1/isv', isvRateLimit)
+```
+
+**需要修改的代码:**
+1. `rate-limit.middleware.ts` — 修复 `getTierForApp`，从 `Subscription` 表查询 appId 对应套餐的 `dailyLimit`
+2. `admin-rate-limit.middleware.ts` — 统一到 `createRateLimitMiddleware` 体系，删除 `createStrictRateLimitMiddleware` 独立实现
+3. `main.ts` — 移除全局 `/api` 的 `defaultRateLimitMiddleware`，改为按路由分组挂载三层限流中间件
+4. `rate-limit-rules.ts` — 配置不同套餐和不同角色的限流值
 
 ---
 
