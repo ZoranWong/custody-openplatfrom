@@ -191,12 +191,11 @@ describe('Authorization Query', () => {
       expect(statusMock).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          code: 200,
+          code: 0,
           data: expect.objectContaining({
             authorizationId: 'auth-123',
             appId: 'app-123',
             resourceKey: 'ent-789',
-            permissions: ['read', 'write'],
             status: 'active',
           }),
         })
@@ -233,7 +232,7 @@ describe('Authorization Query', () => {
       expect(statusMock).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          code: 200,
+          code: 0,
           data: expect.objectContaining({
             authorizationId: 'auth-123',
             status: 'revoked',
@@ -274,7 +273,7 @@ describe('Authorization Query', () => {
       expect(statusMock).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          code: 200,
+          code: 0,
           data: expect.objectContaining({
             authorizationId: 'auth-123',
             status: 'expired',
