@@ -161,6 +161,7 @@
       "user": "普通用户"
     },
     "placeholder": {
+      "email": "请输入邮箱",
       "username": "请输入账号",
       "password": "请输入密码",
       "slider": "请拖动滑块完成验证"
@@ -263,6 +264,29 @@
       "role": "角色管理",
       "userCenter": "个人中心",
       "menu": "菜单管理"
+    },
+    "developer": {
+      "title": "开发者管理",
+      "list": "开发者列表",
+      "detail": "开发者详情",
+      "review": "开发者审核"
+    },
+    "kyb": {
+      "title": "KYB认证",
+      "pending": "待审核",
+      "history": "历史记录",
+      "detail": "KYB详情"
+    },
+    "isv": {
+      "title": "ISV管理",
+      "list": "ISV列表",
+      "detail": "ISV详情"
+    },
+    "stats": {
+      "title": "统计报表",
+      "api": "API统计",
+      "revenue": "收入统计",
+      "health": "系统健康"
     }
   },
   "table": {
