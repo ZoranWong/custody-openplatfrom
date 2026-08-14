@@ -10,7 +10,6 @@ import {
   IsvUser,
   Application,
   OauthResource,
-  EndpointPermission,
   RefreshToken,
 } from '@prisma/client'
 
@@ -20,7 +19,6 @@ export {
   IsvUser,
   Application,
   OauthResource,
-  EndpointPermission,
   RefreshToken,
 }
 
@@ -51,16 +49,6 @@ export interface ApplicationRepository {
   findByIsvDeveloper(isvDeveloperId: string): Promise<Application[]>
   create(data: Prisma.ApplicationCreateInput): Promise<Application>
   update(id: string, data: Prisma.ApplicationUpdateInput): Promise<Application>
-  delete(id: string): Promise<boolean>
-}
-
-export interface EndpointPermissionRepository {
-  findById(id: string): Promise<EndpointPermission | null>
-  findByPathAndMethod(endpoint: string, method: string): Promise<EndpointPermission | null>
-  findByIsvDeveloper(isvDeveloperId: string): Promise<EndpointPermission[]>
-  findAll(): Promise<EndpointPermission[]>
-  create(data: Prisma.EndpointPermissionCreateInput): Promise<EndpointPermission>
-  update(id: string, data: Prisma.EndpointPermissionUpdateInput): Promise<EndpointPermission>
   delete(id: string): Promise<boolean>
 }
 

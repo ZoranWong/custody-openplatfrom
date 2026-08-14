@@ -8,7 +8,6 @@ import {
   IsvDeveloperRepository,
   ISVUserRepository,
   ApplicationRepository,
-  EndpointPermissionRepository,
   AdminRepository,
   OauthResourceRepository,
   RefreshTokenRepository,
@@ -16,7 +15,6 @@ import {
 import { IsvDeveloperRepositoryImpl } from './implementations/isv-developer.repository'
 import { ISVUserRepositoryImpl } from './implementations/isv-user.repository'
 import { ApplicationRepositoryImpl } from './implementations/application.repository'
-import { EndpointPermissionRepositoryImpl } from './implementations/permission.repository'
 import { AdminRepositoryImpl } from './implementations/admin.repository'
 import { OauthResourceRepositoryImpl } from './implementations/authorization.repository'
 import { RefreshTokenRepositoryImpl } from './implementations/refresh-token.repository'
@@ -25,7 +23,6 @@ import { RefreshTokenRepositoryImpl } from './implementations/refresh-token.repo
 let isvDeveloperRepo: IsvDeveloperRepository | null = null
 let isvUserRepo: ISVUserRepository | null = null
 let appRepo: ApplicationRepository | null = null
-let permissionRepo: EndpointPermissionRepository | null = null
 let adminRepo: AdminRepository | null = null
 let oauthResourceRepo: OauthResourceRepository | null = null
 let refreshTokenRepo: RefreshTokenRepository | null = null
@@ -46,12 +43,6 @@ export function getApplicationRepository(): ApplicationRepository {
   if (appRepo) return appRepo
   appRepo = new ApplicationRepositoryImpl(getPrismaClient())
   return appRepo
-}
-
-export function getEndpointPermissionRepository(): EndpointPermissionRepository {
-  if (permissionRepo) return permissionRepo
-  permissionRepo = new EndpointPermissionRepositoryImpl(getPrismaClient())
-  return permissionRepo
 }
 
 export function getAdminRepository(): AdminRepository {
@@ -83,7 +74,6 @@ export function resetRepositories(): void {
   isvDeveloperRepo = null
   isvUserRepo = null
   appRepo = null
-  permissionRepo = null
   adminRepo = null
   oauthResourceRepo = null
   refreshTokenRepo = null
