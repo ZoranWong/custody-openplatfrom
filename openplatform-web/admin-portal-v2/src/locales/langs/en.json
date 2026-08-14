@@ -247,6 +247,29 @@
       "title": "Dashboard",
       "console": "Console"
     },
+    "developer": {
+      "title": "Developer",
+      "list": "List",
+      "detail": "Detail",
+      "review": "Review"
+    },
+    "kyb": {
+      "title": "KYB Review",
+      "pending": "Pending",
+      "history": "History",
+      "detail": "Detail"
+    },
+    "isv": {
+      "title": "ISV Management",
+      "list": "List",
+      "detail": "Detail"
+    },
+    "stats": {
+      "title": "Statistics",
+      "api": "API Stats",
+      "revenue": "Revenue",
+      "health": "Health"
+    },
     "result": {
       "title": "Result Page",
       "success": "Success",

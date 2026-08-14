@@ -247,6 +247,29 @@
       "title": "仪表盘",
       "console": "工作台"
     },
+    "developer": {
+      "title": "开发者管理",
+      "list": "开发者列表",
+      "detail": "开发者详情",
+      "review": "审核"
+    },
+    "kyb": {
+      "title": "KYB审核",
+      "pending": "待审核",
+      "history": "历史记录",
+      "detail": "审核详情"
+    },
+    "isv": {
+      "title": "ISV管理",
+      "list": "ISV列表",
+      "detail": "状态详情"
+    },
+    "stats": {
+      "title": "统计分析",
+      "api": "API统计",
+      "revenue": "收入分析",
+      "health": "系统健康"
+    },
     "result": {
       "title": "结果页面",
       "success": "成功页",
