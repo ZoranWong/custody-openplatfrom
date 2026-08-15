@@ -36,40 +36,94 @@
 
 ### 实施步骤
 
-#### Step 1: 初始化迁移历史
+#### Step 1: 备份数据库
+
+**在执行任何迁移操作前，必须先备份数据库：**
+
+```bash
+# 备份线上数据库
+mysqldump -h $DB_HOST -u $DB_USER -p$DB_PASSWORD $DB_NAME > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# 确认备份文件完整
+ls -la backup_*.sql
+```
+
+#### Step 2: 建立基线迁移（安全方案，不操作数据）
+
+当前数据库已有表和数据，但无 `prisma migrations` 记录。使用基线迁移方案，**完全不修改数据库结构，不删除任何数据，不创建任何表**：
 
 ```bash
 cd openplatform-api-service
-npx prisma migrate dev --name init
+
+# 1. 创建迁移目录
+mkdir -p prisma/migrations/20260815000000_init
+
+# 2. 生成基线迁移 SQL（描述当前数据库结构，但不执行）
+npx prisma migrate diff \
+  --from-empty \
+  --to-schema-datamodel prisma/schema.prisma \
+  --script > prisma/migrations/20260815000000_init/migration.sql
+
+# 3. 标记迁移为"已执行"（不实际运行 SQL，只是告诉 Prisma 这个迁移已完成）
+npx prisma migrate resolve --applied 20260815000000_init
+
+# 4. 验证：确认 _prisma_migrations 表中有一条记录
+mysql -h $DB_HOST -u $DB_USER -p$DB_PASSWORD $DB_NAME \
+  -e "SELECT migration_name, rolled_back, finished_at FROM _prisma_migrations;"
 ```
 
-这会基于当前 `schema.prisma` 生成初始迁移文件 `prisma/migrations/20260815000000_init/`。
+**关键：`prisma migrate resolve --applied` 只创建迁移记录，不执行任何 SQL，不修改数据库。**
 
-#### Step 2: 更新部署脚本
+#### Step 3: 后续迁移（正常开发流程）
 
-在 `deploy-testing.sh` 中，将 `npx prisma generate` 改为：
+基线建立后，每次修改 schema 按正常流程：
 
 ```bash
-npx prisma migrate deploy  # 自动执行待执行的迁移
+# 1. 修改 prisma/schema.prisma（新增模型、加字段等）
+
+# 2. 生成迁移文件（自动对比当前 schema 和数据库差异）
+npx prisma migrate dev --name <描述性名称>
+
+# 这会：
+# - 自动检测数据库变化
+# - 生成迁移 SQL 文件
+# - 在开发环境自动执行迁移
+# - 更新 _prisma_migrations 记录
+
+# 3. 检查生成的迁移 SQL
+cat prisma/migrations/$(ls -t prisma/migrations | head -1 | grep -v migration_lock)/migration.sql
+
+# 4. 提交迁移文件到 git
+git add prisma/migrations/
+git commit -m "feat: add <模型名称> table"
+```
+
+#### Step 4: 部署到生产环境
+
+```bash
+# 部署脚本自动执行（deploy-testing.sh 已更新）
+npx prisma migrate deploy  # 只执行未应用的迁移，不修改已存在的表和数据
 npx prisma generate        # 生成 Prisma Client
 ```
 
-#### Step 3: 新增模型/修改表结构的工作流
+**`prisma migrate deploy` 安全保证：**
+- 只执行 `_prisma_migrations` 中未记录的迁移
+- 不删除已有数据
+- 如果迁移失败，停止部署并回滚
+- 仅在检测到 schema drift 时报错，不自动修复
 
-```
-1. 修改 prisma/schema.prisma
-2. 运行 npx prisma migrate dev --name <描述性名称>
-3. 检查生成的迁移 SQL 文件（prisma/migrations/）
-4. 提交迁移文件到 git
-5. 部署时自动执行 prisma migrate deploy
-```
+#### Step 5: 安全红线
 
-#### Step 4: 安全规则
+**以下操作绝对禁止在生产环境执行：**
+- ❌ `prisma migrate reset` — 删除所有表和数据，仅用于开发环境
+- ❌ `prisma db push --force-reset` — 同上
+- ❌ `prisma migrate dev` — 仅在开发环境使用，会尝试重置数据库
+- ❌ 手动修改 `_prisma_migrations` 表
 
-- **绝不使用 `prisma migrate reset`** 在生产环境（会删除所有数据）
-- 迁移文件只增不改（已有迁移文件不可修改，只能新增）
-- 对于可能丢失数据的操作（如删除列），Prisma 会提示警告，需人工确认
-- 生产环境部署前先在 staging 环境验证迁移
+**以下操作需要审批后执行：**
+- ⚠️ 删除字段/表 — 迁移会自动生成 DROP 语句，需人工确认 SQL 文件
+- ⚠️ 修改字段类型 — 可能导致数据转换失败，需先在 staging 环境验证
+- ⚠️ 添加唯一约束 — 可能因重复数据而失败，需先清理数据
 
 #### Step 5: 环境变量
 
