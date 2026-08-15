@@ -56,7 +56,7 @@ import { adminAuthMiddleware } from '../../middleware/admin-auth.middleware'
 import { requirePermission } from '../../middleware/admin-permission.middleware'
 import { Resource } from '../../constants/admin-permissions'
 import { validate } from '../../validate'
-import { RejectKYBRule } from '../../validate/rules'
+import { validateRejectKYB } from '../../validate/rules'
 
 const router = Router()
 
@@ -91,7 +91,7 @@ router.get('/kyb/:id', adminAuthMiddleware, requirePermission(Resource.ISV_KYB),
 router.post('/kyb/:id/approve', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), approveKYB)
 
 // Reject KYB application (requires rejection reason)
-router.post('/kyb/:id/reject', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), validate(RejectKYBRule), rejectKYB)
+router.post('/kyb/:id/reject', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), validateRejectKYB, rejectKYB)
 
 // Request additional information
 router.post('/kyb/:id/request-info', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), requestInfoKYB)

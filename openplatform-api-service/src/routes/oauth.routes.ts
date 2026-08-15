@@ -6,7 +6,7 @@
 
 import { Router } from 'express';
 import { oauthToken, oauthRevoke, validateAppToken } from '../controllers/thirdparty/oauth.controller';
-import { validateOAuthToken, validateAppToken, validateOAuthRevoke } from '../validate/rules';
+import { validateOAuthToken, validateAppToken as validateAppTokenMiddleware, validateOAuthRevoke } from '../validate/rules';
 
 const router = Router();
 
@@ -17,6 +17,6 @@ router.post('/appToken/refresh', validateOAuthToken, oauthToken);
 router.post('/revoke', validateOAuthRevoke, oauthRevoke);
 
 // POST /oauth/appToken/validate - Validate appToken from third-party developers
-router.post('/appToken/validate', validateAppToken, validateAppToken);
+router.post('/appToken/validate', validateAppTokenMiddleware, validateAppToken);
 
 export default router;
