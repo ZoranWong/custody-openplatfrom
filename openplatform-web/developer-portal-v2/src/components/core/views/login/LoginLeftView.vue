@@ -1,9 +1,9 @@
 <!-- 登录、注册、忘记密码左侧背景 -->
 <template>
   <div class="login-left-view">
-    <div class="logo p-8">
+    <div class="logo pl-8">
       <ArtLogo class="icon" size="36" />
-      <h1 class="title">{{ AppConfig.systemInfo.name }}</h1>
+      <h1 class="title">{{ $t('system.title') }}</h1>
     </div>
 
     <div class="left-img">

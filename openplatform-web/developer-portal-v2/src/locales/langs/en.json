@@ -1,4 +1,7 @@
 {
+  "system": {
+    "title": "Cregis Custody OpenPlatform"
+  },
   "httpMsg": {
     "unauthorized": "Unauthorized access, please login again",
     "forbidden": "Access to this resource is forbidden",
