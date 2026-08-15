@@ -1,25 +1,25 @@
 <!-- 登录页面 - ISV Developer Portal -->
 <template>
-  <div class="flex w-full h-screen">
-    <LoginLeftView />
+  <div class="login-page">
+    <AuthTopBar />
 
-    <div class="relative flex-1">
-      <AuthTopBar />
-
-      <div class="auth-right-wrap">
-        <div class="card p-8">
-          <div class="text-center mb-8">
-            <h2 class="text-2xl font-bold text-g-900">{{ $t('login.title') }}</h2>
-            <p class="mt-2 text-g-600">{{ $t('login.subTitle') }}</p>
+    <div class="auth-center-wrap">
+      <div class="card p-8">
+        <div class="text-center mb-8">
+          <div class="logo-wrap mb-6">
+            <ArtLogo size="46" />
           </div>
+          <h2 class="text-2xl font-bold text-g-900">{{ $t('login.title') }}</h2>
+          <p class="mt-2 text-g-600">{{ $t('login.subTitle') }}</p>
+        </div>
 
-          <ElForm
-            ref="formRef"
-            :model="formData"
-            :rules="rules"
-            :key="formKey"
-            @keyup.enter="handleSubmit"
-          >
+        <ElForm
+          ref="formRef"
+          :model="formData"
+          :rules="rules"
+          :key="formKey"
+          @keyup.enter="handleSubmit"
+        >
             <ElFormItem prop="email">
               <ElInput
                 class="custom-height"
@@ -95,7 +95,6 @@
           </ElForm>
         </div>
       </div>
-    </div>
   </div>
 </template>
 

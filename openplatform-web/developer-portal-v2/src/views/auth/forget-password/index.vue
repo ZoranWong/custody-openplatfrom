@@ -1,14 +1,16 @@
 <template>
-  <div class="flex w-full h-screen">
-    <LoginLeftView />
+  <div class="login-page">
+    <AuthTopBar />
 
-    <div class="relative flex-1">
-      <AuthTopBar />
-
-      <div class="auth-right-wrap">
-        <div class="form">
-          <h3 class="title">{{ $t('forgetPassword.title') }}</h3>
-          <p class="sub-title">{{ $t('forgetPassword.subTitle') }}</p>
+    <div class="auth-center-wrap">
+      <div class="card p-8">
+        <div class="text-center mb-8">
+          <div class="logo-wrap mb-6">
+            <ArtLogo size="46" />
+          </div>
+          <h2 class="text-2xl font-bold text-g-900">{{ $t('forgetPassword.title') }}</h2>
+          <p class="mt-2 text-g-600">{{ $t('forgetPassword.subTitle') }}</p>
+        </div>
           <div class="mt-5">
             <span class="input-label" v-if="showInputLabel">账号</span>
             <ElInput
@@ -35,7 +37,6 @@
               {{ $t('forgetPassword.backBtnText') }}
             </ElButton>
           </div>
-        </div>
       </div>
     </div>
   </div>
