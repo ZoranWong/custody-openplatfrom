@@ -248,24 +248,43 @@
       "console": "工作台"
     },
     "developer": {
-      "title": "注册申请",
+      "title": "开发者管理",
+      "list": "开发者列表",
+      "registration": "注册申请",
       "pending": "待审核",
       "history": "历史记录",
       "detail": "申请详情",
       "review": "审核"
     },
+    "stats": {
+      "title": "统计分析",
+      "api": "API统计",
+      "subscription": "订阅统计"
+    },
+    "subscription": {
+      "title": "订阅管理",
+      "plans": "套餐管理",
+      "list": "订阅列表",
+      "orders": "订单管理"
+    },
     "monitor": {
       "title": "系统监控",
-      "api": "API统计",
-      "revenue": "收入分析",
-      "health": "系统健康"
+      "apiError": "API异常",
+      "systemError": "系统异常",
+      "serviceStatus": "服务状态"
     },
-    "system": {
-      "title": "系统管理",
-      "user": "用户管理",
+    "ticket": {
+      "title": "工单管理",
+      "pending": "待处理工单",
+      "history": "历史工单"
+    },
+    "settings": {
+      "title": "系统设置",
+      "admin": "管理员管理",
       "role": "角色管理",
-      "userCenter": "个人中心",
-      "menu": "菜单管理"
+      "menu": "菜单管理",
+      "config": "系统配置",
+      "auditLog": "操作日志"
     }
   },
   "table": {

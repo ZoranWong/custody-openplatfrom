@@ -11,43 +11,23 @@ export const developerRoutes: AppRouteRecord = {
   },
   children: [
     {
-      path: 'pending',
-      name: 'DeveloperPending',
-      component: '/developer/pending',
+      path: 'list',
+      name: 'DeveloperList',
+      component: '/developer/list',
       meta: {
-        title: 'menus.developer.pending',
+        title: 'menus.developer.list',
         keepAlive: true,
         roles: ['R_SUPER', 'R_ADMIN']
       }
     },
     {
-      path: 'history',
-      name: 'DeveloperHistory',
-      component: '/developer/history',
+      path: 'registration',
+      name: 'DeveloperRegistration',
+      component: '/developer/registration',
       meta: {
-        title: 'menus.developer.history',
+        title: 'menus.developer.registration',
         keepAlive: true,
         roles: ['R_SUPER', 'R_ADMIN']
-      }
-    },
-    {
-      path: ':id',
-      name: 'DeveloperDetail',
-      component: '/developer/detail',
-      meta: {
-        title: 'menus.developer.detail',
-        isHide: true,
-        isHideTab: true
-      }
-    },
-    {
-      path: ':id/review',
-      name: 'DeveloperReview',
-      component: '/developer/review',
-      meta: {
-        title: 'menus.developer.review',
-        isHide: true,
-        isHideTab: true
       }
     }
   ]

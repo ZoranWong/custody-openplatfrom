@@ -248,24 +248,43 @@
       "console": "Console"
     },
     "developer": {
-      "title": "Registration",
+      "title": "Developer",
+      "list": "List",
+      "registration": "Registration",
       "pending": "Pending",
       "history": "History",
       "detail": "Detail",
       "review": "Review"
     },
+    "stats": {
+      "title": "Statistics",
+      "api": "API Stats",
+      "subscription": "Subscription"
+    },
+    "subscription": {
+      "title": "Subscription",
+      "plans": "Plans",
+      "list": "List",
+      "orders": "Orders"
+    },
     "monitor": {
       "title": "Monitor",
-      "api": "API Stats",
-      "revenue": "Revenue",
-      "health": "Health"
+      "apiError": "API Errors",
+      "systemError": "System Errors",
+      "serviceStatus": "Service Status"
     },
-    "system": {
-      "title": "System Settings",
-      "user": "User Manage",
-      "role": "Role Manage",
-      "userCenter": "User Center",
-      "menu": "Menu Manage"
+    "ticket": {
+      "title": "Tickets",
+      "pending": "Pending",
+      "history": "History"
+    },
+    "settings": {
+      "title": "Settings",
+      "admin": "Admins",
+      "role": "Roles",
+      "menu": "Menus",
+      "config": "Config",
+      "auditLog": "Audit Log"
     }
   },
   "table": {

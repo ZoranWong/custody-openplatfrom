@@ -6,27 +6,39 @@ export const monitorRoutes: AppRouteRecord = {
   component: '/index/index',
   meta: {
     title: 'menus.monitor.title',
-    icon: 'ri:bar-chart-line',
-    roles: ['R_SUPER', 'R_ADMIN']
+    icon: 'ri:alert-line',
+    roles: ['R_SUPER', 'R_ADMIN', 'R_OPERATOR']
   },
   children: [
     {
-      path: 'api',
-      name: 'MonitorAPI',
-      component: '/monitor/api',
-      meta: { title: 'menus.monitor.api', keepAlive: true, roles: ['R_SUPER', 'R_ADMIN'] }
+      path: 'api-error',
+      name: 'MonitorApiError',
+      component: '/monitor/api-error',
+      meta: {
+        title: 'menus.monitor.apiError',
+        keepAlive: true,
+        roles: ['R_SUPER', 'R_ADMIN', 'R_OPERATOR']
+      }
     },
     {
-      path: 'revenue',
-      name: 'MonitorRevenue',
-      component: '/monitor/revenue',
-      meta: { title: 'menus.monitor.revenue', keepAlive: true, roles: ['R_SUPER', 'R_ADMIN'] }
+      path: 'system-error',
+      name: 'MonitorSystemError',
+      component: '/monitor/system-error',
+      meta: {
+        title: 'menus.monitor.systemError',
+        keepAlive: true,
+        roles: ['R_SUPER', 'R_ADMIN', 'R_OPERATOR']
+      }
     },
     {
-      path: 'health',
-      name: 'MonitorHealth',
-      component: '/monitor/health',
-      meta: { title: 'menus.monitor.health', keepAlive: true, roles: ['R_SUPER', 'R_ADMIN'] }
+      path: 'service-status',
+      name: 'MonitorServiceStatus',
+      component: '/monitor/service-status',
+      meta: {
+        title: 'menus.monitor.serviceStatus',
+        keepAlive: true,
+        roles: ['R_SUPER', 'R_ADMIN', 'R_OPERATOR']
+      }
     }
   ]
 }
