@@ -22,6 +22,7 @@ import { initializeDatabase, checkDatabaseHealth, disconnectDatabase } from './d
 // Import routes
 import adminAuthRoutes from './routes/v1/admin-auth.routes'
 import adminRoutes from './routes/v1/admin.routes'
+import applicationRoutes from './routes/v1/application.routes'
 import isvRoutes from './routes/v1/isv.routes'
 import billingRoutes from './routes/v1/billing.routes'
 import usageRoutes from './routes/v1/usage.routes'
@@ -115,6 +116,7 @@ app.use('/api/v1/admin/auth/change-password', strictRateLimit)
 // API Routes
 app.use('/api/v1/admin', adminAuthRoutes)
 app.use('/api/v1/admin', adminRoutes)
+app.use('/api/v1/admin', applicationRoutes)
 app.use('/api/v1/admin', traceRoutes)
 app.use('/api/v1/isv', isvRoutes)
 app.use('/api/v1/billing', billingRoutes)

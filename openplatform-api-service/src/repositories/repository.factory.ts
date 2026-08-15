@@ -18,6 +18,8 @@ import { ApplicationRepositoryImpl } from './implementations/application.reposit
 import { AdminRepositoryImpl } from './implementations/admin.repository'
 import { OauthResourceRepositoryImpl } from './implementations/authorization.repository'
 import { RefreshTokenRepositoryImpl } from './implementations/refresh-token.repository'
+import { DeveloperApplicationRepositoryImpl } from './implementations/developer-application.repository'
+import { DeveloperAuditRepositoryImpl } from './implementations/developer-audit.repository'
 
 // Singleton instances
 let isvDeveloperRepo: IsvDeveloperRepository | null = null
@@ -26,6 +28,8 @@ let appRepo: ApplicationRepository | null = null
 let adminRepo: AdminRepository | null = null
 let oauthResourceRepo: OauthResourceRepository | null = null
 let refreshTokenRepo: RefreshTokenRepository | null = null
+let developerApplicationRepo: DeveloperApplicationRepositoryImpl | null = null
+let developerAuditRepo: DeveloperAuditRepositoryImpl | null = null
 
 export function getIsvDeveloperRepository(): IsvDeveloperRepository {
   if (isvDeveloperRepo) return isvDeveloperRepo
@@ -67,6 +71,18 @@ export function getRefreshTokenRepository(): RefreshTokenRepository {
   return refreshTokenRepo
 }
 
+export function getDeveloperApplicationRepository(): DeveloperApplicationRepositoryImpl {
+  if (developerApplicationRepo) return developerApplicationRepo
+  developerApplicationRepo = new DeveloperApplicationRepositoryImpl(getPrismaClient())
+  return developerApplicationRepo
+}
+
+export function getDeveloperAuditRepository(): DeveloperAuditRepositoryImpl {
+  if (developerAuditRepo) return developerAuditRepo
+  developerAuditRepo = new DeveloperAuditRepositoryImpl(getPrismaClient())
+  return developerAuditRepo
+}
+
 /**
  * Reset all repository instances (for testing)
  */
@@ -77,4 +93,6 @@ export function resetRepositories(): void {
   adminRepo = null
   oauthResourceRepo = null
   refreshTokenRepo = null
+  developerApplicationRepo = null
+  developerAuditRepo = null
 }

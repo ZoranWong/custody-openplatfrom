@@ -346,8 +346,67 @@ model RefreshToken {
 }
 
 // ============================================
-// Admin - 管理员表
+// DeveloperApplication - 开发者注册申请表
 // ============================================
+model DeveloperApplication {
+  /// 申请唯一标识 UUID
+  id                   String   @id @default(uuid())
+  /// 开发者邮箱（唯一）
+  email                String   @unique
+  /// 密码哈希
+  passwordHash         String   @map("password_hash")
+  /// 企业名称（ISV公司名称）
+  legalName            String   @map("legal_name")
+  /// 统一社会信用代码
+  registrationNumber   String?  @map("registration_number")
+  /// 注册地（国家/地区）
+  jurisdiction         String?  @map("jurisdiction")
+  /// 成立日期
+  dateOfIncorporation  String?  @map("date_of_incorporation")
+  /// 注册地址
+  registeredAddress    String?  @map("registered_address")
+  /// 官网
+  website              String?
+  /// UBO信息（受益所有人）
+  uboInfo              Json?    @map("ubo_info")
+  /// 审核状态: pending(待审核), approved(已通过), rejected(已拒绝)
+  status               String   @default("pending")
+  /// 审核时间
+  reviewedAt           DateTime? @map("reviewed_at")
+  /// 审核人ID
+  reviewedBy           String?   @map("reviewed_by")
+  /// 拒绝原因
+  rejectReason         String?   @map("reject_reason")
+  /// 关联的开发者ID（审核通过后分配）
+  developerId          String?   @map("developer_id")
+  /// 创建时间
+  createdAt            DateTime @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([email])
+  @@index([developerId])
+  @@map("developer_applications")
+}
+
+// ============================================
+// DeveloperAudit - 开发者审核日志表
+// ============================================
+model DeveloperAudit {
+  id              String   @id @default(uuid())
+  developerId     String   @map("developer_id")
+  action          String
+  reason          String?  @db.Text
+  adminId         String   @map("admin_id")
+  adminEmail      String   @map("admin_email")
+  previousStatus  String?  @map("previous_status")
+  newStatus       String?  @map("new_status")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([developerId])
+  @@map("developer_audit")
+}
 model Admin {
   /// 管理员唯一标识 UUID
   id           String   @id @default(uuid())
