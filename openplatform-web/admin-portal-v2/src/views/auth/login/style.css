@@ -1,38 +1,25 @@
 @reference '@styles/core/tailwind.css';
 
-/* 授权页右侧区域 */
-.auth-right-wrap {
-  @apply absolute inset-0 w-[440px] h-[650px] py-[5px] m-auto overflow-hidden
-    max-sm:px-7 max-sm:w-full
-    animate-[slideInRight_0.6s_cubic-bezier(0.25,0.46,0.45,0.94)_forwards]
-    max-md:animate-none;
+/* 登录页面容器 */
+.login-page {
+  @apply relative w-full h-screen overflow-hidden;
+  background-color: var(--default-bg-color);
+}
 
-  .form {
-    @apply h-full py-[40px];
+/* 居中表单区域 */
+.auth-center-wrap {
+  @apply absolute inset-0 w-[440px] h-[600px] m-auto
+    max-sm:px-7 max-sm:w-full;
+
+  .card {
+    @apply bg-[var(--default-box-color)] rounded-xl border border-[var(--default-border)] shadow-sm;
   }
 
-  .title {
-    @apply text-g-900 text-4xl font-semibold max-md:text-3xl max-sm:pt-10;
-  }
-
-  .sub-title {
-    @apply mt-[10px] text-g-600 text-sm;
+  .logo-wrap {
+    @apply flex justify-center;
   }
 
   .custom-height {
     @apply !h-[40px];
-  }
-}
-
-/* 滑入动画 */
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
