@@ -21,8 +21,8 @@ ADMIN_PORTAL_PORT=1002
 # Project root
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 API_DIR="${PROJECT_ROOT}/openplatform-api-service"
-DEV_PORTAL_DIR="${PROJECT_ROOT}/openplatform-web/developer-portal"
-ADMIN_PORTAL_DIR="${PROJECT_ROOT}/openplatform-web/admin-portal"
+DEV_PORTAL_DIR="${PROJECT_ROOT}/openplatform-web/developer-portal-v2"
+ADMIN_PORTAL_DIR="${PROJECT_ROOT}/openplatform-web/admin-portal-v2"
 
 # Log & PID directories
 LOG_DIR="${PROJECT_ROOT}/.dev-logs"
