@@ -20,6 +20,91 @@
 
 ---
 
+## 数据库迁移方案
+
+### 当前问题
+
+- 项目使用 `prisma db push` 直接同步，无版本控制
+- 部署脚本 `deploy-testing.sh` 只执行 `prisma generate`，不更新数据库结构
+- 新增/修改模型时，需要手动执行 `db push`，无回滚能力
+
+### 迁移目标
+
+1. 从 `prisma db push` 迁移到 `prisma migrate`，建立版本化的迁移历史
+2. 部署流程中增加自动迁移步骤
+3. 生产环境安全执行迁移，不丢失数据
+
+### 实施步骤
+
+#### Step 1: 初始化迁移历史
+
+```bash
+cd openplatform-api-service
+npx prisma migrate dev --name init
+```
+
+这会基于当前 `schema.prisma` 生成初始迁移文件 `prisma/migrations/20260815000000_init/`。
+
+#### Step 2: 更新部署脚本
+
+在 `deploy-testing.sh` 中，将 `npx prisma generate` 改为：
+
+```bash
+npx prisma migrate deploy  # 自动执行待执行的迁移
+npx prisma generate        # 生成 Prisma Client
+```
+
+#### Step 3: 新增模型/修改表结构的工作流
+
+```
+1. 修改 prisma/schema.prisma
+2. 运行 npx prisma migrate dev --name <描述性名称>
+3. 检查生成的迁移 SQL 文件（prisma/migrations/）
+4. 提交迁移文件到 git
+5. 部署时自动执行 prisma migrate deploy
+```
+
+#### Step 4: 安全规则
+
+- **绝不使用 `prisma migrate reset`** 在生产环境（会删除所有数据）
+- 迁移文件只增不改（已有迁移文件不可修改，只能新增）
+- 对于可能丢失数据的操作（如删除列），Prisma 会提示警告，需人工确认
+- 生产环境部署前先在 staging 环境验证迁移
+
+#### Step 5: 环境变量
+
+```bash
+# .env
+DATABASE_URL=mysql://user:password@localhost:3306/cregis_openplatform
+```
+
+#### Step 6: 迁移文件目录结构
+
+```
+prisma/
+├── schema.prisma
+└── migrations/
+    ├── 20260815000000_init/
+    │   └── migration.sql
+    ├── 20260820000000_add_refresh_token/
+    │   └── migration.sql
+    └── migration_lock.toml
+```
+
+### 后续新增模型计划
+
+| 模型 | 用途 | 阶段 |
+|------|------|------|
+| Announcement | 系统公告 | 后续 |
+| Ticket | 工单 | 后续 |
+| Subscription | 订阅记录 | 后续 |
+| Package | 套餐配置 | 后续 |
+| Order | 订单 | 后续 |
+| Payment | 支付记录 | 后续 |
+| AuditLog | 操作审计日志 | 后续 |
+
+---
+
 ## 模块一：开发者管理
 
 ### 后端 API（全部 Prisma 真实数据 ✅）
