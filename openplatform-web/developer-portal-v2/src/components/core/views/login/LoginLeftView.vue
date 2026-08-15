@@ -1,8 +1,8 @@
 <!-- 登录、注册、忘记密码左侧背景 -->
 <template>
   <div class="login-left-view">
-    <div class="logo">
-      <ArtLogo class="icon" size="46" />
+    <div class="logo p-8">
+      <ArtLogo class="icon" size="36" />
       <h1 class="title">{{ AppConfig.systemInfo.name }}</h1>
     </div>
 
