@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { getAssetPath } from '@/utils/assets'
+
 const currentYear = new Date().getFullYear()
 
 const footerLinks = {
@@ -27,7 +29,7 @@ const footerLinks = {
         <!-- Brand -->
         <div class="col-span-2 md:col-span-1">
           <div class="flex items-center space-x-2 mb-4">
-            <img src="/logo.svg" alt="Cregis" class="h-6" />
+            <img :src="getAssetPath('logo.svg')" alt="Cregis" class="h-6" />
           </div>
           <p class="text-gray-500 text-sm mb-4">
             Enterprise-Grade Cryptocurrency Custody Infrastructure

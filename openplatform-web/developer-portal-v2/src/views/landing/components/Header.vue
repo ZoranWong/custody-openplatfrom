@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { getAssetPath } from '@/utils/assets'
 
 const router = useRouter()
 const isMobileMenuOpen = ref(false)
@@ -28,7 +29,7 @@ const navigateTo = (path: string) => {
         <!-- Logo -->
         <div class="flex items-center">
           <a href="/" class="flex items-center space-x-2" aria-label="Cregis Home">
-            <img src="/logo.svg" alt="Cregis" class="h-6" />
+            <img :src="getAssetPath('logo.svg')" alt="Cregis" class="h-6" />
           </a>
         </div>
 
