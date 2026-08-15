@@ -17,9 +17,7 @@ export function fetchLogin(params: Api.Auth.LoginParams) {
  * @returns 用户信息
  */
 export function fetchGetUserInfo() {
-  return request.get<Api.Auth.UserInfo>({
-    url: '/api/user/info'
-  })
+  return request.get<any>({ url: '/admin/profile' })
 }
 
 // ============================================
