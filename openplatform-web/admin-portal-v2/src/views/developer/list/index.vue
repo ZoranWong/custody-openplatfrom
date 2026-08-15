@@ -106,7 +106,7 @@ const {
     columnsFactory: () => [
       { type: 'index' as const, width: 60, label: '序号' },
       { prop: 'legalName', label: '公司名称', minWidth: 200 },
-      { prop: 'email', label: '邮箱', width: 220 },
+      { prop: 'contactEmail', label: '邮箱', width: 220 },
       { prop: 'registrationNumber', label: '注册号', width: 160 },
       { prop: 'jurisdiction', label: '注册地', width: 120 },
       {
