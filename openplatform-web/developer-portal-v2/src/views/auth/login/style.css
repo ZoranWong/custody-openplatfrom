@@ -7,16 +7,8 @@
     animate-[slideInRight_0.6s_cubic-bezier(0.25,0.46,0.45,0.94)_forwards]
     max-md:animate-none;
 
-  .form {
-    @apply h-full py-[40px];
-  }
-
-  .title {
-    @apply text-g-900 text-4xl font-semibold max-md:text-3xl max-sm:pt-10;
-  }
-
-  .sub-title {
-    @apply mt-[10px] text-g-600 text-sm;
+  .card {
+    @apply bg-[var(--default-box-color)] rounded-xl border border-[var(--default-border)] shadow-sm;
   }
 
   .custom-height {

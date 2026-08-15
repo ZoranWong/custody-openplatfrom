@@ -1,4 +1,4 @@
-<!-- 注册页面 -->
+<!-- 注册页面 - ISV Developer Portal -->
 <template>
   <div class="flex w-full h-screen">
     <LoginLeftView />
@@ -7,11 +7,13 @@
       <AuthTopBar />
 
       <div class="auth-right-wrap">
-        <div class="form">
-          <h3 class="title">{{ $t('register.title') }}</h3>
-          <p class="sub-title">{{ $t('register.subTitle') }}</p>
+        <div class="card p-8">
+          <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-g-900">{{ $t('register.title') }}</h2>
+            <p class="mt-2 text-g-600">{{ $t('register.subTitle') }}</p>
+          </div>
+
           <ElForm
-            class="mt-7.5"
             ref="formRef"
             :model="formData"
             :rules="rules"
@@ -72,7 +74,7 @@
               </ElButton>
             </div>
 
-            <div class="mt-5 text-sm text-g-600">
+            <div class="mt-5 text-sm text-center text-g-600">
               <span>{{ $t('register.hasAccount') }}</span>
               <RouterLink class="text-theme" :to="{ name: 'Login' }">{{
                 $t('register.toLogin')

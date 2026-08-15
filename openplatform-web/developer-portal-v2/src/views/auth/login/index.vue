@@ -7,22 +7,25 @@
       <AuthTopBar />
 
       <div class="auth-right-wrap">
-        <div class="form">
-          <h3 class="title">{{ $t('login.title') }}</h3>
-          <p class="sub-title">{{ $t('login.subTitle') }}</p>
+        <div class="card p-8">
+          <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold text-g-900">{{ $t('login.title') }}</h2>
+            <p class="mt-2 text-g-600">{{ $t('login.subTitle') }}</p>
+          </div>
+
           <ElForm
             ref="formRef"
             :model="formData"
             :rules="rules"
             :key="formKey"
             @keyup.enter="handleSubmit"
-            style="margin-top: 25px"
           >
             <ElFormItem prop="email">
               <ElInput
                 class="custom-height"
                 :placeholder="$t('login.placeholder.email')"
                 v-model.trim="formData.email"
+                :prefix-icon="Message"
               />
             </ElFormItem>
             <ElFormItem prop="password">
@@ -33,6 +36,7 @@
                 type="password"
                 autocomplete="off"
                 show-password
+                :prefix-icon="Lock"
               />
             </ElFormItem>
 
@@ -82,7 +86,7 @@
               </ElButton>
             </div>
 
-            <div class="mt-5 text-sm text-gray-600">
+            <div class="mt-5 text-sm text-center text-g-600">
               <span>{{ $t('login.noAccount') }}</span>
               <RouterLink class="text-theme" :to="{ name: 'Register' }">{{
                 $t('login.register')
@@ -102,6 +106,7 @@
   import { HttpError } from '@/utils/http/error'
   import { fetchISVLogin } from '@/api/auth'
   import { ElNotification, type FormInstance, type FormRules } from 'element-plus'
+  import { Message, Lock } from '@element-plus/icons-vue'
   import { useSettingStore } from '@/store/modules/setting'
 
   defineOptions({ name: 'Login' })
