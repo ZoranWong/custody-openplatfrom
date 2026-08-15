@@ -11,11 +11,21 @@ export const developerRoutes: AppRouteRecord = {
   },
   children: [
     {
-      path: 'list',
-      name: 'DeveloperList',
-      component: '/developer/list',
+      path: 'pending',
+      name: 'DeveloperPending',
+      component: '/developer/pending',
       meta: {
-        title: 'menus.developer.list',
+        title: 'menus.developer.pending',
+        keepAlive: true,
+        roles: ['R_SUPER', 'R_ADMIN']
+      }
+    },
+    {
+      path: 'history',
+      name: 'DeveloperHistory',
+      component: '/developer/history',
+      meta: {
+        title: 'menus.developer.history',
         keepAlive: true,
         roles: ['R_SUPER', 'R_ADMIN']
       }

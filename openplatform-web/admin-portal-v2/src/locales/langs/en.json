@@ -248,38 +248,17 @@
       "console": "Console"
     },
     "developer": {
-      "title": "Developer",
-      "list": "List",
+      "title": "Registration",
+      "pending": "Pending",
+      "history": "History",
       "detail": "Detail",
       "review": "Review"
     },
-    "kyb": {
-      "title": "KYB Review",
-      "pending": "Pending",
-      "history": "History",
-      "detail": "Detail"
-    },
-    "isv": {
-      "title": "ISV Management",
-      "list": "List",
-      "detail": "Detail"
-    },
-    "stats": {
-      "title": "Statistics",
+    "monitor": {
+      "title": "Monitor",
       "api": "API Stats",
       "revenue": "Revenue",
       "health": "Health"
-    },
-    "result": {
-      "title": "Result Page",
-      "success": "Success",
-      "fail": "Fail"
-    },
-    "exception": {
-      "title": "Exception",
-      "forbidden": "403",
-      "notFound": "404",
-      "serverError": "500"
     },
     "system": {
       "title": "System Settings",

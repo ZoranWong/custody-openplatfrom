@@ -248,38 +248,17 @@
       "console": "工作台"
     },
     "developer": {
-      "title": "开发者管理",
-      "list": "开发者列表",
-      "detail": "开发者详情",
-      "review": "审核"
-    },
-    "kyb": {
-      "title": "KYB审核",
+      "title": "注册申请",
       "pending": "待审核",
       "history": "历史记录",
-      "detail": "审核详情"
+      "detail": "申请详情",
+      "review": "审核"
     },
-    "isv": {
-      "title": "ISV管理",
-      "list": "ISV列表",
-      "detail": "状态详情"
-    },
-    "stats": {
-      "title": "统计分析",
+    "monitor": {
+      "title": "系统监控",
       "api": "API统计",
       "revenue": "收入分析",
       "health": "系统健康"
-    },
-    "result": {
-      "title": "结果页面",
-      "success": "成功页",
-      "fail": "失败页"
-    },
-    "exception": {
-      "title": "异常页面",
-      "forbidden": "403",
-      "notFound": "404",
-      "serverError": "500"
     },
     "system": {
       "title": "系统管理",
