@@ -1,7 +1,10 @@
 <!-- 系统logo -->
 <template>
-  <div class="flex-cc">
-    <img :style="logoStyle" src="@imgs/common/logo.webp" alt="logo" class="w-full h-full" />
+  <div
+    class="flex-cc flex items-center justify-center"
+    :style="{ width: `${props.size}px`, height: `${props.size}px` }"
+  >
+    <img src="@imgs/common/logo.svg" alt="logo" class="h-full" />
   </div>
 </template>
 
