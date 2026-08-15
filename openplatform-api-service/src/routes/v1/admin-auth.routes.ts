@@ -19,7 +19,8 @@ import {
   activateDeveloper,
   suspendDeveloper,
   banDeveloper,
-  getDeveloperStats
+  getDeveloperStats,
+  getDeveloperAudit
 } from '../../controllers/admin/developer.controller'
 
 const router = Router()
@@ -42,6 +43,7 @@ router.get('/admins', adminAuthMiddleware, requireRole('super_admin'), listAdmin
 router.get('/developers', adminAuthMiddleware, getDevelopers)
 router.get('/developers/stats', adminAuthMiddleware, getDeveloperStats)
 router.get('/developers/:id', adminAuthMiddleware, getDeveloperById)
+router.get('/developers/:id/audit', adminAuthMiddleware, getDeveloperAudit)
 
 // Mutation routes - need KYB approval permission
 router.post('/developers/:id/approve', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), approveDeveloper)

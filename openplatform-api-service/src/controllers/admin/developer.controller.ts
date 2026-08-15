@@ -5,7 +5,7 @@
 
 import { Request, Response } from 'express'
 import { Prisma } from '@prisma/client'
-import { getIsvDeveloperRepository, getISVUserRepository } from '../../repositories/repository.factory'
+import { getIsvDeveloperRepository, getISVUserRepository, getDeveloperAuditRepository } from '../../repositories/repository.factory'
 import { IsvDeveloper } from '../../repositories/repository.interfaces'
 import { HttpCodes } from '../../enums/http-codes.enum'
 import { BusinessCodes } from '../../enums/business-codes.enum'
@@ -20,7 +20,8 @@ export async function getDevelopers(req: Request, res: Response): Promise<void> 
       page = '1',
       pageSize = '10',
       status,
-      kybStatus
+      kybStatus,
+      keyword
     } = req.query
 
     const isvRepo = getIsvDeveloperRepository()
@@ -29,6 +30,13 @@ export async function getDevelopers(req: Request, res: Response): Promise<void> 
     const where: Prisma.IsvDeveloperWhereInput = {}
     if (status) where.status = status as string
     if (kybStatus) where.kybStatus = kybStatus as string
+    if (keyword) {
+      where.OR = [
+        { legalName: { contains: keyword as string } },
+        { email: { contains: keyword as string } },
+        { registrationNumber: { contains: keyword as string } },
+      ]
+    }
 
     const pageNum = parseInt(page as string, 10)
     const size = parseInt(pageSize as string, 10)
@@ -243,6 +251,20 @@ export async function activateDeveloper(req: Request, res: Response): Promise<vo
 
     await isvRepo.update(id, { status: 'active' })
 
+    // Write audit log
+    const auditRepo = getDeveloperAuditRepository()
+    const adminId = (req as any).adminId || 'unknown'
+    const adminEmail = (req as any).adminEmail || 'unknown'
+    await auditRepo.create({
+      developerId: id,
+      action: 'activate',
+      reason: null,
+      adminId,
+      adminEmail,
+      previousStatus: isv.status,
+      newStatus: 'active',
+    } as any)
+
     res.json({ code: 0, message: 'Developer activated successfully' })
   } catch (error) {
     console.error('Failed to activate developer:', error)
@@ -271,6 +293,20 @@ export async function suspendDeveloper(req: Request, res: Response): Promise<voi
     }
 
     await isvRepo.update(id, { status: 'suspended' })
+
+    // Write audit log
+    const auditRepo = getDeveloperAuditRepository()
+    const adminId = (req as any).adminId || 'unknown'
+    const adminEmail = (req as any).adminEmail || 'unknown'
+    await auditRepo.create({
+      developerId: id,
+      action: 'suspend',
+      reason: (req.body as any)?.reason || null,
+      adminId,
+      adminEmail,
+      previousStatus: isv.status,
+      newStatus: 'suspended',
+    } as any)
 
     res.json({ code: 0, message: 'Developer suspended successfully' })
   } catch (error) {
@@ -302,10 +338,68 @@ export async function banDeveloper(req: Request, res: Response): Promise<void> {
 
     await isvRepo.update(id, { status: 'banned' })
 
+    // Write audit log
+    const auditRepo = getDeveloperAuditRepository()
+    const adminId = (req as any).adminId || 'unknown'
+    const adminEmail = (req as any).adminEmail || 'unknown'
+    await auditRepo.create({
+      developerId: id,
+      action: 'ban',
+      reason: (req.body as any)?.reason || null,
+      adminId,
+      adminEmail,
+      previousStatus: isv.status,
+      newStatus: 'banned',
+    } as any)
+
     res.json({ code: 0, message: 'Developer banned successfully' })
   } catch (error) {
     console.error('Failed to ban developer:', error)
     res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Failed to ban developer' })
+  }
+}
+
+/**
+ * GET /admin/developers/:id/audit
+ * Get audit logs for a developer
+ */
+export async function getDeveloperAudit(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params
+    const { page = '1', pageSize = '20' } = req.query
+    const auditRepo = getDeveloperAuditRepository()
+    const { list, total } = await auditRepo.findByDeveloperId(
+      id,
+      parseInt(page as string),
+      parseInt(pageSize as string)
+    )
+    res.json({
+      code: 0,
+      message: 'success',
+      data: {
+        list: list.map(a => ({
+          id: a.id,
+          action: a.action,
+          reason: a.reason,
+          adminId: a.adminId,
+          adminEmail: a.adminEmail,
+          previousStatus: a.previousStatus,
+          newStatus: a.newStatus,
+          createdAt: a.createdAt.toISOString(),
+        })),
+        total,
+        page: parseInt(page as string),
+        pageSize: parseInt(pageSize as string),
+      },
+      trace_id: (req as any).context?.traceId || req.headers['x-trace-id'] || '',
+    })
+  } catch (error) {
+    console.error('Failed to get developer audit:', error)
+    res.status(500).json({
+      code: 50001,
+      message: 'Failed to get audit logs',
+      trace_id: (req.headers['x-trace-id'] as string) || '',
+    })
   }
 }
 
