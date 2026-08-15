@@ -109,6 +109,11 @@
   --color-warning: var(--art-warning);
   --color-danger: var(--art-danger);
 
+  /* Brand Colors (Cregis Landing Page) */
+  --color-brand: #00BE78;
+  --color-brand-light: #8BE294;
+  --color-brand-dark: #00A868;
+
   /* Gray Scale Colors (Auto-adapts to dark mode) */
   --color-g-100: var(--art-gray-100);
   --color-g-200: var(--art-gray-200);
@@ -204,5 +209,30 @@
         }
       }
     }
+  }
+
+  /* Brand Button Styles (Cregis Landing Page) */
+  .btn-primary {
+    @apply bg-brand text-white font-semibold rounded-lg px-6 py-2.5 inline-flex items-center justify-center;
+    @apply hover:bg-brand-dark transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2;
+  }
+
+  .btn-outline {
+    @apply border border-brand text-brand font-semibold rounded-lg px-6 py-2.5 inline-flex items-center justify-center;
+    @apply hover:bg-brand hover:text-white transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2;
+  }
+
+  .btn-primary-dark {
+    @apply bg-slate-900 text-white font-semibold rounded-lg px-6 py-2.5 inline-flex items-center justify-center;
+    @apply hover:bg-slate-800 transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2;
+  }
+
+  .btn-outline-dark {
+    @apply border border-slate-900 text-slate-900 font-semibold rounded-lg px-6 py-2.5 inline-flex items-center justify-center;
+    @apply hover:bg-slate-900 hover:text-white transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2;
   }
 }
