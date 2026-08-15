@@ -1,7 +1,7 @@
 <!-- 系统logo -->
 <template>
-  <div class="flex-cc">
-    <img :style="logoStyle" src="@imgs/common/logo.svg" alt="logo" class="w-full h-full" />
+  <div class="flex-cc flex items-center justify-center" :style="logoStyle">
+    <img src="@imgs/common/logo.svg" alt="logo" class="w-full h-full" />
   </div>
 </template>
 
@@ -17,5 +17,5 @@
     size: 36
   })
 
-  const logoStyle = computed(() => ({ width: `${props.size}px` }))
+  const logoStyle = computed(() => ({ width: `${props.size}px`, height: `${props.size}px` }))
 </script>
