@@ -21,6 +21,26 @@ export const developerRoutes: AppRouteRecord = {
       }
     },
     {
+      path: 'detail/:id',
+      name: 'DeveloperDetail',
+      component: '/developer/detail',
+      meta: {
+        title: 'menus.developer.detail',
+        isHide: true,
+        roles: ['R_SUPER', 'R_ADMIN']
+      }
+    },
+    {
+      path: 'review/:id',
+      name: 'DeveloperReview',
+      component: '/developer/review',
+      meta: {
+        title: 'menus.developer.review',
+        isHide: true,
+        roles: ['R_SUPER', 'R_ADMIN']
+      }
+    },
+    {
       path: 'registration',
       name: 'DeveloperRegistration',
       component: '/developer/registration',
