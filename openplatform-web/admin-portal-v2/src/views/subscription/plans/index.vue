@@ -427,7 +427,7 @@
   }
 
   const dialogTitle = computed(() =>
-    editingPackage.value ? 'Edit Package (new version)' : 'Add Package'
+    editingPackage.value ? t('package.editPackage') : t('package.addPackage')
   )
 
   function handleCardClick(pkg: any) {
