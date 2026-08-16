@@ -59,6 +59,28 @@ export const developerRoutes: AppRouteRecord = {
         isHide: true,
         roles: ['R_SUPER', 'R_ADMIN']
       }
+    },
+    {
+      path: 'applications/:developerId',
+      name: 'DeveloperApplications',
+      component: '/developer/applications',
+      meta: {
+        title: 'menus.developer.applications',
+        isHide: true,
+        isHideTab: true,
+        roles: ['R_SUPER', 'R_ADMIN']
+      }
+    },
+    {
+      path: 'subscription/:developerId',
+      name: 'DeveloperSubscription',
+      component: '/developer/subscription',
+      meta: {
+        title: 'menus.developer.subscription',
+        isHide: true,
+        isHideTab: true,
+        roles: ['R_SUPER', 'R_ADMIN']
+      }
     }
   ]
 }

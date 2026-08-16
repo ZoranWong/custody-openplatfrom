@@ -139,10 +139,14 @@ const {
       { prop: 'createdAt', label: '注册时间', width: 180 },
       {
         label: '操作',
-        width: 120,
+        width: 240,
         fixed: 'right',
         formatter: (row: any) => {
-          return h(ElButton, { type: 'primary', size: 'small', onClick: () => handleView(row) }, () => '查看')
+          return h('span', [
+            h(ElButton, { type: 'primary', size: 'small', onClick: () => handleView(row) }, () => '查看'),
+            h(ElButton, { type: 'success', size: 'small', style: { marginLeft: '8px' }, onClick: () => handleViewApps(row) }, () => '应用'),
+            h(ElButton, { type: 'warning', size: 'small', style: { marginLeft: '8px' }, onClick: () => handleViewSubscription(row) }, () => '订阅'),
+          ])
         },
       },
     ] as any,
@@ -172,5 +176,13 @@ const handleRowClick = (row: any) => {
 
 const handleView = (row: any) => {
   router.push({ name: 'DeveloperDetail', params: { id: row.id } })
+}
+
+const handleViewApps = (row: any) => {
+  router.push({ name: 'DeveloperApplications', params: { developerId: row.id } })
+}
+
+const handleViewSubscription = (row: any) => {
+  router.push({ name: 'DeveloperSubscription', params: { developerId: row.id } })
 }
 </script>
