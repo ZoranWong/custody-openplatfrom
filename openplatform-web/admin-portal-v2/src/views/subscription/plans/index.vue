@@ -107,7 +107,7 @@
     </ElRow>
 
     <!-- History - Table Layout -->
-    <div class="mt-8 history-section">
+    <div class="mt-8 history-section" style="min-height: 400px;">
       <div class="mb-4">
         <ElSelect
           v-model="historyFilter"
@@ -125,7 +125,7 @@
           />
         </ElSelect>
       </div>
-      <ElCard class="art-table-card">
+      <div class="bg-[var(--default-box-color)] rounded-xl border border-[var(--default-border)] overflow-hidden">
         <ArtTable
           :loading="historyLoading"
           :data="historyData"
@@ -133,8 +133,9 @@
           :pagination="historyPagination"
           @pagination:size-change="handleHistorySizeChange"
           @pagination:current-change="handleHistoryCurrentChange"
+          style="height: auto; min-height: 300px;"
         />
-      </ElCard>
+      </div>
     </div>
 
     <!-- Add/Edit Dialog -->
