@@ -73,7 +73,7 @@
                   {{ formatNumber(pkg.dailyApiLimit) }}
                 </span>
                 <span v-else-if="feature.key === 'maxApplications'" class="feature-value">
-                  {{ pkg.maxApplications >= 999 ? 'Unlimited' : pkg.maxApplications }}
+                  {{ pkg.maxApplications >= 999 ? '∞' : pkg.maxApplications }}
                 </span>
                 <span v-else-if="feature.key === 'logRetention'" class="feature-value">
                   {{ pkg.logRetention }}{{ $t('package.featureLabels.logRetention').match(/\d/) ? '' : 'd' }}
