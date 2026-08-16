@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { DataLine, Connection, CircleCheck } from '@element-plus/icons-vue'
-import type { ApplicationApiUsage } from '@/api/api-service'
+import type { ApplicationApiUsage } from '@/types/api/application'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   apiUsage?: ApplicationApiUsage
 }
 
 defineProps<Props>()
+
+const { t } = useI18n()
 
 const formatNumber = (num: number) => {
   if (num >= 10000) {
@@ -21,31 +24,31 @@ const formatNumber = (num: number) => {
 
 <template>
   <div class="card p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">API 使用统计</h3>
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ t('developer.applications.apiUsage.title') }}</h3>
 
     <div v-if="apiUsage" class="grid grid-cols-3 gap-4">
       <div class="text-center p-4 bg-gray-50 rounded-lg">
         <el-icon class="w-6 h-6 mx-auto text-brand mb-2"><DataLine /></el-icon>
         <p class="text-2xl font-bold text-gray-900">{{ formatNumber(apiUsage.totalCalls) }}</p>
-        <p class="text-sm text-gray-500">总调用次数</p>
+        <p class="text-sm text-gray-500">{{ t('developer.applications.apiUsage.totalCalls') }}</p>
       </div>
 
       <div class="text-center p-4 bg-gray-50 rounded-lg">
         <el-icon class="w-6 h-6 mx-auto text-brand mb-2"><Connection /></el-icon>
         <p class="text-2xl font-bold text-gray-900">{{ formatNumber(apiUsage.last30Days) }}</p>
-        <p class="text-sm text-gray-500">近30天调用</p>
+        <p class="text-sm text-gray-500">{{ t('developer.applications.apiUsage.last30Days') }}</p>
       </div>
 
       <div class="text-center p-4 bg-gray-50 rounded-lg">
         <el-icon class="w-6 h-6 mx-auto text-success mb-2"><CircleCheck /></el-icon>
         <p class="text-2xl font-bold text-gray-900">{{ apiUsage.successRate }}%</p>
-        <p class="text-sm text-gray-500">成功率</p>
+        <p class="text-sm text-gray-500">{{ t('developer.applications.apiUsage.successRate') }}</p>
       </div>
     </div>
 
     <div v-else class="text-center py-8 text-gray-500">
       <el-icon class="w-12 h-12 mx-auto text-gray-300 mb-2"><DataLine /></el-icon>
-      <p>暂无 API 使用数据</p>
+      <p>{{ t('developer.applications.apiUsage.noData') }}</p>
     </div>
   </div>
 </template>

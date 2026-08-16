@@ -192,4 +192,70 @@ public class TransactionService {
 
         return httpClient.postAsync(url, jsonBody, new TypeReference<Map<String, Object>>() {});
     }
+
+    /**
+     * List unit-level fund records with pagination.
+     * POST /api/thirdparty/treasury/unit-fund-records
+     */
+    @SuppressWarnings("unchecked")
+    public PageResponse<Map<String, Object>> listUnitFundRecords(String authorizationId,
+                                                                  Map<String, Object> request) {
+        log.debug("Listing unit fund records with authorizationId: {}", authorizationId);
+
+        Map<String, Object> business = new LinkedHashMap<>();
+        if (request != null) {
+            business.putAll(request);
+        }
+
+        Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
+                config.getAppId(), config.getAppSecret(), authorizationId, business);
+        String jsonBody = Signer.buildSignatureBody(basic, business);
+
+        String url = config.getBaseUrl() + "/api/thirdparty/treasury/unit-fund-records";
+        return httpClient.post(url, jsonBody, new TypeReference<PageResponse<Map<String, Object>>>() {});
+    }
+
+    /**
+     * List transfer-out orders with pagination.
+     * POST /api/thirdparty/treasury/transfer-out-orders
+     */
+    @SuppressWarnings("unchecked")
+    public PageResponse<Map<String, Object>> listTransferOutOrders(String authorizationId,
+                                                                    Map<String, Object> request) {
+        log.debug("Listing transfer-out orders with authorizationId: {}", authorizationId);
+
+        Map<String, Object> business = new LinkedHashMap<>();
+        if (request != null) {
+            business.putAll(request);
+        }
+
+        Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
+                config.getAppId(), config.getAppSecret(), authorizationId, business);
+        String jsonBody = Signer.buildSignatureBody(basic, business);
+
+        String url = config.getBaseUrl() + "/api/thirdparty/treasury/transfer-out-orders";
+        return httpClient.post(url, jsonBody, new TypeReference<PageResponse<Map<String, Object>>>() {});
+    }
+
+    /**
+     * List transfer-in orders with pagination.
+     * POST /api/thirdparty/treasury/transfer-in-orders
+     */
+    @SuppressWarnings("unchecked")
+    public PageResponse<Map<String, Object>> listTransferInOrders(String authorizationId,
+                                                                   Map<String, Object> request) {
+        log.debug("Listing transfer-in orders with authorizationId: {}", authorizationId);
+
+        Map<String, Object> business = new LinkedHashMap<>();
+        if (request != null) {
+            business.putAll(request);
+        }
+
+        Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
+                config.getAppId(), config.getAppSecret(), authorizationId, business);
+        String jsonBody = Signer.buildSignatureBody(basic, business);
+
+        String url = config.getBaseUrl() + "/api/thirdparty/treasury/transfer-in-orders";
+        return httpClient.post(url, jsonBody, new TypeReference<PageResponse<Map<String, Object>>>() {});
+    }
 }

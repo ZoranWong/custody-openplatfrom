@@ -1,13 +1,106 @@
-# 第三方开发者接入指南
+# Cregis 开放平台 - 第三方开发者接入指南
 
-**Last Updated:** 2026-04-20
-**版本:** v4.0
+**Last Updated:** 2026-08-16
+**版本:** v4.1
+
+---
+
+## 目录
+
+1. [概述](#概述)
+2. [快速开始：完整使用流程](#快速开始完整使用流程)
+3. [集成前准备](#集成前准备)
+4. [接入流程](#接入流程)
+5. [一、授权接口](#一授权接口)
+6. [二、签名算法](#二签名算法)
+7. [三、财务单元管理接口](#三财务单元管理接口)
+8. [四、错误码](#四错误码)
+9. [五、SDK 示例](#五sdk-示例)
+10. [六、SDK 集成指南](#六sdk-集成指南)
+11. [七、注意事项](#七注意事项)
+12. [八、联系方式](#八联系方式)
 
 ---
 
 ## 概述
 
-本文档描述第三方开发者如何接入开放平台，包含授权流程和接口对接规范。
+Cregis 开放平台为第三方开发者提供银行级加密货币托管能力的 API 接入服务。通过本平台，您可以：
+
+- **注册成为开发者**，创建应用获取 API 凭证
+- **订阅服务套餐**，选择适合您业务规模的方案
+- **管理资金单元**，创建、查询和管理 Treasury Unit
+- **处理资金流转**，包括入金、出金、归集、审批等操作
+- **接收回调通知**，实时获取交易状态变更
+
+本文档描述第三方开发者如何接入开放平台，包含完整的注册、订阅、授权流程和接口对接规范。
+
+---
+
+## 快速开始：完整使用流程
+
+### 第一步：注册开发者账号
+
+1. 访问开发者门户：**测试环境** `https://custody-sit.cregis.ae/openplatform/developer/` 或 **生产环境** `https://custody.cregis.ae/openplatform/developer/`
+2. 点击「注册」，填写公司信息（法定名称、注册号、司法管辖区、成立日期、注册地址）和 UBO（实际受益人）信息
+3. 提交注册申请，等待平台管理员审核
+
+### 第二步：审核通过 & 获取体验套餐
+
+1. 管理员审核通过后，您的开发者账号自动激活
+2. 系统自动赠送 **30 天体验套餐**，可立即开始使用平台功能
+3. 登录开发者门户，进入「工作台」查看您的应用和订阅状态
+
+### 第三步：创建应用
+
+1. 登录后进入「应用管理」页面
+2. 点击「创建应用」，选择应用类型：
+   - **企业财务管理** — 适合跨境贸易和大型企业
+   - **支付处理** — 适合电商平台和支付服务商
+   - **个人托管** — 适合银行和金融机构（B2B2C）
+3. 填写应用名称、描述和回调地址
+4. 创建成功后，**立即保存 App ID 和 App Secret**（Secret 仅显示一次）
+
+### 第四步：订阅服务套餐
+
+1. 进入「订阅管理」→「当前订阅」查看套餐状态
+2. 体验期结束后，需要购买正式套餐：
+   - 在可选套餐中选择 BASIC / PROFESSIONAL / ENTERPRISE
+   - 点击「购买」→ 选择计费周期（月付/年付）和支付方式
+   - 提交订单后，进入「订单管理」上传支付凭证
+3. 管理员审核支付凭证后，套餐自动升级，旧套餐剩余天数按比例折算到新套餐
+
+### 第五步：集成 SDK 和 API 调用
+
+1. **安装 SDK**：
+   ```bash
+   npm install @cregis-kit/openplatform-node    # 后端业务调用
+   npm install @cregis-kit/openplatform-webkit  # 前端授权页面
+   ```
+
+2. **初始化 SDK**（使用 App ID 和 App Secret）：
+   ```typescript
+   const sdk = new CregisSDK({
+     baseUrl: 'https://custody-sit.cregis.ae/openplatform/',  // 测试环境
+     appId: 'your-app-id',
+     appSecret: 'your-app-secret',
+   });
+   ```
+
+3. **获取授权 → 创建 Treasury Unit → 业务操作**，详见下方各章节。
+
+### 完整对接流程图
+
+```
+开发者注册 → 审核通过 → 创建应用 → 订阅套餐 → 集成SDK
+    │                                            │
+    └── 获取 App ID/Secret ──────────────────────┘
+                                                    │
+    获取授权 URL → 用户授权 → 获取 authorizeId ─────┤
+                                                    │
+    创建 Treasury Unit → 创建地址 → 入金/出金 ──────┤
+                                                    │
+    提交审批任务 → 接收回调通知 → 完成资金流转 ─────┘
+```
 
 ---
 
@@ -17,15 +110,20 @@
 
 ### 1. 注册开发者账号
 
-访问开发者平台完成注册：[http://api.vaulink.com/openplatform/developer/](http://api.vaulink.com/openplatform/developer/)（测试环境）
+访问开发者平台完成注册：
+
+| 环境 | 地址 |
+|------|------|
+| **测试环境 (SIT)** | [https://custody-sit.cregis.ae/openplatform/developer/](https://custody-sit.cregis.ae/openplatform/developer/) |
+| **生产环境 (BETA)** | [https://custody.cregis.ae/openplatform/developer/](https://custody.cregis.ae/openplatform/developer/) |
 
 ### 2. 等待审核
 
-提交注册信息后，等待开放平台管理后台审核通过。
+提交注册信息后，等待开放平台管理后台审核通过。审核通过后自动获得 30 天体验套餐。
 
 ### 3. 创建应用
 
-审核通过后，登录开发者平台，在管理后台创建应用。填写应用名称、描述、回调地址等信息。
+审核通过后，登录开发者平台，在「应用管理」中创建应用。填写应用名称、描述、回调地址等信息。
 
 ### 4. 保存凭证
 
@@ -34,7 +132,11 @@
 - **appId**：应用唯一标识，用于接口调用时的身份标识
 - **appSecret**：应用密钥，用于签名计算，**切勿泄露到客户端**
 
-### 5. 下载 SDK
+### 5. 订阅套餐
+
+体验期结束后，在「订阅管理」中选择并购买正式套餐。
+
+### 6. 下载 SDK
 
 根据开发需求下载对应的 SDK：
 
@@ -43,7 +145,10 @@
 | **Node.js SDK** | 后端业务接口调用 | `npm install @cregis-kit/openplatform-node` |
 | **Web SDK** | 前端授权页面嵌入 | `npm install @cregis-kit/openplatform-webkit` |
 
-> **注意：** 测试环境网关地址为 `http://api.vaulink.com/openplatform/`，正式上线时请替换为生产环境地址。
+> **注意：**
+> - **测试环境 (SIT)** 网关地址为 `https://custody-sit.cregis.ae/openplatform/`
+> - **生产环境 (BETA)** 网关地址为 `https://custody.cregis.ae/openplatform/`
+> - 正式上线时请替换为生产环境地址。
 
 ---
 
@@ -154,7 +259,7 @@ Content-Type: application/json
   "code": 0,
   "message": "Success",
   "data": {
-    "authorizeUrl": "https://openplatform.cregis.com/openplatform/auth/authorize?appId=xxx&appToken=yyy&appName=zzz&permissions=...&state=...",
+    "authorizeUrl": "https://custody.cregis.ae/openplatform/auth/authorize?appId=xxx&appToken=yyy&appName=zzz&permissions=...&state=...",
     "expiresIn": 7200
   }
 }
@@ -1492,7 +1597,7 @@ import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
 const sdk = new CregisWebSDK({
   appId: 'your-app-id',
   container: document.getElementById('auth-container'),
-  authUrl: 'https://openplatform.cregis.com/openplatform/auth/authorize',
+  authUrl: 'https://custody.cregis.ae/openplatform/auth/authorize',
   mode: 'popup', // popup | tab | window
 
   // 事件回调
@@ -1671,7 +1776,7 @@ Node.js SDK 提供扁平化 API，所有方法直接在 `CregisSDK` 类上。
 import { CregisSDK } from '@cregis-kit/openplatform-node';
 
 const sdk = new CregisSDK({
-  baseUrl: 'http://api.vaulink.com/openplatform/',  // 测试沙盒网关地址
+  baseUrl: 'https://custody-sit.cregis.ae/openplatform/',  // 测试沙盒网关地址
   appId: 'your-app-id-uuid',    // 在开发者门户获取
   appSecret: 'your-app-secret', // 在开发者门户获取
   timeout: 30000,

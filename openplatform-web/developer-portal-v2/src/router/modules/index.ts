@@ -1,17 +1,9 @@
 import { AppRouteRecord } from '@/types/router'
-import { dashboardRoutes } from './dashboard'
-import { systemRoutes } from './system'
-import { resultRoutes } from './result'
-import { exceptionRoutes } from './exception'
 import { developerPortalRoutes } from './developer'
 
 /**
  * 导出所有模块化路由
+ * 主菜单直接作为顶级菜单，无外层包装
+ * resultRoutes 和 exceptionRoutes 已移除（开发者门户不需要）
  */
-export const routeModules: AppRouteRecord[] = [
-  dashboardRoutes,
-  systemRoutes,
-  resultRoutes,
-  exceptionRoutes,
-  developerPortalRoutes
-]
+export const routeModules: AppRouteRecord[] = [...developerPortalRoutes]

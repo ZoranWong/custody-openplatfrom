@@ -4,6 +4,7 @@
  */
 
 import { Invoice, InvoiceHistoryItem, PaymentHistoryItem, UsageStatistics, UsageTrend } from '../types/billing.types';
+import { getOrderRepository } from '../repositories/repository.factory';
 
 /**
  * Mock data for demonstration
@@ -60,35 +61,11 @@ const MOCK_INVOICES: Invoice[] = [
   },
 ];
 
-const MOCK_PAYMENTS: PaymentHistoryItem[] = [
-  {
-    paymentId: 'PAY-2026-0001',
-    invoiceId: 'INV-2026-0001',
-    amount: 26.75,
-    currency: 'USD',
-    status: 'completed',
-    paymentMethod: 'bank_transfer',
-    paidAt: '2026-02-15T10:00:00Z',
-  },
-  {
-    paymentId: 'PAY-2026-0002',
-    invoiceId: 'INV-2025-0012',
-    amount: 150.00,
-    currency: 'USD',
-    status: 'completed',
-    paymentMethod: 'credit_card',
-    paidAt: '2026-01-10T09:30:00Z',
-  },
-];
-
 const MOCK_USAGE_STATS: UsageStatistics = {
-  period: {
-    start: '2026-02-01',
-    end: '2026-02-28',
-  },
+  period: { start: '2026-02-01', end: '2026-02-28' },
   totalApiCalls: 45230,
-  totalBandwidth: 5.2, // GB
-  totalStorage: 1.8, // GB
+  totalBandwidth: 5.2,
+  totalStorage: 1.8,
   apiCallCost: 45.23,
   bandwidthCost: 52.00,
   storageCost: 18.00,
@@ -112,123 +89,133 @@ const MOCK_USAGE_TREND: UsageTrend[] = [
  */
 export class BillingService {
   /**
-   * Generate a new invoice for the given period
+   * Generate a new invoice
    */
   async generateInvoice(
     enterpriseId: string,
     periodStart: string,
     periodEnd: string
   ): Promise<Invoice> {
-    // In production, this would call the developer-portal backend
-    // For now, return mock data
     const newInvoice: Invoice = {
       invoiceId: `INV-${new Date().getFullYear()}-${String(MOCK_INVOICES.length + 1).padStart(4, '0')}`,
       companyInfo: {
-        name: 'Tech Corp',
-        address: '123 Tech Street, Beijing',
-        taxId: '91110000XXXXX',
-        email: 'billing@techcorp.com',
+        name: 'Tech Corp', address: '123 Tech Street, Beijing',
+        taxId: '91110000XXXXX', email: 'billing@techcorp.com',
       },
-      billingPeriod: {
-        start: periodStart,
-        end: periodEnd,
-      },
+      billingPeriod: { start: periodStart, end: periodEnd },
       usageBreakdown: [
         { item: 'API Calls', quantity: Math.floor(Math.random() * 20000), unitPrice: 0.001, amount: Math.random() * 20, currency: 'USD' },
         { item: 'Bandwidth', quantity: Math.floor(Math.random() * 3000), unitPrice: 0.01, amount: Math.random() * 30, currency: 'USD' },
       ],
-      subtotal: Math.random() * 50,
-      taxRate: 6.0,
-      taxAmount: Math.random() * 3,
-      totalAmount: Math.random() * 53,
-      currency: 'USD',
-      status: 'generated',
-      createdAt: new Date().toISOString(),
+      subtotal: Math.random() * 50, taxRate: 6.0, taxAmount: Math.random() * 3,
+      totalAmount: Math.random() * 53, currency: 'USD',
+      status: 'generated', createdAt: new Date().toISOString(),
     };
-
     return newInvoice;
   }
 
-  /**
-   * Get invoice by ID
-   */
   async getInvoice(invoiceId: string): Promise<Invoice | null> {
     return MOCK_INVOICES.find((inv) => inv.invoiceId === invoiceId) || null;
   }
 
-  /**
-   * Get invoice history with pagination
-   */
   async getInvoiceHistory(
-    enterpriseId: string,
-    page: number = 1,
-    pageSize: number = 10
+    enterpriseId: string, page: number = 1, pageSize: number = 10
   ): Promise<{ list: InvoiceHistoryItem[]; total: number; page: number; pageSize: number }> {
     const historyItems: InvoiceHistoryItem[] = MOCK_INVOICES.map((inv) => ({
-      invoiceId: inv.invoiceId,
-      billingPeriod: inv.billingPeriod,
-      totalAmount: inv.totalAmount,
-      currency: inv.currency,
-      status: inv.status,
-      createdAt: inv.createdAt,
+      invoiceId: inv.invoiceId, billingPeriod: inv.billingPeriod,
+      totalAmount: inv.totalAmount, currency: inv.currency,
+      status: inv.status, createdAt: inv.createdAt,
     }));
-
     const start = (page - 1) * pageSize;
-    const paginatedList = historyItems.slice(start, start + pageSize);
-
-    return {
-      list: paginatedList,
-      total: historyItems.length,
-      page,
-      pageSize,
-    };
+    return { list: historyItems.slice(start, start + pageSize), total: historyItems.length, page, pageSize };
   }
 
   /**
-   * Get payment history
+   * Get payment history from orders table
    */
   async getPaymentHistory(
-    enterpriseId: string,
-    page: number = 1,
-    pageSize: number = 10
+    isvId: string, page: number = 1, pageSize: number = 10
   ): Promise<{ list: PaymentHistoryItem[]; total: number; page: number; pageSize: number }> {
-    const start = (page - 1) * pageSize;
-    const paginatedList = MOCK_PAYMENTS.slice(start, start + pageSize);
+    try {
+      const repo = getOrderRepository();
+      const { list, total } = await repo.findByFilters(
+        { developerId: isvId } as any,
+        page,
+        pageSize
+      );
 
-    return {
-      list: paginatedList,
-      total: MOCK_PAYMENTS.length,
-      page,
-      pageSize,
-    };
+      const paymentItems: PaymentHistoryItem[] = list.map((order: any) => ({
+        id: order.id,
+        externalPaymentId: order.externalPaymentId || '',
+        amount: Number(order.amount),
+        currency: order.currency,
+        paymentMethod: order.paymentMethod || '',
+        proofUrl: order.proofUrl || undefined,
+        status: order.status,
+        createdAt: order.createdAt?.toISOString?.() || order.createdAt,
+        paidAt: order.paidAt?.toISOString?.() || order.paidAt,
+        confirmedAt: order.confirmedAt?.toISOString?.() || order.confirmedAt,
+        remark: order.remark || undefined,
+      }));
+
+      return { list: paymentItems, total, page, pageSize };
+    } catch {
+      // Fallback to empty if orders table not available
+      return { list: [], total: 0, page, pageSize };
+    }
   }
 
-  /**
-   * Get usage statistics
-   */
   async getUsageStatistics(
-    enterpriseId: string,
-    periodStart?: string,
-    periodEnd?: string
+    enterpriseId: string, periodStart?: string, periodEnd?: string
   ): Promise<UsageStatistics> {
     return MOCK_USAGE_STATS;
   }
 
-  /**
-   * Get usage trend data
-   */
   async getUsageTrend(
-    enterpriseId: string,
-    period: '7d' | '30d' | '90d' = '7d'
+    enterpriseId: string, period: '7d' | '30d' | '90d' = '7d'
   ): Promise<UsageTrend[]> {
-    // Return mock data based on period
     return MOCK_USAGE_TREND.slice(0, period === '7d' ? 7 : period === '30d' ? 30 : 90);
+  }
+
+  /**
+   * Submit payment proof for a pending order
+   * Creates a ticket for admin review
+   */
+  async submitPaymentProof(
+    orderId: string,
+    isvId: string,
+    data: { externalPaymentId: string; proofUrl: string; paidAt: string; remark?: string }
+  ): Promise<any> {
+    const repo = getOrderRepository();
+    const order = await repo.findById(orderId);
+    if (!order) throw new Error('Order not found');
+    if (order.developerId !== isvId) throw new Error('Permission denied');
+    if (order.status !== 'pending') throw new Error('Order is not pending');
+
+    const updated = await repo.update(orderId, {
+      externalPaymentId: data.externalPaymentId,
+      proofUrl: data.proofUrl,
+      paidAt: new Date(data.paidAt),
+      remark: data.remark || order.remark,
+      status: 'pending',
+    } as any);
+
+    // Create a ticket for admin review
+    const { getTicketRepository } = await import('../repositories/repository.factory');
+    const ticketRepo = getTicketRepository();
+    await ticketRepo.create({
+      developerId: isvId,
+      title: `Payment Proof - ${data.externalPaymentId}`,
+      description: `Payment proof submitted for order ${orderId}.\nExternal Payment ID: ${data.externalPaymentId}\nProof URL: ${data.proofUrl}\nPaid At: ${data.paidAt}\nRemark: ${data.remark || 'N/A'}`,
+      type: 'payment',
+      priority: 'normal',
+      status: 'pending',
+    } as any);
+
+    return updated;
   }
 }
 
-/**
- * Create billing service instance
- */
 export function createBillingService(): BillingService {
   return new BillingService();
 }

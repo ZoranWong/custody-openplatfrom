@@ -8,6 +8,7 @@
 import { Router } from 'express';
 import { isvAuth } from '../../middleware/isv-auth.middleware';
 import { billingController } from '../../controllers/isv/billing.controller';
+import { uploadProof, handleUploadProof } from '../../controllers/isv/upload.controller';
 
 const router = Router();
 
@@ -93,6 +94,26 @@ router.get('/payments', isvAuth, (req: any, res: any, next: any) => {
  */
 router.get('/payments/:id/invoice', isvAuth, (req: any, res: any, next: any) => {
   billingController.getPaymentInvoice(req, res, next);
+});
+
+/**
+ * POST /billing/payments/:id/submit-proof
+ * Submit payment proof for a pending order
+ */
+router.post('/payments/:id/submit-proof', isvAuth, (req: any, res: any, next: any) => {
+  billingController.submitPaymentProof(req, res, next);
+});
+
+// ============================================
+// Upload Routes
+// ============================================
+
+/**
+ * POST /billing/upload-proof
+ * Upload payment proof file
+ */
+router.post('/upload-proof', isvAuth, uploadProof, (req: any, res: any, next: any) => {
+  handleUploadProof(req, res, next);
 });
 
 export default router;

@@ -1,290 +1,188 @@
+<template>
+  <div class="app-detail-page" style="padding: 24px; overflow-y: auto; height: 100%;">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold">{{ $t('menus.developer.applicationsDetail') }}</h2>
+      <ElButton @click="goBack">{{ $t('developer.applications.backToApplications') }}</ElButton>
+    </div>
+
+    <div v-if="loading" class="flex justify-center py-20">
+      <ElIcon class="is-loading text-3xl text-gray-400"><Loading /></ElIcon>
+    </div>
+
+    <template v-else-if="app">
+      <!-- 基本信息 -->
+      <ElCard class="mb-4">
+        <template #header><span class="font-semibold">{{ $t('developer.applications.basicInfo') }}</span></template>
+        <ElDescriptions :column="2" border label-class-name="detail-label">
+          <ElDescriptionsItem :label="$t('developer.applications.appName')">{{ app.appName || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem :label="'App ID'"><span class="font-mono text-sm">{{ app.id }}</span></ElDescriptionsItem>
+          <ElDescriptionsItem :label="$t('developer.applications.appType')">{{ app.appType || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem :label="$t('developer.billing.payment.status')">
+            <ElTag :type="app.status === 'active' ? 'success' : app.status === 'pending_review' ? 'warning' : 'info'">{{ app.status }}</ElTag>
+          </ElDescriptionsItem>
+          <ElDescriptionsItem :label="$t('developer.applications.callbackUrl')" :span="2">{{ app.callbackUrl || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem :label="$t('developer.applications.appDescription')" :span="2">{{ app.appDescription || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem :label="$t('developer.profile.registrationTime')">{{ formatDate(app.createdAt) }}</ElDescriptionsItem>
+          <ElDescriptionsItem :label="$t('developer.profile.lastUpdated')">{{ formatDate(app.updatedAt) }}</ElDescriptionsItem>
+        </ElDescriptions>
+      </ElCard>
+
+      <!-- AppSecret -->
+      <ElCard class="mb-4">
+        <template #header><span class="font-semibold">{{ $t('developer.applications.appSecret') }}</span></template>
+        <AppSecretDisplay :app-secret="app.appSecret" />
+      </ElCard>
+
+      <!-- 操作 -->
+      <ElCard class="mb-4">
+        <template #header><span class="font-semibold">{{ $t('package.actions') }}</span></template>
+        <div class="flex gap-3">
+          <ElButton type="primary" @click="showEditDialog = true">
+            <ElIcon><Edit /></ElIcon>
+            {{ $t('developer.profile.edit') }}
+          </ElButton>
+          <ElButton type="warning" @click="showRegenerate = true">
+            <ElIcon><Refresh /></ElIcon>
+            {{ $t('developer.applications.regenerateDialog.title') }}
+          </ElButton>
+          <ElButton type="danger" @click="showDelete = true">
+            <ElIcon><Delete /></ElIcon>
+            {{ $t('developer.applications.deleteDialog.title') }}
+          </ElButton>
+        </div>
+      </ElCard>
+    </template>
+
+    <ElCard v-else>
+      <ElEmpty :description="$t('common.noData')" />
+    </ElCard>
+
+    <!-- Edit Dialog -->
+    <ElDialog
+      v-model="showEditDialog"
+      :title="$t('developer.applications.editAppTitle')"
+      width="600px"
+      :close-on-click-modal="false"
+      @close="resetEditForm"
+    >
+      <ElForm :model="editForm" label-width="140px">
+        <ElFormItem :label="$t('developer.applications.appName')" required>
+          <ElInput v-model="editForm.appName" maxlength="50" show-word-limit />
+        </ElFormItem>
+        <ElFormItem :label="$t('developer.applications.appType')">
+          <ElInput :model-value="app.appType" disabled />
+        </ElFormItem>
+        <ElFormItem :label="$t('developer.applications.appDescription')">
+          <ElInput v-model="editForm.appDescription" type="textarea" :rows="3" maxlength="500" show-word-limit />
+        </ElFormItem>
+        <ElFormItem :label="$t('developer.applications.callbackUrl')">
+          <ElInput v-model="editForm.callbackUrl" />
+        </ElFormItem>
+      </ElForm>
+      <template #footer>
+        <ElButton @click="showEditDialog = false">{{ $t('common.cancel') }}</ElButton>
+        <ElButton type="primary" :loading="editSubmitting" @click="handleEditSubmit">
+          {{ $t('common.confirm') }}
+        </ElButton>
+      </template>
+    </ElDialog>
+
+    <!-- Regenerate Dialog -->
+    <RegenerateSecretDialog v-model="showRegenerate" :application-id="app?.id" :application-name="(app?.appName || '')" @regenerated="loadApp" />
+
+    <!-- Delete Dialog -->
+    <DeleteApplicationDialog v-model="showDelete" :application-id="app?.id" :application-name="(app?.appName || '')" :app-id="(app?.id || '')" @deleted="goBack" />
+  </div>
+</template>
+
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+defineOptions({ name: 'ApplicationDetail' })
+
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Edit, Delete, RefreshRight } from '@element-plus/icons-vue'
-import apiService, { type Application } from '@/api/api-service'
+import { Loading, Edit, Refresh, Delete } from '@element-plus/icons-vue'
+import { fetchApplicationById, fetchUpdateApplication } from '@/api/application'
+import { formatDate } from '@/utils/date'
 import AppSecretDisplay from '@/components/applications/AppSecretDisplay.vue'
-import ApiUsageCard from '@/components/applications/ApiUsageCard.vue'
 import RegenerateSecretDialog from '@/components/applications/RegenerateSecretDialog.vue'
 import DeleteApplicationDialog from '@/components/applications/DeleteApplicationDialog.vue'
-import Button from '@/components/common/Button.vue'
 
+const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 
-const loading = ref(true)
-const application = ref<Application | null>(null)
-const error = ref<string | null>(null)
+const app = ref<any>(null)
+const loading = ref(false)
+const showEditDialog = ref(false)
+const showRegenerate = ref(false)
+const showDelete = ref(false)
+const editSubmitting = ref(false)
 
-// Regenerate secret dialog state
-const showRegenerateDialog = ref(false)
-
-// Delete application dialog state
-const showDeleteDialog = ref(false)
-
-const openDeleteDialog = () => {
-  if (application.value) {
-    showDeleteDialog.value = true
-  }
-}
-
-const handleApplicationDeleted = () => {
-  // Redirect to application list after successful deletion
-  router.push('/applications')
-}
-
-const openRegenerateDialog = () => {
-  if (application.value) {
-    showRegenerateDialog.value = true
-  }
-}
-
-const handleSecretRegenerated = () => {
-  // Refresh application data to get updated appSecret
-  fetchApplication()
-}
-
-const appId = computed(() => application.value?.id || '')
-const copiedAppId = ref(false)
-
-const statusConfig = computed(() => {
-  const status = application.value?.status || 'pending_review'
-  const configs: Record<string, { type: 'primary' | 'success' | 'warning' | 'info' | 'danger'; text: string }> = {
-    pending_review: { type: 'warning', text: 'Pending Review' },
-    active: { type: 'success', text: 'Active' },
-    inactive: { type: 'info', text: 'Inactive' },
-    suspended: { type: 'danger', text: 'Suspended' }
-  }
-  return configs[status] || configs.pending_review
+const editForm = reactive({
+  appName: '',
+  appDescription: '',
+  callbackUrl: ''
 })
 
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-const copyAppId = async () => {
-  if (!appId.value) return
-
-  try {
-    await navigator.clipboard.writeText(appId.value)
-    copiedAppId.value = true
-    ElMessage.success('Copied to clipboard')
-    setTimeout(() => {
-      copiedAppId.value = false
-    }, 2000)
-  } catch (e) {
-    ElMessage.error('Copy failed, please copy manually')
-  }
-}
-
-const handleBack = () => {
-  router.push('/applications')
-}
-
-const handleEdit = () => {
-  if (application.value) {
-    router.push(`/applications/${application.value.id}/edit`)
-  }
-}
-
-const handleDelete = () => {
-  openDeleteDialog()
-}
-
-const handleRegenerateSecret = () => {
-  openRegenerateDialog()
-}
-
-const fetchApplication = async () => {
+const loadApp = async () => {
   const id = route.params.id as string
+  if (!id) return
   loading.value = true
-  error.value = null
-
   try {
-    const response = await apiService.getISVApplication(id)
-    application.value = response.data?.application || null
-  } catch (e: any) {
-    const status = e.response?.status
-    const code = e.response?.data?.code
-
-    if (status === 404 || code === 1004) {
-      error.value = 'Application not found'
-      ElMessage.error('Application not found')
-    } else if (status === 403 || code === 1003) {
-      error.value = 'Access denied to this application'
-      ElMessage.error('Access denied to this application')
-    } else {
-      error.value = 'Failed to fetch application information'
-      ElMessage.error('Failed to fetch application information')
-    }
+    const result = await fetchApplicationById(id)
+    // http 层解包返回 { application: { ... } }，提取 application
+    app.value = result?.application || result
+  } catch {
+    ElMessage.error(t('developer.applications.appNotFound'))
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => {
-  fetchApplication()
+const resetEditForm = () => {
+  editForm.appName = app.value?.appName || ''
+  editForm.appDescription = app.value?.appDescription || ''
+  editForm.callbackUrl = app.value?.callbackUrl || ''
+}
+
+const showEditDialogOpen = () => {
+  resetEditForm()
+  showEditDialog.value = true
+}
+
+const handleEditSubmit = async () => {
+  if (!editForm.appName.trim()) { ElMessage.warning(t('developer.applications.nameRequired')); return }
+  editSubmitting.value = true
+  try {
+    await fetchUpdateApplication(app.value.id, {
+      appName: editForm.appName.trim(),
+      appDescription: editForm.appDescription.trim() || undefined,
+      callbackUrl: editForm.callbackUrl.trim() || undefined
+    })
+    ElMessage.success(t('developer.applications.updateSuccess'))
+    showEditDialog.value = false
+    await loadApp()
+  } catch (e: any) {
+    ElMessage.error(e?.message || t('developer.applications.updateFailed'))
+  } finally {
+    editSubmitting.value = false
+  }
+}
+
+const goBack = () => {
+  router.push({ name: 'ApplicationsList' })
+}
+
+// 监听编辑弹窗打开，初始化表单
+watch(showEditDialog, (val) => {
+  if (val) resetEditForm()
 })
+
+onMounted(() => loadApp())
 </script>
 
-<template>
-  <div class="min-h-screen bg-gray-50 py-8">
-    <div class="w-full mx-auto px-8">
-      <!-- Back Button -->
-      <Button type="info" @click="handleBack" class="mb-6">
-        <el-icon class="mr-1"><ArrowLeft /></el-icon>
-        Back to Applications
-      </Button>
-
-      <!-- Loading State -->
-      <div v-if="loading" class="flex justify-center py-12">
-        <el-icon class="is-loading w-8 h-8 text-brand">
-          <Loading />
-        </el-icon>
-      </div>
-
-      <!-- Error State -->
-      <div v-else-if="error" class="card p-12 text-center">
-        <el-icon class="w-16 h-16 mx-auto text-gray-300 mb-4">
-          <Warning />
-        </el-icon>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">{{ error }}</h3>
-        <Button type="primary" @click="handleBack">
-          Back to Applications
-        </Button>
-      </div>
-
-      <!-- Detail Content -->
-      <template v-else-if="application">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-bold text-gray-900">{{ application.appName || 'Unnamed' }}</h1>
-            <el-tag :type="statusConfig.type" size="large">
-              {{ statusConfig.text }}
-            </el-tag>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex gap-3">
-            <Button type="warning" @click="handleRegenerateSecret">
-              <el-icon class="mr-1"><RefreshRight /></el-icon>
-              Reset Secret
-            </Button>
-            <Button type="info" @click="handleEdit">
-              <el-icon class="mr-1"><Edit /></el-icon>
-              Edit
-            </Button>
-            <Button type="danger" @click="handleDelete">
-              <el-icon class="mr-1"><Delete /></el-icon>
-              Delete
-            </Button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Left Column: App Info -->
-          <div class="space-y-6">
-            <!-- AppID -->
-            <div class="card p-6">
-              <label class="block text-sm font-medium text-gray-500 mb-2">AppID</label>
-              <div class="flex gap-2">
-                <el-input
-                  :value="appId"
-                  readonly
-                  size="large"
-                  class="font-mono flex-1 h-10"
-                />
-                <Button
-                  :type="copiedAppId ? 'success' : 'primary'"
-                  @click="copyAppId"
-                >
-                  {{ copiedAppId ? 'Copied' : 'Copy' }}
-                </Button>
-              </div>
-            </div>
-
-            <!-- AppSecret -->
-            <div class="card p-6">
-              <AppSecretDisplay
-                :app-id="application.id"
-                :app-secret="application.appSecret"
-              />
-            </div>
-
-            <!-- Status & Callback -->
-            <div class="card p-6">
-              <h3 class="text-sm font-medium text-gray-500 mb-4">Basic Information</h3>
-
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-xs text-gray-400 mb-1">Status</label>
-                  <el-tag :type="statusConfig.type">{{ statusConfig.text }}</el-tag>
-                </div>
-
-                <div v-if="application.callbackUrl">
-                  <label class="block text-xs text-gray-400 mb-1">Callback URL</label>
-                  <p class="text-gray-900 break-all">{{ application.callbackUrl }}</p>
-                </div>
-
-                <div v-if="application.appDescription">
-                  <label class="block text-xs text-gray-400 mb-1">Description</label>
-                  <p class="text-gray-900">{{ application.appDescription }}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Timestamps -->
-            <div class="card p-6">
-              <h3 class="text-sm font-medium text-gray-500 mb-4">Time Information</h3>
-
-              <div class="space-y-3">
-                <div>
-                  <label class="block text-xs text-gray-400 mb-1">Created At</label>
-                  <p class="text-gray-900">{{ formatDate(application.createdAt) }}</p>
-                </div>
-
-                <div>
-                  <label class="block text-xs text-gray-400 mb-1">Last Updated</label>
-                  <p class="text-gray-900">{{ formatDate(application.updatedAt) }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right Column: API Usage -->
-          <div class="space-y-6">
-            <ApiUsageCard :api-usage="application.apiUsage" />
-          </div>
-        </div>
-      </template>
-    </div>
-
-    <!-- Regenerate Secret Dialog -->
-    <RegenerateSecretDialog
-      v-if="application"
-      v-model="showRegenerateDialog"
-      :application-id="application.id"
-      :application-name="application.appName || 'Unnamed'"
-      @regenerated="handleSecretRegenerated"
-    />
-
-    <!-- Delete Application Dialog -->
-    <DeleteApplicationDialog
-      v-if="application"
-      v-model="showDeleteDialog"
-      :application-id="application.id"
-      :application-name="application.appName || 'Unnamed'"
-      :app-id="application.id"
-      @deleted="handleApplicationDeleted"
-    />
-  </div>
-</template>
+<style scoped>
+:deep(.detail-label) {
+  white-space: nowrap;
+}
+</style>

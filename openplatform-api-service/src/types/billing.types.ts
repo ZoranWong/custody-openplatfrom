@@ -69,24 +69,27 @@ export interface InvoiceHistoryItem {
 /**
  * Payment status
  */
-export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+export type PaymentStatus = 'pending' | 'confirmed' | 'rejected';
 
 /**
  * Payment method
  */
-export type PaymentMethod = 'bank_transfer' | 'credit_card' | 'debit_card' | 'crypto';
+export type PaymentMethod = 'bank_transfer' | 'web3';
 
 /**
  * Payment history item
  */
 export interface PaymentHistoryItem {
-  paymentId: string;
-  invoiceId: string;
+  id: string;
+  externalPaymentId: string;
   amount: number;
   currency: string;
-  status: PaymentStatus;
-  paymentMethod: PaymentMethod;
-  paidAt: string;
+  paymentMethod: string;
+  proofUrl?: string;
+  status: string;
+  createdAt: string;
+  confirmedAt?: string;
+  remark?: string;
 }
 
 /**

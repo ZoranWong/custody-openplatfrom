@@ -12,7 +12,6 @@
           <p class="mt-2 text-g-600">{{ $t('forgetPassword.subTitle') }}</p>
         </div>
           <div class="mt-5">
-            <span class="input-label" v-if="showInputLabel">账号</span>
             <ElInput
               class="custom-height"
               :placeholder="$t('forgetPassword.placeholder')"
@@ -44,27 +43,28 @@
 
 <script setup lang="ts">
   import { fetchISVForgotPassword } from '@/api/auth'
+  import { useI18n } from 'vue-i18n'
 
   defineOptions({ name: 'ForgetPassword' })
 
+  const { t } = useI18n()
   const router = useRouter()
-  const showInputLabel = ref(false)
 
   const username = ref('')
   const loading = ref(false)
 
   const register = async () => {
     if (!username.value) {
-      ElMessage.warning('Please enter your email')
+      ElMessage.warning(t('forgetPassword.placeholder'))
       return
     }
     loading.value = true
     try {
       await fetchISVForgotPassword({ email: username.value })
-      ElMessage.success('Password reset link has been sent to your email')
+      ElMessage.success(t('forgetPassword.success'))
       router.push({ name: 'Login' })
     } catch (error) {
-      ElMessage.success('If this email is registered, a reset link has been sent')
+      ElMessage.success(t('forgetPassword.success'))
       router.push({ name: 'Login' })
     } finally {
       loading.value = false

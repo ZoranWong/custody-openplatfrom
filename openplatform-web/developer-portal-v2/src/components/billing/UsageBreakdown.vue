@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { UsageBreakdownItem } from '@/api/api-service'
+import type { UsageBreakdownItem } from '@/types/api/billing'
 import { Document, Timer, Connection } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   items: UsageBreakdownItem[]
@@ -11,6 +12,8 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   loading: false
 })
+
+const { t } = useI18n()
 
 /**
  * Format a number as currency
@@ -67,10 +70,10 @@ const hasData = computed((): boolean => props.items && props.items.length > 0)
 
 <template>
   <div class="usage-breakdown">
-    <h4 class="text-lg font-semibold text-gray-900 mb-4">用量明细</h4>
+    <h4 class="text-lg font-semibold text-gray-900 mb-4">{{ t('developer.billing.usageBreakdown.title') }}</h4>
 
     <!-- Loading State -->
-    <div v-if="loading" class="space-y-3" role="status" aria-label="加载中">
+    <div v-if="loading" class="space-y-3" role="status" :aria-label="t('developer.billing.loading')">
       <div v-for="i in 3" :key="i" class="animate-pulse">
         <div class="h-12 bg-gray-100 rounded"></div>
       </div>
@@ -81,12 +84,12 @@ const hasData = computed((): boolean => props.items && props.items.length > 0)
       v-else-if="!hasData"
       class="text-center py-8"
       role="status"
-      aria-label="暂无数据"
+      :aria-label="t('developer.billing.usageBreakdown.noData')"
     >
       <el-icon class="w-12 h-12 mx-auto text-gray-300 mb-2" aria-hidden="true">
         <Document />
       </el-icon>
-      <p class="text-gray-500">暂无用量明细数据</p>
+      <p class="text-gray-500">{{ t('developer.billing.usageBreakdown.noData') }}</p>
     </div>
 
     <!-- Data Table -->
@@ -96,9 +99,9 @@ const hasData = computed((): boolean => props.items && props.items.length > 0)
       style="width: 100%"
       stripe
       role="table"
-      aria-label="用量明细"
+      :aria-label="t('developer.billing.usageBreakdown.title')"
     >
-      <el-table-column prop="item" label="项目" min-width="180">
+      <el-table-column prop="item" :label="t('developer.billing.usageBreakdown.item')" min-width="180">
         <template #default="{ row }">
           <div class="flex items-center gap-3">
             <el-icon class="text-gray-400">
@@ -109,19 +112,19 @@ const hasData = computed((): boolean => props.items && props.items.length > 0)
         </template>
       </el-table-column>
 
-      <el-table-column prop="quantity" label="数量" width="120" align="right">
+      <el-table-column prop="quantity" :label="t('developer.billing.usageBreakdown.quantity')" width="120" align="right">
         <template #default="{ row }">
           <span>{{ formatNumber(row.quantity) }}</span>
         </template>
       </el-table-column>
 
-      <el-table-column prop="unit_price" label="单价" width="120" align="right">
+      <el-table-column prop="unit_price" :label="t('developer.billing.usageBreakdown.unitPrice')" width="120" align="right">
         <template #default="{ row }">
           <span>{{ formatCurrency(row.unit_price, row.currency) }}</span>
         </template>
       </el-table-column>
 
-      <el-table-column prop="amount" label="金额" width="140" align="right">
+      <el-table-column prop="amount" :label="t('developer.billing.usageBreakdown.amount')" width="140" align="right">
         <template #default="{ row }">
           <span class="font-semibold">{{ formatCurrency(row.amount, row.currency) }}</span>
         </template>
@@ -132,7 +135,7 @@ const hasData = computed((): boolean => props.items && props.items.length > 0)
     <div v-if="hasData" class="mt-4 pt-4 border-t border-gray-200">
       <div class="flex justify-end">
         <div class="text-right">
-          <p class="text-sm text-gray-500 mb-1">合计</p>
+          <p class="text-sm text-gray-500 mb-1">{{ t('developer.billing.usageBreakdown.total') }}</p>
           <p class="text-2xl font-bold text-gray-900">
             {{ formatCurrency(totalAmount, currency) }}
           </p>

@@ -168,4 +168,55 @@ public class TreasuryService {
 
         return httpClient.postAsync(url, jsonBody, new TypeReference<List<Map>>() {});
     }
+
+    /**
+     * Pooling request - sweep funds to primary account.
+     * POST /api/thirdparty/treasury/pooling
+     */
+    public Map<String, Object> pooling(String authorizationId, Map<String, Object> request) {
+        log.debug("Pooling with authorizationId: {}", authorizationId);
+
+        Map<String, Object> business = new LinkedHashMap<>(request);
+        Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
+                config.getAppId(), config.getAppSecret(), authorizationId, business);
+        String jsonBody = Signer.buildSignatureBody(basic, business);
+
+        String url = config.getBaseUrl() + "/api/thirdparty/treasury/pooling";
+        return httpClient.post(url, jsonBody, Map.class);
+    }
+
+    /**
+     * List unit accounts.
+     * POST /api/thirdparty/treasury/list-unit-account/{unitId}
+     */
+    public List<Map<String, Object>> listUnitAccount(String authorizationId, long unitId) {
+        log.debug("Listing unit accounts with authorizationId: {}, unitId: {}", authorizationId, unitId);
+
+        Map<String, Object> business = new LinkedHashMap<>();
+        Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
+                config.getAppId(), config.getAppSecret(), authorizationId, business);
+        String jsonBody = Signer.buildSignatureBody(basic, business);
+
+        String url = config.getBaseUrl() + "/api/thirdparty/treasury/list-unit-account/" + unitId;
+        return httpClient.post(url, jsonBody, new TypeReference<List<Map<String, Object>>>() {});
+    }
+
+    /**
+     * Create unit address.
+     * POST /api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number}
+     */
+    public Map<String, Object> createUnitAddress(String authorizationId,
+                                                  long unitId, String accountTypy,
+                                                  String network, String coinId, int number) {
+        log.debug("Creating unit address with authorizationId: {}, unitId: {}", authorizationId, unitId);
+
+        Map<String, Object> business = new LinkedHashMap<>();
+        Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
+                config.getAppId(), config.getAppSecret(), authorizationId, business);
+        String jsonBody = Signer.buildSignatureBody(basic, business);
+
+        String url = config.getBaseUrl() + "/api/thirdparty/treasury/create-unit-address/"
+                + unitId + "/" + accountTypy + "/" + network + "/" + coinId + "/" + number;
+        return httpClient.post(url, jsonBody, Map.class);
+    }
 }

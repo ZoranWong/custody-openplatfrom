@@ -105,6 +105,53 @@ public class CregisClient {
     }
 
     /**
+     * Pooling request (delegates to TreasuryService).
+     */
+    public Map<String, Object> pooling(String authorizationId, Map<String, Object> request) {
+        return treasuryService.pooling(authorizationId, request);
+    }
+
+    /**
+     * List unit accounts (delegates to TreasuryService).
+     */
+    public List<Map<String, Object>> listUnitAccount(String authorizationId, long unitId) {
+        return treasuryService.listUnitAccount(authorizationId, unitId);
+    }
+
+    /**
+     * Create unit address (delegates to TreasuryService).
+     */
+    public Map<String, Object> createUnitAddress(String authorizationId,
+                                                  long unitId, String accountTypy,
+                                                  String network, String coinId, int number) {
+        return treasuryService.createUnitAddress(authorizationId, unitId, accountTypy, network, coinId, number);
+    }
+
+    /**
+     * List unit-level fund records (delegates to TransactionService).
+     */
+    public PageResponse<Map<String, Object>> listUnitFundRecords(String authorizationId,
+                                                                  Map<String, Object> request) {
+        return transactionService.listUnitFundRecords(authorizationId, request);
+    }
+
+    /**
+     * List transfer-out orders (delegates to TransactionService).
+     */
+    public PageResponse<Map<String, Object>> listTransferOutOrders(String authorizationId,
+                                                                    Map<String, Object> request) {
+        return transactionService.listTransferOutOrders(authorizationId, request);
+    }
+
+    /**
+     * List transfer-in orders (delegates to TransactionService).
+     */
+    public PageResponse<Map<String, Object>> listTransferInOrders(String authorizationId,
+                                                                   Map<String, Object> request) {
+        return transactionService.listTransferInOrders(authorizationId, request);
+    }
+
+    /**
      * Mask sensitive ID for logging — show only first 8 characters.
      */
     private String maskAuthorizationId(String id) {

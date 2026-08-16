@@ -2,7 +2,8 @@
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { View, Hide, DocumentCopy, CircleCheck } from '@element-plus/icons-vue'
-import type { Application } from '@/api/api-service'
+import type { Application } from '@/types/api/application'
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/common/Button.vue'
 
 interface Props {
@@ -11,6 +12,8 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
@@ -44,15 +47,15 @@ const copyAppSecret = async () => {
   try {
     await navigator.clipboard.writeText(appSecret.value)
     copied.value = true
-    ElMessage.success('Copied to clipboard')
+    ElMessage.success(t('developer.applications.secretDialog.copySuccess'))
   } catch (e) {
-    ElMessage.error('Copy failed, please copy manually')
+    ElMessage.error(t('developer.applications.secretDialog.copyFailed'))
   }
 }
 
 const handleConfirm = () => {
   if (!confirmed.value) {
-    ElMessage.warning('Please confirm that you have saved the AppSecret')
+    ElMessage.warning(t('developer.applications.secretDialog.pleaseConfirm'))
     return
   }
   dialogVisible.value = false
@@ -67,7 +70,7 @@ const handleClose = () => {
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="Application Secret"
+    :title="t('developer.applications.secretDialog.title')"
     width="560px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
@@ -82,20 +85,20 @@ const handleClose = () => {
         class="mb-4"
       >
         <template #title>
-          Please keep your AppSecret safe. This value will only be shown once.
+          {{ t('developer.applications.secretDialog.warning') }}
         </template>
       </el-alert>
 
       <!-- App Info -->
       <div v-if="application">
-        <p class="text-sm text-gray-600 mb-2">Application Name: {{ application.appName || 'Unnamed' }}</p>
-        <p class="text-sm text-gray-600 mb-4">AppID: {{ application.id }}</p>
+        <p class="text-sm text-gray-600 mb-2">{{ t('developer.applications.secretDialog.appName') }}: {{ application.appName || t('developer.applications.unnamed') }}</p>
+        <p class="text-sm text-gray-600 mb-4">{{ t('developer.applications.secretDialog.appId') }}: {{ application.id }}</p>
       </div>
 
       <!-- AppSecret Display -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          AppSecret
+          {{ t('developer.applications.secretDialog.appSecret') }}
         </label>
         <div class="flex gap-2">
           <el-input
@@ -107,27 +110,27 @@ const handleClose = () => {
           />
           <Button type="info" @click="toggleSecretVisibility">
             <el-icon class="mr-1"><Hide v-if="secretVisible" /><View v-else /></el-icon>
-            {{ secretVisible ? 'Hide' : 'Show' }}
+            {{ secretVisible ? t('developer.applications.secretDialog.hide') : t('developer.applications.secretDialog.show') }}
           </Button>
           <Button
             :type="copied ? 'success' : 'primary'"
             @click="copyAppSecret"
           >
             <el-icon class="mr-1"><CircleCheck v-if="copied" /><DocumentCopy v-else /></el-icon>
-            {{ copied ? 'Copied' : 'Copy' }}
+            {{ copied ? t('developer.applications.secretDialog.copied') : t('developer.applications.secretDialog.copy') }}
           </Button>
         </div>
       </div>
 
       <!-- Confirmation -->
       <el-checkbox v-model="confirmed" class="mt-4" style="white-space: normal; word-break: break-word;">
-        I understand and have saved the AppSecret. I understand this value will not be shown again.
+        {{ t('developer.applications.secretDialog.confirmText') }}
       </el-checkbox>
     </div>
 
     <template #footer>
       <Button type="primary" :disabled="!confirmed" @click="handleConfirm">
-        I Have Saved
+        {{ t('developer.applications.secretDialog.confirmSaved') }}
       </Button>
     </template>
   </el-dialog>

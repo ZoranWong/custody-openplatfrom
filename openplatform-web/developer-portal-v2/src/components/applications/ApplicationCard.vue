@@ -2,7 +2,8 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { OfficeBuilding, CreditCard, UserFilled, Clock, ArrowRight } from '@element-plus/icons-vue'
-import { applicationTypeConfig, type Application } from '@/api/api-service'
+import { applicationTypeConfig, type Application } from '@/types/api/application'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   application: Application
@@ -10,14 +11,16 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const { t } = useI18n()
+
 const router = useRouter()
 
 const statusConfig = computed(() => {
   const configs: Record<string, { type: 'primary' | 'success' | 'warning' | 'info' | 'danger'; text: string }> = {
-    pending_review: { type: 'warning', text: '审核中' },
-    active: { type: 'success', text: '已启用' },
-    inactive: { type: 'info', text: '已停用' },
-    suspended: { type: 'danger', text: '已暂停' }
+    pending_review: { type: 'warning', text: t('developer.applications.pendingReview') },
+    active: { type: 'success', text: t('developer.applications.active') },
+    inactive: { type: 'info', text: t('developer.applications.inactive') },
+    suspended: { type: 'danger', text: t('developer.applications.suspended') }
   }
   return configs[props.application.status] || configs.pending_review
 })
@@ -72,7 +75,7 @@ const handleClick = () => {
         <!-- Details -->
         <div class="min-w-0 flex-1">
           <h3 class="text-lg font-medium text-gray-900 truncate">
-            {{ application.appName || 'Unnamed App' }}
+            {{ application.appName || $t('developer.applications.unnamed') }}
           </h3>
           <div class="flex items-center gap-3 mt-1">
             <span class="text-sm text-gray-500 font-mono">

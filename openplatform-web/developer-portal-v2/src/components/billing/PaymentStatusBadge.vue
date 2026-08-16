@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   status: 'success' | 'pending' | 'failed'
@@ -7,11 +8,13 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const { t } = useI18n()
+
 const statusConfig = computed(() => {
   const configs: Record<string, { label: string; type: 'success' | 'warning' | 'danger' | 'info' }> = {
-    success: { label: '成功', type: 'success' },
-    pending: { label: '处理中', type: 'warning' },
-    failed: { label: '失败', type: 'danger' }
+    success: { label: t('developer.paymentHistory.status.success'), type: 'success' },
+    pending: { label: t('developer.paymentHistory.status.pending'), type: 'warning' },
+    failed: { label: t('developer.paymentHistory.status.failed'), type: 'danger' }
   }
   return configs[props.status] || { label: props.status, type: 'info' }
 })

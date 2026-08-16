@@ -2,8 +2,9 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Warning } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/common/Button.vue'
-import apiService from '@/api/api-service'
+import { fetchDeleteApplication } from '@/api/application'
 
 interface Props {
   modelValue: boolean
@@ -13,6 +14,8 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const { t } = useI18n()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
@@ -32,9 +35,6 @@ const isConfirmed = computed(() =>
   confirmName.value.trim().toLowerCase() === props.applicationName.toLowerCase()
 )
 
-const warningText = 'This action will permanently delete the application and cannot be undone.'
-const appIdNote = `Note: The AppID (${props.appId}) cannot be reused by other applications.`
-
 const resetDialogState = () => {
   confirmName.value = ''
   loading.value = false
@@ -43,26 +43,25 @@ const resetDialogState = () => {
 
 const handleDelete = async () => {
   if (!isConfirmed.value) {
-    ElMessage.warning('Please enter the correct application name')
+    ElMessage.warning(t('developer.applications.deleteDialog.enterCorrectName'))
     return
   }
 
   loading.value = true
   try {
-    await apiService.deleteISVApplication(props.applicationId)
-    ElMessage.success('Application deleted')
+    await fetchDeleteApplication(props.applicationId)
+    ElMessage.success(t('developer.applications.deleteDialog.deleteSuccess'))
     emit('deleted')
   } catch (e: any) {
     const code = e.response?.data?.code
-    const message = e.response?.data?.message || 'Deletion failed, please try again later'
+    const message = e.response?.data?.message || t('developer.applications.deleteDialog.deleteFailed')
 
     if (code === 1006) {
-      ElMessage.error('This application has active resources and cannot be deleted')
+      ElMessage.error(t('developer.applications.deleteDialog.hasActiveResources'))
     } else if (code === 1003) {
-      ElMessage.error('You do not have permission to delete this application')
+      ElMessage.error(t('developer.applications.deleteDialog.permissionDenied'))
     } else if (code === 1004) {
-      ElMessage.error('Application not found')
-      // Close dialog if app not found
+      ElMessage.error(t('developer.applications.deleteDialog.notFound'))
       showDialog.value = false
     } else {
       ElMessage.error(message)
@@ -74,13 +73,12 @@ const handleDelete = async () => {
 
 const handleClose = () => {
   if (hasTyped.value) {
-    // User has typed something, confirm before closing
     ElMessageBox.confirm(
-      'You have entered the application name. Are you sure you want to cancel deletion?',
-      'Confirmation',
+      t('developer.applications.deleteDialog.confirmCancel'),
+      t('developer.applications.deleteDialog.confirmCancelTitle'),
       {
-        confirmButtonText: 'Leave',
-        cancelButtonText: 'Cancel',
+        confirmButtonText: t('developer.applications.deleteDialog.leave'),
+        cancelButtonText: t('developer.applications.deleteDialog.cancelDelete'),
         type: 'warning'
       }
     ).then(() => {
@@ -93,7 +91,6 @@ const handleClose = () => {
   }
 }
 
-// Reset state when dialog opens and track typing
 watch(showDialog, (val) => {
   if (val) {
     resetDialogState()
@@ -108,7 +105,7 @@ watch(confirmName, () => {
 <template>
   <el-dialog
     v-model="showDialog"
-    title="Delete Application"
+    :title="t('developer.applications.deleteDialog.title')"
     width="480px"
     :close-on-click-modal="false"
     :close-on-press-escape="!hasTyped"
@@ -120,20 +117,20 @@ watch(confirmName, () => {
         <Warning />
       </el-icon>
       <div>
-        <p class="text-sm text-gray-600 mb-2">Warning: {{ warningText }}</p>
-        <p class="text-sm text-gray-500">{{ appIdNote }}</p>
+        <p class="text-sm text-gray-600 mb-2">{{ t('developer.applications.deleteDialog.warning') }}</p>
+        <p class="text-sm text-gray-500">{{ t('developer.applications.deleteDialog.appIdNote', { appId }) }}</p>
       </div>
     </div>
 
     <!-- Confirmation Input -->
     <div class="mb-4">
       <label :for="'delete-confirm-' + applicationId" class="block text-sm font-medium text-gray-700 mb-2">
-        Enter application name <span class="font-mono text-brand">{{ applicationName }}</span> to confirm deletion
+        {{ t('developer.applications.deleteDialog.confirmLabel') }} <span class="font-mono text-brand">{{ applicationName }}</span> {{ t('developer.applications.deleteDialog.confirmDelete') }}
       </label>
       <el-input
         :id="'delete-confirm-' + applicationId"
         v-model="confirmName"
-        :placeholder="`Enter: ${applicationName}`"
+        :placeholder="t('developer.applications.deleteDialog.confirmPlaceholder') + applicationName"
         size="large"
         aria-label="Confirm application name"
         aria-describedby="delete-confirm-error"
@@ -146,20 +143,20 @@ watch(confirmName, () => {
         class="mt-1 text-sm text-red-500"
         role="alert"
       >
-        Application name does not match, please enter again
+        {{ t('developer.applications.deleteDialog.nameMismatch') }}
       </p>
     </div>
 
     <!-- Footer -->
     <template #footer>
-      <Button @click="handleClose">Cancel</Button>
+      <Button @click="handleClose">{{ t('developer.applications.deleteDialog.cancel') }}</Button>
       <Button
         type="danger"
         :loading="loading"
         :disabled="!isConfirmed || loading"
         @click="handleDelete"
       >
-        Confirm Delete
+        {{ t('developer.applications.deleteDialog.confirmDelete') }}
       </Button>
     </template>
   </el-dialog>

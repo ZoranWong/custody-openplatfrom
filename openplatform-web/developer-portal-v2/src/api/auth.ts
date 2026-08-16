@@ -1,5 +1,4 @@
 import request from '@/utils/http'
-import { apiService } from './api-service'
 
 /**
  * 登录
@@ -14,60 +13,53 @@ export function fetchLogin(params: Api.Auth.LoginParams) {
 }
 
 /**
- * 获取用户信息
+ * 获取用户信息（ISV profile）
  * @returns 用户信息
  */
 export function fetchGetUserInfo() {
-  return request.get<Api.Auth.UserInfo>({
-    url: '/api/user/info'
+  return request.get<any>({
+    url: '/isv/profile'
   })
 }
 
 /**
  * ISV 登录
- * @param params ISV 登录参数
- * @returns ISV 登录响应
  */
-export function fetchISVLogin(params: Api.Auth.ISVLoginParams) {
-  return apiService.login(params)
+export function fetchISVLogin(params: any) {
+  return request.post<any>({ url: '/isv/auth/login', data: params })
 }
 
 /**
  * 获取 ISV 用户信息
- * @returns ISV 用户信息
  */
 export function fetchISVUserInfo() {
-  return apiService.getISVProfile()
+  return request.get<any>({ url: '/isv/profile' })
 }
 
 /**
  * 获取 ISV 信息
- * @returns ISV 信息
  */
 export function fetchISVInfo() {
-  return apiService.getISVInfo()
+  return request.get<any>({ url: '/isv/info' })
 }
 
 /**
  * ISV 注册
- * @param params 注册参数
  */
 export function fetchISVRegister(params: any) {
-  return apiService.register(params)
+  return request.post<any>({ url: '/isv/auth/register', data: params })
 }
 
 /**
  * ISV 忘记密码
- * @param params 参数
  */
 export function fetchISVForgotPassword(params: { email: string }) {
-  return apiService.forgotPassword(params)
+  return request.post<any>({ url: '/isv/auth/forgot-password', data: params })
 }
 
 /**
  * ISV 重置密码
- * @param params 参数
  */
 export function fetchISVResetPassword(params: { token: string; password: string }) {
-  return apiService.resetPassword(params)
+  return request.post<any>({ url: '/isv/auth/reset-password', data: params })
 }

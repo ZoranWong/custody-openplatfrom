@@ -1,32 +1,36 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 const useCases = [
   {
     icon: 'Building',
-    title: 'Corporate Treasury',
-    description: 'Manage cross-border crypto settlements with bank-grade security. Ideal for international trading firms and institutions managing their own balance sheet.',
+    title: t('landing.features.corporateTreasury.title'),
+    description: t('landing.features.corporateTreasury.description'),
     features: [
-      'Multi-person approval workflows',
-      'Automated receivable sweeping'
+      t('landing.features.corporateTreasury.feature1'),
+      t('landing.features.corporateTreasury.feature2')
     ],
     gradient: 'from-amber-500 to-amber-600'
   },
   {
     icon: 'CreditCard',
-    title: 'Payment Processing',
-    description: 'Enable crypto acceptance for merchants. Automated pay-in processing, risk quarantine for large amounts, and streamlined payouts.',
+    title: t('landing.features.paymentProcessing.title'),
+    description: t('landing.features.paymentProcessing.description'),
     features: [
-      'High-volume transaction handling',
-      'Real-time risk engine'
+      t('landing.features.paymentProcessing.feature1'),
+      t('landing.features.paymentProcessing.feature2')
     ],
     gradient: 'from-blue-500 to-blue-600'
   },
   {
     icon: 'User',
-    title: 'Individual Custody',
-    description: 'Infrastructure for banks and fintechs to offer crypto wallets to their retail users (B2B2C). We handle the custody; you own the experience.',
+    title: t('landing.features.individualCustody.title'),
+    description: t('landing.features.individualCustody.description'),
     features: [
-      'Segregated deposit addresses',
-      'Whitelabel integration'
+      t('landing.features.individualCustody.feature1'),
+      t('landing.features.individualCustody.feature2')
     ],
     gradient: 'from-emerald-500 to-emerald-600'
   }
@@ -35,18 +39,18 @@ const useCases = [
 const platformFeatures = [
   {
     number: '01',
-    title: 'Embedded Plug-in Pages',
-    description: 'Secure UI components for transaction signing, policy configuration, and risk authorization that live inside your app.'
+    title: t('landing.features.platformFeature1.title'),
+    description: t('landing.features.platformFeature1.description')
   },
   {
     number: '02',
-    title: 'Granular Policy Engine',
-    description: 'Define strict rules for withdrawals, approvals, and whitelists. Enforce compliance programmatically.'
+    title: t('landing.features.platformFeature2.title'),
+    description: t('landing.features.platformFeature2.description')
   },
   {
     number: '03',
-    title: 'Automated Reconciliation',
-    description: 'Real-time ledger matching between on-chain reality and your internal records. Never lose track of a cent.'
+    title: t('landing.features.platformFeature3.title'),
+    description: t('landing.features.platformFeature3.description')
   }
 ]
 </script>
@@ -58,13 +62,13 @@ const platformFeatures = [
       <!-- Section header -->
       <div class="text-center mb-16">
         <h2 class="text-sm font-bold text-brand tracking-widest uppercase mb-3">
-          Developer-First Platform
+          {{ $t('landing.features.sectionLabel') }}
         </h2>
         <h3 class="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-          Business-Finance Integration
+          {{ $t('landing.features.sectionTitle') }}
         </h3>
         <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-          Don't just manage assets; program them. Cregis provides the primitives for developers to unify operational flows with financial settlement.
+          {{ $t('landing.features.sectionDescription') }}
         </p>
       </div>
 
@@ -131,13 +135,13 @@ const platformFeatures = [
         <!-- Left content -->
         <div>
           <h2 class="text-sm font-bold text-brand tracking-widest uppercase mb-3">
-            API-First Architecture
+            {{ $t('landing.features.platformLabel') }}
           </h2>
           <h3 class="text-3xl md:text-4xl font-bold text-white mb-6">
-            Programmable Custody
+            {{ $t('landing.features.platformTitle') }}
           </h3>
           <p class="text-slate-400 text-lg mb-8 leading-relaxed">
-            Cregis is built for developers. Our "Invisible Banking" architecture allows you to abstract complex crypto operations into simple API calls, embedding financial capabilities directly into your application code.
+            {{ $t('landing.features.platformDescription') }}
           </p>
 
           <!-- Feature list -->

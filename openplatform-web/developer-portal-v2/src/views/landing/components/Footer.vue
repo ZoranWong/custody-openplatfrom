@@ -1,25 +1,28 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getAssetPath } from '@/utils/assets'
 
+const { t } = useI18n()
 const currentYear = new Date().getFullYear()
 
-const footerLinks = {
-  Product: [
-    { name: 'API Reference', href: '/api' },
-    { name: 'SDK', href: '/sdk' },
-    { name: 'Pricing', href: '/pricing' }
+const footerLinks = computed(() => ({
+  [t('landing.footer.product')]: [
+    { name: t('landing.footer.apiReference'), href: '/api' },
+    { name: t('landing.footer.sdk'), href: '/sdk' },
+    { name: t('landing.footer.pricing'), href: '/pricing' }
   ],
-  Resources: [
-    { name: 'Documentation', href: '/docs' },
-    { name: 'Quick Start', href: '/quickstart' },
-    { name: 'Examples', href: '/examples' }
+  [t('landing.footer.resources')]: [
+    { name: t('landing.footer.documentation'), href: '/docs' },
+    { name: t('landing.footer.quickStart'), href: '/quickstart' },
+    { name: t('landing.footer.examples'), href: '/examples' }
   ],
-  Company: [
-    { name: 'About Us', href: '/about' },
-    { name: 'Contact Us', href: '/contact' },
-    { name: 'Privacy Policy', href: '/privacy' }
+  [t('landing.footer.company')]: [
+    { name: t('landing.footer.aboutUs'), href: '/about' },
+    { name: t('landing.footer.contactUs'), href: '/contact' },
+    { name: t('landing.footer.privacyPolicy'), href: '/privacy' }
   ]
-}
+}))
 </script>
 
 <template>
@@ -32,7 +35,7 @@ const footerLinks = {
             <img :src="getAssetPath('logo.svg')" alt="Cregis" class="h-6" />
           </div>
           <p class="text-gray-500 text-sm mb-4">
-            Enterprise-Grade Cryptocurrency Custody Infrastructure
+            {{ $t('landing.footer.tagline') }}
           </p>
           <a
             href="https://github.com/cregis"
@@ -49,10 +52,10 @@ const footerLinks = {
 
         <!-- Links -->
         <div v-for="(links, category) in footerLinks" :key="category">
-          <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4" :id="'footer-' + category.toLowerCase()">
+          <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4" :id="'footer-' + String(category).toLowerCase()">
             {{ category }}
           </h3>
-          <ul class="space-y-3" :aria-labelledby="'footer-' + category.toLowerCase()">
+          <ul class="space-y-3" :aria-labelledby="'footer-' + String(category).toLowerCase()">
             <li v-for="link in links" :key="link.name">
               <a
                 :href="link.href"
@@ -67,14 +70,14 @@ const footerLinks = {
 
       <div class="mt-8 pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
         <p class="text-gray-400 text-sm">
-          &copy; {{ currentYear }} Cregis. All rights reserved.
+          &copy; {{ currentYear }} {{ $t('landing.footer.allRightsReserved') }}
         </p>
         <div class="flex space-x-6 mt-4 md:mt-0">
           <a href="/terms" class="text-gray-400 hover:text-brand text-sm transition-colors duration-200">
-            Terms of Service
+            {{ $t('landing.footer.termsOfService') }}
           </a>
           <a href="/privacy" class="text-gray-400 hover:text-brand text-sm transition-colors duration-200">
-            Privacy Policy
+            {{ $t('landing.footer.privacyPolicy') }}
           </a>
         </div>
       </div>

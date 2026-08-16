@@ -23,18 +23,18 @@ const navigateTo = (path: string) => {
           <!-- Badge -->
           <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-brand text-sm font-medium mb-8">
             <span class="w-2 h-2 bg-brand rounded-full animate-pulse" />
-            For Corporate Developers
+            {{ $t('landing.hero.badge') }}
           </div>
 
           <!-- Heading -->
           <h1 class="text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-6 leading-tight">
-            The Infrastructure for
-            <span class="text-brand">Business-Finance Integration</span>
+            {{ $t('landing.hero.title') }}
+            <span class="text-brand">{{ $t('landing.hero.titleHighlight') }}</span>
           </h1>
 
           <!-- Subheading -->
           <p class="text-lg text-slate-400 mb-10 leading-relaxed max-w-xl">
-            Embed banking-grade custody directly into your business logic. Empower your engineering team to build automated, secure, and compliant digital asset workflows that seamlessly unify business operations with financial settlement.
+            {{ $t('landing.hero.subtitle') }}
           </p>
 
           <!-- CTAs -->
@@ -43,7 +43,7 @@ const navigateTo = (path: string) => {
               @click="navigateTo('/register')"
               class="btn-primary text-lg px-8 py-3 flex items-center justify-center gap-2"
             >
-              Start Building
+              {{ $t('landing.hero.startBuilding') }}
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
               </svg>
@@ -52,7 +52,7 @@ const navigateTo = (path: string) => {
               @click="navigateTo('/docs')"
               class="btn-outline text-lg px-8 py-3 flex items-center justify-center gap-2"
             >
-              View API Docs
+              {{ $t('landing.hero.viewApiDocs') }}
             </button>
           </div>
 
@@ -62,19 +62,19 @@ const navigateTo = (path: string) => {
               <svg class="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              <span>Bank-Grade Security</span>
+              <span>{{ $t('landing.hero.trustSecurity') }}</span>
             </div>
             <div class="flex items-center gap-2">
               <svg class="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>99.9% Uptime</span>
+              <span>{{ $t('landing.hero.trustUptime') }}</span>
             </div>
             <div class="flex items-center gap-2">
               <svg class="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              <span>Real-Time Settlement</span>
+              <span>{{ $t('landing.hero.trustSettlement') }}</span>
             </div>
           </div>
         </div>
@@ -90,7 +90,7 @@ const navigateTo = (path: string) => {
                 <div class="w-3 h-3 rounded-full bg-yellow-500" />
                 <div class="w-3 h-3 rounded-full bg-green-500" />
               </div>
-              <div class="text-xs text-slate-500 font-mono">Cregis Secure Enclave</div>
+              <div class="text-xs text-slate-500 font-mono">{{ $t('landing.hero.codeWindowTitle') }}</div>
             </div>
 
             <!-- Code content -->

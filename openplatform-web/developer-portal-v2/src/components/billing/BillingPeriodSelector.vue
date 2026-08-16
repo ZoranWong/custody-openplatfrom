@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { BillingPeriodType, DateRange } from '@/api/api-service'
+import { useI18n } from 'vue-i18n'
+import type { BillingPeriodType, DateRange } from '@/types/api/billing'
 
 interface Props {
   modelValue?: BillingPeriodType
@@ -12,6 +13,8 @@ const props = withDefaults(defineProps<Props>(), {
   customDateRange: null
 })
 
+const { t } = useI18n()
+
 const emit = defineEmits<{
   (e: 'update:modelValue', value: BillingPeriodType): void
   (e: 'update:customDateRange', value: { start: string; end: string } | null): void
@@ -22,10 +25,10 @@ const selectedPeriod = ref<BillingPeriodType>(props.modelValue)
 const customRange = ref<[Date, Date] | null>(null)
 
 const periodOptions = [
-  { label: 'This Month', value: 'current_month' },
-  { label: 'Last Month', value: 'last_month' },
-  { label: 'Last 3 Months', value: 'last_3_months' },
-  { label: 'Custom', value: 'custom' }
+  { label: t('developer.billing.period.thisMonth'), value: 'current_month' },
+  { label: t('developer.billing.period.lastMonth'), value: 'last_month' },
+  { label: t('developer.billing.period.last3Months'), value: 'last_3_months' },
+  { label: t('developer.billing.period.custom'), value: 'custom' }
 ]
 
 /**
@@ -120,7 +123,7 @@ watch(() => props.customDateRange, (newVal) => {
 </script>
 
 <template>
-  <div class="billing-period-selector" role="group" aria-label="Billing period selection">
+  <div class="billing-period-selector" role="group" :aria-label="t('developer.billing.period.label')">
     <el-radio-group
       v-model="selectedPeriod"
       @change="handlePeriodChange"
@@ -138,14 +141,14 @@ watch(() => props.customDateRange, (newVal) => {
       v-if="isCustomSelected"
       class="custom-date-picker mt-4"
       role="group"
-      aria-label="Custom date range"
+      :aria-label="t('developer.billing.period.custom')"
     >
       <el-date-picker
         v-model="customRange"
         type="daterange"
-        range-separator="to"
-        start-placeholder="Start date"
-        end-placeholder="End date"
+        :range-separator="t('developer.billing.period.rangeSeparator')"
+        :start-placeholder="t('developer.billing.period.startDate')"
+        :end-placeholder="t('developer.billing.period.endDate')"
         format="YYYY-MM-DD"
         value-format="YYYY-MM-DD"
         :disabled-date="(date: Date) => {

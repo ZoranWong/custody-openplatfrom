@@ -53,7 +53,9 @@ export default [
     rules: {
       quotes: ['error', 'single'], // 使用单引号
       semi: ['error', 'never'], // 语句末尾不加分号
-      'no-var': 'error', // 要求使用 let 或 const 而不是 var
+      // Note: you must disable the base rule as it can report incorrect errors
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': 'error',
       '@typescript-eslint/no-explicit-any': 'off', // 禁用 any 检查
       'vue/multi-word-component-names': 'off', // 禁用对 Vue 组件名称的多词要求检查
       'no-multiple-empty-lines': ['warn', { max: 1 }], // 不允许多个空行

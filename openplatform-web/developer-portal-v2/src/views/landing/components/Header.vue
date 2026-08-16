@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { getAssetPath } from '@/utils/assets'
+import { languageOptions } from '@/locales'
+import { useUserStore } from '@/store/modules/user'
+import { LanguageEnum } from '@/enums/appEnum'
 
 const router = useRouter()
+const { t, locale } = useI18n()
+const userStore = useUserStore()
 const isMobileMenuOpen = ref(false)
 
 const navigation = [
-  { name: 'Docs', href: '/docs' },
-  { name: 'API Reference', href: '/api' },
-  { name: 'SDK', href: '/sdk' },
-  { name: 'GitHub', href: 'https://github.com/cregis' }
+  { name: t('landing.header.docs'), href: '/docs' },
+  { name: t('landing.header.apiReference'), href: '/api' },
+  { name: t('landing.header.sdk'), href: '/sdk' },
+  { name: t('landing.header.github'), href: 'https://github.com/cregis' }
 ]
 
 const toggleMobileMenu = () => {
@@ -19,6 +25,12 @@ const toggleMobileMenu = () => {
 
 const navigateTo = (path: string) => {
   router.push(path)
+}
+
+const changeLanguage = (lang: LanguageEnum) => {
+  if (locale.value === lang) return
+  locale.value = lang
+  userStore.setLanguage(lang)
 }
 </script>
 
@@ -45,6 +57,28 @@ const navigateTo = (path: string) => {
           >
             {{ item.name }}
           </a>
+
+          <!-- Language Switcher -->
+          <ElDropdown trigger="click" @command="changeLanguage">
+            <button class="text-gray-600 hover:text-brand transition-colors duration-200 flex items-center gap-1" aria-label="Switch language">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+              <span class="text-xs">{{ locale === 'zh' ? '中文' : 'EN' }}</span>
+            </button>
+            <template #dropdown>
+              <ElDropdownMenu>
+                <ElDropdownItem
+                  v-for="item in languageOptions"
+                  :key="item.value"
+                  :command="item.value"
+                  :class="{ 'is-selected': locale === item.value }"
+                >
+                  {{ item.label }}
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            </template>
+          </ElDropdown>
         </div>
 
         <!-- Auth Buttons -->
@@ -54,14 +88,14 @@ const navigateTo = (path: string) => {
             class="text-gray-600 hover:text-brand transition-colors duration-200"
             aria-label="Sign In"
           >
-            Sign In
+            {{ $t('landing.header.signIn') }}
           </button>
           <button
             @click="navigateTo('/register')"
             class="btn-primary"
             aria-label="Get Started"
           >
-            Get Started
+            {{ $t('landing.header.getStarted') }}
           </button>
         </div>
 
@@ -98,6 +132,31 @@ const navigateTo = (path: string) => {
           >
             {{ item.name }}
           </a>
+
+          <!-- Language Switcher (Mobile) -->
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-500">{{ $t('setting.theme.title') }}</span>
+            <ElDropdown trigger="click" @command="changeLanguage">
+              <button class="text-gray-600 hover:text-brand transition-colors duration-200 text-sm flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                </svg>
+                {{ locale === 'zh' ? '简体中文' : 'English' }}
+              </button>
+              <template #dropdown>
+                <ElDropdownMenu>
+                  <ElDropdownItem
+                    v-for="item in languageOptions"
+                    :key="item.value"
+                    :command="item.value"
+                  >
+                    {{ item.label }}
+                  </ElDropdownItem>
+                </ElDropdownMenu>
+              </template>
+            </ElDropdown>
+          </div>
+
           <hr class="border-gray-200" />
           <button
             @click="navigateTo('/login')"
@@ -105,7 +164,7 @@ const navigateTo = (path: string) => {
             role="menuitem"
             aria-label="Sign In"
           >
-            Sign In
+            {{ $t('landing.header.signIn') }}
           </button>
           <button
             @click="navigateTo('/register')"
@@ -113,7 +172,7 @@ const navigateTo = (path: string) => {
             role="menuitem"
             aria-label="Get Started"
           >
-            Get Started
+            {{ $t('landing.header.getStarted') }}
           </button>
         </div>
       </div>

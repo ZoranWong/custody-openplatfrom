@@ -3,982 +3,716 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第三方开发者接入指南 v4.0 - 开放平台</title>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <title>Cregis 开放平台 - 第三方开发者接入指南</title>
     <style>
-        :root {
-            --primary-color: #0066cc;
-            --secondary-color: #6c757d;
-            --bg-color: #f8f9fa;
-            --sidebar-bg: #ffffff;
-            --border-color: #e9ecef;
-            --code-bg: #f4f4f4;
-            --text-color: #333;
-            --heading-color: #1a1a1a;
-            --success-color: #28a745;
-            --warning-color: #ffc107;
-            --danger-color: #dc3545;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.7;
-            color: var(--text-color);
-            background: var(--bg-color);
-        }
-
-        /* Layout */
-        .wiki-container {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #fff;
             display: flex;
+        }
+        
+        /* ===== Sidebar ===== */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: #1e1e2e;
+            color: #cdd6f4;
+            overflow-y: auto;
+            padding: 24px 20px;
+            z-index: 100;
+        }
+        .sidebar h2 {
+            color: #fff;
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #45475a;
+            text-align: center;
+        }
+        .sidebar .nav-item {
+            display: block;
+            color: #a6adc8;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 2px;
+            transition: all 0.15s;
+        }
+        .sidebar .nav-item:hover {
+            background: #313244;
+            color: #cdd6f4;
+        }
+        .sidebar .nav-sub {
+            display: block;
+            color: #9399b2;
+            text-decoration: none;
+            padding: 6px 12px 6px 28px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 2px;
+            transition: all 0.15s;
+        }
+        .sidebar .nav-sub:hover {
+            background: #313244;
+            color: #cdd6f4;
+        }
+        .sidebar .nav-active {
+            color: #89b4fa;
+            background: #313244;
+        }
+        
+        /* ===== Main Content ===== */
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            max-width: 960px;
+            padding: 40px 48px;
             min-height: 100vh;
         }
-
-        /* Sidebar */
-        .wiki-sidebar {
-            width: 280px;
-            background: var(--sidebar-bg);
-            border-right: 1px solid var(--border-color);
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-
-        .wiki-logo {
-            padding: 24px 20px;
-            border-bottom: 1px solid var(--border-color);
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .wiki-logo h1 {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .wiki-logo span {
-            font-size: 12px;
-            opacity: 0.8;
-        }
-
-        .wiki-nav {
-            padding: 16px 0;
-        }
-
-        .nav-section {
-            margin-bottom: 8px;
-        }
-
-        .nav-section-title {
-            padding: 8px 20px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--secondary-color);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .nav-item {
-            display: block;
-            padding: 10px 20px;
-            color: var(--text-color);
-            text-decoration: none;
-            font-size: 14px;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-        }
-
-        .nav-item:hover {
-            background: var(--bg-color);
-            color: var(--primary-color);
-        }
-
-        .nav-item.active {
-            background: #e7f3ff;
-            color: var(--primary-color);
-            border-left-color: var(--primary-color);
-        }
-
-        .nav-item.sub {
-            padding-left: 35px;
-            font-size: 13px;
-        }
-
-        /* Main Content */
-        .wiki-content {
-            flex: 1;
-            margin-left: 280px;
-            padding: 32px 48px;
-            max-width: 1400px;
-        }
-
-        .wiki-header {
-            margin-bottom: 32px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .wiki-title {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--heading-color);
-            margin-bottom: 8px;
-        }
-
-        .wiki-meta {
-            display: flex;
-            gap: 16px;
-            font-size: 13px;
-            color: var(--secondary-color);
-        }
-
-        .wiki-meta span {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        /* Content Styles */
-        h1, h2, h3, h4, h5, h6 {
-            color: var(--heading-color);
-            margin-top: 32px;
-            margin-bottom: 16px;
-            font-weight: 600;
-        }
-
-        h1 { font-size: 28px; }
-        h2 {
-            font-size: 22px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        h3 { font-size: 18px; }
-        h4 { font-size: 16px; }
-
-        p {
-            margin-bottom: 16px;
-        }
-
-        a {
-            color: var(--primary-color);
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        /* Table */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 16px 0;
-            background: white;
-        }
-
-        th, td {
-            padding: 12px 16px;
-            text-align: left;
-            border: 1px solid var(--border-color);
-        }
-
-        th {
-            background: var(--bg-color);
-            font-weight: 600;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        tr:hover td {
-            background: #f8f9fa;
-        }
-
-        /* Code */
-        code {
-            background: var(--code-bg);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-            font-size: 13px;
-            color: #e83e8c;
-        }
-
-        pre {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 16px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 16px 0;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        pre code {
-            background: none;
-            padding: 0;
-            color: inherit;
-        }
-
-        /* JSON/Code blocks */
-        .code-block {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 16px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 16px 0;
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-            font-size: 13px;
-        }
-
-        .code-block .key {
-            color: #9cdcfe;
-        }
-
-        .code-block .string {
-            color: #ce9178;
-        }
-
-        .code-block .number {
-            color: #b5cea8;
-        }
-
-        /* Diagram Container */
-        .diagram-container {
-            background: white;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
-            margin: 20px 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .diagram-title {
-            font-weight: 600;
-            font-size: 16px;
-            margin-bottom: 16px;
-            color: var(--heading-color);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .diagram-title::before {
-            content: '';
-            display: inline-block;
-            width: 4px;
-            height: 16px;
-            background: var(--primary-color);
-            border-radius: 2px;
-        }
-
-        .mermaid {
-            display: flex;
-            justify-content: center;
+        
+        h1 { border-bottom: 2px solid #667eea; padding-bottom: 10px; margin-top: 40px; font-size: 28px; }
+        h1:first-child { margin-top: 0; }
+        h2 { border-bottom: 1px solid #e1e4e8; padding-bottom: 8px; margin-top: 36px; font-size: 22px; }
+        h3 { margin-top: 28px; font-size: 18px; }
+        h4 { margin-top: 20px; font-size: 16px; }
+        table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+        th { background: #f6f8fa; }
+        code { background: #f6f8fa; padding: 2px 6px; border-radius: 3px; font-size: 14px; }
+        pre { background: #1e1e2e; color: #cdd6f4; padding: 16px; border-radius: 8px; overflow-x: auto; }
+        pre code { background: none; padding: 0; color: inherit; }
+        a { color: #667eea; }
+        hr { border: none; border-top: 1px solid #e1e4e8; margin: 32px 0; }
+        ul, ol { padding-left: 24px; margin: 8px 0; }
+        li { margin: 4px 0; }
+        
+        .mermaid { 
+            background: #f6f8fa; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 16px 0; 
+            text-align: center;
             overflow-x: auto;
         }
-
-        /* Note/Alert Boxes */
-        .note {
-            background: #e7f3ff;
-            border-left: 4px solid var(--primary-color);
-            padding: 12px 16px;
-            margin: 16px 0;
-            border-radius: 0 4px 4px 0;
-        }
-
-        .warning {
-            background: #fff3cd;
-            border-left: 4px solid var(--warning-color);
-            padding: 12px 16px;
-            margin: 16px 0;
-            border-radius: 0 4px 4px 0;
-        }
-
-        .success {
-            background: #d4edda;
-            border-left: 4px solid var(--success-color);
-            padding: 12px 16px;
-            margin: 16px 0;
-            border-radius: 0 4px 4px 0;
-        }
-
-        .danger {
-            background: #f8d7da;
-            border-left: 4px solid var(--danger-color);
-            padding: 12px 16px;
-            margin: 16px 0;
-            border-radius: 0 4px 4px 0;
-        }
-
-        /* Section Styles */
-        .section {
-            margin: 32px 0;
-        }
-
-        /* Table of Contents */
-        .toc {
-            background: white;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-
-        .toc-title {
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-
-        .toc-list {
-            list-style: none;
-        }
-
-        .toc-list li {
-            padding: 6px 0;
-            border-bottom: 1px dashed var(--border-color);
-        }
-
-        .toc-list li:last-child {
-            border-bottom: none;
-        }
-
-        .toc-list a {
-            color: var(--text-color);
-            font-size: 14px;
-        }
-
-        .toc-list a:hover {
-            color: var(--primary-color);
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--bg-color);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--secondary-color);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-color);
-        }
-
-        /* Responsive */
+        
+        /* ===== Mobile ===== */
         @media (max-width: 768px) {
-            .wiki-sidebar {
-                display: none;
-            }
-            .wiki-content {
-                margin-left: 0;
-                padding: 20px;
-            }
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; padding: 20px; }
         }
-
-        /* Legend */
-        .legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            padding: 12px 16px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin: 16px 0;
-            font-size: 13px;
+        
+        /* ===== Sidebar scroll highlight ===== */
+        .sidebar a.active-scroll {
+            color: #89b4fa;
+            background: #313244;
         }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 3px;
-        }
-
-        .legend-color.phase1 { background: #4A90D9; }
-        .legend-color.phase2 { background: #52c41a; }
-        .legend-color.phase3 { background: #fa8c16; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            flowchart: { useMaxWidth: true, htmlLabels: true },
+            sequence: { useMaxWidth: true, diagramMarginX: 50, diagramMarginY: 10 }
+        });
+        
+        // Highlight active nav item on scroll
+        document.addEventListener('DOMContentLoaded', () => {
+            const navLinks = document.querySelectorAll('.sidebar a');
+            const sections = document.querySelectorAll('h2[id], h3[id]');
+            
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    if (window.scrollY >= section.offsetTop - 100) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                navLinks.forEach(link => {
+                    link.classList.remove('active-scroll');
+                    if (link.getAttribute('href') === '#' + current) {
+                        link.classList.add('active-scroll');
+                    }
+                });
+            });
+        });
+    </script>
 </head>
 <body>
-    <div class="wiki-container">
-        <!-- Sidebar -->
-        <aside class="wiki-sidebar">
-            <div class="wiki-logo">
-                <h1>开放平台</h1>
-                <span>接入文档 v4.0</span>
-            </div>
-            <nav class="wiki-nav">
-                <div class="nav-section">
-                    <div class="nav-section-title">目录</div>
-                    <a href="#overview" class="nav-item active">概述</a>
-                    <a href="#flow" class="nav-item">接入流程</a>
-                    <a href="#auth" class="nav-item">授权接口</a>
-                    <a href="#callback" class="nav-item">回调通知机制</a>
-                    <a href="#signature" class="nav-item">签名算法</a>
-                    <a href="#api" class="nav-item">业务接口</a>
-                    <a href="#error" class="nav-item">错误码</a>
-                    <a href="#sdk" class="nav-item">SDK 集成</a>
-                    <a href="#notes" class="nav-item">注意事项</a>
-                </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">SDK 集成指南</div>
-                    <a href="#sdk-overview" class="nav-item sub">概述</a>
-                    <a href="#sdk-capabilities" class="nav-item sub">能力速览</a>
-                    <a href="#sdk-architecture" class="nav-item sub">架构概览</a>
-                    <a href="#sdk-nodejs" class="nav-item sub">Node.js SDK</a>
-                    <a href="#sdk-web" class="nav-item sub">Web SDK</a>
-                    <a href="#sdk-e2e" class="nav-item sub">完整示例</a>
-                    <a href="#sdk-security" class="nav-item sub">安全模型</a>
-                    <a href="#sdk-versions" class="nav-item sub">版本兼容</a>
-                </div>
-            </nav>
-        </aside>
+    <nav class="sidebar">
+        <h2>📋 接入指南</h2>
+        <a href="#_1" class="nav-item">目录</a>
+<a href="#_2" class="nav-item">概述</a>
+<a href="#_3" class="nav-item">快速开始：完整使用流程</a>
+<a href="#_4" class="nav-sub">第一步：注册开发者账号</a>
+<a href="#_5" class="nav-sub">第二步：审核通过 &amp; 获取体验套餐</a>
+<a href="#_6" class="nav-sub">第三步：创建应用</a>
+<a href="#_7" class="nav-sub">第四步：订阅服务套餐</a>
+<a href="#sdk-api" class="nav-sub">第五步：集成 SDK 和 API 调用</a>
+<a href="#_8" class="nav-sub">完整对接流程图</a>
+<a href="#_9" class="nav-item">集成前准备</a>
+<a href="#1" class="nav-sub">1. 注册开发者账号</a>
+<a href="#2" class="nav-sub">2. 等待审核</a>
+<a href="#3" class="nav-sub">3. 创建应用</a>
+<a href="#4" class="nav-sub">4. 保存凭证</a>
+<a href="#5" class="nav-sub">5. 订阅套餐</a>
+<a href="#6-sdk" class="nav-sub">6. 下载 SDK</a>
+<a href="#_10" class="nav-item">接入流程</a>
+<a href="#_11" class="nav-sub">整体交互流程</a>
+<a href="#_12" class="nav-sub">接入流程说明</a>
+<a href="#_13" class="nav-item">一、授权接口</a>
+<a href="#11-url" class="nav-sub">1.1 获取授权 URL</a>
+<a href="#12" class="nav-sub">1.2 验证授权并存储</a>
+<a href="#13" class="nav-sub">1.3 回调通知机制</a>
+<a href="#_20" class="nav-item">二、签名算法</a>
+<a href="#21" class="nav-sub">2.1 签名类型</a>
+<a href="#22-basic" class="nav-sub">2.2 Basic 签名计算步骤</a>
+<a href="#23-resource" class="nav-sub">2.3 Resource 签名计算步骤</a>
+<a href="#24-basic" class="nav-sub">2.4 签名示例 (Basic 签名)</a>
+<a href="#25-business" class="nav-sub">2.5 business 空值处理规则</a>
+<a href="#26" class="nav-sub">2.6 签名验证规则</a>
+<a href="#26_1" class="nav-sub">2.6 请求认证结构</a>
+<a href="#_22" class="nav-item">三、财务单元管理接口</a>
+<a href="#31-third-party-treasury-unit-management" class="nav-sub">3.1 接口列表 (Third-Party Treasury Unit Management)</a>
+<a href="#32" class="nav-sub">3.2 通用请求格式</a>
+<a href="#33" class="nav-sub">3.3 财务单元管理接口详情</a>
+<a href="#_23" class="nav-item">四、错误码</a>
+<a href="#42" class="nav-sub">4.2 授权错误</a>
+<a href="#43" class="nav-sub">4.3 业务错误</a>
+<a href="#sdk" class="nav-item">五、SDK 示例</a>
+<a href="#51" class="nav-sub">5.1 签名计算</a>
+<a href="#52-url" class="nav-sub">5.2 获取授权 URL 并打开授权页面</a>
+<a href="#54" class="nav-sub">5.4 打开模式说明</a>
+<a href="#55" class="nav-sub">5.5 安全机制</a>
+<a href="#sdk_1" class="nav-item">六、SDK 集成指南</a>
+<a href="#61-sdk" class="nav-sub">6.1 SDK 能力速览</a>
+<a href="#62" class="nav-sub">6.2 架构概览</a>
+<a href="#63-nodejs-sdk" class="nav-sub">6.3 Node.js SDK 集成</a>
+<a href="#64-web-sdk" class="nav-sub">6.4 Web SDK 集成</a>
+<a href="#65" class="nav-sub">6.5 前后端配合完整示例</a>
+<a href="#66" class="nav-sub">6.6 安全模型</a>
+<a href="#67" class="nav-sub">6.7 版本和兼容性</a>
+<a href="#_26" class="nav-item">七、注意事项</a>
+<a href="#_27" class="nav-item">八、联系方式</a>
+    </nav>
+    <main class="main-content">
+        <h1 id="cregis-">Cregis 开放平台 - 第三方开发者接入指南</h1>
+<p><strong>Last Updated:</strong> 2026-08-16
+<strong>版本:</strong> v4.1</p>
+<hr />
+<h2 id="_1">目录</h2>
+<ol>
+<li><a href="#概述">概述</a></li>
+<li><a href="#快速开始完整使用流程">快速开始：完整使用流程</a></li>
+<li><a href="#集成前准备">集成前准备</a></li>
+<li><a href="#接入流程">接入流程</a></li>
+<li><a href="#一授权接口">一、授权接口</a></li>
+<li><a href="#二签名算法">二、签名算法</a></li>
+<li><a href="#三财务单元管理接口">三、财务单元管理接口</a></li>
+<li><a href="#四错误码">四、错误码</a></li>
+<li><a href="#五sdk-示例">五、SDK 示例</a></li>
+<li><a href="#六sdk-集成指南">六、SDK 集成指南</a></li>
+<li><a href="#七注意事项">七、注意事项</a></li>
+<li><a href="#八联系方式">八、联系方式</a></li>
+</ol>
+<hr />
+<h2 id="_2">概述</h2>
+<p>Cregis 开放平台为第三方开发者提供银行级加密货币托管能力的 API 接入服务。通过本平台，您可以：</p>
+<ul>
+<li><strong>注册成为开发者</strong>，创建应用获取 API 凭证</li>
+<li><strong>订阅服务套餐</strong>，选择适合您业务规模的方案</li>
+<li><strong>管理资金单元</strong>，创建、查询和管理 Treasury Unit</li>
+<li><strong>处理资金流转</strong>，包括入金、出金、归集、审批等操作</li>
+<li><strong>接收回调通知</strong>，实时获取交易状态变更</li>
+</ul>
+<p>本文档描述第三方开发者如何接入开放平台，包含完整的注册、订阅、授权流程和接口对接规范。</p>
+<hr />
+<h2 id="_3">快速开始：完整使用流程</h2>
+<h3 id="_4">第一步：注册开发者账号</h3>
+<ol>
+<li>访问开发者门户：<strong>测试环境</strong> <code>https://custody-sit.cregis.ae/openplatform/developer/</code> 或 <strong>生产环境</strong> <code>https://custody.cregis.ae/openplatform/developer/</code></li>
+<li>点击「注册」，填写公司信息（法定名称、注册号、司法管辖区、成立日期、注册地址）和 UBO（实际受益人）信息</li>
+<li>提交注册申请，等待平台管理员审核</li>
+</ol>
+<h3 id="_5">第二步：审核通过 &amp; 获取体验套餐</h3>
+<ol>
+<li>管理员审核通过后，您的开发者账号自动激活</li>
+<li>系统自动赠送 <strong>30 天体验套餐</strong>，可立即开始使用平台功能</li>
+<li>登录开发者门户，进入「工作台」查看您的应用和订阅状态</li>
+</ol>
+<h3 id="_6">第三步：创建应用</h3>
+<ol>
+<li>登录后进入「应用管理」页面</li>
+<li>点击「创建应用」，选择应用类型：</li>
+<li><strong>企业财务管理</strong> — 适合跨境贸易和大型企业</li>
+<li><strong>支付处理</strong> — 适合电商平台和支付服务商</li>
+<li><strong>个人托管</strong> — 适合银行和金融机构（B2B2C）</li>
+<li>填写应用名称、描述和回调地址</li>
+<li>创建成功后，<strong>立即保存 App ID 和 App Secret</strong>（Secret 仅显示一次）</li>
+</ol>
+<h3 id="_7">第四步：订阅服务套餐</h3>
+<ol>
+<li>进入「订阅管理」→「当前订阅」查看套餐状态</li>
+<li>体验期结束后，需要购买正式套餐：</li>
+<li>在可选套餐中选择 BASIC / PROFESSIONAL / ENTERPRISE</li>
+<li>点击「购买」→ 选择计费周期（月付/年付）和支付方式</li>
+<li>提交订单后，进入「订单管理」上传支付凭证</li>
+<li>管理员审核支付凭证后，套餐自动升级，旧套餐剩余天数按比例折算到新套餐</li>
+</ol>
+<h3 id="sdk-api">第五步：集成 SDK 和 API 调用</h3>
+<ol>
+<li>
+<p><strong>安装 SDK</strong>：
+   <code>bash
+   npm install @cregis-kit/openplatform-node    # 后端业务调用
+   npm install @cregis-kit/openplatform-webkit  # 前端授权页面</code></p>
+</li>
+<li>
+<p><strong>初始化 SDK</strong>（使用 App ID 和 App Secret）：
+   <code>typescript
+   const sdk = new CregisSDK({
+     baseUrl: 'https://custody-sit.cregis.ae/openplatform/',  // 测试环境
+     appId: 'your-app-id',
+     appSecret: 'your-app-secret',
+   });</code></p>
+</li>
+<li>
+<p><strong>获取授权 → 创建 Treasury Unit → 业务操作</strong>，详见下方各章节。</p>
+</li>
+</ol>
+<h3 id="_8">完整对接流程图</h3>
+<pre class="codehilite"><code>开发者注册 → 审核通过 → 创建应用 → 订阅套餐 → 集成SDK
+    │                                            │
+    └── 获取 App ID/Secret ──────────────────────┘
+                                                    │
+    获取授权 URL → 用户授权 → 获取 authorizeId ─────┤
+                                                    │
+    创建 Treasury Unit → 创建地址 → 入金/出金 ──────┤
+                                                    │
+    提交审批任务 → 接收回调通知 → 完成资金流转 ─────┘
+</code></pre>
 
-        <!-- Main Content -->
-        <main class="wiki-content">
-            <header class="wiki-header">
-                <h1 class="wiki-title">第三方开发者接入指南</h1>
-                <div class="wiki-meta">
-                    <span>Last Updated: 2026-04-20</span>
-                    <span>版本: v4.0</span>
-                </div>
-            </header>
-
-            <div class="toc">
-                <div class="toc-title">目录</div>
-                <ul class="toc-list">
-                    <li><a href="#overview">概述</a></li>
-                    <li><a href="#preparation">集成前准备</a></li>
-                    <li><a href="#flow">接入流程</a></li>
-                    <li><a href="#auth">授权接口</a></li>
-                    <li><a href="#callback">回调通知机制</a></li>
-                    <li><a href="#signature">签名算法</a></li>
-                    <li><a href="#api">业务接口</a></li>
-                    <li><a href="#error">错误码</a></li>
-                    <li><a href="#sdk">SDK 集成</a></li>
-                    <li><a href="#notes">注意事项</a></li>
-                    <li><a href="#sdk-overview">SDK 集成指南</a></li>
-                </ul>
-            </div>
-
-            <!-- Overview Section -->
-            <section id="overview" class="section">
-                <h2>概述</h2>
-                <p>本文档描述第三方开发者如何接入开放平台，包含授权流程和接口对接规范。</p>
-            </section>
-
-            <!-- Preparation Section -->
-            <section id="preparation" class="section">
-                <h2>集成前准备</h2>
-                <p>在开始对接之前，需要完成以下准备工作：</p>
-
-                <h3>1. 注册开发者账号</h3>
-                <p>访问开发者平台完成注册：<a href="http://api.vaulink.com/openplatform/developer/" target="_blank">http://api.vaulink.com/openplatform/developer/</a>（测试环境）</p>
-
-                <h3>2. 等待审核</h3>
-                <p>提交注册信息后，等待开放平台管理后台审核通过。</p>
-
-                <h3>3. 创建应用</h3>
-                <p>审核通过后，登录开发者平台，在管理后台创建应用。填写应用名称、描述、回调地址等信息。</p>
-
-                <h3>4. 保存凭证</h3>
-                <p>应用创建成功后，保存系统生成的 <code>appId</code> 和 <code>appSecret</code>。这两个值是调用开放平台接口的认证凭证，请妥善保管：</p>
-
-                <table>
-                    <thead>
-                        <tr><th>凭证</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>appId</code></td>
-                            <td>应用唯一标识，用于接口调用时的身份标识</td>
-                        </tr>
-                        <tr>
-                            <td><code>appSecret</code></td>
-                            <td>应用密钥，用于签名计算，<strong>切勿泄露到客户端</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h3>5. 下载 SDK</h3>
-                <p>根据开发需求下载对应的 SDK：</p>
-
-                <table>
-                    <thead>
-                        <tr><th>SDK</th><th>用途</th><th>安装方式</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Node.js SDK</strong></td>
-                            <td>后端业务接口调用</td>
-                            <td><code>npm install @cregis-kit/openplatform-node</code></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Web SDK</strong></td>
-                            <td>前端授权页面嵌入</td>
-                            <td><code>npm install @cregis-kit/openplatform-webkit</code></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="note">
-                    <strong>注意：</strong>测试环境网关地址为 <code>http://api.vaulink.com/openplatform/</code>，正式上线时请替换为生产环境地址。
-                </div>
-            </section>
-
-            <!-- Flow Section -->
-            <section id="flow" class="section">
-                <h2>接入流程</h2>
-
-                <h3>整体交互流程</h3>
-
-                <div class="diagram-container">
-                    <div class="diagram-title">三方接入整体流程</div>
-                    <div class="mermaid">
-sequenceDiagram
-    autonumber
-    participant C as 三方平台客户端
-    participant S as 三方平台服务端
-    participant OP as 开放平台服务端
-    participant CS as Custody 服务
-    participant DB as 数据库
-
-    rect rgb(200, 220, 240)
-        Note over C,DB: 阶段一：获取授权 URL
-        C->>S: 1. 请求 authorizeUrl
-        S->>OP: 2. POST /oauth/authorizeUrl<br/>(basic + business)
-        OP->>OP: 3. 验证签名
-        OP->>DB: 4. 查询应用配置
-        OP->>OP: 5. 生成 appToken (JWT)
-        OP-->>S: 6. 返回 authorizeUrl
-        S-->>C: 7. 下发 authorizeUrl
-    end
-
-    rect rgb(220, 240, 200)
-        Note over C,DB: 阶段二：发起授权
-        C->>CS: 8. 发起授权<br/>(authorizeUrl)
-        CS->>OP: 9. POST /oauth/verify<br/>(oauthToken)
-        OP->>OP: 10. 验证 JWT
-        OP->>DB: 11. Upsert OauthResource
-        OP-->>CS: 12. 返回 authorizeId
-        CS-->>C: 13. 授权成功<br/>(authorizeId)
-    end
-
-    rect rgb(255, 230, 200)
-        Note over C,CS: 阶段三：调用业务接口
-        C->>OP: 14. 业务请求<br/>(basic + business)
-        OP->>OP: 15. 验证签名
-        OP->>CS: 16. 转发业务请求
-        CS->>CS: 17. 处理业务逻辑
-        CS-->>OP: 18. 返回业务响应
-        OP-->>C: 19. 返回业务结果
-    end
-                    </div>
-                </div>
-
-                <h3>分步流程图</h3>
-
-                <div class="diagram-container">
-                    <div class="diagram-title">阶段一：获取授权 URL</div>
-                    <div class="mermaid">
+<hr />
+<h2 id="_9">集成前准备</h2>
+<p>在开始对接之前，需要完成以下准备工作：</p>
+<h3 id="1">1. 注册开发者账号</h3>
+<p>访问开发者平台完成注册：</p>
+<table>
+<thead>
+<tr>
+<th>环境</th>
+<th>地址</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>测试环境 (SIT)</strong></td>
+<td><a href="https://custody-sit.cregis.ae/openplatform/developer/">https://custody-sit.cregis.ae/openplatform/developer/</a></td>
+</tr>
+<tr>
+<td><strong>生产环境 (BETA)</strong></td>
+<td><a href="https://custody.cregis.ae/openplatform/developer/">https://custody.cregis.ae/openplatform/developer/</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="2">2. 等待审核</h3>
+<p>提交注册信息后，等待开放平台管理后台审核通过。审核通过后自动获得 30 天体验套餐。</p>
+<h3 id="3">3. 创建应用</h3>
+<p>审核通过后，登录开发者平台，在「应用管理」中创建应用。填写应用名称、描述、回调地址等信息。</p>
+<h3 id="4">4. 保存凭证</h3>
+<p>应用创建成功后，保存系统生成的 <code>appId</code> 和 <code>appSecret</code>。这两个值是调用开放平台接口的认证凭证，请妥善保管：</p>
+<ul>
+<li><strong>appId</strong>：应用唯一标识，用于接口调用时的身份标识</li>
+<li><strong>appSecret</strong>：应用密钥，用于签名计算，<strong>切勿泄露到客户端</strong></li>
+</ul>
+<h3 id="5">5. 订阅套餐</h3>
+<p>体验期结束后，在「订阅管理」中选择并购买正式套餐。</p>
+<h3 id="6-sdk">6. 下载 SDK</h3>
+<p>根据开发需求下载对应的 SDK：</p>
+<table>
+<thead>
+<tr>
+<th>SDK</th>
+<th>用途</th>
+<th>安装方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Node.js SDK</strong></td>
+<td>后端业务接口调用</td>
+<td><code>npm install @cregis-kit/openplatform-node</code></td>
+</tr>
+<tr>
+<td><strong>Web SDK</strong></td>
+<td>前端授权页面嵌入</td>
+<td><code>npm install @cregis-kit/openplatform-webkit</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>注意：</strong>
+- <strong>测试环境 (SIT)</strong> 网关地址为 <code>https://custody-sit.cregis.ae/openplatform/</code>
+- <strong>生产环境 (BETA)</strong> 网关地址为 <code>https://custody.cregis.ae/openplatform/</code>
+- 正式上线时请替换为生产环境地址。</p>
+</blockquote>
+<hr />
+<h2 id="_10">接入流程</h2>
+<h3 id="_11">整体交互流程</h3>
+<div class="mermaid">
 sequenceDiagram
     participant BE as 三方平台后端
     participant CS as Custody 服务
-    participant OP as 开放平台
-    participant DB as 数据库
-
-    BE->>CS: 1. 请求授权 URL (getAuthorizationUrl)
-    CS->>OP: 2. POST /oauth/authorizeUrl (basic + business)
-    OP->>OP: 3. 验证签名
-    OP->>DB: 4. 查询应用配置 (appName, appLogoUrl)
-    DB-->>OP: 5. 应用配置
-    OP->>OP: 6. 生成 appToken (JWT)
-    OP-->>CS: 7. authorizeUrl<br/>(包含 appId, appToken, appName, appLogoUrl)
-    CS-->>BE: 8. authorizeUrl
-                    </div>
-                </div>
-
-                <div class="diagram-container">
-                    <div class="diagram-title">阶段二：发起授权</div>
-                    <div class="mermaid">
-sequenceDiagram
     participant FE as 三方平台前端
-    participant BE as 三方平台后端
-    participant CS as Custody 服务
     participant OP as 开放平台
     participant AuthPage as 授权页面
-
-    BE->>CS: 1. 获取授权 URL (getAuthorizationUrl)
-    CS->>OP: 2. 调用 /oauth/authorizeUrl
-    OP-->>CS: 3. authorizeUrl
-    CS-->>BE: 4. authorizeUrl
-    BE-->>FE: 5. authorizeUrl
-
-    FE->>AuthPage: 6. 打开授权页面
-    AuthPage->>OP: 7. 用户登录授权
-    OP-->>AuthPage: 8. oauthToken
-    AuthPage-->>FE: 9. postMessage(oauthToken)
-    FE-->>BE: 10. 回调 oauthToken
-
-    BE->>CS: 11. 验证并换取 authorizeId
-    CS->>OP: 12. 调用 /oauth/verify
-    OP->>OP: 13. 验证 JWT + 存储
-    OP-->>CS: 14. authorizeId
-    CS-->>BE: 15. authorizeId
-                    </div>
-                </div>
-
-                <div class="diagram-container">
-                    <div class="diagram-title">阶段三：业务调用</div>
-                    <div class="mermaid">
-sequenceDiagram
-    participant BE as 三方平台后端
-    participant CS as Custody 服务
-    participant OP as 开放平台
     participant DB as 数据库
 
-    BE->>CS: 1. 业务请求 (createTreasuryUnit, createPayout...)
-    CS->>OP: 2. 调用业务接口 (authorizeId + 签名)
-    OP->>OP: 3. 验证签名 + authorizeId
-    OP->>DB: 4. 业务操作
-    DB-->>OP: 5. 操作结果
-    OP-->>CS: 6. 业务响应
-    CS-->>BE: 7. 返回业务结果
-                    </div>
-                </div>
+    rect rgb(240, 248, 255)
+        Note over BE,OP: 阶段一：获取授权 URL
+        BE->>CS: 1. getAuthorizationUrl()
+        CS->>OP: 2. POST /oauth/authorizeUrl
+        OP->>DB: 3. 查询应用配置
+        DB-->>OP: 4. appName, appLogoUrl
+        OP->>OP: 5. 生成 appToken (JWT)
+        OP-->>CS: 6. authorizeUrl
+        CS-->>BE: 7. authorizeUrl
+    end
 
-                <h3>接入流程说明</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>阶段</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>获取授权 URL</td>
-                            <td>三方平台后端调用 Custody 服务 <code>getAuthorizationUrl</code> 接口，Custody 服务内部调用开放平台 <code>/oauth/authorizeUrl</code> 获取授权页面 URL</td>
-                        </tr>
-                        <tr>
-                            <td>发起授权</td>
-                            <td>三方平台前端打开授权页面 → 用户登录授权 → 授权页面通过 postMessage 返回 oauthToken → 三方平台后端用 oauthToken 调用 Custody 服务验证接口换取 authorizeId</td>
-                        </tr>
-                        <tr>
-                            <td>业务调用</td>
-                            <td>三方平台后端通过 Custody 服务调用开放平台业务接口（使用 authorizeId）</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
+    rect rgb(255, 250, 240)
+        Note over FE,OP: 阶段二：发起授权
+        BE-->>FE: 8. 返回 authorizeUrl
+        FE->>AuthPage: 9. 打开授权页面
+        AuthPage->>OP: 10. 用户登录授权
+        OP-->>AuthPage: 11. oauthToken
+        AuthPage-->>FE: 12. postMessage(oauthToken)
+        FE-->>BE: 13. 回调 oauthToken
+        BE->>CS: 14. verifyOAuthToken(oauthToken)
+        CS->>OP: 15. POST /oauth/verify
+        OP->>OP: 16. 验证 JWT + 存储
+        OP-->>CS: 17. authorizeId
+        CS-->>BE: 18. authorizeId
+    end
 
-            <!-- Auth Section -->
-            <section id="auth" class="section">
-                <h2>授权接口</h2>
+    rect rgb(240, 255, 240)
+        Note over BE,DB: 阶段三：业务调用
+        BE->>CS: 19. createTreasuryUnit(authorizeId, ...)
+        CS->>OP: 20. POST /api/thirdparty/treasury/create
+        OP->>OP: 21. 验证签名 + authorizeId
+        OP->>DB: 22. 业务操作
+        DB-->>OP: 23. 操作结果
+        OP-->>CS: 24. 业务响应
+        CS-->>BE: 25. 返回结果
+    end
+</div>
 
-                <h3>1.1 获取授权 URL</h3>
-                <p>用于第三方平台获取授权页面 URL。</p>
+<h3 id="_12">接入流程说明</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>获取授权 URL</td>
+<td>三方平台后端调用 Custody 服务 <code>getAuthorizationUrl</code> 接口，Custody 服务内部调用开放平台 <code>/oauth/authorizeUrl</code> 获取授权页面 URL</td>
+</tr>
+<tr>
+<td>发起授权</td>
+<td>三方平台前端打开授权页面 → 用户登录授权 → 授权页面通过 postMessage 返回 oauthToken → 三方平台后端用 oauthToken 调用 Custody 服务 <code>verifyOAuthToken</code> 接口换取 authorizeId</td>
+</tr>
+<tr>
+<td>业务调用</td>
+<td>三方平台后端通过 Custody 服务调用开放平台业务接口（使用 authorizeId）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_13">一、授权接口</h2>
+<h3 id="11-url">1.1 获取授权 URL</h3>
+<p>用于第三方平台获取授权页面 URL。</p>
+<p><strong>请求</strong></p>
+<pre class="codehilite"><code>POST /api/thirdparty/oauth/authorizeUrl
+Content-Type: application/json
+</code></pre>
 
-                <p><strong>请求</strong></p>
-                <pre>POST /api/thirdparty/oauth/authorizeUrl
-Content-Type: application/json</pre>
-
-                <p><strong>请求体</strong></p>
-                <div class="code-block"><span class="string">{
-  "basic": {
-    "appId": "550e8400-e29b-41d4-a716-446655440000",
-    "timestamp": 1742947200,
-    "nonce": "abc123def456",
-    "signature": "md5-hash-signature"
+<p><strong>请求体</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;basic&quot;: {
+    &quot;appId&quot;: &quot;550e8400-e29b-41d4-a716-446655440000&quot;,
+    &quot;timestamp&quot;: 1742947200,
+    &quot;nonce&quot;: &quot;abc123def456&quot;,
+    &quot;signature&quot;: &quot;md5-hash-signature&quot;
   },
-  "business": {
-    "permissions": ["read", "write"],
-    "state": "custom-state",
-    "callback": "https://your-app.com/callback",
-    "token": "developer-generated-token-xyz"
+  &quot;business&quot;: {
+    &quot;permissions&quot;: [&quot;read&quot;, &quot;write&quot;],
+    &quot;state&quot;: &quot;custom-state&quot;,
+    &quot;callback&quot;: &quot;https://your-app.com/callback&quot;,
+    &quot;token&quot;: &quot;developer-generated-token-xyz&quot;
   }
-}</span></div>
+}
+</code></pre>
 
-                <h4>business 字段说明</h4>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>字段</th>
-                            <th>类型</th>
-                            <th>必填</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>permissions</td>
-                            <td>Array</td>
-                            <td>是</td>
-                            <td>权限列表</td>
-                        </tr>
-                        <tr>
-                            <td>state</td>
-                            <td>String</td>
-                            <td>是</td>
-                            <td>防 CSRF 状态</td>
-                        </tr>
-                        <tr>
-                            <td>callback</td>
-                            <td>String</td>
-                            <td>否</td>
-                            <td>授权成功后的回调通知地址</td>
-                        </tr>
-                        <tr>
-                            <td>token</td>
-                            <td>String</td>
-                            <td>否</td>
-                            <td>开发者生成的 token，用于回调时身份映射</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <p><strong>响应</strong></p>
-                <div class="code-block"><span class="string">{
-  "code": 0,
-  "message": "Success",
-  "data": {
-    "authorizeUrl": "https://openplatform.cregis.com/openplatform/auth/authorize?appId=xxx&appToken=yyy&appName=zzz&permissions=...&state=...",
-    "expiresIn": 7200
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>permissions</td>
+<td>string[]</td>
+<td>是</td>
+<td>权限列表</td>
+</tr>
+<tr>
+<td>state</td>
+<td>string</td>
+<td>是</td>
+<td>防 CSRF 状态</td>
+</tr>
+<tr>
+<td>callback</td>
+<td>string</td>
+<td>否</td>
+<td>授权成功后的回调通知地址</td>
+</tr>
+<tr>
+<td>token</td>
+<td>string</td>
+<td>否</td>
+<td>开发者生成的 token，用于回调时身份映射</td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: {
+    &quot;authorizeUrl&quot;: &quot;https://custody.cregis.ae/openplatform/auth/authorize?appId=xxx&amp;appToken=yyy&amp;appName=zzz&amp;permissions=...&amp;state=...&quot;,
+    &quot;expiresIn&quot;: 7200
   }
-}</span></div>
+}
+</code></pre>
 
-                <h4>URL 参数说明</h4>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>参数</th>
-                            <th>来源</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>appId</td>
-                            <td>请求传入</td>
-                            <td>应用标识</td>
-                        </tr>
-                        <tr>
-                            <td>appToken</td>
-                            <td>后端生成</td>
-                            <td>JWT token (内含 appId + callback + token)</td>
-                        </tr>
-                        <tr>
-                            <td>appName</td>
-                            <td>平台配置</td>
-                            <td>应用名称（不可伪造）</td>
-                        </tr>
-                        <tr>
-                            <td>permissions</td>
-                            <td>请求 + 平台校验</td>
-                            <td>权限列表</td>
-                        </tr>
-                        <tr>
-                            <td>state</td>
-                            <td>请求传入</td>
-                            <td>防 CSRF 状态</td>
-                        </tr>
-                    </tbody>
-                </table>
+<p><strong>URL 参数说明</strong></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>来源</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>appId</td>
+<td>请求传入</td>
+<td>应用标识</td>
+</tr>
+<tr>
+<td>appToken</td>
+<td>后端生成</td>
+<td>JWT token (内含 appId + callback + token)</td>
+</tr>
+<tr>
+<td>appName</td>
+<td>平台配置</td>
+<td>应用名称（不可伪造）</td>
+</tr>
+<tr>
+<td>permissions</td>
+<td>请求 + 平台校验</td>
+<td>权限列表</td>
+</tr>
+<tr>
+<td>state</td>
+<td>请求传入</td>
+<td>防 CSRF 状态</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="12">1.2 验证授权并存储</h3>
+<p>用于 Custody 服务验证 Token 并存储授权信息。<strong>此接口由 Custody 服务在用户授权完成后内部调用</strong>，无需第三方开发者直接调用。</p>
+<blockquote>
+<p>注意：此接口<strong>无需签名认证</strong>，由 Custody 服务内部使用。</p>
+</blockquote>
+<p><strong>请求</strong></p>
+<pre class="codehilite"><code>POST /api/thirdparty/oauth/verify
+Content-Type: application/json
+</code></pre>
 
-                <h3>1.2 验证授权并存储</h3>
-                <p>用于 Custody 服务验证 Token 并存储授权信息。</p>
+<p><strong>请求体</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;resourceKey&quot;: &quot;treasury_unit_123&quot;,
+  &quot;oauthToken&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;
+}
+</code></pre>
 
-                <div class="note">
-                    <strong>注意：</strong>此接口<strong>无需签名认证</strong>，直接接收业务参数。
-                </div>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>resourceKey</td>
+<td>string</td>
+<td>是</td>
+<td>资源标识（如财务单元 ID）</td>
+</tr>
+<tr>
+<td>oauthToken</td>
+<td>string</td>
+<td>是</td>
+<td>OAuth 授权 token（JWT 格式，内含 callback 和 token）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>回调通知</strong></p>
+<p>验证成功后，开放平台会根据 JWT 中的 callback 参数或应用的默认回调地址发送通知：</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;authorizeId&quot;: &quot;uuid-authorization-id&quot;,
+  &quot;token&quot;: &quot;developer-generated-token-xyz&quot;
+}
+</code></pre>
 
-                <p><strong>请求</strong></p>
-                <pre>POST /api/thirdparty/oauth/verify
-Content-Type: application/json</pre>
-
-                <p><strong>请求体</strong></p>
-                <div class="code-block"><span class="string">{
-  "resourceKey": "treasury_unit_123",
-  "oauthToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}</span></div>
-
-                <h4>请求参数</h4>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>参数</th>
-                            <th>类型</th>
-                            <th>必填</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>resourceKey</td>
-                            <td>string</td>
-                            <td>是</td>
-                            <td>资源标识（如财务单元 ID）</td>
-                        </tr>
-                        <tr>
-                            <td>oauthToken</td>
-                            <td>string</td>
-                            <td>是</td>
-                            <td>OAuth 授权 token（JWT 格式，内含 callback 和 token）</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h4>回调通知</h4>
-                <p>验证成功后，开放平台会根据 JWT 中的 callback 参数或应用的默认回调地址发送通知：</p>
-                <div class="code-block"><span class="string">{
-  "authorizeId": "uuid-authorization-id",
-  "token": "developer-generated-token-xyz"
-}</span></div>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>参数</th>
-                            <th>类型</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>authorizeId</td>
-                            <td>string</td>
-                            <td>授权记录 ID，用于后续业务接口的 authorizationId</td>
-                        </tr>
-                        <tr>
-                            <td>token</td>
-                            <td>string</td>
-                            <td>开发者提供的身份映射 token</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <p><strong>响应</strong></p>
-                <div class="code-block"><span class="string">{
-  "code": 0,
-  "message": "Success",
-  "data": {
-    "authorizeId": "uuid-authorization-id"
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>authorizeId</td>
+<td>string</td>
+<td>授权记录 ID，用于后续业务接口的 authorizationId</td>
+</tr>
+<tr>
+<td>token</td>
+<td>string</td>
+<td>开发者提供的身份映射 token（用于关联开发者系统的用户身份）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: {
+    &quot;authorizeId&quot;: &quot;uuid-authorization-id&quot;
   }
-}</span></div>
+}
+</code></pre>
 
-                <h4>响应参数</h4>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>参数</th>
-                            <th>类型</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>authorizeId</td>
-                            <td>string</td>
-                            <td>授权记录 ID，用于后续业务接口的 authorizationId</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </section>
-
-            <!-- Callback Section -->
-            <section id="callback" class="section">
-                <h2>1.3 回调通知机制</h2>
-                <p>开放平台通过回调通知机制向开发者服务器推送事件通知，包括授权状态变更、交易状态变更、任务审核结果等。</p>
-
-                <h3>回调地址配置</h3>
-                <p>开发者可以在创建应用时配置回调地址（Callback URL），也可在授权时通过 <code>callback</code> 参数指定。</p>
-                <p><strong>配置优先级：</strong></p>
-                <ol>
-                    <li>授权请求中的 <code>callback</code> 参数（一次性回调）</li>
-                    <li>应用默认的回调地址（持续订阅）</li>
-                </ol>
-
-                <h3>回调推送格式</h3>
-                <p>回调通过 HTTP POST 请求发送到开发者的回调地址：</p>
-
-                <h4>请求头</h4>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>头部字段</th>
-                            <th>必填</th>
-                            <th>说明</th>
-                            <th>示例</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>Content-Type</code></td>
-                            <td>是</td>
-                            <td>内容类型</td>
-                            <td><code>application/json</code></td>
-                        </tr>
-                        <tr>
-                            <td><code>X-Timestamp</code></td>
-                            <td>是</td>
-                            <td>推送时间戳（毫秒）</td>
-                            <td><code>1745220600000</code></td>
-                        </tr>
-                        <tr>
-                            <td><code>X-Signature</code></td>
-                            <td>是</td>
-                            <td>HMAC-SHA256 签名</td>
-                            <td><code>sha256=xxxxxx...</code></td>
-                        </tr>
-                        <tr>
-                            <td><code>X-Event</code></td>
-                            <td>否</td>
-                            <td>事件类型</td>
-                            <td><code>authorization.created</code></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h4>请求体</h4>
-                <div class="code-block"><span class="string">{
-  "appId": "550e8400-e29b-41d4-a716-446655440000",
-  "event": "authorization.created",
-  "timestamp": "1745220600000",
-  "data": {
-    "authorizeId": "123e4567-e89b-12d3-a456-426614174000",
-    "oauthToken": "developer-provided-token"
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>authorizeId</td>
+<td>string</td>
+<td>授权记录 ID，用于后续业务接口的 authorizationId</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="13">1.3 回调通知机制</h3>
+<p>开放平台通过回调通知机制向开发者服务器推送事件通知，包括授权状态变更、交易状态变更、任务审核结果等。</p>
+<h4 id="_14">回调地址配置</h4>
+<p>开发者可以在创建应用时配置回调地址（Callback URL），也可在授权时通过 <code>callback</code> 参数指定。</p>
+<p><strong>配置优先级：</strong>
+1. 授权请求中的 <code>callback</code> 参数（一次性回调）
+2. 应用默认的回调地址（持续订阅）</p>
+<h4 id="_15">回调推送格式</h4>
+<p>回调通过 HTTP POST 请求发送到开发者的回调地址：</p>
+<p><strong>请求头：</strong></p>
+<table>
+<thead>
+<tr>
+<th>头部字段</th>
+<th>必填</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Content-Type</code></td>
+<td>是</td>
+<td>内容类型</td>
+<td><code>application/json</code></td>
+</tr>
+<tr>
+<td><code>X-Timestamp</code></td>
+<td>是</td>
+<td>推送时间戳（毫秒）</td>
+<td><code>1745220600000</code></td>
+</tr>
+<tr>
+<td><code>X-Signature</code></td>
+<td>是</td>
+<td>HMAC-SHA256 签名</td>
+<td><code>sha256=xxxxxx...</code></td>
+</tr>
+<tr>
+<td><code>X-Event</code></td>
+<td>否</td>
+<td>事件类型</td>
+<td><code>authorization.created</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>请求体：</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;appId&quot;: &quot;550e8400-e29b-41d4-a716-446655440000&quot;,
+  &quot;event&quot;: &quot;authorization.created&quot;,
+  &quot;timestamp&quot;: &quot;1745220600000&quot;,
+  &quot;data&quot;: {
+    &quot;authorizeId&quot;: &quot;123e4567-e89b-12d3-a456-426614174000&quot;,
+    &quot;oauthToken&quot;: &quot;developer-provided-token&quot;
   }
-}</span></div>
+}
+</code></pre>
 
-                <h3>签名验证</h3>
-                <p>回调使用 HMAC-SHA256 算法进行签名验证：</p>
+<h4 id="_16">签名验证</h4>
+<p>回调使用 HMAC-SHA256 算法进行签名验证：</p>
+<p><strong>签名公式：</strong></p>
+<pre class="codehilite"><code>signData = appId + &quot;.&quot; + [event] + &quot;.&quot; + timestamp
+signature = HMAC-SHA256(appSecret, signData)
+</code></pre>
 
-                <h4>签名公式</h4>
-                <pre><code>signData = appId + "." + [event] + "." + timestamp
-signature = HMAC-SHA256(appSecret, signData)</code></pre>
-
-                <h4>示例（Node.js）</h4>
-                <pre><code>const crypto = require('crypto');
+<p><strong>示例（Node.js）：</strong></p>
+<pre class="codehilite"><code class="language-javascript">const crypto = require('crypto');
 
 function verifyCallbackSignature(appSecret, appId, event, timestamp, signature) {
     // 构建签名数据
@@ -1005,7 +739,7 @@ function verifyCallbackSignature(appSecret, appId, event, timestamp, signature) 
 }
 
 // 使用示例
-app.post('/callback', (req, res) => {
+app.post('/callback', (req, res) =&gt; {
     const signature = req.headers['x-signature'];
     const timestamp = req.headers['x-timestamp'];
     const event = req.headers['x-event'];
@@ -1019,102 +753,100 @@ app.post('/callback', (req, res) => {
     // 处理回调
     const { event: eventType, data } = req.body;
     // ...
-});</code></pre>
+});
+</code></pre>
 
-                <h3>事件类型</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>类别</th>
-                            <th>事件名称</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td rowspan="3">授权</td>
-                            <td><code>authorization.created</code></td>
-                            <td>授权创建成功</td>
-                        </tr>
-                        <tr>
-                            <td><code>authorization.revoked</code></td>
-                            <td>授权被撤销</td>
-                        </tr>
-                        <tr>
-                            <td><code>authorization.expired</code></td>
-                            <td>授权已过期</td>
-                        </tr>
-                        <tr>
-                            <td rowspan="4">交易</td>
-                            <td><code>transaction.submitted</code></td>
-                            <td>交易已提交</td>
-                        </tr>
-                        <tr>
-                            <td><code>transaction.confirming</code></td>
-                            <td>交易确认中</td>
-                        </tr>
-                        <tr>
-                            <td><code>transaction.completed</code></td>
-                            <td>交易已完成</td>
-                        </tr>
-                        <tr>
-                            <td><code>transaction.failed</code></td>
-                            <td>交易失败</td>
-                        </tr>
-                        <tr>
-                            <td rowspan="2">任务</td>
-                            <td><code>task.approved</code></td>
-                            <td>任务审批通过</td>
-                        </tr>
-                        <tr>
-                            <td><code>task.rejected</code></td>
-                            <td>任务审批被拒绝</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h3>重试机制</h3>
-                <p>回调推送失败时，开放平台会自动重试：</p>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>参数</th>
-                            <th>值</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>最大重试次数</td>
-                            <td>3 次（总共 4 次尝试）</td>
-                        </tr>
-                        <tr>
-                            <td>重试间隔</td>
-                            <td>0s, 1s, 5s, 30s</td>
-                        </tr>
-                        <tr>
-                            <td>单次请求超时</td>
-                            <td>30 秒</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <p><strong>会重试的情况：</strong></p>
-                <ul>
-                    <li>HTTP 状态码 429（限流）</li>
-                    <li>HTTP 状态码 5xx（服务器错误）</li>
-                    <li>网络错误（超时、连接失败等）</li>
-                </ul>
-
-                <p><strong>不会重试的情况：</strong></p>
-                <ul>
-                    <li>HTTP 状态码 2xx（成功）</li>
-                    <li>HTTP 状态码 4xx（客户端错误）</li>
-                </ul>
-
-                <h3>最佳实践</h3>
-
-                <h4>1. 幂等处理</h4>
-                <pre><code>app.post('/callback', (req, res) => {
+<h4 id="_17">事件类型</h4>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>事件名称</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>授权</td>
+<td><code>authorization.created</code></td>
+<td>授权创建成功</td>
+</tr>
+<tr>
+<td></td>
+<td><code>authorization.revoked</code></td>
+<td>授权被撤销</td>
+</tr>
+<tr>
+<td></td>
+<td><code>authorization.expired</code></td>
+<td>授权已过期</td>
+</tr>
+<tr>
+<td>交易</td>
+<td><code>transaction.submitted</code></td>
+<td>交易已提交</td>
+</tr>
+<tr>
+<td></td>
+<td><code>transaction.confirming</code></td>
+<td>交易确认中</td>
+</tr>
+<tr>
+<td></td>
+<td><code>transaction.completed</code></td>
+<td>交易已完成</td>
+</tr>
+<tr>
+<td></td>
+<td><code>transaction.failed</code></td>
+<td>交易失败</td>
+</tr>
+<tr>
+<td>任务</td>
+<td><code>task.approved</code></td>
+<td>任务审批通过</td>
+</tr>
+<tr>
+<td></td>
+<td><code>task.rejected</code></td>
+<td>任务审批被拒绝</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_18">重试机制</h4>
+<p>回调推送失败时，开放平台会自动重试：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最大重试次数</td>
+<td>3 次（总共 4 次尝试）</td>
+</tr>
+<tr>
+<td>重试间隔</td>
+<td>0s, 1s, 5s, 30s</td>
+</tr>
+<tr>
+<td>单次请求超时</td>
+<td>30 秒</td>
+</tr>
+</tbody>
+</table>
+<p><strong>会重试的情况：</strong>
+- HTTP 状态码 429（限流）
+- HTTP 状态码 5xx（服务器错误）
+- 网络错误（超时、连接失败等）</p>
+<p><strong>不会重试的情况：</strong>
+- HTTP 状态码 2xx（成功）
+- HTTP 状态码 4xx（客户端错误）</p>
+<h4 id="_19">最佳实践</h4>
+<p><strong>1. 幂等处理：</strong></p>
+<pre class="codehilite"><code class="language-javascript">app.post('/callback', (req, res) =&gt; {
     const eventId = req.headers['x-event'] + '-' + req.body.timestamp;
 
     // 检查是否已处理
@@ -1126,790 +858,1927 @@ app.post('/callback', (req, res) => {
     processedEvents.add(eventId);
 
     // 异步处理业务逻辑
-    processEvent(req.body).catch(err => {
+    processEvent(req.body).catch(err =&gt; {
         processedEvents.delete(eventId); // 失败时删除标记，允许重试
         console.error('Failed to process event:', err);
     });
 
     res.status(200).json({ status: 'ok' });
-});</code></pre>
+});
+</code></pre>
 
-                <h4>2. 快速响应</h4>
-                <pre><code>app.post('/callback', (req, res) => {
+<p><strong>2. 快速响应：</strong></p>
+<p>回调处理应快速返回，异步执行业务逻辑：</p>
+<pre class="codehilite"><code class="language-javascript">app.post('/callback', (req, res) =&gt; {
     res.status(200).json({ status: 'ok' });
 
-    setImmediate(() => {
-        processEvent(req.body).catch(err => {
+    setImmediate(() =&gt; {
+        processEvent(req.body).catch(err =&gt; {
             console.error('Callback processing failed:', err);
         });
     });
-});</code></pre>
-            </section>
+});
+</code></pre>
 
-            <!-- Signature Section -->
-            <section id="signature" class="section">
-                <h2>签名算法</h2>
+<hr />
+<h2 id="_20">二、签名算法</h2>
+<h3 id="21">2.1 签名类型</h3>
+<p>开放平台使用两种签名算法：</p>
+<table>
+<thead>
+<tr>
+<th>签名类型</th>
+<th>适用接口</th>
+<th>签名字符串</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Basic 签名</strong></td>
+<td><code>/oauth/*</code></td>
+<td><code>appId + timestamp + nonce + md5(business)</code></td>
+</tr>
+<tr>
+<td><strong>Resource 签名</strong></td>
+<td><code>/thirdparty/*</code></td>
+<td><code>appId + authorizationId + timestamp + nonce + md5(business)</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-basic">2.2 Basic 签名计算步骤</h3>
+<p>适用于 <code>/oauth/*</code> 接口。</p>
+<pre class="codehilite"><code>1. 对 business JSON 按 key 排序后序列化:
+   JSON.stringify(sortKeys(business))
 
-                <h3>2.1 签名类型</h3>
-                <p>开放平台使用两种签名算法：</p>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>签名类型</th>
-                            <th>适用接口</th>
-                            <th>签名字符串</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Basic 签名</strong></td>
-                            <td><code>/oauth/*</code></td>
-                            <td><code>appId + timestamp + nonce + md5(business)</code></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Resource 签名</strong></td>
-                            <td><code>/thirdparty/*</code></td>
-                            <td><code>appId + authorizationId + timestamp + nonce + md5(business)</code></td>
-                        </tr>
-                    </tbody>
-                </table>
+2. 计算 business 的 MD5:
+   md5 = MD5(序列化后的 JSON)
 
-                <h3>2.2 Basic 签名计算步骤</h3>
-                <p>适用于 <code>/oauth/*</code> 接口。</p>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>步骤</th>
-                            <th>操作</th>
-                            <th>公式</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>对 business JSON 按 key 排序后序列化</td>
-                            <td><code>JSON.stringify(sortKeys(business))</code></td>
-                        </tr>
-                        <tr>
-                            <td>2</td>
-                            <td>计算 business 的 MD5</td>
-                            <td><code>md5 = MD5(序列化后的 JSON)</code></td>
-                        </tr>
-                        <tr>
-                            <td>3</td>
-                            <td>拼接签名字符串</td>
-                            <td><code>signString = appId + timestamp + nonce + md5(business)</code></td>
-                        </tr>
-                        <tr>
-                            <td>4</td>
-                            <td>使用 appSecret 签名</td>
-                            <td><code>signature = MD5(appSecret + signString)</code></td>
-                        </tr>
-                        <tr>
-                            <td>5</td>
-                            <td>将签名结果放入 basic.signature 字段</td>
-                            <td>-</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <p><strong>公式：</strong></p>
-                <pre><code>signature = MD5(appSecret + appId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))</code></pre>
+3. 拼接签名字符串:
+   signString = appId + timestamp + nonce + md5(business)
 
-                <h3>2.3 Resource 签名计算步骤</h3>
-                <p>适用于 <code>/thirdparty/*</code> 接口。</p>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>步骤</th>
-                            <th>操作</th>
-                            <th>公式</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>对 business JSON 按 key 排序后序列化</td>
-                            <td><code>JSON.stringify(sortKeys(business))</code></td>
-                        </tr>
-                        <tr>
-                            <td>2</td>
-                            <td>计算 business 的 MD5</td>
-                            <td><code>md5 = MD5(序列化后的 JSON)</code></td>
-                        </tr>
-                        <tr>
-                            <td>3</td>
-                            <td>拼接签名字符串（包含 authorizationId）</td>
-                            <td><code>signString = appId + authorizationId + timestamp + nonce + md5(business)</code></td>
-                        </tr>
-                        <tr>
-                            <td>4</td>
-                            <td>使用 appSecret 签名</td>
-                            <td><code>signature = MD5(appSecret + signString)</code></td>
-                        </tr>
-                        <tr>
-                            <td>5</td>
-                            <td>将签名结果放入 basic.signature 字段</td>
-                            <td>-</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <p><strong>公式：</strong></p>
-                <pre><code>signature = MD5(appSecret + appId + authorizationId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))</code></pre>
+4. 使用 appSecret 签名:
+   signature = MD5(appSecret + signString)
 
-                <h3>2.5 business 空值处理规则</h3>
-                <p>当 <code>business</code> 为 <code>null</code>、<code>undefined</code> 或空对象 <code>{}</code> 时，统一视为空对象 <code>{}</code> 进行签名计算：</p>
-                <pre><code>1. 归一化: if (business == null || Object.keys(business).length === 0) business = {}
-2. 排序序列化: JSON.stringify(sortKeys(business)) → "{}"
-3. 计算 MD5: MD5("{}") = e3d974191d03905c53f39002987cc56f</code></pre>
-                <p><strong>典型场景：</strong>查询类接口（如 <code>/api/thirdparty/treasury/list</code>）通常不传业务参数，<code>business</code> 传 <code>{}</code> 即可。</p>
-                <p><strong>重要：</strong>客户端与服务端必须使用相同的空值处理逻辑，否则签名校验会失败。</p>
+5. 将签名结果放入 basic.signature 字段
+</code></pre>
 
-                <h3>2.6 签名示例（Basic 签名）</h3>
-                <p>假设：</p>
-                <ul>
-                    <li><code>appId</code> = <code>550e8400-e29b-41d4-a716-446655440000</code></li>
-                    <li><code>appSecret</code> = <code>secret123</code></li>
-                    <li><code>timestamp</code> = <code>1742947200</code></li>
-                    <li><code>nonce</code> = <code>abc123def456</code></li>
-                    <li><code>business</code> = <code>{"permissions":["read","write"],"state":"custom-state","callback":"https://example.com/callback","token":"xyz123"}</code></li>
-                </ul>
+<p><strong>公式：</strong></p>
+<pre class="codehilite"><code>signature = MD5(appSecret + appId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))
+</code></pre>
 
-                <p>计算过程：</p>
-                <pre><code>// 1. business JSON (已排序)
-businessJson = '{"permissions":["read","write"],"state":"custom-state","callback":"https://example.com/callback","token":"xyz123"}'
+<h3 id="23-resource">2.3 Resource 签名计算步骤</h3>
+<p>适用于 <code>/thirdparty/*</code> 接口。</p>
+<pre class="codehilite"><code>1. 对 business JSON 按 key 排序后序列化:
+   JSON.stringify(sortKeys(business))
+
+2. 计算 business 的 MD5:
+   md5 = MD5(序列化后的 JSON)
+
+3. 拼接签名字符串:
+   signString = appId + authorizationId + timestamp + nonce + md5(business)
+
+4. 使用 appSecret 签名:
+   signature = MD5(appSecret + signString)
+
+5. 将签名结果放入 basic.signature 字段
+</code></pre>
+
+<p><strong>公式：</strong></p>
+<pre class="codehilite"><code>signature = MD5(appSecret + appId + authorizationId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))
+</code></pre>
+
+<h3 id="24-basic">2.4 签名示例 (Basic 签名)</h3>
+<p>假设：</p>
+<ul>
+<li><code>appId</code> = <code>550e8400-e29b-41d4-a716-446655440000</code></li>
+<li><code>appSecret</code> = <code>secret123</code></li>
+<li><code>timestamp</code> = <code>1742947200</code></li>
+<li><code>nonce</code> = <code>abc123def456</code></li>
+<li><code>business</code> = <code>{"permissions":["read","write"],"state":"custom-state","callback":"https://example.com/callback","token":"xyz123"}</code></li>
+</ul>
+<p>计算过程：</p>
+<pre class="codehilite"><code class="language-javascript">// 1. business JSON (已排序)
+businessJson = '{&quot;permissions&quot;:[&quot;read&quot;,&quot;write&quot;],&quot;state&quot;:&quot;custom-state&quot;,&quot;callback&quot;:&quot;https://example.com/callback&quot;,&quot;token&quot;:&quot;xyz123&quot;}'
 
 // 2. business MD5
-businessMd5 = MD5('{"permissions":["read","write"],"state":"custom-state","callback":"https://example.com/callback","token":"xyz123"}')
+businessMd5 = MD5('{&quot;permissions&quot;:[&quot;read&quot;,&quot;write&quot;],&quot;state&quot;:&quot;custom-state&quot;,&quot;callback&quot;:&quot;https://example.com/callback&quot;,&quot;token&quot;:&quot;xyz123&quot;}')
 
 // 3. 签名字符串 (Basic 签名不包含 authorizationId)
-signString = "550e8400-e29b-41d4-a716-446655440000" +
-             "1742947200" +
-             "abc123def456" +
+signString = &quot;550e8400-e29b-41d4-a716-446655440000&quot; +
+             &quot;1742947200&quot; +
+             &quot;abc123def456&quot; +
              businessMd5
 
 // 4. 最终签名
-signature = MD5("secret123" + signString)</code></pre>
+signature = MD5(&quot;secret123&quot; + signString)
+</code></pre>
 
-                <h3>2.7 签名验证规则</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>规则</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>时间戳容差</td>
-                            <td>5 分钟（300 秒）</td>
-                        </tr>
-                        <tr>
-                            <td>Nonce TTL</td>
-                            <td>1 小时（3600 秒），防重放</td>
-                        </tr>
-                        <tr>
-                            <td>appId 格式</td>
-                            <td>必须是有效的 UUID</td>
-                        </tr>
-                    </tbody>
-                </table>
+<h3 id="25-business">2.5 business 空值处理规则</h3>
+<p>当 <code>business</code> 为 <code>null</code>、<code>undefined</code> 或空对象 <code>{}</code> 时，统一视为空对象 <code>{}</code> 进行签名计算：</p>
+<pre class="codehilite"><code>1. 归一化: if (business == null || Object.keys(business).length === 0) business = {}
+2. 排序序列化: JSON.stringify(sortKeys(business)) → &quot;{}&quot;
+3. 计算 MD5: MD5(&quot;{}&quot;) = e3d974191d03905c53f39002987cc56f
+</code></pre>
 
-                <h3>2.8 请求认证结构</h3>
-                <p>开放平台 API 将开发者请求分为两类，分别使用不同的认证结构：</p>
-
-                <h4>BasicInfo - 基础认证结构</h4>
-                <p>用于不涉及资源操作的接口（如 OAuth 接口）：</p>
-                <table>
-                    <thead>
-                        <tr><th>接口</th><th>用途</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><code>POST /oauth/token</code></td><td>获取访问令牌</td></tr>
-                        <tr><td><code>POST /oauth/authorizeUrl</code></td><td>获取授权 URL</td></tr>
-                        <tr><td><code>POST /oauth/verify</code></td><td>验证 OAuth Token</td></tr>
-                    </tbody>
-                </table>
-
-                <h5>结构定义</h5>
-                <div class="code-block"><span class="string">{
-  "basic": {
-    "appId": "550e8400-e29b-41d4-a716-446655440000",
-    "timestamp": 1742947200,
-    "nonce": "abc123def456",
-    "signature": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
+<p><strong>典型场景：</strong> 查询类接口（如 <code>/api/thirdparty/treasury/list</code>）通常不传业务参数，<code>business</code> 传 <code>{}</code> 即可。</p>
+<p><strong>重要：</strong> 客户端与服务端必须使用相同的空值处理逻辑，否则签名校验会失败。</p>
+<h3 id="26">2.6 签名验证规则</h3>
+<ul>
+<li><strong>时间戳容差</strong>: 5 分钟（300 秒）</li>
+<li><strong>Nonce TTL</strong>: 1 小时（3600 秒），防重放</li>
+<li><strong>appId 格式</strong>: 必须是有效的 UUID</li>
+<li><strong>authorizationId 格式</strong>: 必须是有效的 UUID（Resource 签名）</li>
+</ul>
+<h3 id="26_1">2.6 请求认证结构</h3>
+<p>开放平台 API 将开发者请求分为两类，分别使用不同的认证结构：</p>
+<h4 id="basicinfo-">BasicInfo - 基础认证结构</h4>
+<p>用于不涉及资源操作的接口（如 OAuth 接口）：</p>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST /oauth/token</code></td>
+<td>获取访问令牌</td>
+</tr>
+<tr>
+<td><code>POST /oauth/authorizeUrl</code></td>
+<td>获取授权 URL</td>
+</tr>
+<tr>
+<td><code>POST /oauth/verify</code></td>
+<td>验证 OAuth Token</td>
+</tr>
+</tbody>
+</table>
+<p><strong>结构定义：</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;basic&quot;: {
+    &quot;appId&quot;: &quot;550e8400-e29b-41d4-a716-446655440000&quot;,
+    &quot;timestamp&quot;: 1742947200,
+    &quot;nonce&quot;: &quot;abc123def456&quot;,
+    &quot;signature&quot;: &quot;a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4&quot;
   }
-}</span></div>
+}
+</code></pre>
 
-                <table>
-                    <thead>
-                        <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>appId</td><td>string</td><td>是</td><td>应用标识，必须是有效的 UUID 格式</td></tr>
-                        <tr><td>timestamp</td><td>number</td><td>是</td><td>Unix 时间戳（秒），必须在当前时间 ±5 分钟内</td></tr>
-                        <tr><td>nonce</td><td>string</td><td>是</td><td>随机字符串，用于防重放，不可为空</td></tr>
-                        <tr><td>signature</td><td>string</td><td>是</td><td>MD5 签名，32 位十六进制字符串</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>BasicInfoWithAuthorization - 资源认证结构</h4>
-                <p>用于涉及资源操作的接口（所有 <code>/thirdparty/*</code> 接口）：</p>
-
-                <h5>结构定义</h5>
-                <div class="code-block"><span class="string">{
-  "basic": {
-    "appId": "550e8400-e29b-41d4-a716-446655440000",
-    "timestamp": 1742947200,
-    "nonce": "abc123def456",
-    "signature": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
-    "authorizationId": "123e4567-e89b-12d3-a456-426614174000"
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>appId</td>
+<td>string</td>
+<td>是</td>
+<td>应用标识，必须是有效的 UUID 格式</td>
+</tr>
+<tr>
+<td>timestamp</td>
+<td>number</td>
+<td>是</td>
+<td>Unix 时间戳（秒），必须在当前时间 ±5 分钟内</td>
+</tr>
+<tr>
+<td>nonce</td>
+<td>string</td>
+<td>是</td>
+<td>随机字符串，用于防重放，不可为空</td>
+</tr>
+<tr>
+<td>signature</td>
+<td>string</td>
+<td>是</td>
+<td>MD5 签名，32 位十六进制字符串</td>
+</tr>
+</tbody>
+</table>
+<h4 id="basicinfowithauthorization-">BasicInfoWithAuthorization - 资源认证结构</h4>
+<p>用于涉及资源操作的接口（所有 <code>/thirdparty/*</code> 接口）：</p>
+<p><strong>结构定义：</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;basic&quot;: {
+    &quot;appId&quot;: &quot;550e8400-e29b-41d4-a716-446655440000&quot;,
+    &quot;timestamp&quot;: 1742947200,
+    &quot;nonce&quot;: &quot;abc123def456&quot;,
+    &quot;signature&quot;: &quot;a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4&quot;,
+    &quot;authorizationId&quot;: &quot;123e4567-e89b-12d3-a456-426614174000&quot;
   }
-}</span></div>
+}
+</code></pre>
 
-                <table>
-                    <thead>
-                        <tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>appId</td><td>string</td><td>是</td><td>应用标识，必须是有效的 UUID 格式</td></tr>
-                        <tr><td>timestamp</td><td>number</td><td>是</td><td>Unix 时间戳（秒），必须在当前时间 ±5 分钟内</td></tr>
-                        <tr><td>nonce</td><td>string</td><td>是</td><td>随机字符串，用于防重放，不可为空</td></tr>
-                        <tr><td>signature</td><td>string</td><td>是</td><td>MD5 签名，32 位十六进制字符串</td></tr>
-                        <tr><td>authorizationId</td><td>string</td><td>是</td><td>授权标识，必须是有效的 UUID 格式，用于绑定签名与特定授权资源</td></tr>
-                    </tbody>
-                </table>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>appId</td>
+<td>string</td>
+<td>是</td>
+<td>应用标识，必须是有效的 UUID 格式</td>
+</tr>
+<tr>
+<td>timestamp</td>
+<td>number</td>
+<td>是</td>
+<td>Unix 时间戳（秒），必须在当前时间 ±5 分钟内</td>
+</tr>
+<tr>
+<td>nonce</td>
+<td>string</td>
+<td>是</td>
+<td>随机字符串，用于防重放，不可为空</td>
+</tr>
+<tr>
+<td>signature</td>
+<td>string</td>
+<td>是</td>
+<td>MD5 签名，32 位十六进制字符串</td>
+</tr>
+<tr>
+<td>authorizationId</td>
+<td>string</td>
+<td>是</td>
+<td>授权标识，必须是有效的 UUID 格式，用于绑定签名与特定授权资源</td>
+</tr>
+</tbody>
+</table>
+<p><strong>authorizationId 说明：</strong></p>
+<ul>
+<li>开发者发起资源操作前，需要先通过 OAuth 流程获取授权</li>
+<li>授权成功后，开放平台会返回 <code>authorizeId</code>（即 authorizationId）</li>
+<li>签名与 authorizationId 绑定，防止签名被用于其他授权资源</li>
+</ul>
+<h4 id="_21">验证器使用说明</h4>
+<p>服务端使用继承模式的验证器：</p>
+<pre class="codehilite"><code>BasicValidator          → 验证 BasicInfo（OAuth 接口）
+└─ ResourceValidator   → 验证 BasicInfoWithAuthorization（资源操作接口）
+</code></pre>
 
-                <h5>authorizationId 说明</h5>
-                <ul>
-                    <li>开发者发起资源操作前，需要先通过 OAuth 流程获取授权</li>
-                    <li>授权成功后，开放平台会返回 <code>authorizeId</code>（即 authorizationId）</li>
-                    <li>签名与 authorizationId 绑定，防止签名被用于其他授权资源</li>
-                </ul>
-
-                <h4>验证器使用说明</h4>
-                <p>服务端使用继承模式的验证器：</p>
-                <div class="code-block"><span class="comment">BasicValidator          → 验证 BasicInfo（OAuth 接口）
-└─ ResourceValidator   → 验证 BasicInfoWithAuthorization（资源操作接口）</span></div>
-
-                <table>
-                    <thead>
-                        <tr><th>验证器</th><th>验证字段</th><th>适用接口</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>BasicValidator</td><td>appId, timestamp, nonce, signature</td><td>/oauth/*</td></tr>
-                        <tr><td>ResourceValidator</td><td>BasicInfo + authorizationId</td><td>/thirdparty/*</td></tr>
-                    </tbody>
-                </table>
-            </section>
-
-            <!-- API Section -->
-            <section id="api" class="section">
-                <h2>三、财务单元管理接口</h2>
-
-                <h3>3.1 接口列表</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>方法</th>
-                            <th>路径</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/create</td><td>创建财务单元</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number}</td><td>创建财务单元地址</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/list</td><td>查询财务单元列表</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/list-unit-account/{unitId}</td><td>查询财务单元账户列表</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/address</td><td>获取财务单元地址</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/pooling</td><td>发起归集请求</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/payout</td><td>出金操作</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/submit-task/{taskId}</td><td>提交任务审批</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/activities</td><td>查询活动记录</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/transfer-out-orders</td><td>查询出金订单</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/transfer-in-orders</td><td>查询入金订单</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/fund-records</td><td>查询资金流水（账户级）</td></tr>
-                        <tr><td>POST</td><td>/api/thirdparty/treasury/unit-fund-records</td><td>查询资金流水（财务单元级）</td></tr>
-                    </tbody>
-                </table>
-
-                <h3>3.2 通用请求格式</h3>
-                <p>所有接口请求格式统一包含 <code>basic</code> 和 <code>business</code> 两部分：</p>
-                <div class="code-block"><span class="string">{
-  "basic": {
-    "appId": "550e8400-e29b-41d4-a716-446655440000",
-    "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
-    "timestamp": 1742947200,
-    "nonce": "random-string",
-    "signature": "md5-hash"
+<table>
+<thead>
+<tr>
+<th>验证器</th>
+<th>验证字段</th>
+<th>适用接口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BasicValidator</td>
+<td>appId, timestamp, nonce, signature</td>
+<td>/oauth/*</td>
+</tr>
+<tr>
+<td>ResourceValidator</td>
+<td>BasicInfo + authorizationId</td>
+<td><code>/thirdparty/*</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_22">三、财务单元管理接口</h2>
+<h3 id="31-third-party-treasury-unit-management">3.1 接口列表 (Third-Party Treasury Unit Management)</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/create</td>
+<td>创建财务单元</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number}</td>
+<td>创建财务单元地址</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/list</td>
+<td>查询财务单元列表</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/list-unit-account/{unitId}</td>
+<td>查询财务单元账户列表</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/address</td>
+<td>获取财务单元地址</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/pooling</td>
+<td>发起归集请求</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/payout</td>
+<td>出金操作</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/submit-task/{taskId}</td>
+<td>提交任务审批</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/activities</td>
+<td>查询活动记录</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/transfer-out-orders</td>
+<td>查询出金订单</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/transfer-in-orders</td>
+<td>查询入金订单</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/fund-records</td>
+<td>查询资金流水（账户级）</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/thirdparty/treasury/unit-fund-records</td>
+<td>查询资金流水（财务单元级）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32">3.2 通用请求格式</h3>
+<p>所有接口请求格式统一包含 <code>basic</code> 和 <code>business</code> 两部分：</p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;basic&quot;: {
+    &quot;appId&quot;: &quot;550e8400-e29b-41d4-a716-446655440000&quot;,
+    &quot;authorizationId&quot;: &quot;123e4567-e89b-12d3-a456-426614174000&quot;,
+    &quot;timestamp&quot;: 1742947200,
+    &quot;nonce&quot;: &quot;random-string&quot;,
+    &quot;signature&quot;: &quot;md5-hash&quot;
   },
-  "business": {
+  &quot;business&quot;: {
     // 业务数据
   }
-}</span></div>
+}
+</code></pre>
 
-                <h3>3.3 创建财务单元</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/create</code></p>
-                <p>创建新的财务单元。</p>
+<h3 id="33">3.3 财务单元管理接口详情</h3>
+<h4 id="331">3.3.1 创建财务单元</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/create</code></p>
+<p>创建新的财务单元。</p>
+<blockquote>
+<p>Body Parameters</p>
+</blockquote>
+<pre class="codehilite"><code class="language-json">{
+  &quot;unitName&quot;: &quot;My Treasury Unit&quot;,
+  &quot;businessScope&quot;: &quot;DEDICATED_ACCOUNT&quot;,
+  &quot;businessPurpose&quot;: &quot;Payment processing&quot;,
+  &quot;topology&quot;: &quot;ORBIT&quot;,
+  &quot;coinIds&quot;: [{&quot;coinId&quot;: &quot;USDT&quot;, &quot;network&quot;: &quot;TRC20&quot;}],
+  &quot;autoSignUrl&quot;: &quot;https://example.com/auto-sign&quot;,
+  &quot;primaryManager&quot;: [{&quot;coinId&quot;: &quot;USDT&quot;, &quot;fundControlRules&quot;: [{&quot;guardians&quot;: [&quot;user@email.com&quot;], &quot;threshold&quot;: &quot;1&quot;, &quot;perTransferLimit&quot;: &quot;1000&quot;, &quot;dailyTransferLimit&quot;: &quot;50000&quot;}]}],
+  &quot;primaryWhiteList&quot;: [{&quot;network&quot;: &quot;TRC20&quot;, &quot;address&quot;: &quot;0x...&quot;, &quot;alias&quot;: &quot;partner&quot;}],
+  &quot;primaryAnycallRules&quot;: [{&quot;guardians&quot;: [&quot;user@email.com&quot;], &quot;threshold&quot;: &quot;1&quot;, &quot;allowedCommands&quot;: [&quot;withdraw&quot;, &quot;allocate&quot;]}],
+  &quot;thirdPartyEcode&quot;: &quot;TP-001&quot;,
+  &quot;remark&quot;: &quot;备注信息&quot;,
+  &quot;payoutManager&quot;: [{&quot;coinId&quot;: &quot;USDT&quot;, &quot;fundControlRules&quot;: [{&quot;guardians&quot;: [&quot;user@email.com&quot;], &quot;threshold&quot;: &quot;1&quot;, &quot;perTransferLimit&quot;: &quot;1000&quot;, &quot;dailyTransferLimit&quot;: &quot;50000&quot;}]}],
+  &quot;payinAnycallRules&quot;: [{&quot;guardians&quot;: [&quot;user@email.com&quot;], &quot;threshold&quot;: &quot;1&quot;, &quot;allowedCommands&quot;: [&quot;deposit&quot;]}],
+  &quot;payoutAnycallRules&quot;: [{&quot;guardians&quot;: [&quot;user@email.com&quot;], &quot;threshold&quot;: &quot;1&quot;, &quot;allowedCommands&quot;: [&quot;withdraw&quot;]}],
+  &quot;riskAnycallRules&quot;: [{&quot;guardians&quot;: [&quot;user@email.com&quot;], &quot;threshold&quot;: &quot;2&quot;, &quot;allowedCommands&quot;: [&quot;lock&quot;, &quot;release&quot;]}]
+}
+</code></pre>
 
-                <h4>请求参数</h4>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>unitName</td><td>string</td><td><strong>是</strong></td><td>财务单元名称</td></tr>
-                        <tr><td>businessScope</td><td>string</td><td><strong>是</strong></td><td>业务类型：<code>DEDICATED_ACCOUNT</code> / <code>OMNIBUS_ACCOUNT</code> / <code>OPEN_API_PROXY</code></td></tr>
-                        <tr><td>businessPurpose</td><td>string</td><td>否</td><td>业务用途描述</td></tr>
-                        <tr><td>topology</td><td>string</td><td><strong>是</strong></td><td>账本拓扑：<code>ORBIT</code> / <code>SINGLE_GENERAL</code> / <code>QUAD_SMART_ISOLATION</code></td></tr>
-                        <tr><td>coinIds</td><td>array</td><td><strong>是</strong></td><td>币种信息列表</td></tr>
-                        <tr><td>autoSignUrl</td><td>string</td><td>否</td><td>自动签入地址</td></tr>
-                        <tr><td>primaryManager</td><td>array</td><td><strong>是</strong></td><td>资金管理员配置</td></tr>
-                        <tr><td>primaryWhiteList</td><td>array</td><td>否</td><td>资金白名单（出金地址白名单）</td></tr>
-                        <tr><td>primaryAnycallRules</td><td>array</td><td>否</td><td>通用调用控制信息（主账户）</td></tr>
-                        <tr><td>thirdPartyEcode</td><td>string</td><td>否</td><td>三方平台 ecode</td></tr>
-                        <tr><td>remark</td><td>string</td><td>否</td><td>备注信息</td></tr>
-                        <tr><td>payoutManager</td><td>array</td><td><strong>是</strong></td><td>出金管理员配置</td></tr>
-                        <tr><td>payinAnycallRules</td><td>array</td><td>否</td><td>收款账户通用调用控制信息</td></tr>
-                        <tr><td>payoutAnycallRules</td><td>array</td><td>否</td><td>付款通用调用控制信息</td></tr>
-                        <tr><td>riskAnycallRules</td><td>array</td><td>否</td><td>风控账户出金通用调用控制信息</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>coinIds 子参数说明</h4>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>coinId</td><td>string</td><td>是</td><td>币种 ID，如 `USDT`、`BTC`、`ETH`</td></tr>
-                        <tr><td>network</td><td>string</td><td>是</td><td>网络类型，如 `TRC20`、`ERC20`、`BEP20`</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>manager 配置子参数说明 (primaryManager / payoutManager)</h4>
-                <p>每个 manager 配置包含以下字段：</p>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>coinId</td><td>string</td><td>是</td><td>币种 ID</td></tr>
-                        <tr><td>fundControlRules</td><td>array</td><td>是</td><td>资金控制规则列表</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>fundControlRules 子参数说明</h4>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>guardians</td><td>array</td><td>是</td><td>守护人邮箱列表，用于多签审批</td></tr>
-                        <tr><td>threshold</td><td>string</td><td>是</td><td>审批阈值，需要多少位守护人同意才能执行</td></tr>
-                        <tr><td>perTransferLimit</td><td>string</td><td>是</td><td>单笔转账限额，超过此金额需要多签审批</td></tr>
-                        <tr><td>dailyTransferLimit</td><td>string</td><td>是</td><td>每日转账限额，超过此金额需要多签审批</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>fundControlRules 配置示例</h4>
-                <div class="code-block"><span class="string">{
-  "coinId": "USDT",
-  "fundControlRules": [
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>unitName</td>
+<td>string</td>
+<td><strong>是</strong></td>
+<td>财务单元名称</td>
+</tr>
+<tr>
+<td>businessScope</td>
+<td>string</td>
+<td><strong>是</strong></td>
+<td>业务类型：<code>DEDICATED_ACCOUNT</code>(专属账户) / <code>OMNIBUS_ACCOUNT</code>(Omnibus账户) / <code>OPEN_API_PROXY</code>(开放API代理)</td>
+</tr>
+<tr>
+<td>businessPurpose</td>
+<td>string</td>
+<td>否</td>
+<td>业务用途描述</td>
+</tr>
+<tr>
+<td>topology</td>
+<td>string</td>
+<td><strong>是</strong></td>
+<td>账本拓扑结构：<code>ORBIT</code> / <code>SINGLE_GENERAL</code> / <code>QUAD_SMART_ISOLATION</code></td>
+</tr>
+<tr>
+<td>coinIds</td>
+<td>array</td>
+<td><strong>是</strong></td>
+<td>币种信息列表</td>
+</tr>
+<tr>
+<td>autoSignUrl</td>
+<td>string</td>
+<td>否</td>
+<td>自动签入地址</td>
+</tr>
+<tr>
+<td>primaryManager</td>
+<td>array</td>
+<td><strong>是</strong></td>
+<td>资金管理员配置</td>
+</tr>
+<tr>
+<td>primaryWhiteList</td>
+<td>array</td>
+<td>否</td>
+<td>资金白名单（出金地址白名单）</td>
+</tr>
+<tr>
+<td>primaryAnycallRules</td>
+<td>array</td>
+<td>否</td>
+<td>通用调用控制信息（主账户）</td>
+</tr>
+<tr>
+<td>thirdPartyEcode</td>
+<td>string</td>
+<td>否</td>
+<td>三方平台 ecode，用于标识三方平台身份</td>
+</tr>
+<tr>
+<td>remark</td>
+<td>string</td>
+<td>否</td>
+<td>备注信息</td>
+</tr>
+<tr>
+<td>payoutManager</td>
+<td>array</td>
+<td><strong>是</strong></td>
+<td>出金管理员配置</td>
+</tr>
+<tr>
+<td>payinAnycallRules</td>
+<td>array</td>
+<td>否</td>
+<td>收款账户通用调用控制信息</td>
+</tr>
+<tr>
+<td>payoutAnycallRules</td>
+<td>array</td>
+<td>否</td>
+<td>付款通用调用控制信息</td>
+</tr>
+<tr>
+<td>riskAnycallRules</td>
+<td>array</td>
+<td>否</td>
+<td>风控账户出金通用调用控制信息</td>
+</tr>
+</tbody>
+</table>
+<p><strong>coinIds 子参数说明</strong></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>coinId</td>
+<td>string</td>
+<td>是</td>
+<td>币种 ID，如 <code>USDT</code>、<code>BTC</code>、<code>ETH</code></td>
+</tr>
+<tr>
+<td>network</td>
+<td>string</td>
+<td>是</td>
+<td>网络类型，如 <code>TRC20</code>、<code>ERC20</code>、<code>BEP20</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>manager 配置子参数说明 (primaryManager / payoutManager)</strong></p>
+<p>每个 manager 配置包含以下字段：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>coinId</td>
+<td>string</td>
+<td>是</td>
+<td>币种 ID</td>
+</tr>
+<tr>
+<td>fundControlRules</td>
+<td>array</td>
+<td>是</td>
+<td>资金控制规则列表</td>
+</tr>
+</tbody>
+</table>
+<p><strong>fundControlRules 子参数说明</strong></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>guardians</td>
+<td>array</td>
+<td>是</td>
+<td>守护人邮箱列表，用于多签审批</td>
+</tr>
+<tr>
+<td>threshold</td>
+<td>string</td>
+<td>是</td>
+<td>审批阈值，需要多少位守护人同意才能执行</td>
+</tr>
+<tr>
+<td>perTransferLimit</td>
+<td>string</td>
+<td>是</td>
+<td>单笔转账限额，超过此金额需要多签审批</td>
+</tr>
+<tr>
+<td>dailyTransferLimit</td>
+<td>string</td>
+<td>是</td>
+<td>每日转账限额，超过此金额需要多签审批</td>
+</tr>
+</tbody>
+</table>
+<p><strong>fundControlRules 配置示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;coinId&quot;: &quot;USDT&quot;,
+  &quot;fundControlRules&quot;: [
     {
-      "guardians": ["admin@company.com", "security@company.com"],
-      "threshold": "2",
-      "perTransferLimit": "1000",
-      "dailyTransferLimit": "50000"
+      &quot;guardians&quot;: [&quot;admin@company.com&quot;, &quot;security@company.com&quot;],
+      &quot;threshold&quot;: &quot;2&quot;,
+      &quot;perTransferLimit&quot;: &quot;1000&quot;,
+      &quot;dailyTransferLimit&quot;: &quot;50000&quot;
     }
   ]
-}</span></div>
+}
+</code></pre>
 
-                <h4>primaryWhiteList 子参数说明</h4>
-                <table>
-                    <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
-                    <tbody>
-                        <tr><td>network</td><td>string</td><td><strong>是</strong></td><td>网络类型</td></tr>
-                        <tr><td>address</td><td>string</td><td><strong>是</strong></td><td>出金地址</td></tr>
-                        <tr><td>alias</td><td>string</td><td>否</td><td>地址别名</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>AnyCallRule 子参数说明</h4>
-                <table>
-                    <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
-                    <tbody>
-                        <tr><td>guardians</td><td>array</td><td><strong>是</strong></td><td>守护人邮箱列表</td></tr>
-                        <tr><td>threshold</td><td>string</td><td><strong>是</strong></td><td>审批阈值</td></tr>
-                        <tr><td>allowedCommands</td><td>array</td><td><strong>是</strong></td><td>允许执行的指令列表</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>响应示例</h4>
-                <div class="code-block"><span class="string">{
-  "code": 0,
-  "message": "Success",
-  "data": {
-    "id": 1,
-    "ecode": "TU-20260413001",
-    "name": "My Treasury Unit",
-    "status": "ACTIVATED",
-    "networks": ["TRC20"],
-    "createTime": "2026-04-13T10:00:00Z"
+<p><strong>primaryWhiteList 子参数说明</strong></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>network</td>
+<td>string</td>
+<td><strong>是</strong></td>
+<td>网络类型</td>
+</tr>
+<tr>
+<td>address</td>
+<td>string</td>
+<td><strong>是</strong></td>
+<td>出金地址</td>
+</tr>
+<tr>
+<td>alias</td>
+<td>string</td>
+<td>否</td>
+<td>地址别名</td>
+</tr>
+</tbody>
+</table>
+<p><strong>AnyCallRule 子参数说明 (primaryAnycallRules / payinAnycallRules / payoutAnycallRules / riskAnycallRules)</strong></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>guardians</td>
+<td>array</td>
+<td><strong>是</strong></td>
+<td>守护人邮箱列表</td>
+</tr>
+<tr>
+<td>threshold</td>
+<td>string</td>
+<td><strong>是</strong></td>
+<td>审批阈值</td>
+</tr>
+<tr>
+<td>allowedCommands</td>
+<td>array</td>
+<td><strong>是</strong></td>
+<td>允许执行的指令列表</td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;My Treasury Unit&quot;,
+    &quot;ecode&quot;: &quot;TU-20260413001&quot;,
+    &quot;vaultCode&quot;: &quot;VLT-xxx&quot;,
+    &quot;groupCode&quot;: &quot;GRP-xxx&quot;,
+    &quot;custodialBusinessScope&quot;: &quot;DEDICATED_ACCOUNT&quot;,
+    &quot;networks&quot;: [&quot;TRC20&quot;],
+    &quot;status&quot;: &quot;ACTIVATED&quot;,
+    &quot;caaFactoryAddresses&quot;: [
+      {&quot;network&quot;: &quot;TRC20&quot;, &quot;address&quot;: &quot;0x...&quot;}
+    ],
+    &quot;factoryStatus&quot;: 3,
+    &quot;createTime&quot;: &quot;2026-04-13T10:00:00Z&quot;
   }
-}</span></div>
+}
+</code></pre>
 
-                <h3>3.3b 创建财务单元地址</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number}</code></p>
-                <p>为财务单元的指定账户类型创建链上地址。注意：<code>accountTypy</code> 为 Custody 后端原始拼写。</p>
+<h4 id="332">3.3.2 创建财务单元地址</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number}</code></p>
+<p>为财务单元的指定账户类型创建链上地址。</p>
+<blockquote>
+<p>Path Parameters</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>unitId</td>
+<td>integer</td>
+<td><strong>是</strong></td>
+<td>财务单元 ID</td>
+</tr>
+<tr>
+<td>accountTypy</td>
+<td>string</td>
+<td><strong>是</strong></td>
+<td>账户类型：<code>PRIMARY</code>(主账户) / <code>PAYOUT</code>(出金账户) / <code>PAYIN</code>(收款账户)</td>
+</tr>
+<tr>
+<td>network</td>
+<td>string</td>
+<td><strong>是</strong></td>
+<td>网络类型</td>
+</tr>
+<tr>
+<td>coinId</td>
+<td>string</td>
+<td><strong>是</strong></td>
+<td>币种 ID</td>
+</tr>
+<tr>
+<td>number</td>
+<td>integer</td>
+<td><strong>是</strong></td>
+<td>创建地址数量</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>注意：<code>accountTypy</code> 为 Custody 后端原始拼写，保持与后端参数名一致。</p>
+</blockquote>
+<p><strong>响应示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: null
+}
+</code></pre>
 
-                <h4>Path 参数</h4>
-                <table>
-                    <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
-                    <tbody>
-                        <tr><td>unitId</td><td>integer</td><td><strong>是</strong></td><td>财务单元 ID</td></tr>
-                        <tr><td>accountTypy</td><td>string</td><td><strong>是</strong></td><td>账户类型：<code>PRIMARY</code> / <code>PAYOUT</code> / <code>PAYIN</code></td></tr>
-                        <tr><td>network</td><td>string</td><td><strong>是</strong></td><td>网络类型</td></tr>
-                        <tr><td>coinId</td><td>string</td><td><strong>是</strong></td><td>币种 ID</td></tr>
-                        <tr><td>number</td><td>integer</td><td><strong>是</strong></td><td>创建地址数量</td></tr>
-                    </tbody>
-                </table>
+<h4 id="333">3.3.3 查询财务单元列表</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/list</code></p>
+<p>查询当前商户下所有财务单元。</p>
+<blockquote>
+<p>Body Parameters</p>
+</blockquote>
+<pre class="codehilite"><code class="language-json">{
+  &quot;pageSize&quot;: 10,
+  &quot;pageNum&quot;: 1,
+  &quot;sortFields&quot;: &quot;createTime_d&quot;
+}
+</code></pre>
 
-                <h4>响应示例</h4>
-                <div class="code-block"><span class="string">{
-  "code": 0,
-  "message": "Success",
-  "data": null
-}</span></div>
-
-                <h3>3.4 查询财务单元列表</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/list</code></p>
-                <p>查询当前商户下所有财务单元。</p>
-
-                <h4>响应示例</h4>
-                <div class="code-block"><span class="string">{
-  "code": 0,
-  "message": "Success",
-  "data": [
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pageSize</td>
+<td>integer</td>
+<td>否</td>
+<td>每页数量，默认 10</td>
+</tr>
+<tr>
+<td>pageNum</td>
+<td>integer</td>
+<td>否</td>
+<td>页码，默认 1</td>
+</tr>
+<tr>
+<td>sortFields</td>
+<td>string</td>
+<td>否</td>
+<td>排序字段，格式：<code>字段名_asc/desc</code>，如 <code>createTime_d</code> 表示按创建时间降序</td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: [
     {
-      "id": 1,
-      "ecode": "TU-20260413001",
-      "name": "My Treasury Unit",
-      "custodyServiceMode": "DEDICATED_ACCOUNT",
-      "coinIds": [{"coinId": "USDT", "network": "TRC20"}],
-      "accounts": [
-        {"account_name": "PRIMARY", "account_type": "PRIMARY"},
-        {"account_name": "PAYOUT", "account_type": "PAYOUT"},
-        {"account_name": "QUARANTINE", "account_type": "QUARANTINE"}
+      &quot;id&quot;: 1,
+      &quot;ecode&quot;: &quot;TU-20260413001&quot;,
+      &quot;projectId&quot;: 100,
+      &quot;name&quot;: &quot;My Treasury Unit&quot;,
+      &quot;custodyServiceMode&quot;: &quot;DEDICATED_ACCOUNT&quot;,
+      &quot;coinIds&quot;: [{&quot;coinId&quot;: &quot;USDT&quot;, &quot;network&quot;: &quot;TRC20&quot;}],
+      &quot;accounts&quot;: [
+        {&quot;account_name&quot;: &quot;PRIMARY&quot;, &quot;account_type&quot;: &quot;PRIMARY&quot;},
+        {&quot;account_name&quot;: &quot;PAYOUT&quot;, &quot;account_type&quot;: &quot;PAYOUT&quot;},
+        {&quot;account_name&quot;: &quot;QUARANTINE&quot;, &quot;account_type&quot;: &quot;QUARANTINE&quot;}
       ],
-      "status": "Active",
-      "creationType": "THIRD_PARTY"
+      &quot;status&quot;: &quot;Active&quot;,
+      &quot;creationType&quot;: &quot;THIRD_PARTY&quot;,
+      &quot;createTime&quot;: &quot;2026-04-13T10:00:00Z&quot;
     }
   ]
-}</span></div>
+}
+</code></pre>
 
-                <h3>3.5 获取财务单元地址</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/address</code></p>
-                <p>获取财务单元下指定账户类型的地址列表。</p>
+<h4 id="334">3.3.4 获取财务单元地址</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/address</code></p>
+<p>获取财务单元下指定账户类型的地址列表。</p>
+<blockquote>
+<p>Body Parameters</p>
+</blockquote>
+<pre class="codehilite"><code class="language-json">{
+  &quot;accountType&quot;: &quot;PRIMARY&quot;,
+  &quot;pageSize&quot;: 10,
+  &quot;pageNum&quot;: 1,
+  &quot;coinId&quot;: &quot;USDT&quot;,
+  &quot;network&quot;: &quot;TRC20&quot;,
+  &quot;unitId&quot;: 1
+}
+</code></pre>
 
-                <h4>请求参数</h4>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>unitId</td><td>integer</td><td>是</td><td>财务单元ID</td></tr>
-                        <tr><td>accountType</td><td>string</td><td>否</td><td>账户类型：`PRIMARY` / `PAYIN` / `PAYOUT` / `QUARANTINE` / `RECEIVABLE` 等</td></tr>
-                        <tr><td>coinId</td><td>string</td><td>否</td><td>币种ID</td></tr>
-                        <tr><td>network</td><td>string</td><td>否</td><td>网络</td></tr>
-                        <tr><td>pageSize</td><td>integer</td><td>否</td><td>每页数量</td></tr>
-                        <tr><td>pageNum</td><td>integer</td><td>否</td><td>页码</td></tr>
-                    </tbody>
-                </table>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>unitId</td>
+<td>integer</td>
+<td>是</td>
+<td>财务单元ID</td>
+</tr>
+<tr>
+<td>accountType</td>
+<td>string</td>
+<td>否</td>
+<td>账户类型：<code>PRIMARY</code> / <code>PAYIN</code> / <code>PAYOUT</code> / <code>QUARANTINE</code> / <code>RECEIVABLE</code> 等</td>
+</tr>
+<tr>
+<td>coinId</td>
+<td>string</td>
+<td>否</td>
+<td>币种ID</td>
+</tr>
+<tr>
+<td>network</td>
+<td>string</td>
+<td>否</td>
+<td>网络</td>
+</tr>
+<tr>
+<td>pageSize</td>
+<td>integer</td>
+<td>否</td>
+<td>每页数量</td>
+</tr>
+<tr>
+<td>pageNum</td>
+<td>integer</td>
+<td>否</td>
+<td>页码</td>
+</tr>
+</tbody>
+</table>
+<h4 id="335">3.3.5 查询财务单元账户列表</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/list-unit-account/{unitId}</code></p>
+<p>查询指定财务单元下的所有账户及其余额信息。</p>
+<blockquote>
+<p>Path Parameters</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>unitId</td>
+<td>integer</td>
+<td><strong>是</strong></td>
+<td>财务单元 ID</td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: [
+    {
+      &quot;id&quot;: 1,
+      &quot;ecode&quot;: &quot;TU-001&quot;,
+      &quot;vaultCode&quot;: &quot;VLT-xxx&quot;,
+      &quot;treasuryUnitId&quot;: 1,
+      &quot;accountName&quot;: &quot;PRIMARY&quot;,
+      &quot;type&quot;: &quot;PRIMARY&quot;,
+      &quot;balance&quot;: 100000,
+      &quot;freezeBalance&quot;: 0,
+      &quot;holdBalance&quot;: 5000,
+      &quot;coinId&quot;: &quot;USDT&quot;,
+      &quot;network&quot;: &quot;TRC20&quot;,
+      &quot;isSmart&quot;: true,
+      &quot;status&quot;: 1,
+      &quot;income&quot;: 500000,
+      &quot;outcome&quot;: 400000,
+      &quot;createTime&quot;: &quot;2026-01-01T00:00:00Z&quot;
+    }
+  ]
+}
+</code></pre>
 
-                <h3>3.5b 查询财务单元账户列表</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/list-unit-account/{unitId}</code></p>
-                <p>查询指定财务单元下的所有账户及其余额信息。</p>
+<p><strong>响应字段说明</strong></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>integer</td>
+<td>账户 ID</td>
+</tr>
+<tr>
+<td>ecode</td>
+<td>string</td>
+<td>企业 code</td>
+</tr>
+<tr>
+<td>treasuryUnitId</td>
+<td>integer</td>
+<td>所属财务单元 ID</td>
+</tr>
+<tr>
+<td>accountName</td>
+<td>string</td>
+<td>账户名称</td>
+</tr>
+<tr>
+<td>type</td>
+<td>string</td>
+<td>账户类型：<code>PRIMARY</code> / <code>PAYOUT</code> / <code>PAYIN</code> / <code>QUARANTINE</code> / <code>RECEIVABLE</code> / <code>GENERAL_GAS</code> / <code>FREEZE</code> / <code>DEPOSIT</code> / <code>DIRTY</code></td>
+</tr>
+<tr>
+<td>balance</td>
+<td>integer</td>
+<td>主账户余额</td>
+</tr>
+<tr>
+<td>freezeBalance</td>
+<td>integer</td>
+<td>冻结余额</td>
+</tr>
+<tr>
+<td>holdBalance</td>
+<td>integer</td>
+<td>隔离余额（合规待确认/待复核的入金隔离资金）</td>
+</tr>
+<tr>
+<td>coinId</td>
+<td>string</td>
+<td>币种 ID</td>
+</tr>
+<tr>
+<td>network</td>
+<td>string</td>
+<td>网络</td>
+</tr>
+<tr>
+<td>isSmart</td>
+<td>boolean</td>
+<td>是否是智能账户</td>
+</tr>
+<tr>
+<td>status</td>
+<td>integer</td>
+<td>状态：0 不可用 / 1 可用</td>
+</tr>
+<tr>
+<td>income</td>
+<td>integer</td>
+<td>账户总入金</td>
+</tr>
+<tr>
+<td>outcome</td>
+<td>integer</td>
+<td>账户总出金</td>
+</tr>
+</tbody>
+</table>
+<h4 id="336">3.3.6 发起归集请求</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/pooling</code></p>
+<p>发起资金归集请求，将指定地址列表的资金归集到主账户。</p>
+<blockquote>
+<p>Body Parameters</p>
+</blockquote>
+<pre class="codehilite"><code class="language-json">{
+  &quot;unitId&quot;: 1,
+  &quot;amount&quot;: 100,
+  &quot;lang&quot;: &quot;zh_CN&quot;,
+  &quot;coinId&quot;: &quot;USDT&quot;,
+  &quot;network&quot;: &quot;TRC20&quot;,
+  &quot;note&quot;: &quot;日常归集&quot;,
+  &quot;includes&quot;: [&quot;0xabc...&quot;],
+  &quot;excludes&quot;: [&quot;0xdef...&quot;]
+}
+</code></pre>
 
-                <h4>Path 参数</h4>
-                <table>
-                    <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
-                    <tbody>
-                        <tr><td>unitId</td><td>integer</td><td><strong>是</strong></td><td>财务单元 ID</td></tr>
-                    </tbody>
-                </table>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>unitId</td>
+<td>integer</td>
+<td><strong>是</strong></td>
+<td>财务单元 ID</td>
+</tr>
+<tr>
+<td>amount</td>
+<td>integer</td>
+<td><strong>是</strong></td>
+<td>归集门限金额（超过此金额才触发归集）</td>
+</tr>
+<tr>
+<td>coinId</td>
+<td>string</td>
+<td><strong>是</strong></td>
+<td>币种 ID</td>
+</tr>
+<tr>
+<td>network</td>
+<td>string</td>
+<td><strong>是</strong></td>
+<td>网络</td>
+</tr>
+<tr>
+<td>lang</td>
+<td>string</td>
+<td>否</td>
+<td>语言，如 <code>zh_CN</code>、<code>en_US</code> 等</td>
+</tr>
+<tr>
+<td>note</td>
+<td>string</td>
+<td>否</td>
+<td>备注</td>
+</tr>
+<tr>
+<td>includes</td>
+<td>array</td>
+<td>否</td>
+<td>包含地址列表（只归集这些地址）</td>
+</tr>
+<tr>
+<td>excludes</td>
+<td>array</td>
+<td>否</td>
+<td>排除地址列表（不归集这些地址）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: null
+}
+</code></pre>
 
-                <h4>响应示例</h4>
-                <div class="code-block"><span class="string">{
-  "code": 0,
-  "message": "Success",
-  "data": [{
-    "id": 1, "accountName": "PRIMARY", "type": "PRIMARY",
-    "balance": 100000, "freezeBalance": 0, "holdBalance": 5000,
-    "coinId": "USDT", "network": "TRC20", "isSmart": true, "status": 1
-  }]
-}</span></div>
-
-                <h3>3.5c 发起归集请求</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/pooling</code></p>
-                <p>发起资金归集请求，将指定地址列表的资金归集到主账户。</p>
-
-                <h4>请求参数</h4>
-                <table>
-                    <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
-                    <tbody>
-                        <tr><td>unitId</td><td>integer</td><td><strong>是</strong></td><td>财务单元 ID</td></tr>
-                        <tr><td>amount</td><td>integer</td><td><strong>是</strong></td><td>归集门限金额</td></tr>
-                        <tr><td>coinId</td><td>string</td><td><strong>是</strong></td><td>币种 ID</td></tr>
-                        <tr><td>network</td><td>string</td><td><strong>是</strong></td><td>网络</td></tr>
-                        <tr><td>lang</td><td>string</td><td>否</td><td>语言，如 <code>zh_CN</code>、<code>en_US</code></td></tr>
-                        <tr><td>note</td><td>string</td><td>否</td><td>备注</td></tr>
-                        <tr><td>includes</td><td>array</td><td>否</td><td>包含地址列表</td></tr>
-                        <tr><td>excludes</td><td>array</td><td>否</td><td>排除地址列表</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>响应示例</h4>
-                <div class="code-block"><span class="string">{
-  "code": 0,
-  "message": "Success",
-  "data": null
-}</span></div>
-
-                <h3>3.6 出金操作</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/payout</code></p>
-                <p>发起出金操作。</p>
-
-                <h4>请求参数</h4>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>unitId</td><td>integer</td><td>是</td><td>财务单元ID</td></tr>
-                        <tr><td>payTo</td><td>array</td><td>是</td><td>出金地址列表</td></tr>
-                        <tr><td>coinId</td><td>string</td><td>是</td><td>币种ID</td></tr>
-                        <tr><td>network</td><td>string</td><td>是</td><td>网络</td></tr>
-                        <tr><td>operation</td><td>string</td><td>否</td><td>操作类型：`withdraw` / `allocate` / `payout`</td></tr>
-                        <tr><td>orderId</td><td>string</td><td>否</td><td>客户业务订单ID</td></tr>
-                        <tr><td>merchantType</td><td>string</td><td>是</td><td>商户类型</td></tr>
-                    </tbody>
-                </table>
-
-                <h3>3.7 提交任务审批</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/submit-task/{taskId}</code></p>
-                <p>提交任务审批（签名）。</p>
-
-                <h4>请求参数</h4>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>signatures</td><td>object</td><td>否</td><td>签名结果，key为taskId，value为签名字符串列表</td></tr>
-                        <tr><td>confirmed</td><td>boolean</td><td>是</td><td>操作确认：`true`同意 / `false`拒绝</td></tr>
-                    </tbody>
-                </table>
-
-                <h3>3.4 查询财务单元列表</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/list</code></p>
-                <p>查询当前商户下所有财务单元。</p>
-
-                <h4>请求参数</h4>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>pageSize</td><td>integer</td><td>否</td><td>每页数量，默认 10</td></tr>
-                        <tr><td>pageNum</td><td>integer</td><td>否</td><td>页码，默认 1</td></tr>
-                        <tr><td>sortFields</td><td>string</td><td>否</td><td>排序字段，格式：`字段名_asc/desc`，如 `createTime_d` 表示按创建时间降序</td></tr>
-                    </tbody>
-                </table>
-
-                <h3>3.8 查询活动记录</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/activities</code></p>
-                <p>分页查询活动记录，包括所有资金操作如入金、出金、转账等。</p>
-
-                <h4>请求参数</h4>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>pageIndex</td><td>integer</td><td>否</td><td>页码索引，从 0 开始，默认 0</td></tr>
-                        <tr><td>pageSize</td><td>integer</td><td>否</td><td>每页数量，默认 20</td></tr>
-                        <tr><td>sortFields</td><td>string</td><td>否</td><td>排序字段，格式：`字段名_asc/desc`</td></tr>
-                        <tr><td>queryList</td><td>array</td><td>否</td><td>查询条件列表</td></tr>
-                        <tr><td>queryList[].key</td><td>string</td><td>否</td><td>查询字段名，可选值：`unitId` / `coinId` / `type` / `status` / `direction`</td></tr>
-                        <tr><td>queryList[].value</td><td>string/number</td><td>否</td><td>查询值</td></tr>
-                        <tr><td>queryList[].oper</td><td>string</td><td>否</td><td>操作符：`=` / `!=` / `>` / `<` / `like`</td></tr>
-                        <tr><td>queryList[].join</td><td>string</td><td>否</td><td>连接方式：`and` / `or`</td></tr>
-                    </tbody>
-                </table>
-
-                <h3>3.9 查询出金订单</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/transfer-out-orders</code></p>
-                <p>分页查询出金订单，包括提现和调拨订单。</p>
-
-                <h4>请求参数</h4>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>pageIndex</td><td>integer</td><td>否</td><td>页码索引，从 0 开始，默认 0</td></tr>
-                        <tr><td>pageSize</td><td>integer</td><td>否</td><td>每页数量，默认 20</td></tr>
-                        <tr><td>sortFields</td><td>string</td><td>否</td><td>排序字段，格式：`字段名_asc/desc`</td></tr>
-                        <tr><td>queryList</td><td>array</td><td>否</td><td>查询条件列表</td></tr>
-                        <tr><td>queryList[].key</td><td>string</td><td>否</td><td>查询字段名</td></tr>
-                        <tr><td>queryList[].value</td><td>string/number</td><td>否</td><td>查询值</td></tr>
-                        <tr><td>queryList[].oper</td><td>string</td><td>否</td><td>操作符：`=` / `!=` / `>` / `<` / `like`</td></tr>
-                        <tr><td>queryList[].join</td><td>string</td><td>否</td><td>连接方式：`and` / `or`</td></tr>
-                    </tbody>
-                </table>
-
-                <h3>3.10 查询入金订单</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/transfer-in-orders</code></p>
-                <p>分页查询入金订单，包括充值和收款订单。</p>
-
-                <h4>请求参数</h4>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>pageIndex</td><td>integer</td><td>否</td><td>页码索引，从 0 开始，默认 0</td></tr>
-                        <tr><td>pageSize</td><td>integer</td><td>否</td><td>每页数量，默认 20</td></tr>
-                        <tr><td>sortFields</td><td>string</td><td>否</td><td>排序字段，格式：`字段名_asc/desc`</td></tr>
-                        <tr><td>queryList</td><td>array</td><td>否</td><td>查询条件列表</td></tr>
-                        <tr><td>queryList[].key</td><td>string</td><td>否</td><td>查询字段名</td></tr>
-                        <tr><td>queryList[].value</td><td>string/number</td><td>否</td><td>查询值</td></tr>
-                        <tr><td>queryList[].oper</td><td>string</td><td>否</td><td>操作符：`=` / `!=` / `>` / `<` / `like`</td></tr>
-                        <tr><td>queryList[].join</td><td>string</td><td>否</td><td>连接方式：`and` / `or`</td></tr>
-                    </tbody>
-                </table>
-
-                <h3>3.11 查询资金流水</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/fund-records</code></p>
-                <p>分页查询资金流水，记录每笔资金变动明细。</p>
-
-                <h4>请求参数</h4>
-                <table>
-                    <thead>
-                        <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>pageIndex</td><td>integer</td><td>否</td><td>页码索引，从 0 开始，默认 0</td></tr>
-                        <tr><td>pageSize</td><td>integer</td><td>否</td><td>每页数量，默认 20</td></tr>
-                        <tr><td>sortFields</td><td>string</td><td>否</td><td>排序字段，格式：`字段名_asc/desc`</td></tr>
-                        <tr><td>queryList</td><td>array</td><td>否</td><td>查询条件列表</td></tr>
-                        <tr><td>queryList[].key</td><td>string</td><td>否</td><td>查询字段名，可选值：`unitId` / `coinId` / `network` / `txType` / `accountType`</td></tr>
-                        <tr><td>queryList[].value</td><td>string/number</td><td>否</td><td>查询值</td></tr>
-                        <tr><td>queryList[].oper</td><td>string</td><td>否</td><td>操作符：`=` / `!=` / `>` / `<` / `like`</td></tr>
-                        <tr><td>queryList[].join</td><td>string</td><td>否</td><td>连接方式：`and` / `or`</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>txType 枚举值</h4>
-                <table>
-                    <thead>
-                        <tr><th>值</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>TRANSFER_IN</td><td>转入</td></tr>
-                        <tr><td>TRANSFER_OUT</td><td>转出</td></tr>
-                        <tr><td>ALLOCATE_IN</td><td>调拨转入</td></tr>
-                        <tr><td>ALLOCATE_OUT</td><td>调拨转出</td></tr>
-                        <tr><td>POOL_IN</td><td>归集转入</td></tr>
-                        <tr><td>POOL_OUT</td><td>归集转出</td></tr>
-                        <tr><td>GAS_OUT</td><td>Gas消耗</td></tr>
-                        <tr><td>FEE_OUT</td><td>手续费</td></tr>
-                    </tbody>
-                </table>
-
-                <h3>3.12 查询资金流水（财务单元级）</h3>
-                <p><strong>POST</strong> <code>/api/thirdparty/treasury/unit-fund-records</code></p>
-                <p>分页查询财务单元级别的资金流水，汇总财务单元下所有账户的资金变动。请求参数格式与 3.11 账户级流水一致，<code>txType</code> 枚举值相同。</p>
-
-                <h4>响应示例</h4>
-                <div class="code-block"><span class="string">{
-  "code": 0,
-  "message": "Success",
-  "data": {
-    "records": [{
-      "id": 1, "txId": "0x...", "coinId": "USDT", "network": "TRC20",
-      "amount": "100", "preBalance": "1000", "postBalance": "900",
-      "fee": "1", "txType": "TRANSFER_OUT", "createTime": "2026-04-13T10:00:00Z"
-    }],
-    "total": 200, "size": 20, "current": 1
+<h4 id="337">3.3.7 出金操作</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/payout</code></p>
+<p>发起出金操作。</p>
+<blockquote>
+<p>Body Parameters</p>
+</blockquote>
+<pre class="codehilite"><code class="language-json">{
+  &quot;payTo&quot;: [{&quot;to&quot;: &quot;0x...&quot;, &quot;amount&quot;: &quot;100&quot;}],
+  &quot;unitId&quot;: 1,
+  &quot;coinId&quot;: &quot;USDT&quot;,
+  &quot;network&quot;: &quot;TRC20&quot;,
+  &quot;operation&quot;: &quot;withdraw&quot;,
+  &quot;userId&quot;: &quot;user-123&quot;,
+  &quot;orderId&quot;: &quot;ORDER-20260413001&quot;,
+  &quot;note&quot;: &quot;Payment for order #12345&quot;,
+  &quot;merchantType&quot;: &quot;NON_FINANCIAL_CORPORATE&quot;,
+  &quot;travelRule&quot;: {
+    &quot;referenceId&quot;: &quot;TR-REF-001&quot;,
+    &quot;payload&quot;: &quot;{}&quot;
   }
-}</span></div>
-            </section>
+}
+</code></pre>
 
-            <!-- Error Section -->
-            <section id="error" class="section">
-                <h2>错误码</h2>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>unitId</td>
+<td>integer</td>
+<td>是</td>
+<td>财务单元ID</td>
+</tr>
+<tr>
+<td>payTo</td>
+<td>array</td>
+<td>是</td>
+<td>出金地址列表</td>
+</tr>
+<tr>
+<td>coinId</td>
+<td>string</td>
+<td>是</td>
+<td>币种ID</td>
+</tr>
+<tr>
+<td>network</td>
+<td>string</td>
+<td>是</td>
+<td>网络</td>
+</tr>
+<tr>
+<td>operation</td>
+<td>string</td>
+<td>否</td>
+<td>操作类型：<code>withdraw</code> / <code>allocate</code> / <code>payout</code></td>
+</tr>
+<tr>
+<td>orderId</td>
+<td>string</td>
+<td>否</td>
+<td>客户业务订单ID</td>
+</tr>
+<tr>
+<td>userId</td>
+<td>string</td>
+<td>否</td>
+<td>发起用户ID</td>
+</tr>
+<tr>
+<td>note</td>
+<td>string</td>
+<td>否</td>
+<td>备注</td>
+</tr>
+<tr>
+<td>merchantType</td>
+<td>string</td>
+<td>是</td>
+<td>商户类型</td>
+</tr>
+<tr>
+<td>travelRule</td>
+<td>object</td>
+<td>否</td>
+<td>Travel Rule 信息</td>
+</tr>
+</tbody>
+</table>
+<h4 id="338">3.3.8 提交任务审批</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/submit-task/{taskId}</code></p>
+<p>提交任务审批（签名）。</p>
+<blockquote>
+<p>Body Parameters</p>
+</blockquote>
+<pre class="codehilite"><code class="language-json">{
+  &quot;signatures&quot;: {&quot;taskId-1&quot;: [&quot;sig1&quot;, &quot;sig2&quot;]},
+  &quot;confirmed&quot;: true
+}
+</code></pre>
 
-                <h3>4.1 认证错误</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>错误码</th>
-                            <th>HTTP状态</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>40101</td><td>401</td><td>签名验证失败</td></tr>
-                        <tr><td>40102</td><td>401</td><td>时间戳超出容差范围</td></tr>
-                        <tr><td>40103</td><td>401</td><td>Nonce 已使用（重放攻击）</td></tr>
-                        <tr><td>40104</td><td>401</td><td>缺少必填字段</td></tr>
-                        <tr><td>40105</td><td>401</td><td>应用不存在</td></tr>
-                        <tr><td>40106</td><td>401</td><td>应用未激活</td></tr>
-                        <tr><td>40107</td><td>401</td><td>三方平台账户未激活</td></tr>
-                    </tbody>
-                </table>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>signatures</td>
+<td>object</td>
+<td>否</td>
+<td>签名结果，key为taskId，value为签名字符串列表</td>
+</tr>
+<tr>
+<td>confirmed</td>
+<td>boolean</td>
+<td>是</td>
+<td>操作确认：<code>true</code>同意 / <code>false</code>拒绝</td>
+</tr>
+</tbody>
+</table>
+<h4 id="339">3.3.9 查询活动记录</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/activities</code></p>
+<p>分页查询活动记录，包括所有资金操作如入金、出金、转账等。</p>
+<blockquote>
+<p>Body Parameters</p>
+</blockquote>
+<pre class="codehilite"><code class="language-json">{
+  &quot;pageIndex&quot;: 0,
+  &quot;pageSize&quot;: 20,
+  &quot;sortFields&quot;: &quot;createTime_d&quot;,
+  &quot;queryList&quot;: [
+    {&quot;key&quot;: &quot;unitId&quot;, &quot;value&quot;: 1, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;},
+    {&quot;key&quot;: &quot;coinId&quot;, &quot;value&quot;: &quot;USDT&quot;, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;},
+    {&quot;key&quot;: &quot;type&quot;, &quot;value&quot;: &quot;TRANSFER_OUT&quot;, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;}
+  ]
+}
+</code></pre>
 
-                <h3>4.2 授权错误</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>错误码</th>
-                            <th>HTTP状态</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>40301</td><td>403</td><td>资源未授权</td></tr>
-                        <tr><td>40901</td><td>409</td><td>授权已存在</td></tr>
-                    </tbody>
-                </table>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pageIndex</td>
+<td>integer</td>
+<td>否</td>
+<td>页码索引，从 0 开始，默认 0</td>
+</tr>
+<tr>
+<td>pageSize</td>
+<td>integer</td>
+<td>否</td>
+<td>每页数量，默认 20</td>
+</tr>
+<tr>
+<td>sortFields</td>
+<td>string</td>
+<td>否</td>
+<td>排序字段，格式：<code>字段名_asc/desc</code></td>
+</tr>
+<tr>
+<td>queryList</td>
+<td>array</td>
+<td>否</td>
+<td>查询条件列表</td>
+</tr>
+<tr>
+<td>queryList[].key</td>
+<td>string</td>
+<td>否</td>
+<td>查询字段名，可选值：<code>unitId</code> / <code>coinId</code> / <code>type</code> / <code>status</code> / <code>direction</code></td>
+</tr>
+<tr>
+<td>queryList[].value</td>
+<td>string/number</td>
+<td>否</td>
+<td>查询值</td>
+</tr>
+<tr>
+<td>queryList[].oper</td>
+<td>string</td>
+<td>否</td>
+<td>操作符：<code>=</code> / <code>!=</code> / <code>&gt;</code> / <code>&lt;</code> / <code>like</code></td>
+</tr>
+<tr>
+<td>queryList[].join</td>
+<td>string</td>
+<td>否</td>
+<td>连接方式：<code>and</code> / <code>or</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: {
+    &quot;records&quot;: [
+      {
+        &quot;id&quot;: 1,
+        &quot;ecode&quot;: &quot;TU-20260413001&quot;,
+        &quot;treasuryUnitId&quot;: 1,
+        &quot;accountType&quot;: &quot;PRIMARY&quot;,
+        &quot;coinId&quot;: &quot;USDT&quot;,
+        &quot;network&quot;: &quot;TRC20&quot;,
+        &quot;type&quot;: &quot;TRANSFER_OUT&quot;,
+        &quot;amount&quot;: &quot;100&quot;,
+        &quot;direction&quot;: &quot;OUT&quot;,
+        &quot;orderId&quot;: &quot;ORDER-001&quot;,
+        &quot;status&quot;: &quot;SUCCEED&quot;,
+        &quot;travelRuleStatus&quot;: &quot;NOT_REQUIRED&quot;,
+        &quot;kytStatus&quot;: &quot;NOT_REQUIRED&quot;,
+        &quot;createTime&quot;: &quot;2026-04-13T10:00:00Z&quot;
+      }
+    ],
+    &quot;total&quot;: 100,
+    &quot;size&quot;: 20,
+    &quot;current&quot;: 1
+  }
+}
+</code></pre>
 
-                <h3>4.3 业务错误</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>错误码</th>
-                            <th>HTTP状态</th>
-                            <th>说明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>40001</td><td>400</td><td>缺少必填参数</td></tr>
-                        <tr><td>40002</td><td>400</td><td>参数格式错误</td></tr>
-                        <tr><td>40401</td><td>404</td><td>资源不存在</td></tr>
-                        <tr><td>42901</td><td>429</td><td>请求过于频繁</td></tr>
-                        <tr><td>50001</td><td>500</td><td>服务器内部错误</td></tr>
-                    </tbody>
-                </table>
-            </section>
+<h4 id="3310">3.3.10 查询出金订单</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/transfer-out-orders</code></p>
+<p>分页查询出金订单，包括提现和调拨订单。</p>
+<blockquote>
+<p>Body Parameters</p>
+</blockquote>
+<pre class="codehilite"><code class="language-json">{
+  &quot;pageIndex&quot;: 0,
+  &quot;pageSize&quot;: 20,
+  &quot;sortFields&quot;: &quot;createTime_d&quot;,
+  &quot;queryList&quot;: [
+    {&quot;key&quot;: &quot;unitId&quot;, &quot;value&quot;: 1, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;},
+    {&quot;key&quot;: &quot;coinId&quot;, &quot;value&quot;: &quot;USDT&quot;, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;}
+  ]
+}
+</code></pre>
 
-            <!-- SDK Section -->
-            <section id="sdk" class="section">
-                <h2>SDK 示例</h2>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pageIndex</td>
+<td>integer</td>
+<td>否</td>
+<td>页码索引，从 0 开始，默认 0</td>
+</tr>
+<tr>
+<td>pageSize</td>
+<td>integer</td>
+<td>否</td>
+<td>每页数量，默认 20</td>
+</tr>
+<tr>
+<td>sortFields</td>
+<td>string</td>
+<td>否</td>
+<td>排序字段，格式：<code>字段名_asc/desc</code></td>
+</tr>
+<tr>
+<td>queryList</td>
+<td>array</td>
+<td>否</td>
+<td>查询条件列表</td>
+</tr>
+<tr>
+<td>queryList[].key</td>
+<td>string</td>
+<td>否</td>
+<td>查询字段名</td>
+</tr>
+<tr>
+<td>queryList[].value</td>
+<td>string/number</td>
+<td>否</td>
+<td>查询值</td>
+</tr>
+<tr>
+<td>queryList[].oper</td>
+<td>string</td>
+<td>否</td>
+<td>操作符：<code>=</code> / <code>!=</code> / <code>&gt;</code> / <code>&lt;</code> / <code>like</code></td>
+</tr>
+<tr>
+<td>queryList[].join</td>
+<td>string</td>
+<td>否</td>
+<td>连接方式：<code>and</code> / <code>or</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: {
+    &quot;records&quot;: [
+      {
+        &quot;orderId&quot;: &quot;ORDER-001&quot;,
+        &quot;txId&quot;: &quot;0x...&quot;,
+        &quot;coinId&quot;: &quot;USDT&quot;,
+        &quot;network&quot;: &quot;TRC20&quot;,
+        &quot;totalAmount&quot;: 100,
+        &quot;fee&quot;: &quot;1&quot;,
+        &quot;orderState&quot;: &quot;SUCCEED&quot;,
+        &quot;payToList&quot;: [{&quot;to&quot;: &quot;0x...&quot;, &quot;amount&quot;: &quot;100&quot;}],
+        &quot;businessId&quot;: &quot;EXT-001&quot;,
+        &quot;createTime&quot;: &quot;2026-04-13T10:00:00Z&quot;
+      }
+    ],
+    &quot;total&quot;: 50,
+    &quot;size&quot;: 20,
+    &quot;current&quot;: 1
+  }
+}
+</code></pre>
 
-                <h3>5.1 签名计算</h3>
-                <pre><code>import crypto from 'crypto';
+<h4 id="3311">3.3.11 查询入金订单</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/transfer-in-orders</code></p>
+<p>分页查询入金订单，包括充值和收款订单。</p>
+<blockquote>
+<p>Body Parameters</p>
+</blockquote>
+<pre class="codehilite"><code class="language-json">{
+  &quot;pageIndex&quot;: 0,
+  &quot;pageSize&quot;: 20,
+  &quot;sortFields&quot;: &quot;createTime_d&quot;,
+  &quot;queryList&quot;: [
+    {&quot;key&quot;: &quot;unitId&quot;, &quot;value&quot;: 1, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;}
+  ]
+}
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pageIndex</td>
+<td>integer</td>
+<td>否</td>
+<td>页码索引，从 0 开始，默认 0</td>
+</tr>
+<tr>
+<td>pageSize</td>
+<td>integer</td>
+<td>否</td>
+<td>每页数量，默认 20</td>
+</tr>
+<tr>
+<td>sortFields</td>
+<td>string</td>
+<td>否</td>
+<td>排序字段，格式：<code>字段名_asc/desc</code></td>
+</tr>
+<tr>
+<td>queryList</td>
+<td>array</td>
+<td>否</td>
+<td>查询条件列表</td>
+</tr>
+<tr>
+<td>queryList[].key</td>
+<td>string</td>
+<td>否</td>
+<td>查询字段名</td>
+</tr>
+<tr>
+<td>queryList[].value</td>
+<td>string/number</td>
+<td>否</td>
+<td>查询值</td>
+</tr>
+<tr>
+<td>queryList[].oper</td>
+<td>string</td>
+<td>否</td>
+<td>操作符：<code>=</code> / <code>!=</code> / <code>&gt;</code> / <code>&lt;</code> / <code>like</code></td>
+</tr>
+<tr>
+<td>queryList[].join</td>
+<td>string</td>
+<td>否</td>
+<td>连接方式：<code>and</code> / <code>or</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: {
+    &quot;records&quot;: [
+      {
+        &quot;orderId&quot;: &quot;ORDER-002&quot;,
+        &quot;txId&quot;: &quot;0x...&quot;,
+        &quot;cpAddress&quot;: &quot;0x...&quot;,
+        &quot;amount&quot;: &quot;500&quot;,
+        &quot;coinId&quot;: &quot;USDT&quot;,
+        &quot;network&quot;: &quot;TRC20&quot;,
+        &quot;orderState&quot;: &quot;SUCCEED&quot;,
+        &quot;type&quot;: 1,
+        &quot;initiator&quot;: 1,
+        &quot;createTime&quot;: &quot;2026-04-13T10:00:00Z&quot;
+      }
+    ],
+    &quot;total&quot;: 30,
+    &quot;size&quot;: 20,
+    &quot;current&quot;: 1
+  }
+}
+</code></pre>
+
+<h4 id="3312">3.3.12 查询资金流水（账户级）</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/fund-records</code></p>
+<p>分页查询资金流水，记录每笔资金变动明细。</p>
+<blockquote>
+<p>Body Parameters</p>
+</blockquote>
+<pre class="codehilite"><code class="language-json">{
+  &quot;pageIndex&quot;: 0,
+  &quot;pageSize&quot;: 20,
+  &quot;sortFields&quot;: &quot;createTime_d&quot;,
+  &quot;queryList&quot;: [
+    {&quot;key&quot;: &quot;unitId&quot;, &quot;value&quot;: 1, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;},
+    {&quot;key&quot;: &quot;coinId&quot;, &quot;value&quot;: &quot;USDT&quot;, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;},
+    {&quot;key&quot;: &quot;txType&quot;, &quot;value&quot;: &quot;TRANSFER_OUT&quot;, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;}
+  ]
+}
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pageIndex</td>
+<td>integer</td>
+<td>否</td>
+<td>页码索引，从 0 开始，默认 0</td>
+</tr>
+<tr>
+<td>pageSize</td>
+<td>integer</td>
+<td>否</td>
+<td>每页数量，默认 20</td>
+</tr>
+<tr>
+<td>sortFields</td>
+<td>string</td>
+<td>否</td>
+<td>排序字段，格式：<code>字段名_asc/desc</code></td>
+</tr>
+<tr>
+<td>queryList</td>
+<td>array</td>
+<td>否</td>
+<td>查询条件列表</td>
+</tr>
+<tr>
+<td>queryList[].key</td>
+<td>string</td>
+<td>否</td>
+<td>查询字段名，可选值：<code>unitId</code> / <code>coinId</code> / <code>network</code> / <code>txType</code> / <code>accountType</code></td>
+</tr>
+<tr>
+<td>queryList[].value</td>
+<td>string/number</td>
+<td>否</td>
+<td>查询值</td>
+</tr>
+<tr>
+<td>queryList[].oper</td>
+<td>string</td>
+<td>否</td>
+<td>操作符：<code>=</code> / <code>!=</code> / <code>&gt;</code> / <code>&lt;</code> / <code>like</code></td>
+</tr>
+<tr>
+<td>queryList[].join</td>
+<td>string</td>
+<td>否</td>
+<td>连接方式：<code>and</code> / <code>or</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: {
+    &quot;records&quot;: [
+      {
+        &quot;id&quot;: 1,
+        &quot;txId&quot;: &quot;0x...&quot;,
+        &quot;coinId&quot;: &quot;USDT&quot;,
+        &quot;network&quot;: &quot;TRC20&quot;,
+        &quot;amount&quot;: &quot;100&quot;,
+        &quot;preBalance&quot;: &quot;1000&quot;,
+        &quot;postBalance&quot;: &quot;900&quot;,
+        &quot;fee&quot;: &quot;1&quot;,
+        &quot;txType&quot;: &quot;TRANSFER_OUT&quot;,
+        &quot;createTime&quot;: &quot;2026-04-13T10:00:00Z&quot;
+      }
+    ],
+    &quot;total&quot;: 200,
+    &quot;size&quot;: 20,
+    &quot;current&quot;: 1
+  }
+}
+</code></pre>
+
+<p><strong>txType 枚举值</strong></p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TRANSFER_IN</td>
+<td>转入</td>
+</tr>
+<tr>
+<td>TRANSFER_OUT</td>
+<td>转出</td>
+</tr>
+<tr>
+<td>ALLOCATE_IN</td>
+<td>调拨转入</td>
+</tr>
+<tr>
+<td>ALLOCATE_OUT</td>
+<td>调拨转出</td>
+</tr>
+<tr>
+<td>POOL_IN</td>
+<td>归集转入</td>
+</tr>
+<tr>
+<td>POOL_OUT</td>
+<td>归集转出</td>
+</tr>
+<tr>
+<td>GAS_OUT</td>
+<td>Gas消耗</td>
+</tr>
+<tr>
+<td>FEE_OUT</td>
+<td>手续费</td>
+</tr>
+</tbody>
+</table>
+<h4 id="3313">3.3.13 查询资金流水（财务单元级）</h4>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/unit-fund-records</code></p>
+<p>分页查询财务单元级别的资金流水，汇总财务单元下所有账户的资金变动。</p>
+<blockquote>
+<p>Body Parameters</p>
+</blockquote>
+<pre class="codehilite"><code class="language-json">{
+  &quot;pageIndex&quot;: 0,
+  &quot;pageSize&quot;: 20,
+  &quot;sortFields&quot;: &quot;createTime_d&quot;,
+  &quot;queryList&quot;: [
+    {&quot;key&quot;: &quot;unitId&quot;, &quot;value&quot;: 1, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;},
+    {&quot;key&quot;: &quot;coinId&quot;, &quot;value&quot;: &quot;USDT&quot;, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;},
+    {&quot;key&quot;: &quot;txType&quot;, &quot;value&quot;: &quot;TRANSFER_OUT&quot;, &quot;oper&quot;: &quot;=&quot;, &quot;join&quot;: &quot;and&quot;}
+  ]
+}
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pageIndex</td>
+<td>integer</td>
+<td>否</td>
+<td>页码索引，从 0 开始，默认 0</td>
+</tr>
+<tr>
+<td>pageSize</td>
+<td>integer</td>
+<td>否</td>
+<td>每页数量，默认 20</td>
+</tr>
+<tr>
+<td>sortFields</td>
+<td>string</td>
+<td>否</td>
+<td>排序字段，格式：<code>字段名_asc/desc</code></td>
+</tr>
+<tr>
+<td>queryList</td>
+<td>array</td>
+<td>否</td>
+<td>查询条件列表</td>
+</tr>
+<tr>
+<td>queryList[].key</td>
+<td>string</td>
+<td>否</td>
+<td>查询字段名，可选值：<code>unitId</code> / <code>coinId</code> / <code>network</code> / <code>txType</code></td>
+</tr>
+<tr>
+<td>queryList[].value</td>
+<td>string/number</td>
+<td>否</td>
+<td>查询值</td>
+</tr>
+<tr>
+<td>queryList[].oper</td>
+<td>string</td>
+<td>否</td>
+<td>操作符：<code>=</code> / <code>!=</code> / <code>&gt;</code> / <code>&lt;</code> / <code>like</code></td>
+</tr>
+<tr>
+<td>queryList[].join</td>
+<td>string</td>
+<td>否</td>
+<td>连接方式：<code>and</code> / <code>or</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;Success&quot;,
+  &quot;data&quot;: {
+    &quot;records&quot;: [
+      {
+        &quot;id&quot;: 1,
+        &quot;txId&quot;: &quot;0x...&quot;,
+        &quot;coinId&quot;: &quot;USDT&quot;,
+        &quot;network&quot;: &quot;TRC20&quot;,
+        &quot;amount&quot;: &quot;100&quot;,
+        &quot;preBalance&quot;: &quot;1000&quot;,
+        &quot;postBalance&quot;: &quot;900&quot;,
+        &quot;fee&quot;: &quot;1&quot;,
+        &quot;txType&quot;: &quot;TRANSFER_OUT&quot;,
+        &quot;createTime&quot;: &quot;2026-04-13T10:00:00Z&quot;
+      }
+    ],
+    &quot;total&quot;: 200,
+    &quot;size&quot;: 20,
+    &quot;current&quot;: 1
+  }
+}
+</code></pre>
+
+<ul>
+<li><code>txType</code> 枚举值与 3.3.12 账户级流水一致。</li>
+</ul>
+<hr />
+<h2 id="_23">四、错误码</h2>
+<table>
+<thead>
+<tr>
+<th>错误码</th>
+<th>HTTP状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>40101</td>
+<td>401</td>
+<td>签名验证失败</td>
+</tr>
+<tr>
+<td>40102</td>
+<td>401</td>
+<td>时间戳超出容差范围</td>
+</tr>
+<tr>
+<td>40103</td>
+<td>401</td>
+<td>Nonce 已使用（重放攻击）</td>
+</tr>
+<tr>
+<td>40104</td>
+<td>401</td>
+<td>缺少必填字段</td>
+</tr>
+<tr>
+<td>40105</td>
+<td>401</td>
+<td>应用不存在</td>
+</tr>
+<tr>
+<td>40106</td>
+<td>401</td>
+<td>应用未激活</td>
+</tr>
+<tr>
+<td>40107</td>
+<td>401</td>
+<td>三方平台账户未激活</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42">4.2 授权错误</h3>
+<table>
+<thead>
+<tr>
+<th>错误码</th>
+<th>HTTP状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>40301</td>
+<td>403</td>
+<td>资源未授权</td>
+</tr>
+<tr>
+<td>40901</td>
+<td>409</td>
+<td>授权已存在</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43">4.3 业务错误</h3>
+<table>
+<thead>
+<tr>
+<th>错误码</th>
+<th>HTTP状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>40001</td>
+<td>400</td>
+<td>缺少必填参数</td>
+</tr>
+<tr>
+<td>40002</td>
+<td>400</td>
+<td>参数格式错误</td>
+</tr>
+<tr>
+<td>40401</td>
+<td>404</td>
+<td>资源不存在</td>
+</tr>
+<tr>
+<td>42901</td>
+<td>429</td>
+<td>请求过于频繁</td>
+</tr>
+<tr>
+<td>50001</td>
+<td>500</td>
+<td>服务器内部错误</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sdk">五、SDK 示例</h2>
+<h3 id="51">5.1 签名计算</h3>
+<pre class="codehilite"><code class="language-typescript">import crypto from 'crypto';
 
 /**
  * Basic 签名算法 - 用于 OAuth 接口
@@ -1936,13 +2805,8 @@ function calculateBasicSignature(
   nonce: string,
   business: Record&lt;string, unknown&gt;
 ): string {
-  // Normalize empty business to {} for consistent signing
-  const normalizedBusiness = (!business || Object.keys(business).length === 0)
-    ? {}
-    : business;
-
   // 1. Sort and stringify business
-  const sortedBusiness = sortKeys(normalizedBusiness);
+  const sortedBusiness = sortKeys(business);
   const businessJson = JSON.stringify(sortedBusiness);
 
   // 2. Business MD5
@@ -1969,10 +2833,12 @@ const business = {
 
 const signature = calculateBasicSignature(
   appId, appSecret, timestamp, nonce, business
-);</code></pre>
+);
+</code></pre>
 
-                <h3>5.2 获取授权 URL</h3>
-                <pre><code>async function getAuthorizeUrl(
+<h3 id="52-url">5.2 获取授权 URL 并打开授权页面</h3>
+<pre class="codehilite"><code class="language-typescript">// 1. 后端：获取授权 URL
+async function getAuthorizeUrl(
   appId: string,
   appSecret: string,
   permissions: string[],
@@ -2006,10 +2872,43 @@ const signature = calculateBasicSignature(
   }
 
   return result.data.authorizeUrl;
-}</code></pre>
+}
 
-                <h3>5.3 打开授权页面</h3>
-                <pre><code>import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
+// 2. 前端：使用 SDK 打开授权页面
+import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
+
+const sdk = new CregisWebSDK({
+  appId: 'your-app-id',
+  container: document.getElementById('auth-container'),
+  authUrl: 'https://custody.cregis.ae/openplatform/auth/authorize',
+  mode: 'popup', // popup | tab | window
+
+  // 事件回调
+  onReady: ({ uuid }) =&gt; {
+    console.log('授权页面已就绪, UUID:', uuid);
+  },
+
+  onAuthorizationStarted: () =&gt; {
+    console.log('用户点击了授权按钮');
+  },
+
+  onAuthorizationComplete: ({ authorizeId }) =&gt; {
+    console.log('授权成功, authorizeId:', authorizeId);
+  },
+
+  onAuthorizationError: ({ code, message }) =&gt; {
+    console.error('授权失败:', code, message);
+  },
+
+  onAuthorizationCancelled: () =&gt; {
+    console.log('用户取消授权');
+  },
+});
+
+### 5.3 打开授权页面
+
+```typescript
+import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
 
 const sdk = new CregisWebSDK({
   container: '#auth-container',    // CSS 选择器或 DOM 元素
@@ -2065,189 +2964,135 @@ async function authorize() {
   } catch (error) {
     console.error('授权异常:', error.message);
   }
-}</code></pre>
+}
+</code></pre>
 
-                <h3>5.4 打开模式说明</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>模式</th>
-                            <th>说明</th>
-                            <th>通信方式</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>popup</code></td>
-                            <td>在 iframe 弹窗中打开授权页面</td>
-                            <td>postMessage</td>
-                        </tr>
-                        <tr>
-                            <td><code>tab</code></td>
-                            <td>在新浏览器标签页中打开</td>
-                            <td>window.opener.postMessage</td>
-                        </tr>
-                        <tr>
-                            <td><code>window</code></td>
-                            <td>在新的浏览器窗口中打开</td>
-                            <td>window.opener.postMessage</td>
-                        </tr>
-                    </tbody>
-                </table>
+<h3 id="54">5.4 打开模式说明</h3>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>说明</th>
+<th>通信方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>popup</code></td>
+<td>在 iframe 弹窗中打开授权页面</td>
+<td>postMessage</td>
+</tr>
+<tr>
+<td><code>tab</code></td>
+<td>在新浏览器标签页中打开</td>
+<td>window.opener.postMessage</td>
+</tr>
+<tr>
+<td><code>window</code></td>
+<td>在新浏览器窗口中打开</td>
+<td>window.opener.postMessage</td>
+</tr>
+</tbody>
+</table>
+<h3 id="55">5.5 安全机制</h3>
+<p>SDK 使用 UUID 机制防止跨域消息污染：</p>
+<ol>
+<li>SDK 初始化时生成唯一 UUID</li>
+<li>UUID 通过 <code>sdkUuid</code> 参数添加到授权 URL</li>
+<li>SDK 和授权页面之间的所有消息都携带 UUID</li>
+<li>UUID 不匹配的消息将被拒绝</li>
+</ol>
+<hr />
+<h2 id="sdk_1">六、SDK 集成指南</h2>
+<h3 id="61-sdk">6.1 SDK 能力速览</h3>
+<p>Cregis 提供两种 SDK，覆盖前后端集成场景：</p>
+<table>
+<thead>
+<tr>
+<th>SDK</th>
+<th>包名</th>
+<th>语言</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Node.js SDK</strong></td>
+<td><code>@cregis-kit/openplatform-node</code></td>
+<td>TypeScript/JavaScript</td>
+<td>后端业务接口调用</td>
+</tr>
+<tr>
+<td><strong>Web SDK</strong></td>
+<td><code>@cregis-kit/openplatform-webkit</code></td>
+<td>TypeScript/JavaScript</td>
+<td>前端授权页面嵌入</td>
+</tr>
+</tbody>
+</table>
+<p><strong>安装命令：</strong></p>
+<pre class="codehilite"><code class="language-bash"># Node.js SDK
+npm install @cregis-kit/openplatform-node
 
-                <h3>5.5 安全机制</h3>
-                <p>SDK 使用 UUID 机制防止跨域消息污染：</p>
-                <ol>
-                    <li>SDK 初始化时生成唯一 UUID</li>
-                    <li>UUID 通过 <code>sdkUuid</code> 参数添加到授权 URL</li>
-                    <li>SDK 和授权页面之间的所有消息都携带 UUID</li>
-                    <li>UUID 不匹配的消息将被拒绝</li>
-                </ol>
-            </section>
+# Web SDK
+npm install @cregis-kit/openplatform-webkit
+</code></pre>
 
-            <!-- Notes Section -->
-            <section id="notes" class="section">
-                <h2>注意事项</h2>
+<p><strong>最小依赖：</strong></p>
+<ul>
+<li>Node.js SDK: Node.js &gt;= 18.0.0</li>
+<li>Web SDK: 现代浏览器（支持 iframe 和 postMessage）</li>
+</ul>
+<hr />
+<h3 id="62">6.2 架构概览</h3>
+<div class="mermaid">
+graph TB
+    subgraph 开发者应用
+        FE[前端应用<br/>Web SDK]
+        BE[后端服务<br/>Node.js SDK]
+    end
 
-                <div class="warning">
-                    <strong>签名时效:</strong> 每次请求需要生成新的 timestamp 和 nonce
-                </div>
+    subgraph Cregis
+        AUTH[授权页面]
+        API[开放平台 API]
+        CUSTODY[Custody 服务]
+    end
 
-                <div class="warning">
-                    <strong>Nonce 防重放:</strong> 相同 nonce 在 1 小时内不可重复使用
-                </div>
+    FE -->|1. 打开授权页| AUTH
+    AUTH -->|2. postMessage| FE
+    FE -->|3. 传递 oauthToken| BE
+    BE -->|4. 获取 authorizeId| API
+    API -->|5. 验证授权| CUSTODY
+    BE -->|6. 业务接口| API
 
-                <div class="warning">
-                    <strong>时间同步:</strong> 确保服务器时间与 UTC 时间同步，误差不超过 5 分钟
-                </div>
+    style FE fill:#e1f5fe
+    style BE fill:#fff3e0
+    style AUTH fill:#f3e5f5
+    style API fill:#e8f5e9
+</div>
 
-                <div class="danger">
-                    <strong>敏感信息:</strong> appSecret 仅在服务端使用，切勿暴露在客户端
-                </div>
-
-                <div class="note">
-                    <strong>错误处理:</strong> 收到错误码时应根据文档进行相应处理
-                </div>
-
-                <div class="note">
-                    <strong>UUID 验证:</strong> SDK 与授权页面通过 UUID 进行双向消息验证
-                </div>
-
-                <div class="warning">
-                    <strong>回调签名验证:</strong> 接收回调通知时必须验证 HMAC-SHA256 签名，确保消息来源可靠
-                </div>
-
-                <div class="warning">
-                    <strong>回调幂等处理:</strong> 回调处理器应支持幂等操作，避免重复处理同一事件
-                </div>
-
-                <div class="warning">
-                    <strong>回调快速响应:</strong> 回调处理应快速返回 200，避免长时间处理导致超时
-                </div>
-            </section>
-
-            <!-- SDK Integration Section -->
-            <section id="sdk-overview" class="section">
-                <h2>六、SDK 集成指南</h2>
-
-                <h3>6.1 概述</h3>
-                <p>开放平台提供两种官方 SDK，帮助开发者快速接入：</p>
-
-                <table>
-                    <thead>
-                        <tr><th>SDK</th><th>包名</th><th>适用场景</th><th>认证方式</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Node.js SDK</strong></td>
-                            <td><code>@cregis-kit/openplatform-node</code></td>
-                            <td>后端服务集成</td>
-                            <td>自动处理签名计算</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Web SDK</strong></td>
-                            <td><code>@cregis-kit/openplatform-webkit</code></td>
-                            <td>前端页面集成</td>
-                            <td>处理授权弹窗通信</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="note">
-                    <strong>一句话定位：</strong> Node SDK 让后端安全接入，Web SDK 让前端轻松集成授权页面。
-                </div>
-
-                <h3>6.2 能力速览</h3>
-
-                <h4>Node.js SDK 能力</h4>
-                <table>
-                    <thead>
-                        <tr><th>能力</th><th>方法</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>授权 URL</td><td><code>getAuthorizationUrl()</code></td><td>获取授权页面 URL</td></tr>
-                        <tr><td>财务单元</td><td><code>createTreasuryUnit()</code></td><td>创建托管钱包</td></tr>
-                        <tr><td>出金操作</td><td><code>createPayout()</code></td><td>发起加密资产转账</td></tr>
-                        <tr><td>任务审批</td><td><code>submitTask()</code></td><td>提交多签审批</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>Web SDK 能力</h4>
-                <table>
-                    <thead>
-                        <tr><th>组件</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><code>CregisWebSDK</code></td><td>授权页面管理，支持 popup/tab/window 三种模式</td></tr>
-                        <tr><td><code>TransferTaskDetailDialog</code></td><td>转账任务详情展示组件，用于审批流程</td></tr>
-                    </tbody>
-                </table>
-
-                <h3 id="sdk-architecture">6.3 架构概览</h3>
-
-                <div class="diagram-container">
-                    <div class="diagram-title">SDK 集成架构</div>
-                    <pre class="mermaid">
-sequenceDiagram
-    participant FE as 第三方前端
-    participant CS as Custody 服务
-    participant OP as 开放平台
-    participant AuthPage as 授权页面
-
-    CS->>OP: Basic 签名请求获取授权 URL
-    OP-->>CS: authorizeUrl
-    CS-->>FE: authorizeUrl
-
-    FE->>AuthPage: 打开授权页面
-    AuthPage->>OP: 用户登录授权
-    OP-->>AuthPage: oauthToken
-    AuthPage-->>FE: 授权成功消息
-    FE-->>CS: 回调通知 authorizeId
-    CS->>OP: 使用 authorizeId 调用业务接口
-
-    Note over CS,OP: 授权完成后返回 authorizeId，用于后续所有业务接口调用
-                    </pre>
-                </div>
-
-                <div class="success">
-                    <strong>关键流程：</strong> 通过 authorizeId 调用开放平台业务接口（Custody 服务通过 Node.js SDK 或直接调用）
-                </div>
-
-                <h3 id="sdk-nodejs">6.4 Node.js SDK 集成</h3>
-
-                <h4>安装</h4>
-                <pre><code>npm install @cregis-kit/openplatform-node</code></pre>
-
-                <h4>初始化与授权</h4>
-                <pre><code>import { CregisSDK } from '@cregis-kit/openplatform-node';
+<p><strong>前后端分工：</strong></p>
+<ul>
+<li><strong>后端 (Node.js SDK)</strong>: 处理所有需要签名的业务接口调用，包括获取授权 URL、验证授权、创建 Treasury Unit、创建 Payout 等</li>
+<li><strong>前端 (Web SDK)</strong>: 嵌入授权页面，展示 TransferTaskDetailDialog，接收授权结果并传递给后端</li>
+</ul>
+<hr />
+<h3 id="63-nodejs-sdk">6.3 Node.js SDK 集成</h3>
+<p>Node.js SDK 提供扁平化 API，所有方法直接在 <code>CregisSDK</code> 类上。</p>
+<p><strong>初始化：</strong></p>
+<pre class="codehilite"><code class="language-typescript">import { CregisSDK } from '@cregis-kit/openplatform-node';
 
 const sdk = new CregisSDK({
-  baseUrl: 'http://api.vaulink.com/openplatform/',  // 测试沙盒网关地址
-  appId: 'your-app-id-uuid',
-  appSecret: 'your-app-secret',
+  baseUrl: 'https://custody-sit.cregis.ae/openplatform/',  // 测试沙盒网关地址
+  appId: 'your-app-id-uuid',    // 在开发者门户获取
+  appSecret: 'your-app-secret', // 在开发者门户获取
+  timeout: 30000,
+  debug: false,
 });
+</code></pre>
 
-// 获取授权 URL
+<p><strong>认证流程（后端）：</strong></p>
+<pre class="codehilite"><code class="language-typescript">// 1. 获取授权 URL
 const { authorizeUrl } = await sdk.getAuthorizationUrl({
   permissions: ['treasury:create', 'payout:create'],
   state: 'random-state-string',
@@ -2255,84 +3100,102 @@ const { authorizeUrl } = await sdk.getAuthorizationUrl({
   token: 'developer-token-xyz',
 });
 
-// 授权成功后，开放平台自动完成验证和存储
-// 前端会收到 oauthToken（用于调试/日志），但无需开发者调用验证接口
+// 2. 将 authorizeUrl 传给前端，让用户完成授权
 
-// 直接使用 authorizeId 调用业务接口
-const unit = await sdk.createTreasuryUnit(authorizeId, request);
-const payout = await sdk.createPayout(authorizeId, payoutRequest);
-                </code></pre>
+// 3. 授权成功后，开放平台自动完成验证和存储
+//    前端会收到 oauthToken（用于调试/日志），但无需开发者调用验证接口
 
-                <h4>财务单元管理</h4>
-                <pre><code>// 创建财务单元
-const unit = await sdk.createTreasuryUnit(authorizeId, {
+// 4. 直接使用 authorizeId 调用业务接口
+//    authorizeId 由开放平台在授权成功后回调提供
+</code></pre>
+
+<p><strong>创建 Treasury Unit：</strong></p>
+<pre class="codehilite"><code class="language-typescript">const treasury = await sdk.createTreasuryUnit(authorizeId, {
   businessScope: 'DEDICATED_ACCOUNT',
-  topology: 'ORBIT',
-  coinIds: [{ coinId: 'USDT', network: 'TRC20' }],
-  primaryManager: [{ coinId: 'USDT', fundControlRules: [...] }],
+  topology: 'SINGLE_GENERAL',
+  coinIds: [{ coinId: 'BTC', network: 'BTC' }],
+  primaryManager: [...],
   payoutManager: [...],
   riskManager: [...],
 });
 
-// 查询列表
-const units = await sdk.listTreasuryUnits(authorizeId, { pageSize: 10 });
+// treasury.id 即后续接口需要的 unitId
+console.log('Treasury Unit ID:', treasury.id);
+</code></pre>
 
-// 获取地址
-const addresses = await sdk.getTreasuryUnitAddress(authorizeId, { unitId: 1 });
-                </code></pre>
-
-                <h4>出金操作</h4>
-                <pre><code>// 创建出金订单
-const payout = await sdk.createPayout(authorizeId, {
-  unitId: 1,
-  payTo: [{ address: '0xabcd...', amount: '10000' }],
-  coinId: 'USDT',
-  network: 'TRC20',
+<p><strong>创建 Payout：</strong></p>
+<pre class="codehilite"><code class="language-typescript">const payout = await sdk.createPayout(authorizeId, {
+  unitId: treasury.id,  // 来自 createTreasuryUnit 返回的 id
+  payTo: [{ address: 'bc1q...', amount: '0.01' }],
+  coinId: 'BTC',
+  network: 'BTC',
   merchantType: 'payment',
 });
 
-// 查询出金订单
-const orders = await sdk.listTransferOutOrders(authorizeId, { pageIndex: 0, pageSize: 20 });
-                </code></pre>
+console.log('Order ID:', payout.orderId);
+</code></pre>
 
-                <h4>任务审批</h4>
-                <pre><code>// 提交审批（确认/拒绝）
-const result = await sdk.submitTask(authorizeId, taskId, {
-  confirmed: true,      // true = 确认，false = 拒绝
-  signatures: { [taskId]: ['sig1', 'sig2'] },
-});
-                </code></pre>
-
-                <h4>错误处理</h4>
-                <pre><code>import { CregisSDK, SDKError, SDKErrorCode } from '@cregis-kit/openplatform-node';
-
-try {
-  const result = await sdk.createTreasuryUnit(authorizeId, request);
-} catch (error) {
-  if (error instanceof SDKError) {
-    console.error('SDK Error:', {
-      code: error.code,           // SDKErrorCode 枚举值
-      message: error.message,    // 错误描述
-      httpStatus: error.httpStatus,
-      isRetryable: error.isRetryable,  // 是否可重试
-    });
-
-    // 根据错误类型处理
-    if (error.code === SDKErrorCode.API_UNAUTHORIZED) {
-      // 认证失败，需要重新获取授权
-      console.log('需要重新授权');
-    }
-  }
-}
-                </code></pre>
-
-                <h3 id="sdk-web">6.5 Web SDK 集成</h3>
-
-                <h4>安装</h4>
-                <pre><code>npm install @cregis-kit/openplatform-webkit</code></pre>
-
-                <h4>授权页面集成</h4>
-                <pre><code>import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
+<p><strong>完整 API 方法列表：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>getAuthorizationUrl()</code></td>
+<td>获取授权 URL</td>
+</tr>
+<tr>
+<td><code>createTreasuryUnit()</code></td>
+<td>创建财务单元</td>
+</tr>
+<tr>
+<td><code>listTreasuryUnits()</code></td>
+<td>查询财务单元列表</td>
+</tr>
+<tr>
+<td><code>getTreasuryUnitAddress()</code></td>
+<td>获取财务单元地址</td>
+</tr>
+<tr>
+<td><code>createPayout()</code></td>
+<td>创建出金订单</td>
+</tr>
+<tr>
+<td><code>listTransferOutOrders()</code></td>
+<td>查询出金订单</td>
+</tr>
+<tr>
+<td><code>listTransferInOrders()</code></td>
+<td>查询入金订单</td>
+</tr>
+<tr>
+<td><code>submitTask()</code></td>
+<td>提交任务审批</td>
+</tr>
+<tr>
+<td><code>listActivities()</code></td>
+<td>查询活动记录</td>
+</tr>
+<tr>
+<td><code>listFundRecords()</code></td>
+<td>查询资金流水</td>
+</tr>
+<tr>
+<td><code>getConfig()</code></td>
+<td>获取配置（不含敏感信息）</td>
+</tr>
+</tbody>
+</table>
+<p>详细 API 文档请参考：<a href="../openplatform-sdk/node/README.md">Node.js SDK README</a></p>
+<hr />
+<h3 id="64-web-sdk">6.4 Web SDK 集成</h3>
+<p>Web SDK 用于在前端应用中嵌入 Cregis 授权页面和处理用户交互。</p>
+<p><strong>初始化授权 SDK：</strong></p>
+<pre class="codehilite"><code class="language-typescript">import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
 
 const sdk = new CregisWebSDK({
   container: '#auth-container',    // CSS 选择器或 DOM 元素（必填）
@@ -2341,15 +3204,15 @@ const sdk = new CregisWebSDK({
   // allowedOrigins: ['https://your-app.com'],  // 可选：限制 postMessage 来源
 
   // 事件回调
-  onReady: ({ uuid }) => {
+  onReady: ({ uuid }) =&gt; {
     console.log('SDK 已就绪, UUID:', uuid);
   },
 
-  onAuthorizationStarted: () => {
+  onAuthorizationStarted: () =&gt; {
     console.log('授权流程已开始');
   },
 
-  onAuthorizationComplete: ({ authorizeId }) => {
+  onAuthorizationComplete: ({ authorizeId }) =&gt; {
     console.log('授权完成:', authorizeId);
     // 将 authorizeId 发送给后端，用于后续业务接口调用
     fetch('/api/bind-authorization', {
@@ -2358,11 +3221,11 @@ const sdk = new CregisWebSDK({
     });
   },
 
-  onAuthorizationError: (error) => {
+  onAuthorizationError: (error) =&gt; {
     console.error('授权错误:', error.message);
   },
 
-  onAuthorizationCancelled: () => {
+  onAuthorizationCancelled: () =&gt; {
     console.log('授权已取消');
   },
 });
@@ -2385,13 +3248,14 @@ async function startAuthorization(authorizeUrl: string) {
 }
 
 // 页面卸载时清理资源
-window.addEventListener('beforeunload', () => {
+window.addEventListener('beforeunload', () =&gt; {
   sdk.destroy();
 });
-                </code></pre>
+</code></pre>
 
-                <h4>转账任务详情组件</h4>
-                <pre><code>import { openTransferTaskDetailDialog } from '@cregis-kit/openplatform-webkit';
+<p><strong>TransferTaskDetailDialog 集成：</strong></p>
+<p>TransferTaskDetailDialog 用于展示转账任务详情，支持多签审批流程。</p>
+<pre class="codehilite"><code class="language-typescript">import { openTransferTaskDetailDialog } from '@cregis-kit/openplatform-webkit';
 
 const taskData = {
   taskId: '#TRX-8829',
@@ -2399,84 +3263,75 @@ const taskData = {
   amount: '10000',
   coin: 'USDT',
   network: 'Ethereum',
-  from: { name: 'Corporate Treasury', address: '0x1234...', type: 'account' },
-  to: { name: 'Vendor Payment', address: '0xabcd...', type: 'external' },
-  meta: { unit: 'Everypay-Treasury', createdAt: '2024-01-15 10:30:00', expiresIn: '24h' },
+  from: { name: 'Treasury', address: '0x1234...', type: 'account' },
+  to: { name: 'Vendor', address: '0xabcd...', type: 'external' },
+  meta: {
+    unit: 'Everypay-Treasury',
+    createdAt: '2024-01-15 10:30:00',
+    expiresIn: '24h',
+  },
   approvalFlow: [
-    { name: 'Manager Approval', status: 'completed', actor: 'john@company.com' },
-    { name: 'CFO Approval', status: 'current' },
-    { name: 'Final Confirmation', status: 'pending' },
+    { name: 'Manager', status: 'completed', actor: 'manager@company.com' },
+    { name: 'CFO', status: 'current' },
+    { name: 'Final', status: 'pending' },
   ],
 };
 
-// 打开弹窗
-const dialog = openTransferTaskDetailDialog(taskData, {
+openTransferTaskDetailDialog(taskData, {
   title: 'Review Transfer',
-  onClose: () => console.log('Dialog closed'),
+  onClose: () =&gt; console.log('Closed'),
 });
-                </code></pre>
+</code></pre>
 
-                <h3 id="sdk-e2e">6.6 前后端配合完整示例</h3>
-
-                <div class="diagram-container">
-                    <div class="diagram-title">端到端集成流程</div>
-                    <pre class="mermaid">
+<p>详细 API 文档请参考：<a href="../openplatform-sdk/web/README.md">Web SDK README</a></p>
+<hr />
+<h3 id="65">6.5 前后端配合完整示例</h3>
+<p>以下示例展示从创建 Treasury Unit 到完成 Payout 的完整流程：</p>
+<div class="mermaid">
 sequenceDiagram
-    participant FE as 第三方前端
-    participant BE as 第三方后端
+    participant FE as 前端
+    participant BE as 后端服务
     participant CS as Custody 服务
     participant OP as 开放平台
-    participant AuthPage as 授权页面
 
-    Note over BE,OP: 阶段一：获取授权 URL
     FE->>BE: 1. 请求授权 URL
     BE->>CS: 2. getAuthorizationUrl()
-    CS->>OP: 3. POST /oauth/authorizeUrl
-    OP-->>CS: 4. authorizeUrl
-    CS-->>BE: 5. authorizeUrl
-    BE-->>FE: 6. authorizeUrl
+    CS-->>BE: 3. authorizeUrl
+    BE-->>FE: 4. authorizeUrl
+    FE->>OP: 5. 打开授权页面，用户授权
+    OP-->>BE: 6. 回调通知 callback<br/>(authorizeId, token)
+    Note over BE: 通过 token 关联用户身份
+    BE->>CS: 7. createTreasuryUnit(authorizeId)
+    CS-->>BE: 8. treasury.id
+    BE-->>FE: 9. treasury.id
+    FE->>BE: 10. 请求创建 Payout
+    BE->>CS: 11. createPayout(authorizeId, unitId)
+    CS-->>BE: 12. orderId, taskId
+    BE-->>FE: 13. taskId
+    FE->>FE: 14. openTransferTaskDetailDialog(taskData)
+    Note over FE: 用户查看详情并确认
+    FE->>BE: 15. submitTask(taskId, confirmed)
+    BE->>CS: 16. submitTask(authorizeId, taskId)
+    CS-->>BE: 17. success
+</div>
 
-    Note over FE,OP: 阶段二：用户授权
-    FE->>AuthPage: 7. 打开授权页面
-    AuthPage->>CS: 8. 用户身份验证
-    CS->>OP: 9. 身份验证请求
-    OP-->>CS: 10. 验证结果
-    AuthPage->>OP: 11. 用户授权
-    OP->>OP: 12. 生成 oauthToken + 存储
-
-    alt 有回调 URL
-        OP->>BE: 13. 回调 (oauthToken/authorizeId)
-    end
-
-    AuthPage-->>FE: 14. postMessage (oauthToken 或状态)
-    FE-->>BE: 15. 提交授权信息
-
-    Note over BE,OP: 阶段三：业务调用
-    BE->>CS: 16. createTreasuryUnit(authorizeId, ...)
-    CS->>OP: 17. POST /api/thirdparty/treasury/create
-    OP-->>CS: 18. treasury.id
-    CS-->>BE: 19. treasury.id
-                    </pre>
-                </div>
-
-                <h4>后端代码（Node.js SDK）</h4>
-                <pre><code>// server.js
-import { CregisSDK } from '@cregis-kit/openplatform-node';
+<p><strong>后端代码：</strong></p>
+<pre class="codehilite"><code class="language-typescript">import { CregisSDK } from '@cregis-kit/openplatform-node';
 
 const sdk = new CregisSDK({
   baseUrl: 'http://api.vaulink.com/openplatform/',  // 测试沙盒网关地址
-  appId: process.env.APP_ID,
-  appSecret: process.env.APP_SECRET,
+  appId: process.env.APP_ID!,
+  appSecret: process.env.APP_SECRET!,
 });
 
-// API: 获取授权 URL
-app.post('/api/authorize-url', async (req, res) => {
+// 获取授权 URL
+app.post('/api/authorize-url', async (req, res) =&gt; {
   const { customerId } = req.body; // 三方平台的用户 ID
 
   // 1. 生成 token 用于关联用户身份
   const token = generateOAuthToken(); // 开发者自己生成
 
-  // 2. 缓存 token -> customerId 映射
+  // 2. 缓存 token -&gt; customerId 映射
   await db.pendingAuthorizations.create({
     data: { token, customerId },
   });
@@ -2484,7 +3339,7 @@ app.post('/api/authorize-url', async (req, res) => {
   // 3. 调用 Custody 服务获取授权 URL
   const { authorizeUrl } = await sdk.getAuthorizationUrl({
     permissions: ['treasury:create', 'payout:create'],
-    state: generateState(),
+    state: crypto.randomUUID(),
     callback: 'https://your-app.com/callback',
     token,
   });
@@ -2492,7 +3347,7 @@ app.post('/api/authorize-url', async (req, res) => {
 });
 
 // 授权回调 - 接收开放平台的通知，通过 token 查找客户身份并绑定 authorizeId
-app.post('/api/callback', async (req, res) => {
+app.post('/api/callback', async (req, res) =&gt; {
   const { authorizeId, token } = req.body;
 
   // 在开发者数据库中查找 token 对应的客户身份
@@ -2519,252 +3374,190 @@ app.post('/api/callback', async (req, res) => {
   res.json({ success: true });
 });
 
-// API: 创建出金订单（使用 authorizeId）
-app.post('/api/payout', requireAuth, async (req, res) => {
+// 创建 Payout
+app.post('/api/payout', async (req, res) =&gt; {
   const authorizeId = req.session.authorizeId;
-  const payout = await sdk.createPayout(authorizeId, req.body);
-  res.json(payout);
+  const { unitId, address, amount, coinId, network } = req.body;
+
+  const payout = await sdk.createPayout(authorizeId, {
+    unitId,
+    payTo: [{ address, amount }],
+    coinId,
+    network,
+    merchantType: 'payment',
+  });
+
+  res.json({
+    orderId: payout.orderId,
+    unitId: payout.unitId,
+    status: payout.status,
+  });
 });
-                </code></pre>
 
-                <h4>前端代码（Web SDK）</h4>
-                <pre><code>// client.js
-import { CregisWebSDK, openTransferTaskDetailDialog } from '@cregis-kit/openplatform-webkit';
+// 提交任务审批
+app.post('/api/submit-task', async (req, res) =&gt; {
+  const authorizeId = req.session.authorizeId;
+  const { taskId, confirmed, signatures } = req.body;
 
-const sdk = new CregisWebSDK({
+  const result = await sdk.submitTask(authorizeId, taskId, {
+    confirmed,
+    signatures,
+  });
+
+  res.json(result);
+});
+</code></pre>
+
+<p><strong>前端代码：</strong></p>
+<pre class="codehilite"><code class="language-typescript">import { CregisWebSDK, openTransferTaskDetailDialog } from '@cregis-kit/openplatform-webkit';
+
+// 1. 初始化 Web SDK
+const authSdk = new CregisWebSDK({
   container: '#auth-container',
   mode: 'popup',
-  debug: false,
 
-  onAuthorizationComplete: async ({ authorizeId }) => {
-    console.log('授权完成, authorizeId:', authorizeId);
+  onAuthorizationComplete: async ({ authorizeId }) =&gt; {
+    // 将 authorizeId 发送给后端
+    await fetch('/api/bind-authorization', {
+      method: 'POST',
+      body: JSON.stringify({ authorizeId }),
+    });
   },
 
-  onAuthorizationError: (error) => {
+  onAuthorizationError: (error) =&gt; {
     console.error('授权失败:', error.message);
   },
 
-  onAuthorizationCancelled: () => {
+  onAuthorizationCancelled: () =&gt; {
     console.log('用户取消授权');
   },
 });
 
-// 发起授权
-async function startAuthorization() {
-  const resp = await fetch('/api/authorize-url', { method: 'POST' });
-  const { authorizeUrl } = await resp.json();
-  try {
-    const authResult = await sdk.openAuthorization(authorizeUrl);
-    if (authResult.status === 'success') {
-      console.log('授权成功, authorizeId:', authResult.authorizeId);
-    } else if (authResult.status === 'cancelled') {
-      console.log('用户取消授权');
-    } else {
-      console.error('授权失败:', authResult.error?.message);
-    }
-  } catch (error) {
-    console.error('授权异常:', error.message);
+// 2. 获取授权 URL 并打开授权页面
+const { authorizeUrl } = await fetch('/api/authorize-url').then(r =&gt; r.json());
+
+try {
+  const authResult = await authSdk.openAuthorization(authorizeUrl);
+  if (authResult.status === 'success') {
+    console.log('授权成功, authorizeId:', authResult.authorizeId);
+  } else if (authResult.status === 'cancelled') {
+    console.log('用户取消授权');
+  } else {
+    console.error('授权失败:', authResult.error?.message);
   }
+} catch (error) {
+  console.error('授权异常:', error.message);
 }
 
-// 页面卸载时清理资源
-window.addEventListener('beforeunload', () => {
-  sdk.destroy();
+// 3. 授权完成后，创建 Payout
+const payout = await fetch('/api/payout', {
+  method: 'POST',
+  body: JSON.stringify({
+    unitId: 123,
+    address: '0xabcd...',
+    amount: '10000',
+    coinId: 'USDT',
+    network: 'Ethereum',
+  }),
+}).then(r =&gt; r.json());
+
+// 4. 打开 TransferTaskDetailDialog 展示任务详情
+const taskData = {
+  taskId: `#TRX-${payout.orderId}`,
+  status: 'pending',
+  amount: '10000',
+  coin: 'USDT',
+  network: 'Ethereum',
+  from: { name: 'Treasury', address: '0x1234...', type: 'account' },
+  to: { name: 'Vendor', address: '0xabcd...', type: 'external' },
+  meta: { unit: 'Everypay-Treasury', createdAt: new Date().toISOString(), expiresIn: '24h' },
+  approvalFlow: [
+    { name: 'Manager', status: 'completed', actor: 'manager@company.com' },
+    { name: 'CFO', status: 'current' },
+  ],
+};
+
+openTransferTaskDetailDialog(taskData, {
+  onClose: () =&gt; console.log('User closed dialog'),
 });
+</code></pre>
 
-// 显示转账审批弹窗
-function showPayoutDialog(taskId) {
-  const taskData = fetchTaskDetails(taskId);
-  openTransferTaskDetailDialog(taskData, {
-    onClose: () => console.log('审批弹窗已关闭'),
-  });
-}
-                </code></pre>
+<hr />
+<h3 id="66">6.6 安全模型</h3>
+<h4 id="_24">签名机制</h4>
+<p>SDK 自动处理签名，无需手动计算：</p>
+<ul>
+<li><strong>Basic Signature</strong>: 用于 OAuth 接口（<code>getAuthorizationUrl</code>）</li>
+<li><strong>Resource Signature</strong>: 用于业务接口（所有需要 <code>authorizeId</code> 的方法）</li>
+</ul>
+<pre class="codehilite"><code>Basic Signature = MD5(appSecret + appId + timestamp + nonce + MD5(sortedBusinessJSON))
+Resource Signature = MD5(appSecret + appId + authorizationId + timestamp + nonce + MD5(sortedBusinessJSON))
+</code></pre>
 
-                <h3 id="sdk-security">6.7 安全模型</h3>
-
-                <h4>签名机制</h4>
-                <p>SDK 自动处理签名，无需手动计算：</p>
-                <ul>
-                    <li><strong>Basic Signature</strong>: 用于 OAuth 接口（<code>getAuthorizationUrl</code>）</li>
-                    <li><strong>Resource Signature</strong>: 用于业务接口（所有需要 <code>authorizeId</code> 的方法）</li>
-                </ul>
-                <pre><code>Basic Signature = MD5(appSecret + appId + timestamp + nonce + MD5(sortedBusinessJSON))
-Resource Signature = MD5(appSecret + appId + authorizationId + timestamp + nonce + MD5(sortedBusinessJSON))</code></pre>
-                <p><strong>空 business 处理：</strong>当 <code>business</code> 为 <code>null</code>/<code>undefined</code>/<code>{}</code> 时，统一使用 <code>MD5("{}")</code> = <code>e3d974191d03905c53f39002987cc56f</code>。</p>
-
-                <h4>Node.js SDK 安全措施</h4>
-                <table>
-                    <thead>
-                        <tr><th>措施</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>自动签名计算</td>
-                            <td>SDK 内部自动完成 Basic Signature 和 Resource Signature 计算，无需暴露 appSecret</td>
-                        </tr>
-                        <tr>
-                            <td>时间戳生成</td>
-                            <td>自动生成符合要求的 timestamp，避免时间戳错误导致的签名失败</td>
-                        </tr>
-                        <tr>
-                            <td>Nonce 管理</td>
-                            <td>自动生成随机 nonce，符合防重放要求</td>
-                        </tr>
-                        <tr>
-                            <td>参数校验</td>
-                            <td>请求参数自动校验，避免格式错误</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h4>Web SDK 安全措施</h4>
-                <table>
-                    <thead>
-                        <tr><th>措施</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>UUID 双向验证</td>
-                            <td>SDK 实例与授权页面通过唯一 UUID 建立安全通信通道，防止跨域消息污染</td>
-                        </tr>
-                        <tr>
-                            <td>Origin 限制</td>
-                            <td>支持配置允许的 iframe 来源，增强安全性</td>
-                        </tr>
-                        <tr>
-                            <td>模式选择</td>
-                            <td>popup（iframe）、tab、window 三种模式，可根据场景选择安全级别</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h3 id="sdk-versions">6.8 版本和兼容性</h3>
-
-                <h4>Node.js SDK 版本要求</h4>
-                <table>
-                    <thead>
-                        <tr><th>要求</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>Node.js 版本</td><td>>= 18.0.0</td></tr>
-                        <tr><td>TypeScript</td><td>推荐使用，提供完整类型定义</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>Web SDK 版本要求</h4>
-                <table>
-                    <thead>
-                        <tr><th>要求</th><th>说明</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>浏览器</td><td>现代浏览器（Chrome, Firefox, Safari, Edge）</td></tr>
-                        <tr><td>ES6+</td><td>需要支持 ES6 模块和 async/await</td></tr>
-                    </tbody>
-                </table>
-
-                <h4>版本更新策略</h4>
-                <ul>
-                    <li><strong>主版本号：</strong>不兼容的 API 变更</li>
-                    <li><strong>次版本号：</strong>向后兼容的功能新增</li>
-                    <li><strong>修订号：</strong>向后兼容的问题修复</li>
-                </ul>
-
-                <div class="note">
-                    <strong>推荐做法：</strong>锁定 SDK 版本号在 package.json 中，定期评估并升级到最新稳定版本。
-                </div>
-            </section>
-
-            <footer style="margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border-color); color: var(--secondary-color); font-size: 13px;">
-                <p>如有问题，请联系技术支持。</p>
-                <p style="margin-top: 8px;">&copy; 2026 开放平台. All rights reserved.</p>
-            </footer>
-        </main>
-    </div>
-
-    <script>
-        // Initialize Mermaid
-        mermaid.initialize({
-            startOnLoad: true,
-            theme: 'base',
-            themeVariables: {
-                primaryColor: '#4A90D9',
-                primaryTextColor: '#333',
-                primaryBorderColor: '#4A90D9',
-                lineColor: '#666',
-                secondaryColor: '#f8f9fa',
-                tertiaryColor: '#fff',
-                noteBkgColor: '#e7f3ff',
-                noteTextColor: '#333',
-                noteBorderColor: '#4A90D9',
-                actorBkg: '#4A90D9',
-                actorBorder: '#4A90D9',
-                actorTextColor: '#fff',
-                actorLineColor: '#666',
-                signalColor: '#333',
-                signalTextColor: '#333',
-                sequenceNumberColor: '#fff'
-            },
-            sequence: {
-                diagramMarginX: 50,
-                diagramMarginY: 10,
-                actorMargin: 80,
-                width: 180,
-                height: 65,
-                boxMargin: 10,
-                boxTextMargin: 5,
-                noteMargin: 10,
-                messageMargin: 40,
-                mirrorActors: false,
-                useMaxWidth: true,
-                rightAngles: false,
-                showSequenceNumbers: true
-            }
-        });
-
-        // Scroll spy for navigation
-        document.addEventListener('DOMContentLoaded', function() {
-            const sections = document.querySelectorAll('section[id]');
-            const navItems = document.querySelectorAll('.nav-item');
-
-            window.addEventListener('scroll', function() {
-                let current = '';
-                sections.forEach(section => {
-                    const sectionTop = section.offsetTop;
-                    if (window.scrollY >= sectionTop - 100) {
-                        current = section.getAttribute('id');
-                    }
-                });
-
-                navItems.forEach(item => {
-                    item.classList.remove('active');
-                    if (item.getAttribute('href') === '#' + current) {
-                        item.classList.add('active');
-                    }
-                });
-            });
-
-            // Smooth scroll for TOC links
-            document.querySelectorAll('.toc-list a, .nav-item').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href').substring(1);
-                    const target = document.getElementById(targetId);
-                    if (target) {
-                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                });
-            });
-
-            // Re-render mermaid on window resize
-            let resizeTimeout;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(function() {
-                    mermaid.run();
-                }, 250);
-            });
-        });
-    </script>
+<p><strong>空 business 处理：</strong> 当 <code>business</code> 为 <code>null</code>/<code>undefined</code>/<code>{}</code> 时，统一使用 <code>MD5("{}")</code> = <code>e3d974191d03905c53f39002987cc56f</code>。</p>
+<h4 id="_25">密钥管理</h4>
+<ol>
+<li><strong>appSecret 仅在后端使用</strong>，切勿暴露在客户端代码中</li>
+<li><strong>authorizeId</strong> 属于敏感信息，应存储在服务端 session 中</li>
+<li>使用环境变量管理密钥，不要硬编码在代码中</li>
+</ol>
+<h4 id="uuid">UUID 防跨域攻击</h4>
+<p>Web SDK 使用 UUID 机制防止跨域消息污染：</p>
+<ol>
+<li>SDK 实例化时生成唯一 UUID</li>
+<li>UUID 通过 URL 参数传递给授权页面</li>
+<li>所有 postMessage 消息都携带 UUID 进行验证</li>
+<li>UUID 不匹配的消息将被拒绝</li>
+</ol>
+<hr />
+<h3 id="67">6.7 版本和兼容性</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>版本要求</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node.js SDK</td>
+<td>Node.js &gt;= 18.0.0</td>
+<td>推荐使用 LTS 版本</td>
+</tr>
+<tr>
+<td>Web SDK</td>
+<td>现代浏览器</td>
+<td>支持 Chrome、Firefox、Safari、Edge 最新版</td>
+</tr>
+<tr>
+<td>TypeScript</td>
+<td>&gt;= 4.5</td>
+<td>完整类型定义支持</td>
+</tr>
+</tbody>
+</table>
+<p><strong>详细文档：</strong></p>
+<ul>
+<li><a href="../openplatform-sdk/node/README.md">Node.js SDK README</a></li>
+<li><a href="../openplatform-sdk/web/README.md">Web SDK README</a></li>
+</ul>
+<hr />
+<h2 id="_26">七、注意事项</h2>
+<ol>
+<li><strong>签名时效</strong>: 每次请求需要生成新的 timestamp 和 nonce</li>
+<li><strong>Nonce 防重放</strong>: 相同 nonce 在 1 小时内不可重复使用</li>
+<li><strong>时间同步</strong>: 确保服务器时间与 UTC 时间同步，误差不超过 5 分钟</li>
+<li><strong>敏感信息</strong>: appSecret 仅在服务端使用，切勿暴露在客户端</li>
+<li><strong>错误处理</strong>: 收到错误码时应根据文档进行相应处理</li>
+<li><strong>UUID 验证</strong>: SDK 与授权页面通过 UUID 进行双向消息验证</li>
+<li><strong>回调签名验证</strong>: 接收回调通知时必须验证 HMAC-SHA256 签名，确保消息来源可靠</li>
+<li><strong>回调幂等处理</strong>: 回调处理器应支持幂等操作，避免重复处理同一事件</li>
+<li><strong>回调快速响应</strong>: 回调处理应快速返回 200，避免长时间处理导致超时</li>
+</ol>
+<hr />
+<h2 id="_27">八、联系方式</h2>
+<p>如有问题，请联系技术支持。</p>
+    </main>
 </body>
 </html>

@@ -193,6 +193,25 @@ export async function approveApplication(req: Request, res: Response): Promise<v
       }
       await tx.developerAudit.create({ data: auditData })
 
+      // Auto-create trial subscription for new developer
+      const trialPackage = await tx.package.findFirst({
+        where: { packageCode: 'TRIAL', status: 'active' },
+      })
+      if (trialPackage) {
+        const now = new Date()
+        const trialEndDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+        await tx.subscription.create({
+          data: {
+            developerId: dev.id,
+            packageId: trialPackage.id,
+            status: 'active',
+            startDate: now,
+            endDate: trialEndDate,
+            billingCycle: 'trial',
+          },
+        })
+      }
+
       return dev
     })
 

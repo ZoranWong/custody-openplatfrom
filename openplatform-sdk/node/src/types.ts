@@ -1,63 +1,18 @@
 /**
  * Cregis OpenPlatform Node.js SDK
- * Type definitions
+ * Complete type definitions aligned with custody API YAML specification
  */
 
-/**
- * SDK Configuration
- */
+// ============ Core Types ============
+
 export interface SDKConfig {
-  /** API Base URL */
   baseUrl: string;
-  /** Application ID (UUID) */
   appId: string;
-  /** Application Secret */
   appSecret: string;
-  /** Timeout in milliseconds (default: 30000) */
   timeout?: number;
-  /** Enable debug mode */
   debug?: boolean;
 }
 
-/**
- * OAuth Token Response
- */
-export interface OAuthToken {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  tokenType: string;
-}
-
-/**
- * Authorization Result
- */
-export interface AuthorizationResult {
-  authorizeId: string;
-  authorizeUrl?: string;
-  expiresIn?: number;
-}
-
-/**
- * Basic Info for Signature
- */
-export interface BasicInfo {
-  appId: string;
-  timestamp: number;
-  nonce: string;
-  signature: string;
-}
-
-/**
- * Basic Info with Authorization
- */
-export interface BasicInfoWithAuthorization extends BasicInfo {
-  authorizationId: string;
-}
-
-/**
- * Standard API Response
- */
 export interface ApiResponse<T = unknown> {
   code: number;
   message: string;
@@ -65,48 +20,65 @@ export interface ApiResponse<T = unknown> {
   traceId?: string;
 }
 
-/**
- * Pagination Response
- */
 export interface PaginatedResponse<T = unknown> {
-  list: T[];
+  records: T[];
   total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  current: number;
+  size: number;
+  pages: number;
+}
+
+// ============ Signature Types ============
+
+export interface BasicInfo {
+  appId: string;
+  timestamp: number;
+  nonce: string;
+  signature: string;
+}
+
+export interface BasicInfoWithAuthorization extends BasicInfo {
+  authorizationId: string;
+}
+
+// ============ OAuth Types ============
+
+export interface OAuthToken {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  tokenType: string;
+}
+
+export interface AuthorizationResult {
+  authorizeId: string;
+  authorizeUrl?: string;
+  expiresIn?: number;
+}
+
+export interface GetAuthorizationUrlRequest {
+  permissions: string[];
+  state: string;
+  callback?: string;
+  token?: string;
+}
+
+export interface VerifyOAuthTokenRequest {
+  oauthToken: string;
 }
 
 // ============ Treasury Unit Types ============
 
-/**
- * Business Scope types
- */
 export type BusinessScope = 'DEDICATED_ACCOUNT' | 'OMNIBUS_ACCOUNT' | 'OPEN_API_PROXY';
-
-/**
- * Topology types
- */
 export type Topology = 'ORBIT' | 'SINGLE_GENERAL' | 'QUAD_SMART_ISOLATION';
+export type AccountType = 'PRIMARY' | 'PAYIN' | 'PAYOUT' | 'QUARANTINE' | 'RECEIVABLE' | 'GENERAL_GAS' | 'FREEZE' | 'DEPOSIT' | 'DIRTY';
+export type TreasuryUnitStatus = 'ACTIVATED' | 'FROZEN' | 'CLOSED' | 'PENDING';
 
-/**
- * Coin Info
- */
 export interface CoinInfo {
   coinId: string;
   network: string;
 }
 
-/**
- * Guardian for multi-signature
- */
-export interface Guardian {
-  /** Guardian identifier (email) */
-  identity: string;
-}
-
-/**
- * Fund Control Rule
- */
 export interface FundControlRule {
   guardians: string[];
   threshold: string;
@@ -114,240 +86,215 @@ export interface FundControlRule {
   dailyTransferLimit: string;
 }
 
-/**
- * Manager Configuration
- */
 export interface ManagerConfig {
   coinId: string;
   fundControlRules: FundControlRule[];
 }
 
-/**
- * Create Treasury Unit Request
- */
+export interface WhiteListCreateRequest {
+  network: string;
+  address: string;
+  alias?: string;
+}
+
+export interface AnyCallRule {
+  guardians: string[];
+  threshold: string;
+  allowedCommands: string[];
+}
+
 export interface CreateTreasuryUnitRequest {
+  unitName: string;
   businessScope: BusinessScope;
+  businessPurpose?: string;
   topology: Topology;
   coinIds: CoinInfo[];
+  autoSignUrl?: string;
   primaryManager: ManagerConfig[];
+  primaryWhiteList?: WhiteListCreateRequest[];
+  primaryAnycallRules?: AnyCallRule[];
+  thirdPartyEcode?: string;
+  remark?: string;
   payoutManager: ManagerConfig[];
-  riskManager: ManagerConfig[];
+  payinAnycallRules?: AnyCallRule[];
+  payoutAnycallRules?: AnyCallRule[];
+  riskAnycallRules?: AnyCallRule[];
 }
 
-/**
- * Account Types
- */
-export type AccountType =
-  | 'PRIMARY'
-  | 'PAYIN'
-  | 'PAYOUT'
-  | 'QUARANTINE'
-  | 'RECEIVABLE'
-  | 'PRIMARY_ISOLATION'
-  | 'PAYIN_ISOLATION'
-  | 'PAYOUT_ISOLATION';
-
-/**
- * Treasury Unit Status
- */
-export type TreasuryUnitStatus = 'ACTIVATED' | 'FROZEN' | 'CLOSED' | 'PENDING';
-
-/**
- * Account in Treasury Unit
- */
-export interface TreasuryAccount {
-  accountName: string;
-  accountType: string;
+export interface CreateTreasuryUnitResponse {
+  id: number;
+  name: string;
+  ecode: string;
+  vaultCode: string;
+  groupCode: string;
+  custodialBusinessScope: string;
+  networks: string[];
+  status: string;
+  gmaId: string;
+  caaFactoryAddresses: Array<{ network: string; address: string }>;
+  factoryStatus: number;
+  sort: number;
+  remark: string;
+  createTime: string;
+  updateTime: string;
 }
 
-/**
- * Treasury Unit (Financial Unit)
- */
 export interface TreasuryUnit {
   id: number;
   ecode: string;
+  projectId: number;
   name: string;
-  custodyServiceMode: BusinessScope;
+  merchantType: string;
+  custodyServiceMode: string;
   coinIds: CoinInfo[];
-  accounts: TreasuryAccount[];
-  status: TreasuryUnitStatus;
-  creationType: string;
-  createTime?: string;
-}
-
-/**
- * Create Treasury Unit Response
- */
-export interface CreateTreasuryUnitResponse {
-  id: number;
-  ecode: string;
-  name: string;
+  accounts: Array<{ account_name: string; account_type: string }>;
   status: string;
-  networks: string[];
+  sort: number;
+  creationType: string;
+  developerId: string;
+  remark: string;
   createTime: string;
+  updateTime: string;
 }
 
-/**
- * Account Address
- */
-export interface AccountAddress {
-  address: string;
-  accountType: string;
-  coinId?: string;
-  network?: string;
-}
-
-/**
- * Get Unit Address Request
- */
 export interface GetUnitAddressRequest {
   unitId: number;
-  accountType?: string;
-  coinId?: string;
-  network?: string;
+  accountType?: AccountType;
   pageSize?: number;
   pageNum?: number;
+  coinId?: string;
+  network?: string;
+}
+
+export interface CreateUnitAddressRequest {
+  unitId: number;
+  accountTypy: 'PRIMARY' | 'PAYOUT' | 'PAYIN';
+  network: string;
+  coinId: string;
+  number: number;
+}
+
+export interface UnitAccount {
+  id: number;
+  ecode: string;
+  vaultCode: string;
+  vaultAccountId: string;
+  projectId: number;
+  treasuryUnitId: number;
+  accountName: string;
+  fundFlowCode: string;
+  anycallCode: string;
+  autoSignUrl: string;
+  balance: number;
+  freezeBalance: number;
+  holdBalance: number;
+  coinId: string;
+  network: string;
+  type: AccountType;
+  status: number;
+  income: number;
+  outcome: number;
+  isSmart: boolean;
+  remark: string;
+  createTime: string;
+  updateTime: string;
+}
+
+// ============ Pooling Types ============
+
+export interface PoolingRequest {
+  unitId: number;
+  amount: number;
+  coinId: string;
+  network: string;
+  lang?: string;
+  note?: string;
+  includes?: string[];
+  excludes?: string[];
 }
 
 // ============ Payout Types ============
 
-/**
- * Payout Target
- */
-export interface PayoutTarget {
-  address: string;
-  amount: string;
+export type PayoutOperation = 'withdraw' | 'allocate' | 'payout';
+export type MerchantType = 'NON_FINANCIAL_CORPORATE' | 'REGULATED_VASP' | 'INTERNAL_SYSTEM';
+
+export interface PayTo {
+  to: string;
+  amount: number;
 }
 
-/**
- * Payout Operation types
- */
-export type PayoutOperation = 'withdraw' | 'allocate' | 'payout';
+export interface TravelRuleRequest {
+  referenceId: string;
+  payload: string;
+}
 
-/**
- * Create Payout Request
- */
 export interface CreatePayoutRequest {
+  payTo: PayTo[];
+  from?: string;
   unitId: number;
-  payTo: PayoutTarget[];
   coinId: string;
   network: string;
-  operation?: PayoutOperation;
+  operation?: string;
+  fromAddress?: string;
+  toCusAccountId?: number;
+  username?: string;
+  userId?: string;
   orderId?: string;
-  merchantType: string;
+  note?: string;
+  lang?: string;
+  initiator?: string;
+  merchantType: MerchantType;
+  travelRule: TravelRuleRequest;
 }
 
-/**
- * Payout Order Status
- */
-export type PayoutOrderStatus =
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'CANCELLED';
-
-/**
- * Payout Order
- */
 export interface PayoutOrder {
   id: number;
+  taskId: string;
   orderId: string;
-  unitId: number;
-  unitEcode: string;
+  inputAmount: string;
+  totalAmount: number;
+  fundFlowCode: string;
+  orderState: string;
+  payToList: PayTo[];
+  note: string;
+  businessId: string;
   coinId: string;
   network: string;
-  amount: string;
+  txId: string;
   fee: string;
-  status: PayoutOrderStatus;
-  fromAddress: string;
-  toAddress: string;
-  txHash?: string;
-  createdAt: string;
-  updatedAt?: string;
+  createTime: string;
+  updateTime: string;
 }
 
 // ============ Task Types ============
 
-/**
- * Signature Task Status
- */
-export type TaskStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXECUTING' | 'COMPLETED' | 'FAILED';
-
-/**
- * Signature Task
- */
-export interface SignatureTask {
-  id: number;
-  taskId: string;
-  unitId: number;
-  unitEcode: string;
-  taskType: string;
-  status: TaskStatus;
-  data: Record<string, unknown>;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-/**
- * Submit Task Request
- */
 export interface SubmitTaskRequest {
   signatures?: Record<string, string[]>;
   confirmed: boolean;
 }
 
-// ============ Transaction Types ============
-
-/**
- * Activity Types
- */
-export type ActivityType =
-  | 'DEPOSIT'
-  | 'WITHDRAW'
-  | 'TRANSFER_IN'
-  | 'TRANSFER_OUT'
-  | 'POOL'
-  | 'ALLOCATE'
-  | 'LOCK'
-  | 'RELEASE';
-
-/**
- * Activity Direction
- */
-export type ActivityDirection = 'IN' | 'OUT';
-
-/**
- * Activity Status
- */
-export type ActivityStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
-
-/**
- * Activity Record
- */
-export interface Activity {
+export interface WCCIPCmdAuditTask {
   id: number;
-  activityId: string;
-  unitId: number;
-  unitEcode: string;
-  coinId: string;
-  network: string;
-  type: ActivityType;
-  direction: ActivityDirection;
-  amount: string;
-  balanceBefore: string;
-  balanceAfter: string;
-  fee?: string;
-  txHash?: string;
-  fromAddress?: string;
-  toAddress?: string;
-  status: ActivityStatus;
-  createdAt: string;
+  taskId: string;
+  vaultCode: string;
+  projectId: number;
+  accountId: string;
+  accountType: string;
+  submitter: string;
+  ecode: string;
+  cmdType: string;
+  businessId: string;
+  state: string;
+  businessType: string;
+  taskType: string;
+  taskOperation: string;
+  initiator: string;
+  createTime: string;
+  updateTime: string;
 }
 
-/**
- * Query Condition
- */
+// ============ Query Types ============
+
 export interface QueryCondition {
   key: string;
   value: string | number;
@@ -355,9 +302,6 @@ export interface QueryCondition {
   join?: 'and' | 'or';
 }
 
-/**
- * Pagination Query Options
- */
 export interface PaginationQuery {
   pageIndex?: number;
   pageSize?: number;
@@ -365,62 +309,133 @@ export interface PaginationQuery {
   queryList?: QueryCondition[];
 }
 
-// ============ Fund Record Types ============
+export interface PageRequest {
+  pageSize?: number;
+  pageNum?: number;
+  sortFields?: string;
+}
 
-/**
- * Transaction Type for Fund Records
- */
-export type TxType =
-  | 'TRANSFER_IN'
-  | 'TRANSFER_OUT'
-  | 'ALLOCATE_IN'
-  | 'ALLOCATE_OUT'
-  | 'POOL_IN'
-  | 'POOL_OUT'
-  | 'GAS_OUT'
-  | 'FEE_OUT';
+// ============ Activity Types ============
 
-/**
- * Fund Record
- */
-export interface FundRecord {
+export interface ProjectUnitActivity {
   id: number;
-  recordId: string;
-  unitId: number;
-  unitEcode: string;
+  ecode: string;
+  projectId: number;
+  treasuryUnitId: number;
+  cusAccountId: number;
+  accountType: string;
+  cpAccountId: number;
   coinId: string;
   network: string;
-  accountType: AccountType;
+  type: string;
+  amount: number;
+  direction: 'IN' | 'OUT';
+  orderId: string;
+  businessId: string;
+  status: string;
+  travelRuleStatus: string;
+  kytStatus: string;
+  createTime: string;
+  updateTime: string;
+}
+
+// ============ Transfer Order Types ============
+
+export interface ProjectUnitTransferOutOrder {
+  id: number;
+  taskId: string;
+  orderId: string;
+  inputAmount: string;
+  totalAmount: number;
+  fundFlowCode: string;
+  orderState: string;
+  payToList: PayTo[];
+  note: string;
+  businessId: string;
+  coinId: string;
+  network: string;
+  txId: string;
+  fee: string;
+  ecode: string;
+  vaultCode: string;
+  projectId: number;
+  cusAccountId: number;
+  address: string;
+  createTime: string;
+  updateTime: string;
+}
+
+export interface ProjectUnitTransferInOrder {
+  id: number;
+  orderId: string;
+  cpAddress: string;
+  amount: number;
+  coinId: string;
+  network: string;
+  orderState: string;
+  type: number;
+  initiator: number;
+  note: string;
+  ecode: string;
+  vaultCode: string;
+  projectId: number;
+  cusAccountId: number;
+  address: string;
+  txId: string;
+  fee: string;
+  createTime: string;
+  updateTime: string;
+}
+
+// ============ Fund Record Types ============
+
+export type TxType = 'TRANSFER_IN' | 'TRANSFER_OUT' | 'WITHDRAW' | 'ALLOCATE_IN' | 'ALLOCATE_OUT' | 'POOL_IN' | 'POOL_OUT' | 'GAS_OUT' | 'FEE_OUT' | 'DEPLOY';
+
+export interface ProjectUnitFundRecord {
+  id: number;
+  ecode: string;
+  projectId: number;
+  treasuryUnitId: number;
+  cusAccountId: number;
+  txId: string;
+  orderId: string;
+  coinId: string;
+  network: string;
+  amount: number;
+  preBalance: number;
+  postBalance: number;
+  fee: string;
   txType: TxType;
-  amount: string;
-  balanceBefore: string;
-  balanceAfter: string;
-  fee?: string;
-  txHash?: string;
-  fromAddress?: string;
-  toAddress?: string;
-  createdAt: string;
+  createTime: string;
+}
+
+export interface ProjectUnitLedgerFundRecord {
+  id: number;
+  ecode: string;
+  projectId: number;
+  treasuryUnitId: number;
+  ledgerId: number;
+  txId: string;
+  orderId: string;
+  coinId: string;
+  network: string;
+  amount: number;
+  preBalance: number;
+  postBalance: number;
+  fee: string;
+  txType: TxType;
+  createTime: string;
 }
 
 // ============ Callback Types ============
 
-/**
- * Callback Payload - message body pushed from Cregis platform
- */
 export interface CallbackPayload {
-  /** Application ID */
   appId: string;
-  /** Event type (present for global Application callbacks) */
   event?: CallbackEventType;
-  /** Unix timestamp in milliseconds */
   timestamp: string;
-  /** Event-specific data */
   data: Record<string, unknown>;
 }
 
-/**
- * Callback Event Types - events pushed from Cregis platform
- */
 export type CallbackEventType =
   | 'authorization.created'
   | 'authorization.revoked'
@@ -430,13 +445,8 @@ export type CallbackEventType =
   | 'transaction.completed'
   | 'transaction.failed'
   | 'task.approved'
-  | 'task.rejected'
+  | 'task.rejected';
 
-/**
- * HTTP Request object interface (compatible with Express/Koa)
- * For Express: req.headers, req.body
- * For Koa: ctx.request.headers, ctx.request.body
- */
 export interface CallbackRequest {
   headers: {
     'x-signature'?: string;

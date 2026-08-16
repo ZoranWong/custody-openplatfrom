@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useAuthStore } from '@/stores/auth'
-import type { ISVUser } from '@/api/api-service'
-import Button from '@/components/common/Button.vue'
+import { useUserStore } from '@/store/modules/user'
+import { useI18n } from 'vue-i18n'
+import type { ISVUser } from '@/types/api/developer'
 
 interface Props {
   user: ISVUser
@@ -12,40 +12,29 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-  (e: 'updated'): void
+  (e: 'success'): void
+  (e: 'cancel'): void
 }>()
 
-const authStore = useAuthStore()
+const { t } = useI18n()
+const userStore = useUserStore()
 const loading = ref(false)
-const isEditing = ref(false)
 
 const form = reactive({
-  name: props.user.name || '',
-  phone: props.user.phone || ''
+  name: props.user?.name || '',
+  phone: props.user?.phone || ''
 })
-
-const originalForm = { ...form }
 
 const validateForm = () => {
   if (!form.name.trim()) {
-    ElMessage.warning('Please enter your name')
+    ElMessage.warning(t('register.placeholder.uboName'))
     return false
   }
   return true
 }
 
-const handleEdit = () => {
-  form.name = props.user.name || ''
-  form.phone = props.user.phone || ''
-  originalForm.name = form.name
-  originalForm.phone = form.phone
-  isEditing.value = true
-}
-
 const handleCancel = () => {
-  form.name = originalForm.name
-  form.phone = originalForm.phone
-  isEditing.value = false
+  emit('cancel')
 }
 
 const handleSave = async () => {
@@ -54,11 +43,11 @@ const handleSave = async () => {
   loading.value = true
 
   try {
-    await authStore.updateProfile({ name: form.name, phone: form.phone })
-    isEditing.value = false
-    emit('updated')
+    await userStore.updateISVProfile({ name: form.name, phone: form.phone })
+    ElMessage.success(t('developer.profile.save'))
+    emit('success')
   } catch (e: any) {
-    ElMessage.error(e.response?.data?.message || 'Update failed')
+    ElMessage.error(e?.message || 'Update failed')
   } finally {
     loading.value = false
   }
@@ -66,46 +55,16 @@ const handleSave = async () => {
 </script>
 
 <template>
-  <div class="card p-6" role="region" aria-labelledby="edit-profile-heading">
-    <div class="flex justify-between items-center mb-4">
-      <h2 id="edit-profile-heading" class="text-lg font-semibold text-gray-900">Edit Profile</h2>
-      <Button v-if="!isEditing" type="primary" size="small" @click="handleEdit" aria-label="Edit profile">
-        Edit
-      </Button>
-    </div>
-
-    <!-- View Mode -->
-    <div v-if="!isEditing" class="space-y-4" role="group" aria-label="Profile information">
-      <div>
-        <label class="block text-sm font-medium text-gray-500 mb-1">Name</label>
-        <p class="text-gray-900">{{ user.name || 'Not provided' }}</p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-500 mb-1">Phone</label>
-        <p class="text-gray-900">{{ user.phone || 'Not provided' }}</p>
-      </div>
-      <el-alert
-        type="info"
-        :closable="false"
-        show-icon
-        role="note"
-      >
-        <template #title>
-          Email address cannot be modified. Please contact support to make changes.
-        </template>
-      </el-alert>
-    </div>
-
-    <!-- Edit Mode -->
-    <form v-else @submit.prevent="handleSave" class="space-y-4" role="form" aria-label="Edit profile form">
+  <div class="space-y-4" role="form" aria-label="Edit profile form">
+    <form @submit.prevent="handleSave" class="space-y-4">
       <div>
         <label for="profile-name" class="block text-sm font-medium text-gray-700 mb-1">
-          Name <span class="text-red-500">*</span>
+          {{ $t('developer.profile.name') }} <span class="text-red-500">*</span>
         </label>
-        <el-input
+        <ElInput
           id="profile-name"
           v-model="form.name"
-          placeholder="Enter your name"
+          :placeholder="$t('developer.profile.name')"
           size="large"
           maxlength="50"
           aria-required="true"
@@ -113,24 +72,35 @@ const handleSave = async () => {
       </div>
       <div>
         <label for="profile-phone" class="block text-sm font-medium text-gray-700 mb-1">
-          Phone
+          {{ $t('developer.profile.phone') }}
         </label>
-        <el-input
+        <ElInput
           id="profile-phone"
           v-model="form.phone"
-          placeholder="Enter your phone number"
+          :placeholder="$t('developer.profile.phone')"
           size="large"
           maxlength="20"
         />
       </div>
 
+      <ElAlert
+        type="info"
+        :closable="false"
+        show-icon
+        role="note"
+      >
+        <template #title>
+          {{ $t('developer.profile.cannotModify') }}
+        </template>
+      </ElAlert>
+
       <div class="flex justify-end gap-3" role="group" aria-label="Form actions">
-        <Button type="info" @click="handleCancel" aria-label="Cancel editing">
-          Cancel
-        </Button>
-        <Button type="primary" :loading="loading" aria-label="Save changes">
-          Save
-        </Button>
+        <ElButton @click="handleCancel" aria-label="Cancel editing">
+          {{ $t('developer.profile.cancel') }}
+        </ElButton>
+        <ElButton type="primary" :loading="loading" aria-label="Save changes" native-type="submit">
+          {{ $t('developer.profile.save') }}
+        </ElButton>
       </div>
     </form>
   </div>

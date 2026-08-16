@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { DataLine } from '@element-plus/icons-vue'
-import type { EndpointUsage } from '@/api/api-service'
+import type { EndpointUsage } from '@/types/api/billing'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   endpoints: EndpointUsage[]
@@ -11,6 +12,8 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   loading: false
 })
+
+const { t } = useI18n()
 
 const formatNumber = (num: number): string => {
   if (num >= 1000000) {
@@ -44,10 +47,10 @@ const hasData = computed(() => props.endpoints && props.endpoints.length > 0)
 
 <template>
   <div class="card p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">接口调用分布</h3>
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ t('developer.billing.endpointBreakdown.title') }}</h3>
 
     <!-- Loading State -->
-    <div v-if="loading" class="space-y-3" role="status" aria-label="加载中">
+    <div v-if="loading" class="space-y-3" role="status" :aria-label="t('developer.billing.loading')">
       <div v-for="i in 5" :key="i" class="animate-pulse">
         <div class="h-10 bg-gray-100 rounded"></div>
       </div>
@@ -58,12 +61,12 @@ const hasData = computed(() => props.endpoints && props.endpoints.length > 0)
       v-else-if="!hasData"
       class="text-center py-8"
       role="status"
-      aria-label="暂无数据"
+      :aria-label="t('developer.billing.endpointBreakdown.noData')"
     >
       <el-icon class="w-12 h-12 mx-auto text-gray-300 mb-2" aria-hidden="true">
         <DataLine />
       </el-icon>
-      <p class="text-gray-500">暂无接口调用数据</p>
+      <p class="text-gray-500">{{ t('developer.billing.endpointBreakdown.noData') }}</p>
     </div>
 
     <!-- Data Table -->
@@ -73,15 +76,15 @@ const hasData = computed(() => props.endpoints && props.endpoints.length > 0)
       style="width: 100%"
       stripe
       role="table"
-      aria-label="接口调用分布"
+      :aria-label="t('developer.billing.endpointBreakdown.title')"
     >
-      <el-table-column label="接口路径" min-width="200">
+      <el-table-column :label="t('developer.billing.endpointBreakdown.path')" min-width="200">
         <template #default="{ row }">
           <code class="text-sm text-gray-700">{{ row.endpoint }}</code>
         </template>
       </el-table-column>
 
-      <el-table-column label="方法" width="100">
+      <el-table-column :label="t('developer.billing.endpointBreakdown.method')" width="100">
         <template #default="{ row }">
           <el-tag
             :type="methodColors[row.method] || 'info'"
@@ -93,13 +96,13 @@ const hasData = computed(() => props.endpoints && props.endpoints.length > 0)
         </template>
       </el-table-column>
 
-      <el-table-column label="调用次数" width="120" align="right">
+      <el-table-column :label="t('developer.billing.endpointBreakdown.calls')" width="120" align="right">
         <template #default="{ row }">
           <span class="font-medium">{{ formatNumber(row.calls) }}</span>
         </template>
       </el-table-column>
 
-      <el-table-column label="占比" width="120">
+      <el-table-column :label="t('developer.billing.endpointBreakdown.percentage')" width="120">
         <template #default="{ row }">
           <div class="flex items-center gap-2">
             <el-progress

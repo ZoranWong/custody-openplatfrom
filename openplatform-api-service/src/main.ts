@@ -3,6 +3,7 @@ import { config } from 'dotenv'
 config()
 
 import express, { Request, Response, NextFunction } from 'express'
+import path from 'path'
 import { HttpCodes } from './enums/http-codes.enum'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -126,6 +127,9 @@ app.use('/api/v1/admin', traceRoutes)
 app.use('/api/v1/isv', isvRoutes)
 app.use('/api/v1/billing', billingRoutes)
 app.use('/api/v1/usage', usageRoutes)
+
+// Static file serving for uploads
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 // OAuth routes (including appToken/validate)
 app.use('/api/oauth', oauthRoutes)

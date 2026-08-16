@@ -8,8 +8,13 @@
 
 /* 居中表单区域 */
 .auth-center-wrap {
-  @apply absolute inset-0 w-[440px] h-[600px] m-auto
+  @apply absolute inset-0 w-[440px] m-auto
     max-sm:px-7 max-sm:w-full;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   .card {
     @apply bg-[var(--default-box-color)] rounded-xl border border-[var(--default-border)] shadow-sm;

@@ -20,6 +20,9 @@ import {
   getMyApplications
 } from '../../controllers/isv/isv-auth.controller'
 import { isvUserService, isvApplicationService, isvService } from '../../services/isv-user.service'
+import { getPrismaClient } from '../../database/prisma-client'
+import { getPackageRepository } from '../../repositories/repository.factory'
+import { getOrderRepository } from '../../repositories/repository.factory'
 
 const router = Router()
 
@@ -442,6 +445,228 @@ router.post('/applications/:id/regenerate-secret', isvAuth, requireOwner, async 
       code: BusinessCodes.SERVER_INTERNAL,
       message: 'Internal server error'
     })
+  }
+})
+
+// ============================================
+// Subscription Routes
+// ============================================
+
+/**
+ * GET /isv/packages
+ * Get available packages for subscription
+ */
+router.get('/packages', isvAuth, async (req, res) => {
+  try {
+    const repo = getPackageRepository()
+    const packages = await repo.findByStatus('active')
+    res.json({
+      code: 0, message: 'Success',
+      data: packages.map(p => ({
+        id: p.id, packageCode: p.packageCode, name: p.name,
+        description: p.description, monthlyPrice: p.monthlyPrice,
+        yearlyPrice: p.yearlyPrice, dailyApiLimit: p.dailyApiLimit,
+        maxApplications: p.maxApplications, isTrial: p.isTrial,
+        features: p.features, supportLevel: p.supportLevel,
+        webhook: p.webhook, customDomain: p.customDomain,
+        whiteLabel: p.whiteLabel, sla: p.sla, ipWhitelist: p.ipWhitelist,
+        autoRenew: p.autoRenew, logRetention: p.logRetention,
+      })),
+    })
+  } catch (error) {
+    console.error('Get packages error:', error)
+    res.status(500).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Internal server error' })
+  }
+})
+
+/**
+ * POST /isv/orders
+ * Create a new order for subscription purchase
+ */
+router.post('/orders', isvAuth, async (req, res) => {
+  try {
+    const isvUser = (req as any).isvUser
+    const { packageId, period, paymentMethod } = req.body
+
+    if (!packageId || !period) {
+      res.status(400).json({ code: BusinessCodes.PARAM_REQUIRED, message: 'packageId and period are required', data: null })
+      return
+    }
+
+    // Validate package exists
+    const pkgRepo = getPackageRepository()
+    const pkg = await pkgRepo.findById(packageId)
+    if (!pkg) {
+      res.status(404).json({ code: BusinessCodes.NOT_FOUND_RESOURCE, message: 'Package not found', data: null })
+      return
+    }
+
+    // Calculate amount
+    const amount = period === 'yearly'
+      ? Number(pkg.yearlyPrice || pkg.monthlyPrice)
+      : Number(pkg.monthlyPrice)
+
+    const orderRepo = getOrderRepository()
+    const order = await orderRepo.create({
+      developerId: isvUser.isvId,
+      packageId,
+      period,
+      amount,
+      currency: 'USD',
+      status: 'pending',
+      paymentMethod: paymentMethod || 'bank_transfer',
+    } as any)
+
+    res.json({
+      code: 0, message: 'success',
+      data: {
+        id: order.id,
+        packageId: order.packageId,
+        amount: Number(order.amount),
+        currency: order.currency,
+        status: order.status,
+        paymentMethod: order.paymentMethod,
+        createdAt: order.createdAt.toISOString(),
+      },
+    })
+  } catch (error) {
+    console.error('Create order error:', error)
+    res.status(500).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Internal server error' })
+  }
+})
+
+/**
+ * GET /isv/orders/:id
+ * Get order detail
+ */
+router.get('/orders/:id', isvAuth, async (req, res) => {
+  try {
+    const isvUser = (req as any).isvUser
+    const orderRepo = getOrderRepository()
+    const order = await orderRepo.findById(req.params.id)
+
+    if (!order || order.developerId !== isvUser.isvId) {
+      res.status(404).json({ code: BusinessCodes.NOT_FOUND_RESOURCE, message: 'Order not found', data: null })
+      return
+    }
+
+    res.json({
+      code: 0, message: 'success',
+      data: {
+        id: order.id,
+        packageId: order.packageId,
+        period: order.period,
+        amount: Number(order.amount),
+        currency: order.currency,
+        status: order.status,
+        externalPaymentId: order.externalPaymentId,
+        paymentMethod: order.paymentMethod,
+        proofUrl: order.proofUrl,
+        remark: order.remark,
+        createdAt: order.createdAt?.toISOString(),
+        paidAt: order.paidAt?.toISOString() || null,
+        confirmedAt: order.confirmedAt?.toISOString() || null,
+      },
+    })
+  } catch (error) {
+    console.error('Get order detail error:', error)
+    res.status(500).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Internal server error' })
+  }
+})
+
+/**
+ * GET /isv/subscriptions
+ * Get all developer's subscriptions (active + inactive history)
+ */
+router.get('/subscriptions', isvAuth, async (req, res) => {
+  try {
+    const isvUser = (req as any).isvUser
+    const prisma = getPrismaClient()
+    const page = parseInt(req.query.page as string) || 1
+    const pageSize = parseInt(req.query.pageSize as string) || 20
+    const skip = (page - 1) * pageSize
+
+    const [list, total] = await Promise.all([
+      prisma.subscription.findMany({
+        where: { developerId: isvUser.isvId },
+        include: {
+          package: {
+            select: { id: true, packageCode: true, name: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      prisma.subscription.count({ where: { developerId: isvUser.isvId } }),
+    ])
+
+    res.json({
+      code: 0, message: 'Success',
+      data: {
+        list: list.map(s => ({
+          id: s.id,
+          status: s.status,
+          startDate: s.startDate.toISOString(),
+          endDate: s.endDate.toISOString(),
+          billingCycle: s.billingCycle,
+          autoRenew: s.autoRenew,
+          dailyApiUsage: s.dailyApiUsage,
+          packageCode: s.package.packageCode,
+          name: s.package.name,
+          createdAt: s.createdAt.toISOString(),
+        })),
+        total, page, pageSize,
+      },
+    })
+  } catch (error) {
+    console.error('Get subscriptions error:', error)
+    res.status(500).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Internal server error' })
+  }
+})
+
+/**
+ * GET /isv/subscription/current
+ * Get current developer's active subscription
+ */
+router.get('/subscription/current', isvAuth, async (req, res) => {
+  try {
+    const isvUser = (req as any).isvUser
+    const prisma = getPrismaClient()
+    // Get the earliest active subscription (current in-use one)
+    const subscriptions = await prisma.subscription.findMany({
+      where: { developerId: isvUser.isvId, status: 'active' },
+      include: {
+        package: {
+          select: {
+            id: true, packageCode: true, name: true, description: true,
+            dailyApiLimit: true, maxApplications: true, features: true,
+            monthlyPrice: true, yearlyPrice: true, supportLevel: true,
+            webhook: true, customDomain: true, whiteLabel: true,
+            sla: true, ipWhitelist: true, autoRenew: true, logRetention: true,
+          },
+        },
+      },
+      orderBy: { startDate: 'asc' },
+    })
+    // Current subscription = earliest active one (first in queue)
+    const subscription = subscriptions[0] || null
+
+    res.json({
+      code: 0, message: 'Success',
+      data: subscription ? {
+        id: subscription.id, status: subscription.status,
+        startDate: subscription.startDate.toISOString(),
+        endDate: subscription.endDate.toISOString(),
+        billingCycle: subscription.billingCycle,
+        autoRenew: subscription.autoRenew,
+        dailyApiUsage: subscription.dailyApiUsage,
+        package: subscription.package,
+      } : null,
+    })
+  } catch (error) {
+    console.error('Get subscription error:', error)
+    res.status(500).json({ code: BusinessCodes.SERVER_INTERNAL, message: 'Internal server error' })
   }
 })
 

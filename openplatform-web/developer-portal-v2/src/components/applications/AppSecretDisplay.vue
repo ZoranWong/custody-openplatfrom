@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { View, Hide, DocumentCopy, Warning, Lock } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/common/Button.vue'
 
 interface Props {
@@ -10,6 +11,8 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const { t } = useI18n()
 
 const secretVisible = ref(false)
 
@@ -24,9 +27,9 @@ const copySecret = async () => {
 
   try {
     await navigator.clipboard.writeText(props.appSecret)
-    ElMessage.success('已复制到剪贴板')
+    ElMessage.success(t('developer.applications.copySuccess'))
   } catch (e) {
-    ElMessage.error('复制失败，请手动复制')
+    ElMessage.error(t('developer.applications.copyFailed'))
   }
 }
 
@@ -39,12 +42,12 @@ const toggleSecretVisibility = () => {
   <div>
     <div class="flex items-center gap-2 mb-2">
       <el-icon class="w-4 h-4 text-warning"><Warning /></el-icon>
-      <span class="text-sm text-warning">请妥善保管您的密钥，不要泄露给他人</span>
+      <span class="text-sm text-warning">{{ t('developer.applications.secretDialog.warning') }}</span>
     </div>
 
     <!-- AppSecret -->
     <div v-if="appSecret">
-      <label class="block text-sm font-medium text-gray-500 mb-2">AppSecret</label>
+      <label class="block text-sm font-medium text-gray-500 mb-2">{{ t('developer.applications.appSecret') }}</label>
       <div class="flex gap-2">
         <el-input
           :model-value="secretVisible ? appSecret : maskedSecret(appSecret || '')"
@@ -55,11 +58,11 @@ const toggleSecretVisibility = () => {
         />
         <Button type="info" @click="toggleSecretVisibility">
           <el-icon class="mr-1"><Hide v-if="secretVisible" /><View v-else /></el-icon>
-          {{ secretVisible ? '隐藏' : '显示' }}
+          {{ secretVisible ? t('developer.applications.secretDialog.hide') : t('developer.applications.secretDialog.show') }}
         </Button>
         <Button type="primary" @click="copySecret">
           <el-icon class="mr-1"><DocumentCopy /></el-icon>
-          复制
+          {{ t('developer.applications.copy') }}
         </Button>
       </div>
     </div>
@@ -67,8 +70,8 @@ const toggleSecretVisibility = () => {
     <!-- 无 AppSecret 提示 -->
     <div v-else class="text-center py-4">
       <el-icon class="w-8 h-8 text-gray-300 mb-2"><Lock /></el-icon>
-      <p class="text-gray-500 text-sm mb-3">AppSecret 暂未显示</p>
-      <p class="text-gray-400 text-xs">请联系管理员或使用重置密钥功能获取</p>
+      <p class="text-gray-500 text-sm mb-3">{{ t('developer.applications.secretDialog.noSecret') }}</p>
+      <p class="text-gray-400 text-xs">{{ t('developer.applications.secretDialog.noSecretDesc') }}</p>
     </div>
   </div>
 </template>

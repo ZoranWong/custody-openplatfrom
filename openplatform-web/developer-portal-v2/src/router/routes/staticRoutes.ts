@@ -64,6 +64,35 @@ export const staticRoutes: AppRouteRecordRaw[] = [
     component: () => import('@views/exception/500/index.vue'),
     meta: { title: '500', isHideTab: true }
   },
+  // Redirect legacy routes
+  {
+    path: '/recharge',
+    redirect: '/subscription'
+  },
+  {
+    path: '/billing',
+    redirect: '/billing/invoice'
+  },
+  {
+    path: '/profile',
+    redirect: '/account/profile'
+  },
+  {
+    path: '/invoice-generation',
+    redirect: '/billing/invoice'
+  },
+  {
+    path: '/payment-history',
+    redirect: '/billing/payment-history'
+  },
+  {
+    path: '/settings',
+    redirect: '/account/settings'
+  },
+  {
+    path: '/api-keys',
+    redirect: '/account/api-keys'
+  },
   {
     path: '/outside',
     component: () => import('@views/index/index.vue'),

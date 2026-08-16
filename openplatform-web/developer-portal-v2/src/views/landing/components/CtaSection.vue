@@ -12,23 +12,23 @@ const navigateTo = (path: string) => {
   <section class="bg-brand py-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
       <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
-        Ready to Get Started?
+        {{ $t('landing.cta.title') }}
       </h2>
       <p class="text-lg text-slate-900/80 mb-8 max-w-2xl mx-auto">
-        Register now to experience the Cregis Open Platform and quickly provide secure and reliable cryptocurrency custody services for your enterprise users.
+        {{ $t('landing.cta.subtitle') }}
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <button
           @click="navigateTo('/register')"
           class="btn-primary-dark text-lg px-8 py-3"
         >
-          Register Now
+          {{ $t('landing.cta.registerNow') }}
         </button>
         <button
           @click="navigateTo('/docs')"
           class="btn-outline-dark text-lg px-8 py-3"
         >
-          View API Documentation
+          {{ $t('landing.cta.viewApiDocs') }}
         </button>
       </div>
     </div>

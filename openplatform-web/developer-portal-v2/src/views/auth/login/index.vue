@@ -169,13 +169,10 @@
 
       const response: any = await fetchISVLogin({ email, password })
 
-      // 验证响应
-      if (!response || response.code !== 0) {
-        throw new Error(response?.message || 'Login failed')
-      }
-
-      const accessToken = response.data?.accessToken
-      const refreshToken = response.data?.refreshToken
+      // http 层已解包，response 就是 data 字段
+      const accessToken = response?.accessToken
+      const refreshToken = response?.refreshToken
+      const isvUser = response?.user
 
       if (!accessToken) {
         throw new Error('Login failed - no token received')
@@ -186,8 +183,7 @@
       userStore.setLoginStatus(true)
 
       // 设置用户信息
-      if (response.data?.user) {
-        const isvUser = response.data.user
+      if (isvUser) {
         userStore.setUserInfo({
           userId: isvUser.id as any,
           userName: isvUser.name || isvUser.email,

@@ -436,6 +436,47 @@ export function createBillingController(billingService: BillingService = createB
         next(error);
       }
     },
+
+    /**
+     * POST /billing/payments/:id/submit-proof
+     * Submit payment proof for a pending order
+     */
+    submitPaymentProof: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const traceId = (req as any).traceId || `bil_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        const isvUser = (req as ISVAuthRequest).isvUser;
+
+        if (!isvUser) {
+          res.status(HttpCodes.UNAUTHORIZED).json(
+            errorMapper.mapError({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' }, traceId)
+          );
+          return;
+        }
+
+        const { id } = req.params;
+        const { externalPaymentId, proofUrl, paidAt, remark } = req.body;
+
+        if (!externalPaymentId || !proofUrl || !paidAt) {
+          res.status(HttpCodes.BAD_REQUEST).json(
+            errorMapper.mapError({ code: BusinessCodes.PARAM_REQUIRED, message: 'Missing required fields: externalPaymentId, proofUrl, paidAt' }, traceId)
+          );
+          return;
+        }
+
+        const result = await billingService.submitPaymentProof(
+          id, isvUser.isvId,
+          { externalPaymentId, proofUrl, paidAt, remark }
+        );
+
+        res.json({
+          code: 0,
+          message: 'success',
+          data: result,
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
   };
 }
 

@@ -14,7 +14,8 @@ import {
   LegendComponent,
   DataZoomComponent
 } from 'echarts/components'
-import type { DailyUsage } from '@/api/api-service'
+import type { DailyUsage } from '@/types/api/billing'
+import { useI18n } from 'vue-i18n'
 
 // Chart color constants
 const CHART_COLORS = {
@@ -48,6 +49,8 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   loading: false
 })
+
+const { t } = useI18n()
 
 const formatNumber = (num: number): string => {
   if (num >= 1000) {
@@ -89,7 +92,7 @@ const chartOption = computed(() => {
       }
     },
     legend: {
-      data: ['总调用次数', '成功次数'],
+      data: [t('developer.billing.usageTrend.totalCalls'), t('developer.billing.usageTrend.successCount')],
       bottom: 0,
       textStyle: {
         color: CHART_COLORS.text
@@ -118,7 +121,7 @@ const chartOption = computed(() => {
     },
     yAxis: {
       type: 'value',
-      name: '调用次数',
+      name: t('developer.billing.usageTrend.callCount'),
       nameTextStyle: {
         color: CHART_COLORS.text,
         padding: [0, 0, 0, 40]
@@ -163,7 +166,7 @@ const chartOption = computed(() => {
     ],
     series: [
       {
-        name: '总调用次数',
+        name: t('developer.billing.usageTrend.totalCalls'),
         type: 'line',
         data: calls,
         smooth: true,
@@ -191,7 +194,7 @@ const chartOption = computed(() => {
         }
       },
       {
-        name: '成功次数',
+        name: t('developer.billing.usageTrend.successCount'),
         type: 'line',
         data: successCalls,
         smooth: true,
@@ -210,7 +213,7 @@ const chartOption = computed(() => {
 })
 
 const loadingOption = {
-  text: '加载中...',
+  text: t('developer.billing.loading'),
   color: CHART_COLORS.primary,
   textColor: CHART_COLORS.text,
   maskColor: 'rgba(255, 255, 255, 0.9)'
@@ -219,15 +222,15 @@ const loadingOption = {
 
 <template>
   <div class="card p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-4">API 调用趋势</h3>
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ t('developer.billing.usageTrend.title') }}</h3>
 
     <!-- Loading State -->
-    <div v-if="loading" class="h-80 flex items-center justify-center bg-gray-50 rounded-lg" role="status" aria-label="加载中">
+    <div v-if="loading" class="h-80 flex items-center justify-center bg-gray-50 rounded-lg" role="status" :aria-label="t('developer.billing.loading')">
       <div class="text-center">
         <el-icon class="is-loading w-8 h-8 text-brand mb-2">
           <Loading />
         </el-icon>
-        <p class="text-gray-500">正在加载统计数据...</p>
+        <p class="text-gray-500">{{ t('developer.billing.usageTrend.loading') }}</p>
       </div>
     </div>
 
@@ -236,18 +239,18 @@ const loadingOption = {
       v-else-if="!hasData"
       class="h-80 flex items-center justify-center bg-gray-50 rounded-lg"
       role="status"
-      aria-label="暂无数据"
+      :aria-label="t('developer.billing.usageTrend.noData')"
     >
       <div class="text-center">
         <el-icon class="w-12 h-12 mx-auto text-gray-300 mb-2" aria-hidden="true">
           <DataLine />
         </el-icon>
-        <p class="text-gray-500">暂无使用趋势数据</p>
+        <p class="text-gray-500">{{ t('developer.billing.usageTrend.noData') }}</p>
       </div>
     </div>
 
     <!-- Chart -->
-    <div v-else class="h-80" role="img" aria-label="API调用趋势图">
+    <div v-else class="h-80" role="img" :aria-label="t('developer.billing.usageTrend.title')">
       <v-chart
         class="chart"
         :option="chartOption"

@@ -1,461 +1,334 @@
-<script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import {
-  Document,
-  Download,
-  Refresh
-} from '@element-plus/icons-vue'
-import apiService, {
-  type PaymentStatusFilter,
-  type PaymentHistoryItem
-} from '@/api/api-service'
-import PaymentStatusBadge from '@/components/billing/PaymentStatusBadge.vue'
-import PaymentFilters from '@/components/billing/PaymentFilters.vue'
-import Button from '@/components/common/Button.vue'
-
-// Debounce helper
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
-const clearDebounceTimer = () => {
-  if (debounceTimer) {
-    clearTimeout(debounceTimer)
-    debounceTimer = null
-  }
-}
-
-onUnmounted(() => {
-  clearDebounceTimer()
-})
-
-const router = useRouter()
-
-// State
-const loading = ref(false)
-const refreshing = ref(false)
-const downloading = ref<string | null>(null)
-const error = ref<string | null>(null)
-const payments = ref<PaymentHistoryItem[]>([])
-const selectedStatus = ref<PaymentStatusFilter>('all')
-const dateRange = ref<[Date, Date] | null>(null)
-const pagination = ref({
-  page: 1,
-  pageSize: 10,
-  total: 0
-})
-const summary = ref({
-  totalAmount: 0,
-  currency: 'USD'
-})
-
-// Navigation items for breadcrumb
-const navItems = [
-  { name: 'Home', path: '/applications' },
-  { name: 'Payment History', path: '/payment-history', active: true }
-]
-
-// Constants
-const DEFAULT_CURRENCY = 'USD'
-const ALLOWED_CURRENCIES = ['USD', 'CNY', 'EUR', 'GBP', 'JPY']
-
-// Date validation: ensure date string is valid
-const formatDate = (dateStr: string | undefined | null): string => {
-  if (!dateStr) {
-    return '-'
-  }
-  const date = new Date(dateStr)
-  if (isNaN(date.getTime())) {
-    return '-'
-  }
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-}
-
-// Currency validation: ensure valid currency code
-const formatCurrency = (amount: number, currency: string = DEFAULT_CURRENCY): string => {
-  if (typeof amount !== 'number' || isNaN(amount) || amount < 0) {
-    amount = 0
-  }
-  const validCurrency = ALLOWED_CURRENCIES.includes(currency) ? currency : DEFAULT_CURRENCY
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: validCurrency
-  }).format(amount)
-}
-
-const hasData = computed(() => payments.value.length > 0)
-const hasError = computed(() => error.value !== null)
-
-const errorAlertType = computed((): 'warning' | 'error' => {
-  if (error.value?.includes('login') || error.value?.includes('expired')) {
-    return 'warning'
-  }
-  return 'error'
-})
-
-const getFilters = () => {
-  const filters: Record<string, any> = {
-    page: pagination.value.page,
-    pageSize: pagination.value.pageSize
-  }
-
-  if (selectedStatus.value !== 'all') {
-    filters.status = selectedStatus.value
-  }
-
-  if (dateRange.value && dateRange.value.length === 2) {
-    filters.startDate = dateRange.value[0].toISOString().split('T')[0]
-    filters.endDate = dateRange.value[1].toISOString().split('T')[0]
-  }
-
-  return filters
-}
-
-const fetchPayments = async (showRefreshing = false) => {
-  if (showRefreshing) {
-    refreshing.value = true
-  } else {
-    loading.value = true
-  }
-  error.value = null
-
-  try {
-    const response = await apiService.getPaymentHistory(getFilters())
-    payments.value = response.list
-    pagination.value.total = response.total
-    summary.value = {
-      totalAmount: response.totalAmount,
-      currency: response.currency
-    }
-  } catch (e: any) {
-    const code = e.response?.data?.code
-    const status = e.response?.status
-    const message = e.response?.data?.message || 'Network error, please try again later'
-
-    if (status === 401 || code === 401) {
-      error.value = 'Login status expired, please login again'
-      ElMessage.error('Please login first')
-      router.push({ name: 'login' })
-    } else {
-      error.value = message
-      ElMessage.error('Failed to get payment records')
-    }
-  } finally {
-    loading.value = false
-    refreshing.value = false
-  }
-}
-
-const handleStatusChange = (data: { status: PaymentStatusFilter; dateRange?: [Date, Date] | null }) => {
-  selectedStatus.value = data.status
-  if (data.dateRange) {
-    dateRange.value = data.dateRange as [Date, Date]
-  } else {
-    dateRange.value = null
-  }
-  pagination.value.page = 1
-
-  // Debounce API calls (300ms)
-  clearDebounceTimer()
-  debounceTimer = setTimeout(() => {
-    fetchPayments()
-  }, 300)
-}
-
-const handleDateChange = (data: { status: PaymentStatusFilter; dateRange?: [Date, Date] | null }) => {
-  handleStatusChange(data)
-}
-
-const handleRefresh = () => {
-  fetchPayments(true)
-}
-
-const handleRetry = () => {
-  error.value = null
-  fetchPayments()
-}
-
-const handlePageChange = (page: number) => {
-  pagination.value.page = page
-  fetchPayments()
-}
-
-const handlePageSizeChange = (size: number) => {
-  pagination.value.pageSize = size
-  pagination.value.page = 1
-  fetchPayments()
-}
-
-const handleDownloadInvoice = async (payment: PaymentHistoryItem) => {
-  let url: string | null = null
-  downloading.value = payment.id
-
-  try {
-    const blob = await apiService.downloadPaymentInvoice(payment.id)
-
-    // Validate Blob type
-    if (!(blob instanceof Blob) || blob.size === 0) {
-      throw new Error('Invalid file received')
-    }
-
-    // Validate content type (PDF or fallback)
-    const validTypes = ['application/pdf', 'application/octet-stream']
-    if (blob.type && !validTypes.includes(blob.type)) {
-      console.warn(`Unexpected content type: ${blob.type}, attempting download anyway`)
-    }
-
-    url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `invoice-${payment.id}.pdf`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    ElMessage.success('Invoice downloaded successfully')
-  } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : 'Invoice download failed, please try again later'
-    ElMessage.error(errorMessage)
-  } finally {
-    downloading.value = null
-    if (url) {
-      window.URL.revokeObjectURL(url)
-    }
-  }
-}
-
-const navigateTo = (path: string) => {
-  router.push(path)
-}
-
-onMounted(() => {
-  fetchPayments()
-})
-</script>
-
 <template>
-  <div class="min-h-screen bg-gray-50 py-8">
-    <div class="w-full mx-auto px-8">
-      <!-- Breadcrumb Navigation -->
-      <nav class="mb-6" aria-label="Breadcrumb navigation">
-        <ol class="flex items-center space-x-2 text-sm">
-          <li v-for="(item, index) in navItems" :key="item.path">
-            <div class="flex items-center">
-              <el-icon v-if="index > 0" class="w-4 h-4 text-gray-400 mx-2">
-                <Document />
-              </el-icon>
-              <button
-                v-if="item.active"
-                class="text-gray-900 font-medium hover:text-brand"
-                :disabled="item.active"
-              >
-                <Document class="w-4 h-4 inline mr-1" />
-                {{ item.name }}
-              </button>
-              <button
-                v-else
-                @click="navigateTo(item.path)"
-                class="text-gray-500 hover:text-brand"
-              >
-                <Document class="w-4 h-4 inline mr-1" />
-                {{ item.name }}
-              </button>
-            </div>
-          </li>
-        </ol>
-      </nav>
-
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-8">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900">Payment History</h1>
-          <p class="mt-2 text-gray-600">View your account payment records</p>
-        </div>
-        <Button @click="handleRefresh" :loading="refreshing" type="info">
-          <el-icon class="mr-1"><Refresh /></el-icon>
-          Refresh
-        </Button>
-      </div>
-
-      <!-- Error State -->
-      <div v-if="hasError" class="mb-6" role="alert">
-        <el-alert
-          :type="errorAlertType"
-          :title="error || ''"
-          show-icon
-          closable
-          @close="error = null"
-        >
-          <template #default>
-            <p>{{ error }}</p>
-            <Button
-              type="primary"
-              size="small"
-              class="mt-2"
-              @click="handleRetry"
+  <div class="payment-history-page art-full-height">
+    <ElCard class="art-table-card">
+      <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
+        <template #left>
+          <ElSpace wrap>
+            <ElSelect
+              v-model="searchForm.status"
+              :placeholder="$t('developer.billing.payment.status')"
+              clearable
+              class="w-36"
+              @change="handleSearch"
             >
-              Retry
-            </Button>
-          </template>
-        </el-alert>
-      </div>
+              <ElOption :label="$t('developer.billing.payment.pending')" value="pending" />
+              <ElOption :label="$t('developer.billing.payment.confirmed')" value="confirmed" />
+              <ElOption :label="$t('developer.billing.payment.rejected')" value="rejected" />
+            </ElSelect>
+          </ElSpace>
+        </template>
+        <template #right>
+          <ElButton type="primary" @click="openSubmitDialog()">
+            <ElIcon><Plus /></ElIcon>
+            {{ $t('developer.billing.payment.submitPayment') }}
+          </ElButton>
+        </template>
+      </ArtTableHeader>
 
-      <!-- Loading State -->
-      <div v-if="loading" class="space-y-6" aria-busy="true" aria-label="Loading">
-        <!-- Summary Card Skeleton -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div v-for="i in 3" :key="i" class="card p-6">
-            <div class="animate-pulse">
-              <div class="h-4 w-24 bg-gray-200 rounded mb-4"></div>
-              <div class="h-8 w-32 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        </div>
+      <ArtTable
+        :loading="loading"
+        :data="data as Record<string, any>[]"
+        :columns="columns"
+        :pagination="pagination"
+        :empty-text="$t('common.noData')"
+        @pagination:size-change="handleSizeChange"
+        @pagination:current-change="handleCurrentChange"
+      />
+    </ElCard>
 
-        <!-- Filters Skeleton -->
-        <div class="card p-6">
-          <div class="animate-pulse">
-            <div class="h-6 w-32 bg-gray-200 rounded mb-4"></div>
-            <div class="h-10 bg-gray-200 rounded w-full"></div>
-          </div>
-        </div>
-
-        <!-- Table Skeleton -->
-        <div class="card p-6">
-          <div class="animate-pulse">
-            <div class="h-6 w-32 bg-gray-200 rounded mb-4"></div>
-            <div v-for="i in 5" :key="i" class="h-12 bg-gray-100 rounded mb-2"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Content -->
-      <template v-else>
-        <!-- Summary Card - Payment Summary -->
-        <div class="card p-6 mb-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="summary-item">
-              <p class="summary-label">Total Payment Amount</p>
-              <p class="summary-value text-green-600">
-                {{ formatCurrency(summary.totalAmount, summary.currency) }}
-              </p>
-            </div>
-            <div class="summary-item">
-              <p class="summary-label">Payment Count</p>
-              <p class="summary-value">{{ pagination.total }}</p>
-            </div>
-            <div class="summary-item">
-              <p class="summary-label">Currency</p>
-              <p class="summary-value">{{ summary.currency }}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Filters -->
-        <div class="card p-6 mb-6">
-          <PaymentFilters
-            v-model="selectedStatus"
-            :date-range="dateRange"
-            @change="handleDateChange"
+    <!-- Submit Payment Proof Dialog -->
+    <ElDialog
+      v-model="dialogVisible"
+      :title="$t('developer.billing.payment.submitPayment')"
+      width="592px"
+      :close-on-click-modal="false"
+      @close="resetForm"
+    >
+      <ElForm ref="formRef" :model="form" label-width="162px">
+        <ElFormItem :label="$t('developer.billing.payment.externalPaymentId')" required>
+          <ElInput
+            v-model="form.externalPaymentId"
+            :placeholder="$t('developer.billing.payment.externalPaymentIdPlaceholder')"
           />
-        </div>
+        </ElFormItem>
 
-        <!-- Payment List -->
-        <div v-if="hasData" class="card p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Records</h3>
+        <ElFormItem :label="$t('developer.paymentHistory.totalAmount')" required>
+          <ElInputNumber v-model="form.amount" :min="0" :precision="2" style="width: 100%" />
+        </ElFormItem>
 
-          <el-table
-            :data="payments"
+        <ElFormItem :label="$t('developer.billing.payment.paymentMethod')" required>
+          <ElSelect v-model="form.paymentMethod">
+            <ElOption :label="$t('developer.billing.payment.bankTransfer')" value="bank_transfer" />
+            <ElOption :label="$t('developer.billing.payment.web3')" value="web3" />
+          </ElSelect>
+        </ElFormItem>
+
+        <ElFormItem :label="$t('developer.billing.payment.paidAt')" required>
+          <ElDatePicker
+            v-model="form.paidAt"
+            type="datetime"
+            :placeholder="$t('developer.billing.payment.paidAtPlaceholder')"
             style="width: 100%"
-            stripe
-            role="table"
-            aria-label="Payment Records"
+            value-format="YYYY-MM-DD HH:mm:ss"
+          />
+        </ElFormItem>
+
+        <ElFormItem :label="$t('developer.billing.payment.proof')" required>
+          <ElUpload
+            :auto-upload="false"
+            :limit="1"
+            :on-change="handleFileChange"
+            :on-remove="handleFileRemove"
+            accept=".pdf,.png,.jpg,.jpeg,.webp,image/*"
+            :file-list="fileList"
           >
-            <el-table-column prop="id" label="Payment ID" min-width="180">
-              <template #default="{ row }">
-                <code class="text-sm text-gray-700">{{ row.id }}</code>
-              </template>
-            </el-table-column>
+            <ElButton type="primary" plain>{{
+              $t('developer.billing.payment.uploadProof')
+            }}</ElButton>
+            <template #tip>
+              <div class="text-xs text-gray-400 mt-1">{{
+                $t('developer.billing.payment.proofHint')
+              }}</div>
+            </template>
+          </ElUpload>
+        </ElFormItem>
 
-            <el-table-column prop="date" label="Payment Time" width="180">
-              <template #default="{ row }">
-                {{ formatDate(row.date) }}
-              </template>
-            </el-table-column>
+        <ElFormItem :label="$t('developer.billing.payment.remark')">
+          <ElInput
+            v-model="form.remark"
+            type="textarea"
+            :rows="2"
+            :placeholder="$t('developer.billing.payment.remarkPlaceholder')"
+          />
+        </ElFormItem>
+      </ElForm>
 
-            <el-table-column prop="amount" label="Payment Amount" width="140" align="right">
-              <template #default="{ row }">
-                <span class="font-medium text-green-600">{{ formatCurrency(row.amount, row.currency) }}</span>
-              </template>
-            </el-table-column>
-
-            <el-table-column prop="balance_after" label="Balance After" width="140" align="right">
-              <template #default="{ row }">
-                <span class="font-medium">{{ formatCurrency(row.balance_after || 0, row.currency) }}</span>
-              </template>
-            </el-table-column>
-
-            <el-table-column prop="payment_method" label="Payment Method" width="120">
-              <template #default="{ row }">
-                <el-tag size="small">{{ row.payment_method || 'Bank Transfer' }}</el-tag>
-              </template>
-            </el-table-column>
-
-            <el-table-column prop="status" label="Status" width="100" align="center">
-              <template #default="{ row }">
-                <PaymentStatusBadge :status="row.status" />
-              </template>
-            </el-table-column>
-
-            <el-table-column prop="description" label="Remarks" min-width="200">
-              <template #default="{ row }">
-                <span class="text-gray-600">{{ row.description || 'Account Recharge' }}</span>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="Invoice" width="100" align="center">
-              <template #default="{ row }">
-                <Button
-                  v-if="row.invoice_id"
-                  type="primary"
-                  link
-                  size="small"
-                  :loading="downloading === row.id"
-                  @click="handleDownloadInvoice(row)"
-                >
-                  <el-icon class="mr-1"><Download /></el-icon>
-                  Download
-                </Button>
-                <span v-else class="text-gray-400 text-sm">-</span>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <!-- Pagination -->
-          <div class="mt-4 flex justify-end">
-            <el-pagination
-              v-model:current-page="pagination.page"
-              v-model:page-size="pagination.pageSize"
-              :page-sizes="[10, 20, 50, 100]"
-              :total="pagination.total"
-              layout="total, sizes, prev, pager, next, jumper"
-              @size-change="handlePageSizeChange"
-              @current-change="handlePageChange"
-            />
-          </div>
-        </div>
-
-        <!-- Empty State -->
-        <div v-else class="card p-12 text-center" role="status">
-          <el-icon class="w-16 h-16 mx-auto text-gray-300 mb-4" aria-hidden="true">
-            <Document />
-          </el-icon>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">No Payment Records</h3>
-          <p class="text-gray-500">Your payment records will appear here</p>
-        </div>
+      <template #footer>
+        <ElButton @click="dialogVisible = false">{{ $t('common.cancel') }}</ElButton>
+        <ElButton type="primary" :loading="submitting" @click="handleSubmit">
+          {{ $t('common.confirm') }}
+        </ElButton>
       </template>
-    </div>
+    </ElDialog>
   </div>
 </template>
+
+<script setup lang="ts">
+  defineOptions({ name: 'OrderManagement' })
+
+  import { useI18n } from 'vue-i18n'
+  import { ElMessage } from 'element-plus'
+  import { useTable } from '@/hooks/core/useTable'
+  import {
+    fetchPaymentHistory,
+    fetchUploadProof,
+    fetchSubmitPaymentProof,
+    fetchOrderDetail
+  } from '@/api/billing'
+  import { ElTag, ElButton } from 'element-plus'
+  import { Plus } from '@element-plus/icons-vue'
+  import { formatDate } from '@/utils/date'
+
+  const { t } = useI18n()
+  const route = useRoute()
+
+  const searchForm = ref({ status: undefined as string | undefined })
+  const dialogVisible = ref(false)
+  const submitting = ref(false)
+  const pendingOrder = ref<any>(null)
+  const fileList = ref<any[]>([])
+
+  const form = reactive({
+    externalPaymentId: '',
+    amount: 0,
+    paymentMethod: 'bank_transfer' as string,
+    paidAt: '' as string,
+    proof: null as any,
+    remark: ''
+  })
+
+  const STATUS_MAP: Record<
+    string,
+    { type: 'success' | 'warning' | 'danger' | 'info'; text: string }
+  > = {
+    pending: { type: 'warning', text: t('developer.billing.payment.pending') },
+    confirmed: { type: 'success', text: t('developer.billing.payment.confirmed') },
+    rejected: { type: 'danger', text: t('developer.billing.payment.rejected') }
+  }
+
+  const PAYMENT_METHOD_MAP: Record<string, string> = {
+    bank_transfer: t('developer.billing.payment.bankTransfer'),
+    web3: t('developer.billing.payment.web3')
+  }
+
+  const {
+    columns,
+    columnChecks,
+    data,
+    loading,
+    pagination,
+    getData,
+    replaceSearchParams,
+    handleSizeChange,
+    handleCurrentChange,
+    refreshData
+  } = useTable({
+    core: {
+      apiFn: fetchPaymentHistory,
+      apiParams: { page: 1, pageSize: 20 },
+      paginationKey: { current: 'page', size: 'pageSize' },
+      columnsFactory: () =>
+        [
+          { type: 'index' as const, width: 60, label: '#' },
+          { prop: 'id', label: t('developer.billing.payment.orderId'), minWidth: 260 },
+          {
+            prop: 'externalPaymentId',
+            label: t('developer.billing.payment.externalPaymentId'),
+            minWidth: 200
+          },
+          {
+            prop: 'amount',
+            label: t('developer.paymentHistory.totalAmount'),
+            minWidth: 120,
+            formatter: (row: any) => `${row.currency || 'USD'} ${row.amount?.toFixed(2) || '0.00'}`
+          },
+          {
+            prop: 'paymentMethod',
+            label: t('developer.billing.payment.paymentMethod'),
+            minWidth: 140,
+            formatter: (row: any) => PAYMENT_METHOD_MAP[row.paymentMethod] || row.paymentMethod
+          },
+          {
+            prop: 'status',
+            label: t('developer.billing.payment.status'),
+            minWidth: 110,
+            formatter: (row: any) => {
+              const config = STATUS_MAP[row.status] || { type: 'info' as const, text: row.status }
+              return h(ElTag, { type: config.type }, () => config.text)
+            }
+          },
+          {
+            prop: 'createdAt',
+            label: t('developer.billing.payment.submittedAt'),
+            minWidth: 180,
+            formatter: (row: any) => formatDate(row.createdAt)
+          },
+          {
+            label: t('package.actions'),
+            minWidth: 140,
+            fixed: 'right',
+            formatter: (row: any) => {
+              if (row.status === 'pending') {
+                return h(
+                  ElButton,
+                  { type: 'primary', size: 'small', onClick: () => openSubmitDialog(row) },
+                  () => t('developer.billing.payment.submitPayment')
+                )
+              }
+              return h('span', '-')
+            }
+          }
+        ] as any
+    },
+    transform: {
+      responseAdapter: (res: any) => ({ records: res?.list || [], total: res?.total || 0 })
+    }
+  })
+
+  const openSubmitDialog = (order?: any) => {
+    if (order) {
+      pendingOrder.value = order
+      form.externalPaymentId = order.externalPaymentId || ''
+      form.amount = order.amount || 0
+      form.paymentMethod = order.paymentMethod || 'bank_transfer'
+    } else {
+      pendingOrder.value = null
+      resetForm()
+    }
+    dialogVisible.value = true
+  }
+
+  const resetForm = () => {
+    form.externalPaymentId = ''
+    form.amount = 0
+    form.paymentMethod = 'bank_transfer'
+    form.paidAt = ''
+    form.proof = null
+    form.remark = ''
+    fileList.value = []
+  }
+
+  const handleFileChange = (file: any) => {
+    form.proof = file.raw
+    fileList.value = [file]
+  }
+  const handleFileRemove = () => {
+    form.proof = null
+    fileList.value = []
+  }
+
+  const handleSubmit = async () => {
+    if (!form.externalPaymentId.trim()) {
+      ElMessage.warning('请输入外部支付单号')
+      return
+    }
+    if (!form.amount || form.amount <= 0) {
+      ElMessage.warning('请输入金额')
+      return
+    }
+    if (!form.paidAt) {
+      ElMessage.warning('请选择支付时间')
+      return
+    }
+    if (!form.proof) {
+      ElMessage.warning('请上传支付凭证')
+      return
+    }
+
+    submitting.value = true
+    try {
+      const uploadResult = await fetchUploadProof(form.proof)
+      const proofUrl = uploadResult?.url
+
+      const orderId = pendingOrder.value?.id
+      await fetchSubmitPaymentProof(orderId, {
+        externalPaymentId: form.externalPaymentId,
+        proofUrl,
+        paidAt: form.paidAt,
+        remark: form.remark || undefined
+      })
+
+      ElMessage.success(t('developer.billing.payment.submitSuccess'))
+      dialogVisible.value = false
+      resetForm()
+      getData()
+    } catch (e: any) {
+      ElMessage.error(e?.message || 'Submit failed')
+    } finally {
+      submitting.value = false
+    }
+  }
+
+  const handleSearch = () => {
+    replaceSearchParams({ ...searchForm.value, page: undefined, pageSize: undefined })
+    getData()
+  }
+
+  // Auto-open submit dialog if navigated from subscription purchase
+  onMounted(async () => {
+    if (route.query.openSubmit === '1') {
+      const targetPaymentId = route.query.paymentId as string
+      if (targetPaymentId) {
+        try {
+          const order = await fetchOrderDetail(targetPaymentId)
+          pendingOrder.value = order
+          form.externalPaymentId = order.externalPaymentId || ''
+          form.amount = order.amount || 0
+        } catch {
+          pendingOrder.value = { id: targetPaymentId }
+        }
+      }
+      openSubmitDialog(pendingOrder.value)
+    }
+  })
+</script>

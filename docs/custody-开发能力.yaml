@@ -1,0 +1,3026 @@
+openapi: 3.0.1
+info:
+  title: 默认模块
+  description: ''
+  version: 1.0.0
+tags: []
+paths:
+  /api/third-party/create/{resourceAccessKey}:
+    post:
+      summary: Create a new treasure unit
+      deprecated: false
+      description: >-
+        Create a new treasure unit
+
+        Creates a new financial unit under the merchant associated with the API
+        Key.
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectTreasuryUnitSmartRequest'
+              description: ''
+            examples: {}
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResultProjectUnit'
+              examples:
+                '1':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      id: 0
+                      name: ''
+                      ecode: ''
+                      vaultCode: ''
+                      groupCode: ''
+                      custodialBusinessScope: ''
+                      networks:
+                        - ''
+                      status: ''
+                      gmaId: ''
+                      caaFactoryAddresses:
+                        - network: ''
+                          address: ''
+                      factoryStatus: 0
+                      sort: 0
+                      remark: ''
+                      createTime: ''
+                      updateTime: ''
+                '2':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      id: 0
+                      name: ''
+                      ecode: ''
+                      vaultCode: ''
+                      groupCode: ''
+                      networks:
+                        - ''
+                      status: ''
+                      gmaId: ''
+                      caaFactoryAddresses:
+                        - network: ''
+                          address: ''
+                      factoryStatus: 0
+                      sort: 0
+                      remark: ''
+                      createTime: ''
+                      updateTime: ''
+                '3':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      id: 0
+                      name: ''
+                      ecode: ''
+                      vaultCode: ''
+                      groupCode: ''
+                      networks:
+                        - ''
+                      status: ''
+                      gmaId: ''
+                      caaFactoryAddresses:
+                        - network: ''
+                          address: ''
+                      factoryStatus: 0
+                      sort: 0
+                      remark: ''
+                      createTime: ''
+                      updateTime: ''
+                '4':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      id: 0
+                      name: ''
+                      ecode: ''
+                      vaultCode: ''
+                      groupCode: ''
+                      networks:
+                        - ''
+                      status: ''
+                      gmaId: ''
+                      caaFactoryAddresses:
+                        - network: ''
+                          address: ''
+                      factoryStatus: 0
+                      sort: 0
+                      remark: ''
+                      createTime: ''
+                      updateTime: ''
+                '5':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      id: 0
+                      name: ''
+                      ecode: ''
+                      vaultCode: ''
+                      groupCode: ''
+                      networks:
+                        - ''
+                      status: ''
+                      gmaId: ''
+                      caaFactoryAddresses:
+                        - network: ''
+                          address: ''
+                      factoryStatus: 0
+                      sort: 0
+                      remark: ''
+                      createTime: ''
+                      updateTime: ''
+                '6':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      id: 0
+                      name: ''
+                      ecode: ''
+                      vaultCode: ''
+                      groupCode: ''
+                      networks:
+                        - ''
+                      status: ''
+                      gmaId: ''
+                      caaFactoryAddresses:
+                        - network: ''
+                          address: ''
+                      factoryStatus: 0
+                      sort: 0
+                      remark: ''
+                      createTime: ''
+                      updateTime: ''
+      security: []
+  /api/third-party/list/{resourceAccessKey}:
+    post:
+      summary: List treasure units
+      deprecated: false
+      description: >-
+        List treasure units
+
+        Lists all financial units created by the developer under the authorized
+        merchant.
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResultListProjectUnit'
+              examples:
+                '1':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      - id: 0
+                        ecode: ''
+                        projectId: 0
+                        name: ''
+                        merchantType: ''
+                        coinIds:
+                          - coinId: ''
+                            network: ''
+                        accounts:
+                          - account_name: ''
+                            account_type: ''
+                        status: ''
+                        sort: 0
+                        creationType: ''
+                        developerId: ''
+                        remark: ''
+                        createTime: ''
+                        updateTime: ''
+                '2':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      - id: 0
+                        ecode: ''
+                        projectId: 0
+                        name: ''
+                        ubo: ''
+                        custodyServiceMode: ''
+                        coinIds:
+                          - coinId: ''
+                            network: ''
+                        accounts:
+                          - account_name: ''
+                            account_type: ''
+                        status: ''
+                        sort: 0
+                        creationType: ''
+                        developerId: ''
+                        remark: ''
+                        createTime: ''
+                        updateTime: ''
+                '3':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      - id: 0
+                        ecode: ''
+                        projectId: 0
+                        name: ''
+                        ubo: ''
+                        custodyServiceMode: ''
+                        coinIds:
+                          - coinId: ''
+                            network: ''
+                        accounts:
+                          - account_name: ''
+                            account_type: ''
+                        status: ''
+                        sort: 0
+                        creationType: ''
+                        developerId: ''
+                        remark: ''
+                        createTime: ''
+                        updateTime: ''
+                '4':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      - id: 0
+                        ecode: ''
+                        projectId: 0
+                        name: ''
+                        ubo: ''
+                        custodyServiceMode: ''
+                        coinIds:
+                          - coinId: ''
+                            network: ''
+                        accounts:
+                          - account_name: ''
+                            account_type: ''
+                        status: ''
+                        sort: 0
+                        creationType: ''
+                        developerId: ''
+                        remark: ''
+                        createTime: ''
+                        updateTime: ''
+                '5':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      - id: 0
+                        ecode: ''
+                        projectId: 0
+                        name: ''
+                        ubo: ''
+                        custodyServiceMode: ''
+                        coinIds:
+                          - coinId: ''
+                            network: ''
+                        accounts:
+                          - account_name: ''
+                            account_type: ''
+                        status: ''
+                        sort: 0
+                        creationType: ''
+                        developerId: ''
+                        remark: ''
+                        createTime: ''
+                        updateTime: ''
+      security: []
+  /api/third-party/get-unit-address/{resourceAccessKey}:
+    post:
+      summary: Get treasure unit address
+      deprecated: false
+      description: Get treasure unit address
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThirdAddressRequest'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResult%3F'
+              examples:
+                '1':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '2':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '3':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '4':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '5':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+      security: []
+  /api/third-party/pooling/{resourceAccessKey}:
+    post:
+      summary: Pooling request
+      deprecated: false
+      description: |-
+        发起归集请求
+        Pooling request
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThirdPoolingRequest'
+              description: 请求参数
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResult%3F'
+                description: 响应结果
+      security: []
+  /api/third-party/payout/{resourceAccessKey}:
+    post:
+      summary: 发起付款
+      deprecated: false
+      description: Get treasure unit address
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThirdPayoutRequest'
+              description: ''
+            examples: {}
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResultWCCIPCmdAuditTask'
+              examples:
+                '1':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '2':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '3':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '4':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '5':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+      security: []
+  /api/third-party/submit/task/{resourceAccessKey}/{taskId}:
+    post:
+      summary: 任务提交接口,针对三方平台使用
+      deprecated: false
+      description: 一次直接提交
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+        - name: taskId
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitTaskDTO'
+              description: 签名数据
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResult%3F'
+                description: messageResult
+              examples:
+                '1':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '2':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '3':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '4':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '5':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+      security: []
+  /api/third-party/activities/{resourceAccessKey}:
+    post:
+      summary: Query activities with pagination
+      deprecated: false
+      description: >-
+        分页查询活动记录
+
+        Query activities with pagination
+
+        Query activity records under the financial unit, including all fund
+        activities such as pay-in, pay-out, transfer, etc.
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: 资源访问密钥
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryParamProjectUnitActivity'
+              description: 查询请求
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResultPageProjectUnitActivity'
+                description: 分页活动记录
+              examples:
+                '1':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '2':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '3':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '4':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      records:
+                        - id: 0
+                          ecode: ''
+                          projectId: 0
+                          treasuryUnitId: 0
+                          cusAccountId: 0
+                          accountType: ''
+                          cpAccountId: 0
+                          coinId: ''
+                          network: ''
+                          type: ''
+                          amount: 0
+                          direction: ''
+                          orderId: ''
+                          businessId: ''
+                          status: ''
+                          travelRuleStatus: ''
+                          kytStatus: ''
+                          createTime: ''
+                          updateTime: ''
+                      total: 0
+                      size: 0
+                      current: 0
+                      orders:
+                        - column: ''
+                          asc: false
+                      optimizeCountSql: false
+                      searchCount: false
+                      optimizeJoinOfCountSql: false
+                      maxLimit: 0
+                      countId: ''
+      security: []
+  /api/third-party/transfer-out-orders/{resourceAccessKey}:
+    post:
+      summary: Query transfer-out orders with pagination
+      deprecated: false
+      description: >-
+        分页查询出金订单
+
+        Query transfer-out orders with pagination
+
+        Query transfer-out orders under the financial unit, including withdrawal
+        and allocation orders.
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: 资源访问密钥
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryParamProjectUnitTransferOutOrder'
+              description: 查询请求
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/MessageResultPageProjectUnitTransferOutOrder
+                description: 分页出金订单
+              examples:
+                '1':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '2':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '3':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '4':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      records:
+                        - ecode: ''
+                          vaultCode: ''
+                          projectId: 0
+                          cusAccountId: 0
+                          address: ''
+                          coinId: ''
+                          network: ''
+                          businessScope: ''
+                          travelRuleReferenceId: ''
+                          travelRulePayload: ''
+                          travelRuleStatus: ''
+                          travelRuleCheckStatus: ''
+                          travelRuleCheckPayload: ''
+                          kytStatus: ''
+                          kytRiskScore: 0
+                          kytPayload: ''
+                          complianceProvider: ''
+                          orderId: ''
+                          txId: ''
+                          fee: ''
+                          createTime: ''
+                          updateTime: ''
+                          id: 0
+                          taskId: ''
+                          inputAmount: ''
+                          totalAmount: 0
+                          fundFlowCode: ''
+                          orderState: ''
+                          payToList:
+                            - to: ''
+                              amount: 0
+                          note: ''
+                          businessId: ''
+                      total: 0
+                      size: 0
+                      current: 0
+                      orders:
+                        - column: ''
+                          asc: false
+                      optimizeCountSql: false
+                      searchCount: false
+                      optimizeJoinOfCountSql: false
+                      maxLimit: 0
+                      countId: ''
+      security: []
+  /api/third-party/transfer-in-orders/{resourceAccessKey}:
+    post:
+      summary: Query transfer-in orders with pagination
+      deprecated: false
+      description: >-
+        分页查询入金订单
+
+        Query transfer-in orders with pagination
+
+        Query transfer-in orders under the financial unit, including deposit and
+        collection orders.
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: 资源访问密钥
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryParamProjectUnitTransferInOrder'
+              description: 查询请求
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/MessageResultPageProjectUnitTransferInOrder
+                description: 分页入金订单
+              examples:
+                '1':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '2':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '3':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '4':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data:
+                      records:
+                        - ecode: ''
+                          vaultCode: ''
+                          projectId: 0
+                          cusAccountId: 0
+                          address: ''
+                          coinId: ''
+                          network: ''
+                          businessScope: ''
+                          travelRuleReferenceId: ''
+                          travelRulePayload: ''
+                          travelRuleStatus: ''
+                          travelRuleCheckStatus: ''
+                          travelRuleCheckPayload: ''
+                          kytStatus: ''
+                          kytRiskScore: 0
+                          kytPayload: ''
+                          complianceProvider: ''
+                          orderId: ''
+                          txId: ''
+                          fee: ''
+                          createTime: ''
+                          updateTime: ''
+                          id: 0
+                          cpAddress: ''
+                          amount: 0
+                          orderState: ''
+                          type: 0
+                          note: ''
+                          initiator: 0
+                      total: 0
+                      size: 0
+                      current: 0
+                      orders:
+                        - column: ''
+                          asc: false
+                      optimizeCountSql: false
+                      searchCount: false
+                      optimizeJoinOfCountSql: false
+                      maxLimit: 0
+                      countId: ''
+      security: []
+  /api/third-party/create-unit-address/{resourceAccessKey}/{unitId}/{accountTypy}/{network}/{coinId}/{number}:
+    post:
+      summary: Create treasure unit address
+      deprecated: false
+      description: |-
+        Create treasure unit address
+        创建地址
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+        - name: unitId
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: integer
+        - name: accountTypy
+          in: path
+          description: |-
+            PRIMARY :主账户
+            PAYOUT :出金账户
+            PAYIN :用户付款账户，即商户收款 CA
+          required: true
+          schema:
+            type: string
+        - name: network
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+        - name: coinId
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+        - name: number
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResult%3F'
+      security: []
+  /api/third-party/fund-records/{resourceAccessKey}:
+    post:
+      summary: Query fund records with pagination
+      deprecated: false
+      description: >-
+        分页查询资金流水
+
+        Query fund records with pagination
+
+        Query fund flow records under the financial unit, recording details of
+        each fund change.
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: 资源访问密钥
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryParamProjectUnitFundRecord'
+              description: 查询请求
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResultPageProjectUnitFundRecord'
+                description: 分页资金流水
+              example:
+                code: 0
+                message: ''
+                data:
+                  records:
+                    - id: 0
+                      ecode: ''
+                      projectId: 0
+                      treasuryUnitId: 0
+                      cusAccountId: 0
+                      txId: ''
+                      coinId: ''
+                      network: ''
+                      amount: 0
+                      preBalance: 0
+                      postBalance: 0
+                      fee: ''
+                      txType: ''
+                      createTime: ''
+                  total: 0
+                  size: 0
+                  current: 0
+                  orders:
+                    - column: ''
+                      asc: false
+                  optimizeCountSql: false
+                  searchCount: false
+                  optimizeJoinOfCountSql: false
+                  maxLimit: 0
+                  countId: ''
+      security: []
+  /api/third-party/list-unit-account/{resourceAccessKey}/{unitId}:
+    post:
+      summary: listUnitAccount
+      deprecated: false
+      description: ''
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+        - name: unitId
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResultListProjectUnitAccount'
+      security: []
+  /api/third-party/unit-fund-records/{resourceAccessKey}:
+    post:
+      summary: Query fund records with pagination
+      deprecated: false
+      description: >-
+        分页查询财务单元级资金流水
+
+        Query fund records with pagination
+
+        Query fund flow records under the financial unit, recording details of
+        each fund change.
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: 资源访问密钥
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryParamProjectUnitLedgerFundRecord'
+              description: 查询请求
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/MessageResultPageProjectUnitLedgerFundRecord
+                description: 分页资金流水
+              example:
+                code: 0
+                message: ''
+                data:
+                  records:
+                    - id: 0
+                      ecode: ''
+                      projectId: 0
+                      treasuryUnitId: 0
+                      ledgerId: 0
+                      txId: ''
+                      orderId: ''
+                      coinId: ''
+                      network: ''
+                      amount: 0
+                      preBalance: 0
+                      postBalance: 0
+                      fee: ''
+                      txType: ''
+                      createTime: ''
+                  total: 0
+                  size: 0
+                  current: 0
+                  orders:
+                    - column: ''
+                      asc: false
+                  optimizeCountSql: false
+                  searchCount: false
+                  optimizeJoinOfCountSql: false
+                  maxLimit: 0
+                  countId: ''
+      security: []
+  /callback:
+    post:
+      summary: 回调
+      deprecated: false
+      description: |-
+        1.查询对应订单信息
+        2.根据对应订单信息查询对应商户账户信息
+        3.更新账户余额,修改订单状态,修改Activity状态
+        收款回调:
+        企业自身充值,不更新账户余额,不更新订单状态,不更新Activity状态,只创建流水
+        企业的客户充值,更新账户余额,更新订单状态,更新Activity状态,创建流水
+        1.查询订单
+        2.订单不存在,创建订单,不给客户端回调,作为异常订单
+        3.订单存在,判断金额,(1)金额小于实际要支付的金额,只改订单的金额,不更新订单状态,不更新Activity状态,不创建流水
+        (2) 订单金额等于实际要支付的金额,更新订单的金额,更新订单状态,更新Activity状态,创建流水,给客户端回调
+        (3) 订单金额大于实际要支付的金额,更新订单的金额,不给回调
+        这里金额不相等的订单都属于异常订单
+      tags: []
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrustVaultCallbackDto'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResult%3F'
+              examples:
+                '1':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+                '2':
+                  summary: 成功示例
+                  value:
+                    code: 0
+                    message: ''
+                    data: null
+      security: []
+  /business/deployContract:
+    post:
+      summary: 合约部署
+      deprecated: false
+      description: ''
+      tags: []
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeployContractRequest'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResult%3F'
+              example:
+                code: 0
+                message: ''
+                data: null
+      security: []
+  /api/v1/compliance/provider-events/{providerCode}:
+    post:
+      summary: Receive provider webhook
+      deprecated: false
+      description: |-
+        接收指定 provider 的 webhook 请求。
+        Receive provider webhook
+        统一接收 provider callback，执行验签、幂等去重与事件落库。
+      tags: []
+      parameters:
+        - name: providerCode
+          in: path
+          description: Provider 编码
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseEntityProviderWebhookHandleResult'
+              example:
+                status: ''
+                providerCode: ''
+                eventId: ''
+                eventLogId: 0
+                message: ''
+      security: []
+components:
+  schemas:
+    CoinDto:
+      type: object
+      properties:
+        coinId:
+          type: string
+          description: 币种ID
+          default: '##default'
+        network:
+          type: string
+          description: 网络
+          default: '##default'
+    AccountData:
+      type: object
+      properties:
+        account_name:
+          type: string
+          description: ''
+        account_type:
+          type: string
+          description: ''
+    DeployContractRequest:
+      type: object
+      properties:
+        networks:
+          type: array
+          items:
+            type: string
+          description: 网络集合
+          default: '##default'
+        projectId:
+          type: integer
+          description: 项目ID
+          format: int64
+    ProjectUnit:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID
+          format: int64
+        ecode:
+          type: string
+          description: 企业code
+          default: '##default'
+        projectId:
+          type: integer
+          description: 项目ID
+          format: int64
+        name:
+          type: string
+          description: 名字
+          default: '##default'
+        ubo:
+          type: string
+          description: 最终受益人的ecode，如果是三方模式，是另外一个企业ID，否则就是自己的企业ID
+          default: '##default'
+        custodyServiceMode:
+          type: string
+          description: 托管接入模式
+          enum:
+            - DEDICATED_ACCOUNT
+            - OMNIBUS_ACCOUNT
+            - OPEN_API_PROXY
+          default: '##default'
+        coinIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoinDto'
+            description: com.cregis.custody.common.dto.trustVault.CoinDto
+          description: 币种集合
+          default: '##default'
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountData'
+            description: com.spark.support.wccip.dto.AccountData
+          description: 账户列表
+          default: '##default'
+        businessPurpose:
+          type: string
+          description: 业务用途
+          default: '##default'
+        status:
+          type: string
+          description: ''
+          default: Active
+        sort:
+          type: integer
+          description: 排序
+        creationType:
+          type: string
+          description: '创建类型: PLATFORM/THIRD_PARTY'
+          enum:
+            - PLATFORM
+            - THIRD_PARTY
+          default: '##default'
+        developerId:
+          type: string
+          description: 三方平台开发者ID
+          default: '##default'
+        creatorId:
+          type: integer
+          description: 创建人
+          format: int64
+        remark:
+          type: string
+          description: 备注
+          default: '##default'
+        createTime:
+          type: string
+          description: 创建时间
+          default: '##default'
+        updateTime:
+          type: string
+          description: 更新时间
+          default: '##default'
+    MessageResultProjectUnit:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: ''
+        message:
+          type: string
+          description: ''
+        data:
+          $ref: '#/components/schemas/ProjectUnit'
+          description: ''
+    FundControlRule:
+      type: object
+      properties:
+        guardians:
+          type: array
+          items:
+            type: string
+          description: 护卫队成员
+        threshold:
+          type: string
+          description: 护卫队的操作门限
+        perTransferLimit:
+          type: string
+          description: 单笔限额
+        dailyTransferLimit:
+          type: string
+          description: 单日限额
+      required:
+        - guardians
+        - threshold
+        - perTransferLimit
+        - dailyTransferLimit
+    FundControl:
+      type: object
+      properties:
+        coinId:
+          type: string
+          description: 币种名称
+        fundControlRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundControlRule'
+            description: com.spark.support.wccip.dto.FundControlRule
+          description: 金额约束信息
+      required:
+        - coinId
+        - fundControlRules
+    WhiteListCreateRequest:
+      type: object
+      properties:
+        network:
+          type: string
+          description: network
+          default: '##default'
+        address:
+          type: string
+          description: address
+          default: '##default'
+        alias:
+          type: string
+          description: alias
+          default: '##default'
+      required:
+        - network
+        - address
+    AnyCallRule:
+      type: object
+      properties:
+        guardians:
+          type: array
+          items:
+            type: string
+          description: 护卫队成员
+        threshold:
+          type: string
+          description: 护卫队的操作门限
+        allowedCommands:
+          type: array
+          items:
+            type: string
+          description: 允许执行的指令列表
+        allowed_commands:
+          type: array
+          items:
+            type: string
+          description: ''
+      required:
+        - guardians
+        - threshold
+        - allowedCommands
+    CreateProjectTreasuryUnitSmartRequest:
+      type: object
+      properties:
+        unitName:
+          type: string
+          description: 财务单元名称
+          default: '##default'
+        businessScope:
+          type: string
+          description: 业务类型
+          enum:
+            - DEDICATED_ACCOUNT
+            - OMNIBUS_ACCOUNT
+            - OPEN_API_PROXY
+          default: '##default'
+        businessPurpose:
+          type: string
+          description: 业务用途
+          default: '##default'
+        topology:
+          type: string
+          description: 账本拓扑结构模型（决定底层建立几个账户）
+          enum:
+            - ORBIT
+            - SINGLE_GENERAL
+            - QUAD_SMART_ISOLATION
+          default: '##default'
+        coinIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoinDto'
+            description: com.cregis.custody.common.dto.trustVault.CoinDto
+          description: 币种信息
+          default: '##default'
+        autoSignUrl:
+          type: string
+          description: 自动签入地址
+          default: '##default'
+        primaryManager:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundControl'
+            description: com.spark.support.wccip.dto.FundControl
+          description: 资金管理员
+          default: '##default'
+        primaryWhiteList:
+          type: array
+          items:
+            $ref: '#/components/schemas/WhiteListCreateRequest'
+            description: com.cregis.custody.common.dto.WhiteListCreateRequest
+          description: 资金白名单
+          default: '##default'
+        primaryAnycallRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnyCallRule'
+            description: com.spark.support.wccip.dto.AnyCallRule
+          description: 通用调用控制信息
+          default: '##default'
+        thirdPartyEcode:
+          type: string
+          description: 三方平台ecode，用于标识三方平台身份
+          default: '##default'
+        remark:
+          type: string
+          description: 备注信息
+          default: '##default'
+        payoutManager:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundControl'
+            description: com.spark.support.wccip.dto.FundControl
+          description: 出金管理员
+          default: '##default'
+        payinAnycallRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnyCallRule'
+            description: com.spark.support.wccip.dto.AnyCallRule
+          description: 收款账户通用调用控制信息
+          default: '##default'
+        payoutAnycallRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnyCallRule'
+            description: com.spark.support.wccip.dto.AnyCallRule
+          description: 付款通用调用控制信息
+          default: '##default'
+        riskAnycallRules:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnyCallRule'
+            description: com.spark.support.wccip.dto.AnyCallRule
+          description: 风控账户出金通用调用控制信息
+          default: '##default'
+      required:
+        - unitName
+        - businessScope
+        - topology
+        - coinIds
+        - primaryManager
+        - payoutManager
+    MessageResultListProjectUnit:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: ''
+        message:
+          type: string
+          description: ''
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectUnit'
+            description: com.cregis.custody.common.entity.project.ProjectUnit
+          description: ''
+    ProjectUnitAccount:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: id
+          format: int64
+        ecode:
+          type: string
+          description: 企业code
+          default: '##default'
+        vaultCode:
+          type: string
+          description: vault code
+          default: '##default'
+        vaultAccountId:
+          type: string
+          description: 对应trustVault账户id
+          default: '##default'
+        projectId:
+          type: integer
+          description: 所属项目ID
+          format: int64
+        treasuryUnitId:
+          type: integer
+          description: 所属财务单元id
+          format: int64
+        accountName:
+          type: string
+          description: 账户名称
+          default: '##default'
+        fundFlowCode:
+          type: string
+          description: fundFlow code
+          default: '##default'
+        anycallCode:
+          type: string
+          description: anycall code
+          default: '##default'
+        autoSignUrl:
+          type: string
+          description: |-
+            auto_sign_url
+            自动签入地址
+          default: '##default'
+        balance:
+          type: integer
+          description: 主账户余额
+          default: '##default'
+        freezeBalance:
+          type: integer
+          description: 冻结余额
+          default: '##default'
+        holdBalance:
+          type: integer
+          description: 隔离余额（合规待确认/待复核的入金隔离资金）
+          default: '##default'
+        coinId:
+          type: string
+          description: 管理的资产类型
+          default: '##default'
+        network:
+          type: string
+          description: 网络
+          default: '##default'
+        type:
+          type: string
+          description: 账户类型
+          enum:
+            - FREEZE
+            - DEPOSIT
+            - PRIMARY
+            - RECEIVABLE
+            - PAYOUT
+            - PAYIN
+            - GENERAL_GAS
+            - QUARANTINE
+            - DIRTY
+          default: '##default'
+        status:
+          type: integer
+          description: 状态:0不可用,1可用
+        income:
+          type: integer
+          description: 账户总入金
+          default: '##default'
+        outcome:
+          type: integer
+          description: 账户总出金
+          default: '##default'
+        isSmart:
+          type: boolean
+          description: 是否是智能账户
+          default: false
+        remark:
+          type: string
+          description: 备注
+          default: '##default'
+        createTime:
+          type: string
+          description: 创建时间
+          default: '##default'
+        updateTime:
+          type: string
+          description: 创建时间
+          default: '##default'
+    MessageResultListProjectUnitAccount:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: ''
+        message:
+          type: string
+          description: ''
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectUnitAccount'
+            description: com.cregis.custody.common.entity.project.ProjectUnitAccount
+          description: ''
+    MessageResult?:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: ''
+        message:
+          type: string
+          description: ''
+        data:
+          description: ''
+          type: 'null'
+    ThirdAddressRequest:
+      type: object
+      properties:
+        accountType:
+          type: string
+          description: 账户类型
+          enum:
+            - FREEZE
+            - DEPOSIT
+            - PRIMARY
+            - RECEIVABLE
+            - PAYOUT
+            - PAYIN
+            - GENERAL_GAS
+            - QUARANTINE
+            - DIRTY
+          default: '##default'
+        pageSize:
+          type: integer
+          description: 每页数量
+        pageNum:
+          type: integer
+          description: 页码
+        coinId:
+          type: string
+          description: 币种ID
+          default: '##default'
+        network:
+          type: string
+          description: 网络
+          default: '##default'
+        unitId:
+          type: integer
+          description: 财务单元ID
+          format: int64
+    MapObject:
+      type: object
+      properties:
+        key:
+          $ref: '#/components/schemas/key'
+    key:
+      type: object
+      properties: {}
+    WCCIPCmdAuditTask:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: id
+          format: int64
+        taskId:
+          type: string
+          description: 任务ID
+          default: '##default'
+        vaultCode:
+          type: string
+          description: vault code
+          default: '##default'
+        projectId:
+          type: integer
+          description: ''
+          format: int64
+        accountId:
+          type: string
+          description: 金库的账户ID
+          default: '##default'
+        accountType:
+          type: string
+          description: 金库的账户类型
+          enum:
+            - GENERAL_ACQUIRING
+            - SMART_ACQUIRING
+            - SMART
+            - GMA
+            - TMA
+            - GENERAL
+          default: '##default'
+        submitter:
+          type: string
+          description: 提交人:在三方模式时是customer code/两方模式时是guard squad id
+          default: '##default'
+        ecode:
+          type: string
+          description: 企业code
+          default: '##default'
+        cmdType:
+          type: string
+          description: 命令类型
+          default: '##default'
+        cmdBasic:
+          $ref: '#/components/schemas/MapObject'
+          description: 命令
+          default: '##default'
+        cmdForm:
+          $ref: '#/components/schemas/MapObject'
+          description: 命令参数
+          default: '##default'
+        businessId:
+          type: string
+          description: 业务id:主要是订单id
+          default: '##default'
+        state:
+          type: string
+          description: 任务状态
+          enum:
+            - AUDITING
+            - REJECTED
+            - AUDIT_REJECTED
+            - AUDIT_PASSED
+            - SIGNING
+            - SIGN_FAILED
+            - SIGN_SUCCEED
+            - FAILED
+            - WAITING
+            - SIGN_REJECTED
+            - ALL_BROADCAST_SUCCEED
+            - PARTIALLY_BROADCAST_SUCCEED
+            - ALL_BROADCAST_FAILED
+            - BROADCAST_FAILED
+            - BROADCAST_EXCEPTION
+            - EXPIRED
+          default: '##default'
+        businessType:
+          type: string
+          description: 业务类型:SYSTEM/BTC_TRANSFER等等
+          default: '##default'
+        taskType:
+          type: string
+          description: 任务类型,用于前端判断是资金还是系统操作:orders/issues
+          default: '##default'
+        createTime:
+          type: string
+          description: 任务创建时间
+          default: '##default'
+        updateTime:
+          type: string
+          description: 任务更新时间
+          default: '##default'
+        signContent:
+          type: string
+          description: 签名内容
+          default: '##default'
+        signContentKeyMapping:
+          type: string
+          description: 签名内容的映射
+          default: '##default'
+        total:
+          type: integer
+          description: 总参与审批数量
+        threshold:
+          type: integer
+          description: 门限
+        signers:
+          type: array
+          items:
+            type: string
+          description: 任务参与者、审核人、审批人等
+          default: '##default'
+        algoType:
+          type: string
+          description: ''
+          enum:
+            - ECDSA
+            - EC_SCHNORR
+            - ED_DSA
+            - UNASSIGNED
+            - ED25519
+        initiator:
+          type: string
+          description: 任务发起人
+          default: '##default'
+        taskOperation:
+          type: string
+          description: 任务操作,如转账,设置board等等
+          enum:
+            - DEPLOY_SMART_CONTRACT
+            - PAYOUT
+            - WITHDRAW
+            - ALLOCATE
+            - SET_WHITE_LIST
+            - BOARD
+            - FUND_FLOW
+          default: '##default'
+        signersLevel:
+          type: integer
+          description: ''
+        coinId:
+          type: string
+          description: ''
+        unitName:
+          type: string
+          description: ''
+        accountName:
+          type: string
+          description: ''
+        includes:
+          type: array
+          items:
+            type: string
+          description: ''
+        sponsored:
+          type: boolean
+          description: ''
+          default: false
+        remark:
+          type: string
+          description: ''
+    MessageResultWCCIPCmdAuditTask:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: ''
+        message:
+          type: string
+          description: ''
+        data:
+          $ref: '#/components/schemas/WCCIPCmdAuditTask'
+          description: ''
+    PayTo:
+      type: object
+      properties:
+        to:
+          type: string
+          description: 转出地址
+          default: '##default'
+        amount:
+          type: integer
+          description: 付款金额
+          default: '##default'
+    TravelRuleRequest:
+      type: object
+      properties:
+        referenceId:
+          type: string
+          description: Travel Rule 引用ID
+          default: '##default'
+        payload:
+          type: string
+          description: Travel Rule 原始数据(JSON字符串)
+          default: '##default'
+      required:
+        - referenceId
+    ThirdPayoutRequest:
+      type: object
+      properties:
+        payTo:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayTo'
+            description: com.cregis.custody.common.entity.transfer.PayTo
+          description: 出金地址及信息列表
+          default: '##default'
+        from:
+          type: string
+          description: 出金地址
+          default: '##default'
+        unitId:
+          type: integer
+          description: 出金财务单元ID
+          format: int64
+        coinId:
+          type: string
+          description: 币种ID
+          default: '##default'
+        network:
+          type: string
+          description: 网络
+          default: '##default'
+        operation:
+          type: string
+          description: 操作类型:withdraw/allocate/payout
+          default: '##default'
+        fromAddress:
+          type: string
+          description: 出金账户地址
+          default: '##default'
+        toCusAccountId:
+          type: integer
+          description: 目标账户ID,allocate必须要
+          format: int64
+        username:
+          type: string
+          description: 发起用户名
+          default: '##default'
+        userId:
+          type: string
+          description: 发起用户ID
+          default: '##default'
+        orderId:
+          type: string
+          description: 客户业务订单ID
+          default: '##default'
+        note:
+          type: string
+          description: 备注
+          default: '##default'
+        lang:
+          type: string
+          description: 语言
+          enum:
+            - zh_CN
+            - zh_TW
+            - en_US
+            - en_GB
+            - ja_JP
+            - ko_KR
+            - fr_FR
+            - de_DE
+            - es_ES
+            - it_IT
+            - ru_RU
+            - pt_PT
+            - pt_BR
+            - vi_VN
+            - th_TH
+            - id_ID
+            - tr_TR
+            - ar_SA
+            - he_IL
+            - nl_NL
+            - pl_PL
+            - sv_SE
+            - fi_FI
+            - da_DK
+            - no_NO
+            - cs_CZ
+            - hu_HU
+            - ro_RO
+            - el_GR
+            - ms_MY
+            - uk_UA
+          default: '##default'
+        initiator:
+          type: string
+          description: 任务发起人:邮箱/名称
+          default: '##default'
+        merchantType:
+          type: string
+          description: 业务类型
+          enum:
+            - NON_FINANCIAL_CORPORATE
+            - REGULATED_VASP
+            - INTERNAL_SYSTEM
+          default: '##default'
+        travelRule:
+          $ref: '#/components/schemas/TravelRuleRequest'
+          description: Travel Rule信息
+          default: '##default'
+      required:
+        - merchantType
+        - travelRule
+    ThirdPoolingRequest:
+      type: object
+      properties:
+        unitId:
+          type: integer
+          description: 财务单元ID
+          format: int64
+        amount:
+          type: integer
+          description: 归集门限金额
+          default: '##default'
+        lang:
+          type: string
+          description: 语言
+          enum:
+            - zh_CN
+            - zh_TW
+            - en_US
+            - en_GB
+            - ja_JP
+            - ko_KR
+            - fr_FR
+            - de_DE
+            - es_ES
+            - it_IT
+            - ru_RU
+            - pt_PT
+            - pt_BR
+            - vi_VN
+            - th_TH
+            - id_ID
+            - tr_TR
+            - ar_SA
+            - he_IL
+            - nl_NL
+            - pl_PL
+            - sv_SE
+            - fi_FI
+            - da_DK
+            - no_NO
+            - cs_CZ
+            - hu_HU
+            - ro_RO
+            - el_GR
+            - ms_MY
+            - uk_UA
+          default: '##default'
+        coinId:
+          type: string
+          description: 币种ID
+          default: '##default'
+        network:
+          type: string
+          description: 网络
+          default: '##default'
+        note:
+          type: string
+          description: 备注
+          default: '##default'
+        includes:
+          type: array
+          items:
+            type: string
+          description: 包含地址列表
+          default: '##default'
+        excludes:
+          type: array
+          items:
+            type: string
+          description: 排除地址列表
+          default: '##default'
+      required:
+        - unitId
+        - amount
+        - coinId
+        - network
+    MapListString:
+      type: object
+      properties:
+        key:
+          type: array
+          items:
+            type: string
+    ResponseEntityProviderWebhookHandleResult:
+      type: object
+      properties:
+        status:
+          type: string
+          description: ''
+          enum:
+            - ACCEPTED
+            - DUPLICATE
+            - REJECTED
+            - FAILED
+            - UNSUPPORTED
+        providerCode:
+          type: string
+          description: ''
+        eventId:
+          type: string
+          description: ''
+        eventLogId:
+          type: integer
+          description: ''
+          format: int64
+        message:
+          type: string
+          description: ''
+    SubmitTaskDTO:
+      type: object
+      properties:
+        signatures:
+          $ref: '#/components/schemas/MapListString'
+          description: 签名结果：key为taskId，value为签名字符串列表
+          default: '##default'
+        confirmed:
+          type: boolean
+          description: 状态:同意/拒绝
+          default: false
+    ProjectUnitActivity:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        ecode:
+          type: string
+          description: 商户号
+          default: '##default'
+        projectId:
+          type: integer
+          description: 项目ID
+          format: int64
+        treasuryUnitId:
+          type: integer
+          description: 账户单元ID
+          format: int64
+        ledgerId:
+          type: integer
+          description: 账本ID
+          format: int64
+        cusAccountId:
+          type: integer
+          description: 发生交易的账户ID,出金就是from账户id,入金就是to账户id,这里是TrustVault账户id
+          format: int64
+        accountType:
+          type: string
+          description: 发生交易的账户名称出金就是from账户名,入金就是to账户名
+          default: '##default'
+        cpAccountId:
+          type: integer
+          description: 对向账户ID,与accountId对应,这里是Custody账户id
+          format: int64
+        coinId:
+          type: string
+          description: 币种ID
+          default: '##default'
+        network:
+          type: string
+          description: 网络
+          default: '##default'
+        type:
+          type: string
+          description: 活动类型
+          default: '##default'
+        amount:
+          type: integer
+          description: 活动金额
+          default: '##default'
+        direction:
+          type: string
+          description: 资金流转方向:IN/OUT
+          default: '##default'
+        orderId:
+          type: string
+          description: 活动所属订单号
+          default: '##default'
+        businessId:
+          type: string
+          description: 第三方业务订单ID
+          default: '##default'
+        status:
+          type: string
+          description: 状态
+          enum:
+            - SUBMITTING
+            - APPROVED
+            - REJECTED
+            - FAILED
+            - CONFIRMING
+            - COMPLETED
+            - EXPIRED
+            - PENDING_CONFIRMATION
+          default: '##default'
+        travelRuleStatus:
+          type: string
+          description: Travel Rule 状态
+          enum:
+            - NOT_REQUIRED
+            - PENDING
+            - PASSED
+            - FAILED
+            - REVIEW
+          default: '##default'
+        kytStatus:
+          type: string
+          description: KYT 状态
+          enum:
+            - NOT_REQUIRED
+            - PENDING
+            - PASSED
+            - FAILED
+            - REVIEW
+          default: '##default'
+        createTime:
+          type: string
+          description: 创建时间
+        updateTime:
+          type: string
+          description: 更新时间
+    OrderItem:
+      type: object
+      properties:
+        column:
+          type: string
+          description: ''
+        asc:
+          type: boolean
+          description: ''
+    PageProjectUnitActivity:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectUnitActivity'
+            description: com.cregis.custody.common.entity.transfer.ProjectUnitActivity
+          description: ''
+        total:
+          type: integer
+          description: ''
+          format: int64
+        size:
+          type: integer
+          description: ''
+          format: int64
+        current:
+          type: integer
+          description: ''
+          format: int64
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+            description: com.baomidou.mybatisplus.core.metadata.OrderItem
+          description: ''
+        optimizeCountSql:
+          type: boolean
+          description: ''
+        searchCount:
+          type: boolean
+          description: ''
+        optimizeJoinOfCountSql:
+          type: boolean
+          description: ''
+        maxLimit:
+          type: integer
+          description: ''
+          format: int64
+        countId:
+          type: string
+          description: ''
+    MessageResultPageProjectUnitActivity:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: ''
+        message:
+          type: string
+          description: ''
+        data:
+          $ref: '#/components/schemas/PageProjectUnitActivity'
+          description: ''
+    QueryCondition:
+      type: object
+      properties:
+        key:
+          type: string
+          description: 操作符的key，如查询时的name,id之类
+        value:
+          type: object
+          properties: {}
+          description: 操作符的value，具体要查询的值，如果是字符串改成字符串即可
+        oper:
+          type: string
+          description: 操作符,默认是等于，冒号表示模糊匹配
+        join:
+          type: string
+          description: 连接的方式：and或者or
+    QueryParamProjectUnitActivity: &ref_0
+      type: object
+      properties:
+        pageIndex:
+          type: integer
+          description: 页码
+        pageSize:
+          type: integer
+          description: 每页数量
+        sortFields:
+          type: string
+          description: 排序字段，格式为:colume_d(倒叙)/colume_a(正序)
+        queryList:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryCondition'
+            description: com.spark.support.mybatis.util.QueryCondition
+          description: 查询条件
+    ProjectUnitTransferOutOrder:
+      type: object
+      properties:
+        ecode:
+          type: string
+          description: 企业code
+          default: '##default'
+        vaultCode:
+          type: string
+          description: 金库code
+          default: '##default'
+        projectId:
+          type: integer
+          description: 项目Id
+          format: int64
+        treasuryUnitId:
+          type: integer
+          description: 财务单元ID
+          format: int64
+        ledgerId:
+          type: integer
+          description: 账本id
+          format: int64
+        cusAccountId:
+          type: integer
+          description: 账户id
+          format: int64
+        address:
+          type: string
+          description: 交易地址
+          default: '##default'
+        coinId:
+          type: string
+          description: 币种ID
+          default: '##default'
+        network:
+          type: string
+          description: 所在网络
+          default: '##default'
+        businessScope:
+          type: string
+          description: 托管业务类型
+          enum:
+            - DEDICATED_ACCOUNT
+            - OMNIBUS_ACCOUNT
+            - OPEN_API_PROXY
+          default: '##default'
+        travelRuleReferenceId:
+          type: string
+          description: Travel Rule 引用ID
+          default: '##default'
+        travelRulePayload:
+          type: string
+          description: Travel Rule 原始数据(JSON字符串)
+          default: '##default'
+        travelRuleStatus:
+          type: string
+          description: Travel Rule 状态
+          enum:
+            - PENDING
+            - SUBMITTED
+            - CONFIRMED
+            - FAILED
+          default: '##default'
+        travelRuleCheckStatus:
+          type: string
+          description: Travel Rule 合规状态
+          enum:
+            - NOT_REQUIRED
+            - PENDING
+            - PASSED
+            - FAILED
+            - REVIEW
+          default: '##default'
+        travelRuleCheckPayload:
+          type: string
+          description: Travel Rule 合规回执(JSON字符串)
+          default: '##default'
+        kytStatus:
+          type: string
+          description: KYT 合规状态
+          enum:
+            - NOT_REQUIRED
+            - PENDING
+            - PASSED
+            - FAILED
+            - REVIEW
+          default: '##default'
+        kytRiskScore:
+          type: integer
+          description: KYT 风险评分
+        kytPayload:
+          type: string
+          description: KYT 回执(JSON字符串)
+          default: '##default'
+        complianceProvider:
+          type: string
+          description: 合规提供方
+          default: '##default'
+        orderId:
+          type: string
+          description: 业务订单ID
+          default: '##default'
+        txId:
+          type: string
+          description: 链上ID,一般情况下为一条记录，有时候会出现多条记录
+          default: '##default'
+        fee:
+          type: string
+          description: 付款手续费
+          default: '##default'
+        callbackStatus:
+          type: string
+          description: 回调状态
+          enum:
+            - TRANSITING
+            - SUCCEED
+            - FAILED
+          default: '##default'
+        createTime:
+          type: string
+          description: 创建时间
+          default: '##default'
+        updateTime:
+          type: string
+          description: 创建时间
+          default: '##default'
+        id:
+          type: integer
+          description: id
+          format: int64
+        taskId:
+          type: string
+          description: 审批任务ID
+          default: '##default'
+        inputAmount:
+          type: string
+          description: 可读金额
+          default: '##default'
+        totalAmount:
+          type: integer
+          description: 付款链上金额
+          default: '##default'
+        fundFlowCode:
+          type: string
+          description: 资金流水号
+          default: '##default'
+        orderState:
+          type: string
+          description: 订单状态：初始化，审批中，已拒绝，交易中，交易成功，交易失败
+          enum:
+            - AUDITING
+            - SIGNING
+            - SIGN_FAILED
+            - SIGNING_REJECTED
+            - TRANSITING
+            - SUCCEED
+            - FAILED
+            - EXPIRED
+            - SUBMIT_FAILED
+            - CONFIRMING
+          default: '##default'
+        payToList:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayTo'
+            description: com.cregis.custody.common.entity.transfer.PayTo
+          description: ''
+        note:
+          type: string
+          description: 付款备注
+          default: '##default'
+        businessId:
+          type: string
+          description: 第三方业务订单ID
+          default: '##default'
+        txCount:
+          type: integer
+          description: 交易数
+        failReason:
+          type: string
+          description: 失败原因
+          default: '##default'
+    PageProjectUnitTransferOutOrder:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectUnitTransferOutOrder'
+            description: >-
+              com.cregis.custody.common.entity.transfer.ProjectUnitTransferOutOrder
+          description: ''
+        total:
+          type: integer
+          description: ''
+          format: int64
+        size:
+          type: integer
+          description: ''
+          format: int64
+        current:
+          type: integer
+          description: ''
+          format: int64
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+            description: com.baomidou.mybatisplus.core.metadata.OrderItem
+          description: ''
+        optimizeCountSql:
+          type: boolean
+          description: ''
+        searchCount:
+          type: boolean
+          description: ''
+        optimizeJoinOfCountSql:
+          type: boolean
+          description: ''
+        maxLimit:
+          type: integer
+          description: ''
+          format: int64
+        countId:
+          type: string
+          description: ''
+    MessageResultPageProjectUnitTransferOutOrder:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: ''
+        message:
+          type: string
+          description: ''
+        data:
+          $ref: '#/components/schemas/PageProjectUnitTransferOutOrder'
+          description: ''
+    QueryParamProjectUnitTransferOutOrder: *ref_0
+    ProjectUnitTransferInOrder:
+      type: object
+      properties:
+        ecode:
+          type: string
+          description: 企业code
+          default: '##default'
+        vaultCode:
+          type: string
+          description: 金库code
+          default: '##default'
+        projectId:
+          type: integer
+          description: 项目Id
+          format: int64
+        treasuryUnitId:
+          type: integer
+          description: 财务单元ID
+          format: int64
+        ledgerId:
+          type: integer
+          description: 账本id
+          format: int64
+        cusAccountId:
+          type: integer
+          description: 账户id
+          format: int64
+        address:
+          type: string
+          description: 交易地址
+          default: '##default'
+        coinId:
+          type: string
+          description: 币种ID
+          default: '##default'
+        network:
+          type: string
+          description: 所在网络
+          default: '##default'
+        businessScope:
+          type: string
+          description: 托管业务类型
+          enum:
+            - DEDICATED_ACCOUNT
+            - OMNIBUS_ACCOUNT
+            - OPEN_API_PROXY
+          default: '##default'
+        travelRuleReferenceId:
+          type: string
+          description: Travel Rule 引用ID
+          default: '##default'
+        travelRulePayload:
+          type: string
+          description: Travel Rule 原始数据(JSON字符串)
+          default: '##default'
+        travelRuleStatus:
+          type: string
+          description: Travel Rule 状态
+          enum:
+            - PENDING
+            - SUBMITTED
+            - CONFIRMED
+            - FAILED
+          default: '##default'
+        travelRuleCheckStatus:
+          type: string
+          description: Travel Rule 合规状态
+          enum:
+            - NOT_REQUIRED
+            - PENDING
+            - PASSED
+            - FAILED
+            - REVIEW
+          default: '##default'
+        travelRuleCheckPayload:
+          type: string
+          description: Travel Rule 合规回执(JSON字符串)
+          default: '##default'
+        kytStatus:
+          type: string
+          description: KYT 合规状态
+          enum:
+            - NOT_REQUIRED
+            - PENDING
+            - PASSED
+            - FAILED
+            - REVIEW
+          default: '##default'
+        kytRiskScore:
+          type: integer
+          description: KYT 风险评分
+        kytPayload:
+          type: string
+          description: KYT 回执(JSON字符串)
+          default: '##default'
+        complianceProvider:
+          type: string
+          description: 合规提供方
+          default: '##default'
+        orderId:
+          type: string
+          description: 业务订单ID
+          default: '##default'
+        txId:
+          type: string
+          description: 链上ID,一般情况下为一条记录，有时候会出现多条记录
+          default: '##default'
+        fee:
+          type: string
+          description: 付款手续费
+          default: '##default'
+        callbackStatus:
+          type: string
+          description: 回调状态
+          enum:
+            - TRANSITING
+            - SUCCEED
+            - FAILED
+          default: '##default'
+        createTime:
+          type: string
+          description: 创建时间
+          default: '##default'
+        updateTime:
+          type: string
+          description: 创建时间
+          default: '##default'
+        id:
+          type: integer
+          description: id
+          format: int64
+        cpAddress:
+          type: string
+          description: 付款地址
+          default: '##default'
+        amount:
+          type: integer
+          description: 收款金额
+          default: '##default'
+        orderState:
+          type: string
+          description: 订单状态：交易中，交易成功，交易失败
+          enum:
+            - PROCESSING
+            - CONFIRMING
+            - SUCCEED
+            - FAILED
+            - MISMATCH
+            - EXPIRED
+          default: '##default'
+        type:
+          type: integer
+          description: 订单类型：1.充值，2.收款
+        note:
+          type: string
+          description: 收款备注
+          default: '##default'
+        initiator:
+          type: integer
+          description: 发起方:1.商户,2.商户的用户
+    PageProjectUnitTransferInOrder:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectUnitTransferInOrder'
+            description: >-
+              com.cregis.custody.common.entity.transfer.ProjectUnitTransferInOrder
+          description: ''
+        total:
+          type: integer
+          description: ''
+          format: int64
+        size:
+          type: integer
+          description: ''
+          format: int64
+        current:
+          type: integer
+          description: ''
+          format: int64
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+            description: com.baomidou.mybatisplus.core.metadata.OrderItem
+          description: ''
+        optimizeCountSql:
+          type: boolean
+          description: ''
+        searchCount:
+          type: boolean
+          description: ''
+        optimizeJoinOfCountSql:
+          type: boolean
+          description: ''
+        maxLimit:
+          type: integer
+          description: ''
+          format: int64
+        countId:
+          type: string
+          description: ''
+    MessageResultPageProjectUnitTransferInOrder:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: ''
+        message:
+          type: string
+          description: ''
+        data:
+          $ref: '#/components/schemas/PageProjectUnitTransferInOrder'
+          description: ''
+    QueryParamProjectUnitTransferInOrder: *ref_0
+    ProjectUnitFundRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 主键id
+          format: int64
+        ecode:
+          type: string
+          description: 商户编码
+          default: '##default'
+        projectId:
+          type: integer
+          description: 账户组code
+          format: int64
+        treasuryUnitId:
+          type: integer
+          description: 所属财务单元id
+          format: int64
+        cusAccountId:
+          type: integer
+          description: 对应账户id
+          format: int64
+        txId:
+          type: string
+          description: 交易ID
+          default: '##default'
+        orderId:
+          type: string
+          description: 订单id
+          default: '##default'
+        coinId:
+          type: string
+          description: 币种
+          default: '##default'
+        network:
+          type: string
+          description: 网络
+          default: '##default'
+        amount:
+          type: integer
+          description: 金额
+          default: '##default'
+        preBalance:
+          type: integer
+          description: 期初余额
+          default: '##default'
+        postBalance:
+          type: integer
+          description: 期末余额
+          default: '##default'
+        fee:
+          type: string
+          description: 手续费
+          default: '##default'
+        txType:
+          type: string
+          description: 流水类型
+          enum:
+            - TRANSFER_IN
+            - TRANSFER_OUT
+            - WITHDRAW
+            - ALLOCATE_IN
+            - ALLOCATE_OUT
+            - POOL_IN
+            - POOL_OUT
+            - GAS_OUT
+            - FEE_OUT
+            - DEPLOY
+          default: '##default'
+        createTime:
+          type: string
+          description: 创建时间
+          default: '##default'
+    PageProjectUnitFundRecord:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectUnitFundRecord'
+            description: com.cregis.custody.common.entity.transfer.ProjectUnitFundRecord
+          description: ''
+        total:
+          type: integer
+          description: ''
+          format: int64
+        size:
+          type: integer
+          description: ''
+          format: int64
+        current:
+          type: integer
+          description: ''
+          format: int64
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+            description: com.baomidou.mybatisplus.core.metadata.OrderItem
+          description: ''
+        optimizeCountSql:
+          type: boolean
+          description: ''
+        searchCount:
+          type: boolean
+          description: ''
+        optimizeJoinOfCountSql:
+          type: boolean
+          description: ''
+        maxLimit:
+          type: integer
+          description: ''
+          format: int64
+        countId:
+          type: string
+          description: ''
+    MessageResultPageProjectUnitFundRecord:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: ''
+        message:
+          type: string
+          description: ''
+        data:
+          $ref: '#/components/schemas/PageProjectUnitFundRecord'
+          description: ''
+    QueryParamProjectUnitFundRecord: *ref_0
+    ProjectUnitLedgerFundRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 主键id
+          format: int64
+        ecode:
+          type: string
+          description: 商户编码
+          default: '##default'
+        projectId:
+          type: integer
+          description: 账户组code
+          format: int64
+        treasuryUnitId:
+          type: integer
+          description: 所属财务单元id
+          format: int64
+        ledgerId:
+          type: integer
+          description: 对应账本id
+          format: int64
+        txId:
+          type: string
+          description: 交易ID
+          default: '##default'
+        orderId:
+          type: string
+          description: 订单id
+          default: '##default'
+        coinId:
+          type: string
+          description: 币种
+          default: '##default'
+        network:
+          type: string
+          description: 网络
+          default: '##default'
+        amount:
+          type: integer
+          description: 金额
+          default: '##default'
+        preBalance:
+          type: integer
+          description: 期初余额
+          default: '##default'
+        postBalance:
+          type: integer
+          description: 期末余额
+          default: '##default'
+        fee:
+          type: string
+          description: 手续费
+          default: '##default'
+        txType:
+          type: string
+          description: 流水类型
+          enum:
+            - TRANSFER_IN
+            - TRANSFER_OUT
+            - WITHDRAW
+            - ALLOCATE_IN
+            - ALLOCATE_OUT
+            - POOL_IN
+            - POOL_OUT
+            - GAS_OUT
+            - FEE_OUT
+            - DEPLOY
+          default: '##default'
+        createTime:
+          type: string
+          description: 创建时间
+          default: '##default'
+    PageProjectUnitLedgerFundRecord:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectUnitLedgerFundRecord'
+            description: >-
+              com.cregis.custody.common.entity.transfer.ProjectUnitLedgerFundRecord
+          description: ''
+        total:
+          type: integer
+          description: ''
+          format: int64
+        size:
+          type: integer
+          description: ''
+          format: int64
+        current:
+          type: integer
+          description: ''
+          format: int64
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+            description: com.baomidou.mybatisplus.core.metadata.OrderItem
+          description: ''
+        optimizeCountSql:
+          type: boolean
+          description: ''
+        searchCount:
+          type: boolean
+          description: ''
+        optimizeJoinOfCountSql:
+          type: boolean
+          description: ''
+        maxLimit:
+          type: integer
+          description: ''
+          format: int64
+        countId:
+          type: string
+          description: ''
+    MessageResultPageProjectUnitLedgerFundRecord:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: ''
+        message:
+          type: string
+          description: ''
+        data:
+          $ref: '#/components/schemas/PageProjectUnitLedgerFundRecord'
+          description: ''
+    QueryParamProjectUnitLedgerFundRecord: *ref_0
+    TrustVaultCallbackDto:
+      type: object
+      properties:
+        callbackType:
+          type: string
+          description: 回调类型，目前有:order(订单调)和transfer(交易回调)
+          default: '##default'
+        subType:
+          type: string
+          description: >-
+            子类型，对于order有:payment/mint/consolidate/operate等，对于transfer有:evm/tron/Solana等
+          default: '##default'
+        callbackData:
+          type: string
+          description: 回调数据
+          default: '##default'
+  responses: {}
+  securitySchemes: {}
+servers: []
+security: []

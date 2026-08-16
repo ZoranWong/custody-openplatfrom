@@ -60,6 +60,8 @@ export const useUserStore = defineStore(
     const lockPassword = ref('')
     // 用户信息
     const info = ref<Partial<Api.Auth.UserInfo>>({})
+    // ISV 信息 (公司/KYB)
+    const isvInfo = ref<any>(null)
     // 搜索历史记录
     const searchHistory = ref<AppRouteRecord[]>([])
     // 访问令牌
@@ -176,6 +178,37 @@ export const useUserStore = defineStore(
     }
 
     /**
+     * 设置 ISV 信息
+     * @param data ISV 信息
+     */
+    const setISVInfo = (data: any) => {
+      isvInfo.value = data
+    }
+
+    /**
+     * 获取 ISV 信息 (公司/KYB)
+     */
+    const fetchISVInfo = async () => {
+      const { fetchDeveloperInfo } = await import('@/api/developer')
+      const data = await fetchDeveloperInfo()
+      isvInfo.value = data?.isv || data
+      return isvInfo.value
+    }
+
+    /**
+     * 更新 ISV 个人资料
+     * @param profileData 资料数据
+     */
+    const updateISVProfile = async (profileData: any) => {
+      const { fetchUpdateDeveloperProfile } = await import('@/api/developer')
+      const result = await fetchUpdateDeveloperProfile(profileData)
+      if (result?.user) {
+        info.value = { ...info.value, ...result.user }
+      }
+      return result
+    }
+
+    /**
      * 检查并清理工作台标签页
      * 如果不是同一用户登录，清空工作台标签页
      * 应在登录成功后调用
@@ -209,6 +242,7 @@ export const useUserStore = defineStore(
       isLock,
       lockPassword,
       info,
+      isvInfo,
       searchHistory,
       accessToken,
       refreshToken,
@@ -222,6 +256,9 @@ export const useUserStore = defineStore(
       setLockStatus,
       setLockPassword,
       setToken,
+      setISVInfo,
+      fetchISVInfo,
+      updateISVProfile,
       logOut,
       checkAndClearWorktabs
     }

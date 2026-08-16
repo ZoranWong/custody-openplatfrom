@@ -1,195 +1,109 @@
-<script setup lang="ts">
-  import { onMounted, computed } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { ElMessage } from 'element-plus'
-  import { useAuthStore } from '@/stores/auth'
-  import apiService from '@/api/api-service'
-
-  defineOptions({ name: 'DeveloperProfile' })
-
-  const router = useRouter()
-  const authStore = useAuthStore()
-  const loading = ref(true)
-
-  const user = computed(() => authStore.user)
-  const isvInfo = computed(() => authStore.isvInfo)
-
-  const kybStatusConfig = computed(() => {
-    const status = isvInfo.value?.kybStatus || 'pending'
-    const configs: Record<string, { type: 'primary' | 'success' | 'warning' | 'info' | 'danger'; text: string }> = {
-      pending: { type: 'warning', text: 'Under Review' },
-      approved: { type: 'success', text: 'Approved' },
-      rejected: { type: 'danger', text: 'Rejected' }
-    }
-    return configs[status] || configs.pending
-  })
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const handleLogout = async () => {
-    await authStore.logout()
-    ElMessage.success('Logged out successfully')
-    router.push('/')
-  }
-
-  onMounted(async () => {
-    try {
-      await authStore.fetchProfile()
-      await authStore.fetchISVInfo()
-    } catch (e) {
-      ElMessage.error('Failed to fetch user information')
-    } finally {
-      loading.value = false
-    }
-  })
-</script>
-
 <template>
-  <div class="p-5">
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold">Personal Profile</h1>
-      <p class="mt-2 text-gray-500">Manage your account information</p>
+  <div class="profile-page" style="padding: 24px; overflow-y: auto; height: 100%;">
+    <div class="mb-4">
+      <h2 class="text-lg font-semibold">{{ $t('developer.profile.title') }}</h2>
     </div>
 
-    <div v-if="loading" class="flex justify-center py-12">
-      <el-icon class="is-loading" :size="32">
-        <Loading />
-      </el-icon>
+    <div v-if="loading" class="flex justify-center py-20">
+      <ElIcon class="is-loading text-3xl text-gray-400"><Loading /></ElIcon>
     </div>
 
     <template v-else-if="user">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Left Column -->
-        <div class="lg:col-span-2 space-y-6">
-          <!-- Basic Info Card -->
-          <ElCard shadow="never">
-            <template #header>
-              <h2 class="text-lg font-semibold">Basic Information</h2>
-            </template>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Email</label>
-                <div class="flex items-center gap-3">
-                  <el-icon><Message /></el-icon>
-                  <span>{{ user.email }}</span>
-                  <ElTag type="info" size="small">Cannot be modified</ElTag>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Name</label>
-                <div class="flex items-center gap-3">
-                  <el-icon><User /></el-icon>
-                  <span>{{ user.name || '-' }}</span>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Role</label>
-                <ElTag :type="user.role === 'owner' ? 'warning' : 'info'">
-                  {{ user.role }}
-                </ElTag>
-              </div>
-            </div>
+      <ElRow :gutter="20">
+        <ElCol :span="16">
+          <!-- 基本信息 -->
+          <ElCard class="mb-4">
+            <template #header><span class="font-semibold">{{ $t('developer.profile.basicInfo') }}</span></template>
+            <ElDescriptions :column="2" border label-class-name="detail-label">
+              <ElDescriptionsItem :label="$t('developer.profile.email')">{{ user.email }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.name')">{{ user.name || '-' }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.role')">
+                <ElTag :type="user.role === 'owner' ? 'warning' : 'info'">{{ user.role }}</ElTag>
+              </ElDescriptionsItem>
+            </ElDescriptions>
           </ElCard>
 
-          <!-- Company Information Card -->
-          <ElCard v-if="isvInfo" shadow="never">
-            <template #header>
-              <h2 class="text-lg font-semibold">Company Information</h2>
-            </template>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Legal Name</label>
-                <div class="flex items-center gap-3">
-                  <el-icon><OfficeBuilding /></el-icon>
-                  <span>{{ isvInfo.legalName || '-' }}</span>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Registration Number</label>
-                <div class="flex items-center gap-3">
-                  <el-icon><Ticket /></el-icon>
-                  <span class="font-mono">{{ isvInfo.registrationNumber || '-' }}</span>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Jurisdiction</label>
-                <div class="flex items-center gap-3">
-                  <el-icon><Location /></el-icon>
-                  <span>{{ isvInfo.jurisdiction || '-' }}</span>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Date of Incorporation</label>
-                <div class="flex items-center gap-3">
-                  <el-icon><Calendar /></el-icon>
-                  <span>{{ isvInfo.dateOfIncorporation || '-' }}</span>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Registered Address</label>
-                <div class="flex items-center gap-3">
-                  <el-icon><Location /></el-icon>
-                  <span>{{ isvInfo.registeredAddress || '-' }}</span>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">KYB Status</label>
-                <ElTag :type="kybStatusConfig.type" size="large">
-                  {{ kybStatusConfig.text }}
-                </ElTag>
-              </div>
-            </div>
+          <!-- 公司信息 -->
+          <ElCard v-if="isvInfo" class="mb-4">
+            <template #header><span class="font-semibold">{{ $t('developer.profile.companyInfo') }}</span></template>
+            <ElDescriptions :column="2" border label-class-name="detail-label">
+              <ElDescriptionsItem :label="$t('developer.profile.legalName')">{{ isvInfo.legalName || '-' }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.registrationNumber')">{{ isvInfo.registrationNumber || '-' }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.jurisdiction')">{{ isvInfo.jurisdiction || '-' }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.dateOfIncorporation')">{{ isvInfo.dateOfIncorporation || '-' }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.registeredAddress')" :span="2">{{ isvInfo.registeredAddress || '-' }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.kybStatus')">
+                <ElTag :type="kybStatusConfig.type" size="large">{{ kybStatusConfig.text }}</ElTag>
+              </ElDescriptionsItem>
+            </ElDescriptions>
           </ElCard>
-        </div>
+        </ElCol>
 
-        <!-- Right Column -->
-        <div class="space-y-6">
-          <ElCard shadow="never">
-            <template #header>
-              <h2 class="text-lg font-semibold">Account Information</h2>
-            </template>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Account ID</label>
-                <p class="font-mono text-sm">{{ user.id }}</p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Registration Time</label>
-                <div class="flex items-center gap-2">
-                  <el-icon><Calendar /></el-icon>
-                  <span>{{ formatDate(user.createdAt) }}</span>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Last Updated</label>
-                <div class="flex items-center gap-2">
-                  <el-icon><Calendar /></el-icon>
-                  <span>{{ formatDate(user.updatedAt) }}</span>
-                </div>
-              </div>
-            </div>
+        <ElCol :span="8">
+          <!-- 账户信息 -->
+          <ElCard class="mb-4">
+            <template #header><span class="font-semibold">{{ $t('developer.profile.accountInfo') }}</span></template>
+            <ElDescriptions :column="1" border>
+              <ElDescriptionsItem :label="$t('developer.profile.accountId')"><span class="font-mono text-sm">{{ user.id }}</span></ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.registrationTime')">{{ formatDate(user.createdAt) }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.lastUpdated')">{{ formatDate(user.updatedAt) }}</ElDescriptionsItem>
+            </ElDescriptions>
           </ElCard>
 
-          <ElCard shadow="never">
-            <template #header>
-              <h2 class="text-lg font-semibold">Security Actions</h2>
-            </template>
-            <p class="text-sm text-gray-500 mb-4">After logging out, you will need to re-enter your credentials</p>
-            <ElButton type="danger" class="w-full" @click="handleLogout">
-              Log Out
-            </ElButton>
+          <!-- 安全操作 -->
+          <ElCard class="mb-4">
+            <template #header><span class="font-semibold">{{ $t('developer.profile.security') }}</span></template>
+            <p class="text-sm text-gray-500 mb-4">{{ $t('developer.profile.logoutDesc') }}</p>
+            <ElButton type="danger" class="w-full" @click="handleLogout">{{ $t('developer.profile.logout') }}</ElButton>
           </ElCard>
-        </div>
-      </div>
+        </ElCol>
+      </ElRow>
     </template>
   </div>
 </template>
+
+<script setup lang="ts">
+defineOptions({ name: 'DeveloperProfile' })
+
+import { useI18n } from 'vue-i18n'
+import { ElMessage, ElTag, ElDescriptions, ElDescriptionsItem } from 'element-plus'
+import { Loading } from '@element-plus/icons-vue'
+import { useUserStore } from '@/store/modules/user'
+import { formatDate } from '@/utils/date'
+
+const { t } = useI18n()
+const router = useRouter()
+const userStore = useUserStore()
+const loading = ref(true)
+
+const user = computed(() => userStore.info as any)
+const isvInfo = computed(() => userStore.isvInfo as any)
+
+const kybStatusConfig = computed(() => {
+  const status = isvInfo.value?.kybStatus || 'pending'
+  const configs: Record<string, { type: 'primary' | 'success' | 'warning' | 'info' | 'danger'; text: string }> = {
+    pending: { type: 'warning', text: t('developer.profile.underReview') },
+    approved: { type: 'success', text: t('developer.profile.approved') },
+    rejected: { type: 'danger', text: t('developer.profile.rejected') }
+  }
+  return configs[status] || configs.pending
+})
+
+const handleLogout = () => {
+  userStore.logOut()
+}
+
+onMounted(async () => {
+  try {
+    await userStore.fetchISVInfo()
+  } finally {
+    loading.value = false
+  }
+})
+</script>
+
+<style scoped>
+:deep(.detail-label) {
+  white-space: nowrap;
+}
+</style>
