@@ -140,6 +140,7 @@
       :title="dialogTitle"
       width="700px"
       :close-on-click-modal="false"
+      :destroy-on-close="false"
       @close="handleDialogClose"
     >
       <ElForm ref="formRef" :model="formData" :rules="formRules" label-width="140px">
