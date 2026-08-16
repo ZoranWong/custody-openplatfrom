@@ -348,7 +348,7 @@
 
   const historyColumns = [
     { type: 'index' as const, width: 60, label: '#' },
-    { prop: 'packageCode', label: t('package.packageCode'), minWidth: 140 },
+    { prop: 'packageCode', label: t('package.packageCode'), minWidth: 140, formatter: (row: any) => t(`package.packageTypeLabels.${row.packageCode}`) },
     { prop: 'monthlyPrice', label: t('package.monthlyPrice'), minWidth: 100, formatter: (row: any) => `$${row.monthlyPrice || 0}` },
     { prop: 'yearlyPrice', label: t('package.yearlyPrice'), minWidth: 100, formatter: (row: any) => (row.yearlyPrice ? `$${row.yearlyPrice}` : '-') },
     { prop: 'dailyApiLimit', label: t('package.dailyApiLimit'), minWidth: 100 },
