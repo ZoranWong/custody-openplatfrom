@@ -3,14 +3,37 @@ import { getPackageRepository } from '../../repositories/repository.factory'
 import { HttpCodes } from '../../enums/http-codes.enum'
 import { BusinessCodes } from '../../enums/business-codes.enum'
 
-// GET /admin/packages
-export async function getPackages(req: Request, res: Response): Promise<void> {
+const VALID_PACKAGE_CODES = ['TRIAL', 'BASIC', 'PROFESSIONAL', 'ENTERPRISE']
+
+// GET /admin/packages/active
+export async function getActivePackages(req: Request, res: Response): Promise<void> {
   try {
-    const { page = '1', pageSize = '10', status, region } = req.query
     const repo = getPackageRepository()
-    const where: any = {}
-    if (status) where.status = status as string
-    if (region) where.region = region as string
+    const packages = await repo.findByStatus('active')
+    res.json({
+      code: 0,
+      message: 'Success',
+      data: packages,
+      trace_id: (req as any).context?.traceId || req.headers['x-trace-id'] || '',
+    })
+  } catch (error) {
+    console.error('Get active packages error:', error)
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
+      message: 'Failed to get active packages',
+      data: null,
+      trace_id: req.headers['x-trace-id'] as string || '',
+    })
+  }
+}
+
+// GET /admin/packages/history
+export async function getPackageHistory(req: Request, res: Response): Promise<void> {
+  try {
+    const { page = '1', pageSize = '10', packageCode } = req.query
+    const repo = getPackageRepository()
+    const where: any = { status: 'inactive' }
+    if (packageCode) where.packageCode = packageCode as string
     const { list, total } = await repo.findByFilters(
       where,
       parseInt(page as string),
@@ -28,10 +51,10 @@ export async function getPackages(req: Request, res: Response): Promise<void> {
       trace_id: (req as any).context?.traceId || req.headers['x-trace-id'] || '',
     })
   } catch (error) {
-    console.error('Get packages error:', error)
+    console.error('Get package history error:', error)
     res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
       code: BusinessCodes.SERVER_INTERNAL,
-      message: 'Failed to get packages',
+      message: 'Failed to get package history',
       data: null,
       trace_id: req.headers['x-trace-id'] as string || '',
     })
@@ -42,20 +65,42 @@ export async function getPackages(req: Request, res: Response): Promise<void> {
 export async function createPackage(req: Request, res: Response): Promise<void> {
   try {
     const {
-      packageCode, name, region, description, features,
-      monthlyPrice, yearlyPrice, currency, yearlyDiscount,
-      dailyApiLimit, maxApplications, isTrial, status, sortOrder,
+      packageCode, name, description, features,
+      monthlyPrice, yearlyPrice, yearlyDiscount,
+      dailyApiLimit, maxApplications, isTrial, region,
     } = req.body
-    if (!packageCode || !name) {
+
+    if (!packageCode || !VALID_PACKAGE_CODES.includes(packageCode)) {
       res.status(HttpCodes.BAD_REQUEST).json({
         code: BusinessCodes.PARAM_REQUIRED,
-        message: 'packageCode and name are required',
+        message: 'Invalid package type. Must be one of: TRIAL, BASIC, PROFESSIONAL, ENTERPRISE',
         data: null,
         trace_id: req.headers['x-trace-id'] as string || '',
       })
       return
     }
+
+    if (!name) {
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
+        message: 'name is required',
+        data: null,
+        trace_id: req.headers['x-trace-id'] as string || '',
+      })
+      return
+    }
+
     const repo = getPackageRepository()
+
+    // Deactivate all active packages of the same type
+    const existingActive = await repo.findByCodeAndStatus(packageCode, 'active')
+    if (existingActive) {
+      await repo.update(existingActive.id, { status: 'inactive' } as any)
+    }
+
+    // Get the max version for this type and increment
+    const maxVersion = await repo.getMaxVersion(packageCode)
+
     const pkg = await repo.create({
       packageCode,
       name,
@@ -64,14 +109,15 @@ export async function createPackage(req: Request, res: Response): Promise<void> 
       features: features || null,
       monthlyPrice: monthlyPrice || 0,
       yearlyPrice: yearlyPrice || null,
-      currency: currency || 'CNY',
       yearlyDiscount: yearlyDiscount || 1.0,
       dailyApiLimit: dailyApiLimit || 1000,
       maxApplications: maxApplications || 1,
       isTrial: isTrial || false,
-      status: status || 'active',
-      sortOrder: sortOrder || 0,
+      status: 'active',
+      version: maxVersion + 1,
+      sortOrder: 0,
     } as any)
+
     res.json({
       code: 0,
       message: 'Success',
@@ -93,20 +139,18 @@ export async function createPackage(req: Request, res: Response): Promise<void> 
 export async function updatePackage(req: Request, res: Response): Promise<void> {
   try {
     const {
-      packageCode, name, region, description, features,
-      monthlyPrice, yearlyPrice, currency, yearlyDiscount,
+      packageCode, name, description, features,
+      monthlyPrice, yearlyPrice, yearlyDiscount,
       dailyApiLimit, maxApplications, isTrial, status, sortOrder,
     } = req.body
     const repo = getPackageRepository()
     const pkg = await repo.update(req.params.id, {
       packageCode,
       name,
-      region,
       description,
       features,
       monthlyPrice,
       yearlyPrice,
-      currency,
       yearlyDiscount,
       dailyApiLimit,
       maxApplications,

@@ -5,13 +5,16 @@ import request from '@/utils/http'
  * 后端路径: /admin/packages
  */
 
-export function fetchPackages(params: {
+export function fetchActivePackages() {
+  return request.get<any>({ url: '/admin/packages/active' })
+}
+
+export function fetchPackageHistory(params: {
   page?: number
   pageSize?: number
-  status?: string
-  region?: string
+  packageCode?: string
 }) {
-  return request.get<any>({ url: '/admin/packages', params })
+  return request.get<any>({ url: '/admin/packages/history', params })
 }
 
 export function fetchCreatePackage(data: {
@@ -22,13 +25,10 @@ export function fetchCreatePackage(data: {
   features?: any
   monthlyPrice?: number
   yearlyPrice?: number
-  currency?: string
   yearlyDiscount?: number
   dailyApiLimit?: number
   maxApplications?: number
   isTrial?: boolean
-  status?: string
-  sortOrder?: number
 }) {
   return request.post<any>({ url: '/admin/packages', data })
 }

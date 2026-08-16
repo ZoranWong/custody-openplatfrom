@@ -452,26 +452,27 @@ model Announcement {
 // ============================================
 model Package {
   id              String   @id @default(uuid())
-  packageCode     String   @map("package_code")
+  packageCode     String   @map("package_code")  // TRIAL, BASIC, PROFESSIONAL, ENTERPRISE
   region          String   @default("CN")
   name            String
   description     String?  @db.Text
   features        Json?
   monthlyPrice    Decimal  @map("monthly_price") @db.Decimal(10, 2)
   yearlyPrice     Decimal? @map("yearly_price") @db.Decimal(10, 2)
-  currency        String   @default("CNY")
   yearlyDiscount  Decimal  @default(1.0) @map("yearly_discount") @db.Decimal(3, 2)
   dailyApiLimit   Int      @default(1000) @map("daily_api_limit")
   maxApplications Int      @default(1) @map("max_applications")
   isTrial         Boolean  @default(false) @map("is_trial")
-  status          String   @default("active")
+  status          String   @default("active")  // active=启用, inactive=停用
+  version         Int      @default(1)        // 版本号，同类型每次新增+1
   sortOrder       Int      @default(0) @map("sort_order")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   subscriptions   Subscription[]
 
-  @@unique([packageCode, region])
+  @@unique([packageCode, region, version])
+  @@index([packageCode, status])
   @@map("packages")
 }
 
