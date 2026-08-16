@@ -254,7 +254,7 @@
   import { useI18n } from 'vue-i18n'
   import type { FormInstance, FormRules } from 'element-plus'
 
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   const VALID_PACKAGE_CODES = ['TRIAL', 'BASIC', 'PROFESSIONAL', 'ENTERPRISE'] as const
 
@@ -357,7 +357,7 @@
     { prop: 'createdAt', label: t('package.createdAt'), minWidth: 170, formatter: (row: any) => {
         if (!row.createdAt) return '-'
         const d = new Date(row.createdAt)
-        return d.toLocaleString('zh-CN')
+        return d.toLocaleString(locale.value === 'en' ? 'en-US' : 'zh-CN')
       }
     }
   ]
