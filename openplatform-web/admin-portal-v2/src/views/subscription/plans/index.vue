@@ -251,7 +251,10 @@
 
   import { fetchActivePackages, fetchPackageHistory, fetchCreatePackage } from '@/api/subscription'
   import { ElTag, ElMessage } from 'element-plus'
+  import { useI18n } from 'vue-i18n'
   import type { FormInstance, FormRules } from 'element-plus'
+
+  const { t } = useI18n()
 
   const VALID_PACKAGE_CODES = ['TRIAL', 'BASIC', 'PROFESSIONAL', 'ENTERPRISE'] as const
 
@@ -345,14 +348,14 @@
 
   const historyColumns = [
     { type: 'index' as const, width: 60, label: '#' },
-    { prop: 'packageCode', label: 'Package Type', minWidth: 120 },
-    { prop: 'name', label: 'Name', minWidth: 150 },
-    { prop: 'monthlyPrice', label: 'Monthly', width: 100, formatter: (row: any) => `$${row.monthlyPrice || 0}` },
-    { prop: 'yearlyPrice', label: 'Yearly', width: 100, formatter: (row: any) => (row.yearlyPrice ? `$${row.yearlyPrice}` : '-') },
-    { prop: 'dailyApiLimit', label: 'API Limit', width: 100 },
-    { prop: 'maxApplications', label: 'Apps', width: 80 },
-    { prop: 'version', label: 'Ver', width: 60, formatter: (row: any) => `v${row.version || 1}` },
-    { prop: 'createdAt', label: 'Created', width: 170, formatter: (row: any) => {
+    { prop: 'packageCode', label: t('package.packageCode'), minWidth: 120 },
+    { prop: 'name', label: t('package.name'), minWidth: 150 },
+    { prop: 'monthlyPrice', label: t('package.monthlyPrice'), width: 100, formatter: (row: any) => `$${row.monthlyPrice || 0}` },
+    { prop: 'yearlyPrice', label: t('package.yearlyPrice'), width: 100, formatter: (row: any) => (row.yearlyPrice ? `$${row.yearlyPrice}` : '-') },
+    { prop: 'dailyApiLimit', label: t('package.dailyApiLimit'), width: 100 },
+    { prop: 'maxApplications', label: t('package.maxApplications'), width: 80 },
+    { prop: 'version', label: t('package.version'), width: 60, formatter: (row: any) => `v${row.version || 1}` },
+    { prop: 'createdAt', label: t('package.createdAt'), width: 170, formatter: (row: any) => {
         if (!row.createdAt) return '-'
         const d = new Date(row.createdAt)
         return d.toLocaleString('zh-CN')
