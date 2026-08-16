@@ -349,12 +349,12 @@
   const historyColumns = [
     { type: 'index' as const, width: 60, label: '#' },
     { prop: 'packageCode', label: t('package.packageCode'), minWidth: 140 },
-    { prop: 'monthlyPrice', label: t('package.monthlyPrice'), width: 100, formatter: (row: any) => `$${row.monthlyPrice || 0}` },
-    { prop: 'yearlyPrice', label: t('package.yearlyPrice'), width: 100, formatter: (row: any) => (row.yearlyPrice ? `$${row.yearlyPrice}` : '-') },
-    { prop: 'dailyApiLimit', label: t('package.dailyApiLimit'), width: 100 },
-    { prop: 'maxApplications', label: t('package.maxApplications'), width: 80 },
-    { prop: 'version', label: t('package.version'), width: 60, formatter: (row: any) => `v${row.version || 1}` },
-    { prop: 'createdAt', label: t('package.createdAt'), width: 170, formatter: (row: any) => {
+    { prop: 'monthlyPrice', label: t('package.monthlyPrice'), minWidth: 100, formatter: (row: any) => `$${row.monthlyPrice || 0}` },
+    { prop: 'yearlyPrice', label: t('package.yearlyPrice'), minWidth: 100, formatter: (row: any) => (row.yearlyPrice ? `$${row.yearlyPrice}` : '-') },
+    { prop: 'dailyApiLimit', label: t('package.dailyApiLimit'), minWidth: 100 },
+    { prop: 'maxApplications', label: t('package.maxApplications'), minWidth: 80 },
+    { prop: 'version', label: t('package.version'), minWidth: 60, formatter: (row: any) => `v${row.version || 1}` },
+    { prop: 'createdAt', label: t('package.createdAt'), minWidth: 170, formatter: (row: any) => {
         if (!row.createdAt) return '-'
         const d = new Date(row.createdAt)
         return d.toLocaleString('zh-CN')
