@@ -20,6 +20,7 @@ import { OauthResourceRepositoryImpl } from './implementations/authorization.rep
 import { RefreshTokenRepositoryImpl } from './implementations/refresh-token.repository'
 import { DeveloperApplicationRepositoryImpl } from './implementations/developer-application.repository'
 import { DeveloperAuditRepositoryImpl } from './implementations/developer-audit.repository'
+import { AnnouncementRepositoryImpl } from './implementations/announcement.repository'
 
 // Singleton instances
 let isvDeveloperRepo: IsvDeveloperRepository | null = null
@@ -30,6 +31,7 @@ let oauthResourceRepo: OauthResourceRepository | null = null
 let refreshTokenRepo: RefreshTokenRepository | null = null
 let developerApplicationRepo: DeveloperApplicationRepositoryImpl | null = null
 let developerAuditRepo: DeveloperAuditRepositoryImpl | null = null
+let announcementRepo: AnnouncementRepositoryImpl | null = null
 
 export function getIsvDeveloperRepository(): IsvDeveloperRepository {
   if (isvDeveloperRepo) return isvDeveloperRepo
@@ -83,6 +85,12 @@ export function getDeveloperAuditRepository(): DeveloperAuditRepositoryImpl {
   return developerAuditRepo
 }
 
+export function getAnnouncementRepository(): AnnouncementRepositoryImpl {
+  if (announcementRepo) return announcementRepo
+  announcementRepo = new AnnouncementRepositoryImpl(getPrismaClient())
+  return announcementRepo
+}
+
 /**
  * Reset all repository instances (for testing)
  */
@@ -95,4 +103,5 @@ export function resetRepositories(): void {
   refreshTokenRepo = null
   developerApplicationRepo = null
   developerAuditRepo = null
+  announcementRepo = null
 }

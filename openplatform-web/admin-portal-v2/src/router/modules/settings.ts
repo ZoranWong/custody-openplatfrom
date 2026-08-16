@@ -64,6 +64,16 @@ export const settingsRoutes: AppRouteRecord = {
         keepAlive: true,
         roles: ['R_SUPER', 'R_ADMIN']
       }
+    },
+    {
+      path: 'announcement',
+      name: 'SettingsAnnouncement',
+      component: '/settings/announcement',
+      meta: {
+        title: 'menus.settings.announcement',
+        keepAlive: true,
+        roles: ['R_SUPER', 'R_ADMIN']
+      }
     }
   ]
 }

@@ -430,3 +430,18 @@ model Admin {
   @@index([email])
   @@map("admins")
 }
+
+// ============================================
+// Announcement - 公告管理表
+// ============================================
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @db.Text
+  type      String   @default("system")
+  status    String   @default("draft")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("announcements")
+}

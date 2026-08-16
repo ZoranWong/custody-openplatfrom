@@ -284,7 +284,8 @@
       "role": "Roles",
       "menu": "Menus",
       "config": "Config",
-      "auditLog": "Audit Log"
+      "auditLog": "Audit Log",
+      "announcement": "Announcements"
     }
   },
   "table": {

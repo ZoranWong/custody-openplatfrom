@@ -44,3 +44,23 @@ export function fetchAuditLogExport() {
 export function fetchAuditLogStats() {
   return request.get<any>({ url: '/admin/audit/stats' })
 }
+
+/** 公告列表 */
+export function fetchAnnouncements(params: { page?: number; pageSize?: number; status?: string; type?: string }) {
+  return request.get<any>({ url: '/admin/announcements', params })
+}
+
+/** 创建公告 */
+export function fetchCreateAnnouncement(params: { title: string; content: string; type?: string; status?: string }) {
+  return request.post<any>({ url: '/admin/announcements', params })
+}
+
+/** 更新公告 */
+export function fetchUpdateAnnouncement(id: string, params: { title?: string; content?: string; type?: string; status?: string }) {
+  return request.put<any>({ url: `/admin/announcements/${id}`, params })
+}
+
+/** 删除公告 */
+export function fetchDeleteAnnouncement(id: string) {
+  return request.del<any>({ url: `/admin/announcements/${id}` })
+}
