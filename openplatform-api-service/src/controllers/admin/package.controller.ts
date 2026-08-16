@@ -67,7 +67,9 @@ export async function createPackage(req: Request, res: Response): Promise<void> 
     const {
       packageCode, name, description, features,
       monthlyPrice, yearlyPrice, yearlyDiscount,
-      dailyApiLimit, maxApplications, isTrial, region,
+      dailyApiLimit, maxApplications, isTrial,
+      webhook, customDomain, whiteLabel, sla, ipWhitelist, autoRenew,
+      logRetention, supportLevel,
     } = req.body
 
     if (!packageCode || !VALID_PACKAGE_CODES.includes(packageCode)) {
@@ -104,7 +106,6 @@ export async function createPackage(req: Request, res: Response): Promise<void> 
     const pkg = await repo.create({
       packageCode,
       name,
-      region: region || 'CN',
       description: description || null,
       features: features || null,
       monthlyPrice: monthlyPrice || 0,
@@ -113,6 +114,14 @@ export async function createPackage(req: Request, res: Response): Promise<void> 
       dailyApiLimit: dailyApiLimit || 1000,
       maxApplications: maxApplications || 1,
       isTrial: isTrial || false,
+      webhook: webhook || false,
+      customDomain: customDomain || false,
+      whiteLabel: whiteLabel || false,
+      sla: sla || false,
+      ipWhitelist: ipWhitelist || false,
+      autoRenew: autoRenew || false,
+      logRetention: logRetention || 30,
+      supportLevel: supportLevel || 'community',
       status: 'active',
       version: maxVersion + 1,
       sortOrder: 0,
@@ -142,6 +151,8 @@ export async function updatePackage(req: Request, res: Response): Promise<void> 
       packageCode, name, description, features,
       monthlyPrice, yearlyPrice, yearlyDiscount,
       dailyApiLimit, maxApplications, isTrial, status, sortOrder,
+      webhook, customDomain, whiteLabel, sla, ipWhitelist, autoRenew,
+      logRetention, supportLevel,
     } = req.body
     const repo = getPackageRepository()
     const pkg = await repo.update(req.params.id, {
@@ -155,6 +166,14 @@ export async function updatePackage(req: Request, res: Response): Promise<void> 
       dailyApiLimit,
       maxApplications,
       isTrial,
+      webhook,
+      customDomain,
+      whiteLabel,
+      sla,
+      ipWhitelist,
+      autoRenew,
+      logRetention,
+      supportLevel,
       status,
       sortOrder,
     } as any)

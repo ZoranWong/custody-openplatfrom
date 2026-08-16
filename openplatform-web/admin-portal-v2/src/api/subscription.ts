@@ -20,7 +20,6 @@ export function fetchPackageHistory(params: {
 export function fetchCreatePackage(data: {
   packageCode: string
   name: string
-  region?: string
   description?: string
   features?: any
   monthlyPrice?: number
@@ -29,6 +28,14 @@ export function fetchCreatePackage(data: {
   dailyApiLimit?: number
   maxApplications?: number
   isTrial?: boolean
+  webhook?: boolean
+  customDomain?: boolean
+  whiteLabel?: boolean
+  sla?: boolean
+  ipWhitelist?: boolean
+  autoRenew?: boolean
+  logRetention?: number
+  supportLevel?: string
 }) {
   return request.post<any>({ url: '/admin/packages', data })
 }

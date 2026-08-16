@@ -453,7 +453,6 @@ model Announcement {
 model Package {
   id              String   @id @default(uuid())
   packageCode     String   @map("package_code")  // TRIAL, BASIC, PROFESSIONAL, ENTERPRISE
-  region          String   @default("CN")
   name            String
   description     String?  @db.Text
   features        Json?
@@ -463,6 +462,14 @@ model Package {
   dailyApiLimit   Int      @default(1000) @map("daily_api_limit")
   maxApplications Int      @default(1) @map("max_applications")
   isTrial         Boolean  @default(false) @map("is_trial")
+  webhook         Boolean  @default(false) @map("webhook")
+  customDomain    Boolean  @default(false) @map("custom_domain")
+  whiteLabel      Boolean  @default(false) @map("white_label")
+  sla             Boolean  @default(false) @map("sla")
+  ipWhitelist     Boolean  @default(false) @map("ip_whitelist")
+  autoRenew       Boolean  @default(false) @map("auto_renew")
+  logRetention    Int      @default(30) @map("log_retention_days")
+  supportLevel    String   @default("community") @map("support_level")
   status          String   @default("active")  // active=启用, inactive=停用
   version         Int      @default(1)        // 版本号，同类型每次新增+1
   sortOrder       Int      @default(0) @map("sort_order")
@@ -471,7 +478,7 @@ model Package {
 
   subscriptions   Subscription[]
 
-  @@unique([packageCode, region, version])
+  @@unique([packageCode, version])
   @@index([packageCode, status])
   @@map("packages")
 }

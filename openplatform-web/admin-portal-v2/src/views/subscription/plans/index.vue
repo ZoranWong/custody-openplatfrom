@@ -1,15 +1,15 @@
 <template>
-  <div class="subscription-plans-page flex flex-col">
+  <div class="subscription-plans-page">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold">套餐管理</h2>
-      <ElButton type="primary" @click="handleAdd">新增套餐</ElButton>
+      <h2 class="text-lg font-semibold">{{ $t('package.title') }}</h2>
+      <ElButton type="primary" @click="handleAdd">{{ $t('package.addPackage') }}</ElButton>
     </div>
 
     <!-- Active Packages - Card Layout -->
-    <ElRow :gutter="20">
-      <ElCol v-for="pkg in activePackages" :key="pkg.id" :sm="24" :md="12" :lg="6">
+    <ElRow :gutter="20" class="package-card-row">
+      <ElCol v-for="pkg in sortedPackages" :key="pkg.id" :sm="24" :md="12" :lg="6">
         <ElCard
-          class="package-card cursor-pointer"
+          class="package-card"
           :class="packageTypeClass(pkg.packageCode)"
           shadow="hover"
           @click="handleCardClick(pkg)"
@@ -17,31 +17,78 @@
           <template #header>
             <div class="flex justify-between items-center">
               <span class="font-bold">{{ pkg.name }}</span>
-              <ElTag :type="packageTagType(pkg.packageCode)">
-                {{ packageTypeLabel(pkg.packageCode) }}
+              <ElTag :type="packageTagType(pkg.packageCode)" size="small">
+                {{ $t(`package.packageTypeLabels.${pkg.packageCode}`) }}
               </ElTag>
             </div>
           </template>
-          <div class="price">
-            <span class="text-3xl font-bold">
-              {{ pkg.monthlyPrice === '0' ? '免费' : '¥' + pkg.monthlyPrice }}
-            </span>
-            <span v-if="pkg.monthlyPrice !== '0'" class="text-sm text-gray-500">/月</span>
+
+          <!-- Price section -->
+          <div class="price-section">
+            <template v-if="pkg.isTrial">
+              <div class="text-3xl font-bold text-green-500">{{ $t('package.free') }}</div>
+              <div class="text-sm text-gray-400">{{ $t('package.perMonth') }}</div>
+              <div class="text-xs text-gray-400 mt-1">{{ $t('package.trialDays') }}</div>
+            </template>
+            <template v-else>
+              <div class="text-3xl font-bold">${{ pkg.monthlyPrice }}</div>
+              <div class="text-sm text-gray-400">{{ $t('package.perMonth') }}</div>
+              <div v-if="pkg.yearlyPrice && Number(pkg.yearlyPrice) > 0" class="text-xs text-gray-400 mt-1">
+                {{ $t('package.yearly') }}: ${{ pkg.yearlyPrice }}
+                <span class="text-blue-500 ml-1">
+                  ({{ Number((Number(pkg.yearlyDiscount) || 1) * 10).toFixed(1) }}{{ $t('package.discount') }})
+                </span>
+              </div>
+            </template>
           </div>
-          <div v-if="pkg.yearlyPrice && pkg.yearlyPrice !== '0'" class="text-sm text-gray-500 mt-1">
-            年付 ¥{{ pkg.yearlyPrice }} ({{ (pkg.yearlyDiscount * 10).toFixed(1) }}折)
-          </div>
+
           <ElDivider />
-          <div class="features">
-            <p
-              v-for="(f, i) in parseFeatures(pkg.features)"
-              :key="i"
-              class="text-sm text-gray-600 mb-1"
+
+          <!-- Feature list -->
+          <div class="features-section">
+            <div
+              v-for="category in featureCategories"
+              :key="category.key"
+              class="feature-category"
             >
-              <span class="text-green-500 mr-1">&#10003;</span> {{ f }}
-            </p>
+              <div class="feature-category-title">
+                {{ $t(`package.featuresCategory.${category.key}`) }}
+              </div>
+              <div
+                v-for="feature in category.features"
+                :key="feature.key"
+                class="feature-item"
+              >
+                <span
+                  v-if="feature.handler(pkg)"
+                  class="feature-check feature-yes"
+                >&#10003;</span>
+                <span
+                  v-else
+                  class="feature-check feature-no"
+                >&#10007;</span>
+                <span class="feature-label">
+                  {{ $t(`package.featureLabels.${feature.key}`) }}
+                </span>
+                <span v-if="feature.key === 'dailyApiLimit'" class="feature-value">
+                  {{ formatNumber(pkg.dailyApiLimit) }}
+                </span>
+                <span v-else-if="feature.key === 'maxApplications'" class="feature-value">
+                  {{ pkg.maxApplications >= 999 ? 'Unlimited' : pkg.maxApplications }}
+                </span>
+                <span v-else-if="feature.key === 'logRetention'" class="feature-value">
+                  {{ pkg.logRetention }}{{ $t('package.featureLabels.logRetention').match(/\d/) ? '' : 'd' }}
+                </span>
+                <span v-else-if="feature.key === 'supportLevel'" class="feature-value">
+                  {{ $t(`package.supportLevelLabels.${pkg.supportLevel || 'community'}`) }}
+                </span>
+              </div>
+            </div>
           </div>
-          <div class="mt-3 text-xs text-gray-400"> v{{ pkg.version || 1 }} </div>
+
+          <div class="mt-3 text-xs text-gray-400 text-right">
+            v{{ pkg.version || 1 }}
+          </div>
         </ElCard>
       </ElCol>
 
@@ -49,31 +96,33 @@
       <ElCol v-for="code in missingPackageTypes" :key="code" :sm="24" :md="12" :lg="6">
         <ElCard class="package-card package-card-empty" shadow="hover">
           <div class="flex flex-col items-center justify-center h-full py-8 text-gray-400">
-            <p class="text-lg mb-2">{{ packageTypeLabel(code) }}</p>
-            <p class="text-sm mb-4">暂无可用套餐</p>
-            <ElButton type="primary" size="small" @click.stop="handleAddForType(code)"
-              >新增套餐</ElButton
-            >
+            <p class="text-lg mb-2">{{ $t(`package.packageTypeLabels.${code}`) }}</p>
+            <p class="text-sm mb-4">{{ $t('package.noPackage') }}</p>
+            <ElButton type="primary" size="small" @click.stop="handleAddForType(code)">
+              {{ $t('package.addForType') }}
+            </ElButton>
           </div>
         </ElCard>
       </ElCol>
     </ElRow>
 
-    <!-- History - Table Layout (always visible below cards) -->
-    <div class="mt-8">
+    <!-- History - Table Layout -->
+    <div class="mt-8 history-section">
       <div class="mb-4">
         <ElSelect
           v-model="historyFilter"
-          placeholder="筛选套餐类型"
+          :placeholder="$t('package.filterType')"
           clearable
           style="width: 200px"
           @change="loadHistory"
         >
-          <ElOption label="全部" value="" />
-          <ElOption label="体验版 (TRIAL)" value="TRIAL" />
-          <ElOption label="基础版 (BASIC)" value="BASIC" />
-          <ElOption label="中小企业版 (PROFESSIONAL)" value="PROFESSIONAL" />
-          <ElOption label="金融服务大型企业版 (ENTERPRISE)" value="ENTERPRISE" />
+          <ElOption :label="$t('package.all')" value="" />
+          <ElOption
+            v-for="code in VALID_PACKAGE_CODES"
+            :key="code"
+            :label="$t(`package.packageTypeLabels.${code}`)"
+            :value="code"
+          />
         </ElSelect>
       </div>
       <ElCard class="art-table-card">
@@ -92,35 +141,36 @@
     <ElDialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="640px"
+      width="700px"
       :close-on-click-modal="false"
       @close="handleDialogClose"
     >
-      <ElForm ref="formRef" :model="formData" :rules="formRules" label-width="120px">
-        <ElFormItem label="套餐类型" prop="packageCode">
+      <ElForm ref="formRef" :model="formData" :rules="formRules" label-width="140px">
+        <ElFormItem :label="$t('package.packageCode')" prop="packageCode">
           <ElSelect
             v-model="formData.packageCode"
             :disabled="!!editingPackage"
-            placeholder="选择套餐类型"
+            :placeholder="$t('package.packageCode')"
           >
-            <ElOption label="体验版 (TRIAL)" value="TRIAL" />
-            <ElOption label="基础版 (BASIC)" value="BASIC" />
-            <ElOption label="中小企业版 (PROFESSIONAL)" value="PROFESSIONAL" />
-            <ElOption label="金融服务大型企业版 (ENTERPRISE)" value="ENTERPRISE" />
+            <ElOption
+              v-for="code in VALID_PACKAGE_CODES"
+              :key="code"
+              :label="$t(`package.packageTypeLabels.${code}`)"
+              :value="code"
+            />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem label="套餐名称" prop="name">
-          <ElInput v-model="formData.name" placeholder="如: 基础版" />
+        <ElFormItem :label="$t('package.name')" prop="name">
+          <ElInput v-model="formData.name" />
         </ElFormItem>
-        <ElFormItem label="描述">
+        <ElFormItem :label="$t('package.description')">
           <ElInput
             v-model="formData.description"
             type="textarea"
             :rows="2"
-            placeholder="套餐描述"
           />
         </ElFormItem>
-        <ElFormItem label="月价格 (¥)" prop="monthlyPrice">
+        <ElFormItem :label="$t('package.monthlyPrice') ($)" prop="monthlyPrice">
           <ElInputNumber
             v-model="formData.monthlyPrice"
             :min="0"
@@ -128,7 +178,7 @@
             style="width: 100%"
           />
         </ElFormItem>
-        <ElFormItem label="年价格 (¥)">
+        <ElFormItem :label="$t('package.yearlyPrice') ($)">
           <ElInputNumber
             v-model="formData.yearlyPrice"
             :min="0"
@@ -136,7 +186,7 @@
             style="width: 100%"
           />
         </ElFormItem>
-        <ElFormItem label="年付折扣">
+        <ElFormItem :label="$t('package.yearlyDiscount')">
           <ElInputNumber
             v-model="formData.yearlyDiscount"
             :min="0.1"
@@ -145,27 +195,51 @@
             style="width: 100%"
           />
         </ElFormItem>
-        <ElFormItem label="每日API限额" prop="dailyApiLimit">
+        <ElFormItem :label="$t('package.dailyApiLimit')" prop="dailyApiLimit">
           <ElInputNumber v-model="formData.dailyApiLimit" :min="100" style="width: 100%" />
         </ElFormItem>
-        <ElFormItem label="最大应用数" prop="maxApplications">
+        <ElFormItem :label="$t('package.maxApplications')" prop="maxApplications">
           <ElInputNumber v-model="formData.maxApplications" :min="1" style="width: 100%" />
         </ElFormItem>
-        <ElFormItem label="功能列表">
-          <ElInput
-            v-model="formData.featuresText"
-            type="textarea"
-            :rows="6"
-            placeholder="每行一个功能，例如：&#10;每日50,000次API调用&#10;3个应用&#10;邮件支持"
-          />
-        </ElFormItem>
-        <ElFormItem label="体验套餐">
+        <ElFormItem :label="$t('package.isTrial')">
           <ElSwitch v-model="formData.isTrial" />
+        </ElFormItem>
+        <ElDivider content-position="left">{{ $t('package.features') }}</ElDivider>
+        <ElFormItem :label="$t('package.featureLabels.webhook')">
+          <ElSwitch v-model="formData.webhook" />
+        </ElFormItem>
+        <ElFormItem :label="$t('package.featureLabels.customDomain')">
+          <ElSwitch v-model="formData.customDomain" />
+        </ElFormItem>
+        <ElFormItem :label="$t('package.featureLabels.whiteLabel')">
+          <ElSwitch v-model="formData.whiteLabel" />
+        </ElFormItem>
+        <ElFormItem :label="$t('package.featureLabels.sla')">
+          <ElSwitch v-model="formData.sla" />
+        </ElFormItem>
+        <ElFormItem :label="$t('package.featureLabels.ipWhitelist')">
+          <ElSwitch v-model="formData.ipWhitelist" />
+        </ElFormItem>
+        <ElFormItem :label="$t('package.featureLabels.autoRenew')">
+          <ElSwitch v-model="formData.autoRenew" />
+        </ElFormItem>
+        <ElFormItem :label="$t('package.featureLabels.logRetention')">
+          <ElInputNumber v-model="formData.logRetention" :min="1" :max="365" style="width: 100%" />
+        </ElFormItem>
+        <ElFormItem :label="$t('package.featureLabels.supportLevel')">
+          <ElSelect v-model="formData.supportLevel">
+            <ElOption label="Community" value="community" />
+            <ElOption label="Email" value="email" />
+            <ElOption label="Priority" value="priority" />
+            <ElOption label="Dedicated" value="dedicated" />
+          </ElSelect>
         </ElFormItem>
       </ElForm>
       <template #footer>
-        <ElButton @click="dialogVisible = false">取消</ElButton>
-        <ElButton type="primary" :loading="submitLoading" @click="handleSubmit">确定</ElButton>
+        <ElButton @click="dialogVisible = false">{{ $t('common.cancel') }}</ElButton>
+        <ElButton type="primary" :loading="submitLoading" @click="handleSubmit">
+          {{ $t('common.confirm') }}
+        </ElButton>
       </template>
     </ElDialog>
   </div>
@@ -180,15 +254,37 @@
 
   const VALID_PACKAGE_CODES = ['TRIAL', 'BASIC', 'PROFESSIONAL', 'ENTERPRISE'] as const
 
-  const PACKAGE_TYPE_LABELS: Record<string, string> = {
-    TRIAL: '体验版',
-    BASIC: '基础版',
-    PROFESSIONAL: '中小企业版',
-    ENTERPRISE: '金融服务大型企业版'
-  }
+  // Feature definitions with categories
+  const ALL_FEATURES = [
+    { key: 'dailyApiLimit', category: 'api', handler: (pkg: any) => true },
+    { key: 'maxApplications', category: 'api', handler: (pkg: any) => true },
+    { key: 'supportLevel', category: 'support', handler: (pkg: any) => true },
+    { key: 'webhook', category: 'advanced', handler: (pkg: any) => !!pkg.webhook },
+    { key: 'customDomain', category: 'advanced', handler: (pkg: any) => !!pkg.customDomain },
+    { key: 'whiteLabel', category: 'advanced', handler: (pkg: any) => !!pkg.whiteLabel },
+    { key: 'sla', category: 'advanced', handler: (pkg: any) => !!pkg.sla },
+    { key: 'ipWhitelist', category: 'security', handler: (pkg: any) => !!pkg.ipWhitelist },
+    { key: 'logRetention', category: 'data', handler: (pkg: any) => true },
+    { key: 'autoRenew', category: 'billing', handler: (pkg: any) => !!pkg.autoRenew },
+  ]
 
-  function packageTypeLabel(code: string): string {
-    return PACKAGE_TYPE_LABELS[code] || code
+  const featureCategories = computed(() => {
+    const categoryOrder = ['api', 'support', 'advanced', 'security', 'data', 'billing']
+    const grouped: Record<string, typeof ALL_FEATURES> = {}
+    for (const f of ALL_FEATURES) {
+      if (!grouped[f.category]) grouped[f.category] = []
+      grouped[f.category].push(f)
+    }
+    return categoryOrder
+      .filter((c) => grouped[c])
+      .map((c) => ({ key: c, features: grouped[c] }))
+  })
+
+  function formatNumber(n: number): string {
+    if (!n) return '0'
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'
+    if (n >= 1000) return (n / 1000).toFixed(0) + 'K'
+    return String(n)
   }
 
   function packageTypeClass(code: string): string {
@@ -211,21 +307,15 @@
     return map[code] || 'info'
   }
 
-  function parseFeatures(features: any): string[] {
-    if (!features) return []
-    if (Array.isArray(features)) return features
-    if (typeof features === 'string') {
-      try {
-        return JSON.parse(features)
-      } catch {
-        return []
-      }
-    }
-    return []
-  }
-
   // Active packages state
   const activePackages = ref<any[]>([])
+
+  const sortedPackages = computed(() => {
+    const order: Record<string, number> = { TRIAL: 0, BASIC: 1, PROFESSIONAL: 2, ENTERPRISE: 3 }
+    return [...activePackages.value].sort(
+      (a, b) => (order[a.packageCode] ?? 99) - (order[b.packageCode] ?? 99)
+    )
+  })
 
   // Missing package types - those without an active package
   const missingPackageTypes = computed(() => {
@@ -253,38 +343,38 @@
   })
 
   const historyColumns = [
-    { type: 'index' as const, width: 60, label: '序号' },
+    { type: 'index' as const, width: 60, label: '#' },
     {
       prop: 'packageCode',
-      label: '套餐类型',
-      width: 100,
-      formatter: (row: any) => packageTypeLabel(row.packageCode)
+      label: 'Package Type',
+      width: 120,
+      formatter: (row: any) => row.packageCode
     },
-    { prop: 'name', label: '套餐名称', width: 150 },
+    { prop: 'name', label: 'Name', width: 150 },
     {
       prop: 'monthlyPrice',
-      label: '月价格',
-      width: 120,
-      formatter: (row: any) => `${row.monthlyPrice || 0} CNY`
+      label: 'Monthly',
+      width: 100,
+      formatter: (row: any) => `$${row.monthlyPrice || 0}`
     },
     {
       prop: 'yearlyPrice',
-      label: '年价格',
-      width: 120,
-      formatter: (row: any) => (row.yearlyPrice ? `${row.yearlyPrice} CNY` : '-')
+      label: 'Yearly',
+      width: 100,
+      formatter: (row: any) => (row.yearlyPrice ? `$${row.yearlyPrice}` : '-')
     },
-    { prop: 'dailyApiLimit', label: '每日API限额', width: 130 },
-    { prop: 'maxApplications', label: '最大应用数', width: 110 },
+    { prop: 'dailyApiLimit', label: 'API Limit', width: 100 },
+    { prop: 'maxApplications', label: 'Apps', width: 80 },
     {
       prop: 'version',
-      label: '版本',
-      width: 80,
+      label: 'Ver',
+      width: 60,
       formatter: (row: any) => `v${row.version || 1}`
     },
     {
       prop: 'createdAt',
-      label: '创建时间',
-      width: 180,
+      label: 'Created',
+      width: 170,
       formatter: (row: any) => {
         if (!row.createdAt) return '-'
         const d = new Date(row.createdAt)
@@ -340,21 +430,28 @@
     dailyApiLimit: 1000,
     maxApplications: 1,
     isTrial: false,
-    featuresText: ''
+    webhook: false,
+    customDomain: false,
+    whiteLabel: false,
+    sla: false,
+    ipWhitelist: false,
+    autoRenew: false,
+    logRetention: 30,
+    supportLevel: 'community',
   }
 
   const formData = reactive({ ...initialFormData })
 
   const formRules: FormRules = {
-    packageCode: [{ required: true, message: '请选择套餐类型', trigger: 'change' }],
-    name: [{ required: true, message: '请输入套餐名称', trigger: 'blur' }],
-    monthlyPrice: [{ required: true, message: '请输入月价格', trigger: 'blur' }],
-    dailyApiLimit: [{ required: true, message: '请输入每日API限额', trigger: 'blur' }],
-    maxApplications: [{ required: true, message: '请输入最大应用数', trigger: 'blur' }]
+    packageCode: [{ required: true, message: 'Please select a package type', trigger: 'change' }],
+    name: [{ required: true, message: 'Please enter a name', trigger: 'blur' }],
+    monthlyPrice: [{ required: true, message: 'Please enter a monthly price', trigger: 'blur' }],
+    dailyApiLimit: [{ required: true, message: 'Please enter daily API limit', trigger: 'blur' }],
+    maxApplications: [{ required: true, message: 'Please enter max applications', trigger: 'blur' }]
   }
 
   const dialogTitle = computed(() =>
-    editingPackage.value ? '编辑套餐（将创建新版本）' : '新增套餐'
+    editingPackage.value ? 'Edit Package (new version)' : 'Add Package'
   )
 
   function handleAdd() {
@@ -381,7 +478,14 @@
       dailyApiLimit: Number(pkg.dailyApiLimit || 1000),
       maxApplications: Number(pkg.maxApplications || 1),
       isTrial: pkg.isTrial || false,
-      featuresText: parseFeatures(pkg.features).join('\n')
+      webhook: pkg.webhook || false,
+      customDomain: pkg.customDomain || false,
+      whiteLabel: pkg.whiteLabel || false,
+      sla: pkg.sla || false,
+      ipWhitelist: pkg.ipWhitelist || false,
+      autoRenew: pkg.autoRenew || false,
+      logRetention: pkg.logRetention || 30,
+      supportLevel: pkg.supportLevel || 'community',
     })
     dialogVisible.value = true
   }
@@ -392,25 +496,28 @@
       if (!valid) return
       submitLoading.value = true
       try {
-        const features = formData.featuresText
-          ? formData.featuresText.split('\n').filter((f) => f.trim())
-          : null
-
         const payload = {
           packageCode: formData.packageCode,
           name: formData.name,
           description: formData.description || undefined,
-          features,
           monthlyPrice: formData.monthlyPrice,
           yearlyPrice: formData.yearlyPrice,
           yearlyDiscount: formData.yearlyDiscount,
           dailyApiLimit: formData.dailyApiLimit,
           maxApplications: formData.maxApplications,
-          isTrial: formData.isTrial
+          isTrial: formData.isTrial,
+          webhook: formData.webhook,
+          customDomain: formData.customDomain,
+          whiteLabel: formData.whiteLabel,
+          sla: formData.sla,
+          ipWhitelist: formData.ipWhitelist,
+          autoRenew: formData.autoRenew,
+          logRetention: formData.logRetention,
+          supportLevel: formData.supportLevel,
         }
 
         await fetchCreatePackage(payload as any)
-        ElMessage.success(editingPackage.value ? '已创建新版本并停用旧版本' : '创建成功')
+        ElMessage.success(editingPackage.value ? 'New version created, old version deactivated' : 'Package created')
         dialogVisible.value = false
         loadActivePackages()
         loadHistory()
@@ -434,11 +541,33 @@
 </script>
 
 <style scoped>
+  .subscription-plans-page {
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  .package-card-row {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .package-card-row > .el-col {
+    display: flex;
+  }
+
   .package-card {
+    width: 100%;
     margin-bottom: 20px;
     border-radius: 8px;
     transition: all 0.3s ease;
-    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .package-card :deep(.el-card__body) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
   .package-card:hover {
@@ -465,15 +594,67 @@
     border: 1px dashed #d9d9d9;
     border-top: 3px dashed #d9d9d9;
     background: #fafafa;
-    min-height: 320px;
   }
 
-  .price {
+  .price-section {
     text-align: center;
     padding: 8px 0;
   }
 
-  .features {
-    min-height: 160px;
+  .features-section {
+    flex: 1;
+  }
+
+  .feature-category {
+    margin-bottom: 10px;
+  }
+
+  .feature-category-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #909399;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid #ebeef5;
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    padding: 2px 0;
+    line-height: 1.4;
+  }
+
+  .feature-check {
+    width: 16px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .feature-yes {
+    color: #67c23a;
+  }
+
+  .feature-no {
+    color: #c0c4cc;
+  }
+
+  .feature-label {
+    margin-left: 6px;
+    color: #606266;
+    flex: 1;
+  }
+
+  .feature-value {
+    color: #909399;
+    font-size: 12px;
+    margin-left: 4px;
+    flex-shrink: 0;
+  }
+
+  .history-section {
+    min-height: 300px;
   }
 </style>
