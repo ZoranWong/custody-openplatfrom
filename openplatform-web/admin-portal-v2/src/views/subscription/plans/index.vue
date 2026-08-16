@@ -236,7 +236,7 @@
   async function loadActivePackages() {
     try {
       const res = await fetchActivePackages()
-      activePackages.value = res.data || []
+      activePackages.value = Array.isArray(res) ? res : (res || [])
     } catch {
       // interceptor handles error
     }
@@ -303,10 +303,9 @@
       if (historyFilter.value) {
         params.packageCode = historyFilter.value
       }
-      const res = await fetchPackageHistory(params)
-      const data = res.data
-      historyData.value = data.list || []
-      historyPagination.total = data.total || 0
+      const res: any = await fetchPackageHistory(params)
+      historyData.value = res.list || []
+      historyPagination.total = res.total || 0
     } catch {
       // interceptor handles error
     } finally {
