@@ -234,14 +234,14 @@
               <ElSwitch v-model="formData.autoRenew" />
             </ElFormItem>
           </ElCol>
-          <ElCol :span="8">
+          <ElCol :span="12">
             <ElFormItem :label="$t('package.featureLabels.logRetention')">
               <ElInputNumber v-model="formData.logRetention" :min="1" :max="365" style="width: 100%" />
             </ElFormItem>
           </ElCol>
-          <ElCol :span="8">
+          <ElCol :span="12">
             <ElFormItem :label="$t('package.featureLabels.supportLevel')">
-              <ElSelect v-model="formData.supportLevel">
+              <ElSelect v-model="formData.supportLevel" style="width: 100%">
                 <ElOption :label="$t('package.supportLevelLabels.community')" value="community" />
                 <ElOption :label="$t('package.supportLevelLabels.email')" value="email" />
                 <ElOption :label="$t('package.supportLevelLabels.priority')" value="priority" />
