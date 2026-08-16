@@ -59,7 +59,7 @@ defineOptions({ name: 'DeveloperList' })
 import { useTable } from '@/hooks/core/useTable'
 import { fetchDevelopers } from '@/api/developer'
 import { useRouter } from 'vue-router'
-import { ElTag } from 'element-plus'
+import { ElTag, ElButton } from 'element-plus'
 
 const router = useRouter()
 
@@ -128,6 +128,14 @@ const {
         },
       },
       { prop: 'createdAt', label: '注册时间', width: 180 },
+      {
+        label: '操作',
+        width: 120,
+        fixed: 'right',
+        formatter: (row: any) => {
+          return h(ElButton, { type: 'primary', size: 'small', onClick: () => handleView(row) }, () => '查看')
+        },
+      },
     ] as any,
   },
 })
@@ -150,6 +158,10 @@ const handleSearchDebounced = () => {
 }
 
 const handleRowClick = (row: any) => {
+  router.push({ name: 'DeveloperDetail', params: { id: row.id } })
+}
+
+const handleView = (row: any) => {
   router.push({ name: 'DeveloperDetail', params: { id: row.id } })
 }
 </script>

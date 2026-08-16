@@ -1,6 +1,6 @@
 <template>
-  <div class="developer-registration-page art-full-height">
-    <ElCard class="art-table-card">
+  <div class="registration-page" style="height: 100%; padding: 16px;">
+    <ElCard class="art-table-card" style="height: 100%;">
       <ElTabs v-model="activeTab" @tab-change="handleTabChange">
         <ElTabPane label="待审核" name="pending">
           <ArtTableHeader
@@ -49,7 +49,7 @@
 
   import { ref } from 'vue'
   import { useRouter } from 'vue-router'
-  import { ElTag, ElTabs, ElTabPane } from 'element-plus'
+  import { ElTag, ElButton, ElTabs, ElTabPane } from 'element-plus'
   import type { TabPaneName } from 'element-plus'
   import { useTable } from '@/hooks/core/useTable'
   import { fetchDevelopers } from '@/api/developer'
@@ -66,7 +66,7 @@
     rejected: { type: 'danger', text: '已拒绝' }
   }
 
-  const sharedColumns = () =>
+  const sharedColumns = (onView?: (row: any) => void) =>
     [
       { type: 'index' as const, width: 60, label: '序号' },
       { prop: 'legalName', label: '公司名称', minWidth: 200 },
@@ -85,7 +85,15 @@
           return h(ElTag, { type: config.type }, () => config.text)
         }
       },
-      { prop: 'createdAt', label: '申请时间', width: 180 }
+      { prop: 'createdAt', label: '申请时间', width: 180 },
+      {
+        label: '操作',
+        width: 120,
+        fixed: 'right',
+        formatter: (row: any) => {
+          return h(ElButton, { type: 'primary', size: 'small', onClick: () => onView?.(row) }, () => '查看')
+        },
+      },
     ] as any
 
   // Pending tab
@@ -101,7 +109,7 @@
         current: 'page',
         size: 'pageSize'
       },
-      columnsFactory: sharedColumns
+      columnsFactory: () => sharedColumns(handlePendingView),
     }
   })
 
@@ -129,7 +137,7 @@
         current: 'page',
         size: 'pageSize'
       },
-      columnsFactory: sharedColumns,
+      columnsFactory: () => sharedColumns(handleHistoryView),
       immediate: false
     }
   })
@@ -158,4 +166,21 @@
   const handleHistoryRowClick = (row: any) => {
     router.push({ name: 'DeveloperDetail', params: { id: row.id } })
   }
+
+  const handlePendingView = (row: any) => {
+    router.push({ name: 'DeveloperReview', params: { id: row.id } })
+  }
+
+  const handleHistoryView = (row: any) => {
+    router.push({ name: 'DeveloperDetail', params: { id: row.id } })
+  }
 </script>
+
+<style scoped>
+:deep(.el-tabs__content) {
+  height: calc(100% - 40px);
+}
+:deep(.el-tab-pane) {
+  height: 100%;
+}
+</style>

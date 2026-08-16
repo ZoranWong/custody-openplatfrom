@@ -1,5 +1,5 @@
 <template>
-  <div class="developer-detail-page art-full-height">
+  <div class="developer-detail-page" style="padding: 24px; overflow-y: auto; height: 100%;">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold">开发者详情</h2>
       <ElButton @click="goBack">返回列表</ElButton>
