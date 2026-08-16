@@ -2,7 +2,6 @@
   <div class="subscription-plans-page">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold">{{ $t('package.title') }}</h2>
-      <ElButton type="primary" @click="handleAdd">{{ $t('package.addPackage') }}</ElButton>
     </div>
 
     <!-- Active Packages - Card Layout -->
@@ -97,10 +96,7 @@
         <ElCard class="package-card package-card-empty" shadow="hover">
           <div class="flex flex-col items-center justify-center h-full py-8 text-gray-400">
             <p class="text-lg mb-2">{{ $t(`package.packageTypeLabels.${code}`) }}</p>
-            <p class="text-sm mb-4">{{ $t('package.noPackage') }}</p>
-            <ElButton type="primary" size="small" @click.stop="handleAddForType(code)">
-              {{ $t('package.addForType') }}
-            </ElButton>
+            <p class="text-sm">{{ $t('package.noPackage') }}</p>
           </div>
         </ElCard>
       </ElCol>
@@ -432,18 +428,6 @@
   const dialogTitle = computed(() =>
     editingPackage.value ? 'Edit Package (new version)' : 'Add Package'
   )
-
-  function handleAdd() {
-    editingPackage.value = null
-    Object.assign(formData, { ...initialFormData })
-    dialogVisible.value = true
-  }
-
-  function handleAddForType(code: string) {
-    editingPackage.value = null
-    Object.assign(formData, { ...initialFormData, packageCode: code })
-    dialogVisible.value = true
-  }
 
   function handleCardClick(pkg: any) {
     editingPackage.value = pkg
