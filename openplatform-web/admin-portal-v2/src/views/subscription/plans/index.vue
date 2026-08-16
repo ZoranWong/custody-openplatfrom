@@ -203,35 +203,53 @@
           <ElSwitch v-model="formData.isTrial" />
         </ElFormItem>
         <ElDivider content-position="left">{{ $t('package.features') }}</ElDivider>
-        <ElFormItem :label="$t('package.featureLabels.webhook')">
-          <ElSwitch v-model="formData.webhook" />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.featureLabels.customDomain')">
-          <ElSwitch v-model="formData.customDomain" />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.featureLabels.whiteLabel')">
-          <ElSwitch v-model="formData.whiteLabel" />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.featureLabels.sla')">
-          <ElSwitch v-model="formData.sla" />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.featureLabels.ipWhitelist')">
-          <ElSwitch v-model="formData.ipWhitelist" />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.featureLabels.autoRenew')">
-          <ElSwitch v-model="formData.autoRenew" />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.featureLabels.logRetention')">
-          <ElInputNumber v-model="formData.logRetention" :min="1" :max="365" style="width: 100%" />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.featureLabels.supportLevel')">
-          <ElSelect v-model="formData.supportLevel">
-            <ElOption label="Community" value="community" />
-            <ElOption label="Email" value="email" />
-            <ElOption label="Priority" value="priority" />
-            <ElOption label="Dedicated" value="dedicated" />
-          </ElSelect>
-        </ElFormItem>
+        <ElRow :gutter="16">
+          <ElCol :span="8">
+            <ElFormItem :label="$t('package.featureLabels.webhook')">
+              <ElSwitch v-model="formData.webhook" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="8">
+            <ElFormItem :label="$t('package.featureLabels.customDomain')">
+              <ElSwitch v-model="formData.customDomain" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="8">
+            <ElFormItem :label="$t('package.featureLabels.whiteLabel')">
+              <ElSwitch v-model="formData.whiteLabel" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="8">
+            <ElFormItem :label="$t('package.featureLabels.sla')">
+              <ElSwitch v-model="formData.sla" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="8">
+            <ElFormItem :label="$t('package.featureLabels.ipWhitelist')">
+              <ElSwitch v-model="formData.ipWhitelist" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="8">
+            <ElFormItem :label="$t('package.featureLabels.autoRenew')">
+              <ElSwitch v-model="formData.autoRenew" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="8">
+            <ElFormItem :label="$t('package.featureLabels.logRetention')">
+              <ElInputNumber v-model="formData.logRetention" :min="1" :max="365" style="width: 100%" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="8">
+            <ElFormItem :label="$t('package.featureLabels.supportLevel')">
+              <ElSelect v-model="formData.supportLevel">
+                <ElOption :label="$t('package.supportLevelLabels.community')" value="community" />
+                <ElOption :label="$t('package.supportLevelLabels.email')" value="email" />
+                <ElOption :label="$t('package.supportLevelLabels.priority')" value="priority" />
+                <ElOption :label="$t('package.supportLevelLabels.dedicated')" value="dedicated" />
+              </ElSelect>
+            </ElFormItem>
+          </ElCol>
+        </ElRow>
       </ElForm>
       <template #footer>
         <ElButton @click="dialogVisible = false">{{ $t('common.cancel') }}</ElButton>
