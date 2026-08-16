@@ -168,7 +168,7 @@
             :rows="2"
           />
         </ElFormItem>
-        <ElFormItem :label="$t('package.monthlyPrice') ($)" prop="monthlyPrice">
+        <ElFormItem :label="$t('package.monthlyPrice') + ' ($)'" prop="monthlyPrice">
           <ElInputNumber
             v-model="formData.monthlyPrice"
             :min="0"
@@ -176,7 +176,7 @@
             style="width: 100%"
           />
         </ElFormItem>
-        <ElFormItem :label="$t('package.yearlyPrice') ($)">
+        <ElFormItem :label="$t('package.yearlyPrice') + ' ($)'">
           <ElInputNumber
             v-model="formData.yearlyPrice"
             :min="0"
