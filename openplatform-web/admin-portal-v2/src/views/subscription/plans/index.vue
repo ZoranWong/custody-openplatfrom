@@ -168,40 +168,38 @@
             :rows="2"
           />
         </ElFormItem>
-        <ElFormItem :label="$t('package.monthlyPrice') + ' ($)'" prop="monthlyPrice">
-          <ElInputNumber
-            v-model="formData.monthlyPrice"
-            :min="0"
-            :precision="2"
-            style="width: 100%"
-          />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.yearlyPrice') + ' ($)'">
-          <ElInputNumber
-            v-model="formData.yearlyPrice"
-            :min="0"
-            :precision="2"
-            style="width: 100%"
-          />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.yearlyDiscount')">
-          <ElInputNumber
-            v-model="formData.yearlyDiscount"
-            :min="0.1"
-            :max="1.0"
-            :precision="2"
-            style="width: 100%"
-          />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.dailyApiLimit')" prop="dailyApiLimit">
-          <ElInputNumber v-model="formData.dailyApiLimit" :min="100" style="width: 100%" />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.maxApplications')" prop="maxApplications">
-          <ElInputNumber v-model="formData.maxApplications" :min="1" style="width: 100%" />
-        </ElFormItem>
-        <ElFormItem :label="$t('package.isTrial')">
-          <ElSwitch v-model="formData.isTrial" />
-        </ElFormItem>
+        <ElRow :gutter="16">
+          <ElCol :span="12">
+            <ElFormItem :label="$t('package.monthlyPrice') + ' ($)'" prop="monthlyPrice">
+              <ElInputNumber v-model="formData.monthlyPrice" :min="0" :precision="2" style="width: 100%" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="12">
+            <ElFormItem :label="$t('package.yearlyPrice') + ' ($)'">
+              <ElInputNumber v-model="formData.yearlyPrice" :min="0" :precision="2" style="width: 100%" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="12">
+            <ElFormItem :label="$t('package.yearlyDiscount')">
+              <ElInputNumber v-model="formData.yearlyDiscount" :min="0.1" :max="1.0" :precision="2" style="width: 100%" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="12">
+            <ElFormItem :label="$t('package.dailyApiLimit')" prop="dailyApiLimit">
+              <ElInputNumber v-model="formData.dailyApiLimit" :min="100" style="width: 100%" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="12">
+            <ElFormItem :label="$t('package.maxApplications')" prop="maxApplications">
+              <ElInputNumber v-model="formData.maxApplications" :min="1" style="width: 100%" />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :span="12">
+            <ElFormItem :label="$t('package.isTrial')">
+              <ElSwitch v-model="formData.isTrial" />
+            </ElFormItem>
+          </ElCol>
+        </ElRow>
         <ElDivider content-position="left">{{ $t('package.features') }}</ElDivider>
         <ElRow :gutter="16">
           <ElCol :span="8">
