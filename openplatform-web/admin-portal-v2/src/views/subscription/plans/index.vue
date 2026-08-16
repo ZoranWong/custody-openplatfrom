@@ -345,38 +345,14 @@
 
   const historyColumns = [
     { type: 'index' as const, width: 60, label: '#' },
-    {
-      prop: 'packageCode',
-      label: 'Package Type',
-      width: 120,
-      formatter: (row: any) => row.packageCode
-    },
-    { prop: 'name', label: 'Name', width: 150 },
-    {
-      prop: 'monthlyPrice',
-      label: 'Monthly',
-      width: 100,
-      formatter: (row: any) => `$${row.monthlyPrice || 0}`
-    },
-    {
-      prop: 'yearlyPrice',
-      label: 'Yearly',
-      width: 100,
-      formatter: (row: any) => (row.yearlyPrice ? `$${row.yearlyPrice}` : '-')
-    },
+    { prop: 'packageCode', label: 'Package Type', minWidth: 120 },
+    { prop: 'name', label: 'Name', minWidth: 150 },
+    { prop: 'monthlyPrice', label: 'Monthly', width: 100, formatter: (row: any) => `$${row.monthlyPrice || 0}` },
+    { prop: 'yearlyPrice', label: 'Yearly', width: 100, formatter: (row: any) => (row.yearlyPrice ? `$${row.yearlyPrice}` : '-') },
     { prop: 'dailyApiLimit', label: 'API Limit', width: 100 },
     { prop: 'maxApplications', label: 'Apps', width: 80 },
-    {
-      prop: 'version',
-      label: 'Ver',
-      width: 60,
-      formatter: (row: any) => `v${row.version || 1}`
-    },
-    {
-      prop: 'createdAt',
-      label: 'Created',
-      width: 170,
-      formatter: (row: any) => {
+    { prop: 'version', label: 'Ver', width: 60, formatter: (row: any) => `v${row.version || 1}` },
+    { prop: 'createdAt', label: 'Created', width: 170, formatter: (row: any) => {
         if (!row.createdAt) return '-'
         const d = new Date(row.createdAt)
         return d.toLocaleString('zh-CN')
