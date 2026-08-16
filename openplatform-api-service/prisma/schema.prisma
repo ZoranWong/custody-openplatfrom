@@ -50,6 +50,7 @@ model IsvDeveloper {
   isvUsers            IsvUser[]
   bindings            Binding[]
   endpointPermissions EndpointPermission[]
+  subscriptions       Subscription[]
 
   @@map("isv_developer")
 }
@@ -444,4 +445,116 @@ model Announcement {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("announcements")
+}
+
+// ============================================
+// Package - 套餐表
+// ============================================
+model Package {
+  id              String   @id @default(uuid())
+  packageCode     String   @map("package_code")
+  region          String   @default("CN")
+  name            String
+  description     String?  @db.Text
+  features        Json?
+  monthlyPrice    Decimal  @map("monthly_price") @db.Decimal(10, 2)
+  yearlyPrice     Decimal? @map("yearly_price") @db.Decimal(10, 2)
+  currency        String   @default("CNY")
+  yearlyDiscount  Decimal  @default(1.0) @map("yearly_discount") @db.Decimal(3, 2)
+  dailyApiLimit   Int      @default(1000) @map("daily_api_limit")
+  maxApplications Int      @default(1) @map("max_applications")
+  isTrial         Boolean  @default(false) @map("is_trial")
+  status          String   @default("active")
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  subscriptions   Subscription[]
+
+  @@unique([packageCode, region])
+  @@map("packages")
+}
+
+// ============================================
+// Subscription - 订阅表
+// ============================================
+model Subscription {
+  id              String   @id @default(uuid())
+  developerId     String   @map("developer_id")
+  packageId       String   @map("package_id")
+  status          String   @default("active")
+  startDate       DateTime @map("start_date")
+  endDate         DateTime @map("end_date")
+  autoRenew       Boolean  @default(false) @map("auto_renew")
+  billingCycle    String   @default("monthly") @map("billing_cycle")
+  dailyApiUsage   Int      @default(0) @map("daily_api_usage")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  developer       IsvDeveloper @relation(fields: [developerId], references: [id])
+  package         Package      @relation(fields: [packageId], references: [id])
+  orders          Order[]
+
+  @@index([developerId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+// ============================================
+// Order - 订单表
+// ============================================
+model Order {
+  id              String   @id @default(uuid())
+  developerId     String   @map("developer_id")
+  packageId       String   @map("package_id")
+  subscriptionId  String?  @map("subscription_id")
+  period          String   @default("monthly")
+  amount          Decimal  @db.Decimal(10, 2)
+  currency        String   @default("CNY")
+  status          String   @default("pending")
+  createdAt       DateTime @default(now()) @map("created_at")
+  paidAt          DateTime? @map("paid_at")
+
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([developerId])
+  @@map("orders")
+}
+
+// ============================================
+// Ticket - 工单表
+// ============================================
+model Ticket {
+  id          String   @id @default(uuid())
+  developerId String   @map("developer_id")
+  title       String
+  description String   @db.Text
+  type        String   @default("technical")
+  priority    String   @default("normal")
+  status      String   @default("pending")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  replies     TicketReply[]
+
+  @@index([developerId])
+  @@index([status])
+  @@map("tickets")
+}
+
+// ============================================
+// TicketReply - 工单回复表
+// ============================================
+model TicketReply {
+  id        String   @id @default(uuid())
+  ticketId  String   @map("ticket_id")
+  content   String   @db.Text
+  isAdmin   Boolean  @default(false) @map("is_admin")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+
+  @@index([ticketId])
+  @@map("ticket_replies")
 }

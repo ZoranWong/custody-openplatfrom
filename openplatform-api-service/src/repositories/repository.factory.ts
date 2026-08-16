@@ -21,6 +21,10 @@ import { RefreshTokenRepositoryImpl } from './implementations/refresh-token.repo
 import { DeveloperApplicationRepositoryImpl } from './implementations/developer-application.repository'
 import { DeveloperAuditRepositoryImpl } from './implementations/developer-audit.repository'
 import { AnnouncementRepositoryImpl } from './implementations/announcement.repository'
+import { PackageRepositoryImpl } from './implementations/package.repository'
+import { SubscriptionRepositoryImpl } from './implementations/subscription.repository'
+import { OrderRepositoryImpl } from './implementations/order.repository'
+import { TicketRepositoryImpl } from './implementations/ticket.repository'
 
 // Singleton instances
 let isvDeveloperRepo: IsvDeveloperRepository | null = null
@@ -32,6 +36,10 @@ let refreshTokenRepo: RefreshTokenRepository | null = null
 let developerApplicationRepo: DeveloperApplicationRepositoryImpl | null = null
 let developerAuditRepo: DeveloperAuditRepositoryImpl | null = null
 let announcementRepo: AnnouncementRepositoryImpl | null = null
+let packageRepo: PackageRepositoryImpl | null = null
+let subscriptionRepo: SubscriptionRepositoryImpl | null = null
+let orderRepo: OrderRepositoryImpl | null = null
+let ticketRepo: TicketRepositoryImpl | null = null
 
 export function getIsvDeveloperRepository(): IsvDeveloperRepository {
   if (isvDeveloperRepo) return isvDeveloperRepo
@@ -91,6 +99,30 @@ export function getAnnouncementRepository(): AnnouncementRepositoryImpl {
   return announcementRepo
 }
 
+export function getPackageRepository(): PackageRepositoryImpl {
+  if (packageRepo) return packageRepo
+  packageRepo = new PackageRepositoryImpl(getPrismaClient())
+  return packageRepo
+}
+
+export function getSubscriptionRepository(): SubscriptionRepositoryImpl {
+  if (subscriptionRepo) return subscriptionRepo
+  subscriptionRepo = new SubscriptionRepositoryImpl(getPrismaClient())
+  return subscriptionRepo
+}
+
+export function getOrderRepository(): OrderRepositoryImpl {
+  if (orderRepo) return orderRepo
+  orderRepo = new OrderRepositoryImpl(getPrismaClient())
+  return orderRepo
+}
+
+export function getTicketRepository(): TicketRepositoryImpl {
+  if (ticketRepo) return ticketRepo
+  ticketRepo = new TicketRepositoryImpl(getPrismaClient())
+  return ticketRepo
+}
+
 /**
  * Reset all repository instances (for testing)
  */
@@ -104,4 +136,8 @@ export function resetRepositories(): void {
   developerApplicationRepo = null
   developerAuditRepo = null
   announcementRepo = null
+  packageRepo = null
+  subscriptionRepo = null
+  orderRepo = null
+  ticketRepo = null
 }

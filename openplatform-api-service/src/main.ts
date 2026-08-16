@@ -30,6 +30,10 @@ import oauthRoutes from './routes/oauth.routes'
 import authorizationRoutes from './routes/v1/authorization.routes'
 import thirdpartyRoutes from './routes/thirdparty.routes'
 import announcementRoutes from './routes/v1/announcement.routes'
+import packageRoutes from './routes/v1/package.routes'
+import subscriptionRoutes from './routes/v1/subscription.routes'
+import orderRoutes from './routes/v1/order.routes'
+import ticketRoutes from './routes/v1/ticket.routes'
 
 // Import rate-limit modules
 import { defaultRateLimitMiddleware } from './middleware/rate-limit.middleware'
@@ -134,6 +138,18 @@ app.use('/api/v1/authorizations', authorizationRoutes)
 
 // Announcement routes
 app.use('/api/v1/admin', announcementRoutes)
+
+// Package routes
+app.use('/api/v1/admin', packageRoutes)
+
+// Subscription routes
+app.use('/api/v1/admin', subscriptionRoutes)
+
+// Order routes
+app.use('/api/v1/admin', orderRoutes)
+
+// Ticket routes
+app.use('/api/v1/admin', ticketRoutes)
 
 // Metrics routes (Prometheus endpoint)
 app.use('/metrics', metricsRoutes)
