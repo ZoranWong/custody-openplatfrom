@@ -109,6 +109,15 @@ const {
       { prop: 'contactEmail', label: '邮箱', width: 220 },
       { prop: 'registrationNumber', label: '注册号', width: 160 },
       { prop: 'jurisdiction', label: '注册地', width: 120 },
+      { prop: 'appCount', label: '应用数', width: 80 },
+      {
+        prop: 'subscription',
+        label: '订阅套餐',
+        width: 120,
+        formatter: () => {
+          return h('span', '-')
+        },
+      },
       {
         prop: 'kybStatus',
         label: 'KYB状态',

@@ -20,6 +20,20 @@ export class ApplicationRepositoryImpl implements ApplicationRepository {
     return this.prisma.application.findMany({ where: { isvDeveloperId } })
   }
 
+  async countByDeveloperIds(developerIds: string[]): Promise<Record<string, number>> {
+    if (developerIds.length === 0) return {}
+    const results = await this.prisma.application.groupBy({
+      by: ['isvDeveloperId'],
+      where: { isvDeveloperId: { in: developerIds } },
+      _count: { id: true },
+    })
+    const counts: Record<string, number> = {}
+    for (const r of results) {
+      counts[r.isvDeveloperId] = r._count.id
+    }
+    return counts
+  }
+
   async create(data: Prisma.ApplicationCreateInput): Promise<Application> {
     return this.prisma.application.create({ data })
   }

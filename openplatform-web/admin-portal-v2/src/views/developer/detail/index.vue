@@ -92,7 +92,7 @@
       </ElCard>
 
       <!-- UBO信息 -->
-      <ElCard v-if="developer.uboInfo && developer.uboInfo.length > 0">
+      <ElCard v-if="developer.uboInfo && developer.uboInfo.length > 0" class="mb-4">
         <template #header>
           <span class="font-semibold">UBO 信息</span>
         </template>
@@ -103,6 +103,25 @@
           <ElTableColumn prop="idType" label="证件类型" />
           <ElTableColumn prop="idNumber" label="证件号码" />
           <ElTableColumn prop="ownershipPercentage" label="持股比例" />
+        </ElTable>
+      </ElCard>
+
+      <!-- Applications Card -->
+      <ElCard v-if="developer.applications && developer.applications.length > 0" class="mb-4">
+        <template #header>
+          <span class="font-semibold">应用列表</span>
+        </template>
+        <ElTable :data="developer.applications" border>
+          <ElTableColumn type="index" label="序号" width="60" />
+          <ElTableColumn prop="appName" label="应用名称" minWidth="150" />
+          <ElTableColumn prop="id" label="App ID" width="280" />
+          <ElTableColumn prop="appType" label="类型" width="120" />
+          <ElTableColumn prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <ElTag :type="row.status === 'active' ? 'success' : 'info'">{{ row.status }}</ElTag>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn prop="createdAt" label="创建时间" width="180" />
         </ElTable>
       </ElCard>
     </template>

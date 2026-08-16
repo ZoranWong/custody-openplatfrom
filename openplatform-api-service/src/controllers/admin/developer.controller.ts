@@ -5,7 +5,7 @@
 
 import { Request, Response } from 'express'
 import { Prisma } from '@prisma/client'
-import { getIsvDeveloperRepository, getISVUserRepository, getDeveloperAuditRepository } from '../../repositories/repository.factory'
+import { getIsvDeveloperRepository, getISVUserRepository, getDeveloperAuditRepository, getApplicationRepository } from '../../repositories/repository.factory'
 import { IsvDeveloper } from '../../repositories/repository.interfaces'
 import { HttpCodes } from '../../enums/http-codes.enum'
 import { BusinessCodes } from '../../enums/business-codes.enum'
@@ -47,6 +47,11 @@ export async function getDevelopers(req: Request, res: Response): Promise<void> 
       isvRepo.count(where),
     ])
 
+    // Fetch application counts for each developer
+    const appRepo = getApplicationRepository()
+    const developerIds = allIsvDevelopers.map(isv => isv.id)
+    const appCounts = await appRepo.countByDeveloperIds(developerIds)
+
     const list = allIsvDevelopers.map(isv => ({
       id: isv.id,
       legalName: isv.legalName,
@@ -55,6 +60,7 @@ export async function getDevelopers(req: Request, res: Response): Promise<void> 
       contactEmail: isv.email,
       status: isv.status,
       kybStatus: isv.kybStatus,
+      appCount: appCounts[isv.id] || 0,
       createdAt: isv.createdAt.toISOString(),
     }))
 
@@ -95,6 +101,10 @@ export async function getDeveloperById(req: Request, res: Response): Promise<voi
       return
     }
 
+    // Fetch applications for this developer
+    const appRepo = getApplicationRepository()
+    const apps = await appRepo.findByIsvDeveloper(id)
+
     res.json({
       code: 0,
       data: {
@@ -113,6 +123,13 @@ export async function getDeveloperById(req: Request, res: Response): Promise<voi
         kybReviewedBy: isv.kybReviewedBy,
         createdAt: isv.createdAt.toISOString(),
         updatedAt: isv.updatedAt.toISOString(),
+        applications: apps.map(a => ({
+          id: a.id,
+          appName: a.appName,
+          appType: a.appType,
+          status: a.status,
+          createdAt: a.createdAt.toISOString(),
+        })),
       },
     })
   } catch (error) {

@@ -47,6 +47,7 @@ export interface ApplicationRepository {
   findById(id: string): Promise<Application | null>
   findByAppId(appId: string): Promise<Application | null>
   findByIsvDeveloper(isvDeveloperId: string): Promise<Application[]>
+  countByDeveloperIds(developerIds: string[]): Promise<Record<string, number>>
   create(data: Prisma.ApplicationCreateInput): Promise<Application>
   update(id: string, data: Prisma.ApplicationUpdateInput): Promise<Application>
   delete(id: string): Promise<boolean>
