@@ -11,158 +11,43 @@ import { findForwardRoute, normalizePath, validateParamValue } from '../../confi
 import { createHttpClient } from '../../services/http-client.service';
 import { createApiLog } from '../../services/api-log.service';
 import { checkAndIncrement } from '../../services/quota.service';
-import { getApplicationRepository, getOauthResourceRepository } from '../../repositories/repository.factory';
 
-// Lazily initialized HTTP clients
 let _httpClients: Map<string, any> | null = null;
 
 function getHttpClients(): Map<string, any> {
   if (!_httpClients) {
     const { BACKEND_CLIENTS } = require('../../config/forward-routes');
     _httpClients = new Map();
-    for (const cfg of BACKEND_CLIENTS) {
-      _httpClients.set(cfg.name, createHttpClient(cfg));
-    }
+    for (const cfg of BACKEND_CLIENTS) _httpClients.set(cfg.name, createHttpClient(cfg));
   }
   return _httpClients;
 }
 
+/** Log entry context, carried through the request lifecycle */
+interface LogContext {
+  appId: string;
+  developerId?: string;
+  subscriptionId?: string;
+  apiName: string;
+  endpoint: string;
+}
+
 function extractAppId(req: Request): string {
-  const context = (req as any).context;
-  return context?.application?.appId || context?.basic?.appId || req.body?.basic?.appId || 'unknown';
+  return (req as any).context?.application?.id || req.body?.basic?.appId || 'unknown';
 }
 
-async function getDeveloperId(appId: string): Promise<string | null> {
-  if (appId === 'unknown') return null;
-  const appRepo = getApplicationRepository();
-  const app = await appRepo.findById(appId);
-  return app?.isvDeveloperId || null;
+function extractDeveloperId(req: Request): string | undefined {
+  return (req as any).context?.application?.isvDeveloperId || (req as any).context?.developer?.id || undefined;
 }
 
-/**
- * Forward a third-party API request to the configured backend service.
- * Includes quota check, request forwarding, and API logging.
- */
-export async function forwardRequest(req: Request, res: Response): Promise<void> {
-  const startTime = Date.now();
-  const normalizedPath = normalizePath(req.baseUrl + req.path);
-  const matched = findForwardRoute(normalizedPath);
-
-  if (!matched) {
-    res.status(HttpCodes.NOT_FOUND).json({
-      code: BusinessCodes.NOT_FOUND_RESOURCE,
-      message: `Route not found: ${req.method} ${req.path}`,
-    });
-    return;
-  }
-
-  const { config, urlParams } = matched;
-  const client = getHttpClients().get(config.clientName);
-
-  if (!client) {
-    res.status(HttpCodes.SERVICE_UNAVAILABLE).json({
-      code: BusinessCodes.SERVICE_UNAVAILABLE,
-      message: `Backend service not available: ${config.clientName}`,
-    });
-    return;
-  }
-
-  const appId = extractAppId(req);
-
-  try {
-    const traceId = (req.headers['x-trace-id'] as string) || uuidv4();
-
-    const resourceKey = validateResourceKey(req, config.route);
-    if (!resourceKey) {
-      res.status(HttpCodes.BAD_REQUEST).json({
-        code: BusinessCodes.PARAM_REQUIRED,
-        message: 'Missing resourceKey in request context',
-      });
-      return;
-    }
-
-    let backendPath = config.route.replace('{resourceKey}', resourceKey);
-    for (const [key, value] of Object.entries(urlParams)) {
-      if (!validateParamValue(value)) {
-        res.status(HttpCodes.BAD_REQUEST).json({
-          code: BusinessCodes.PARAM_REQUIRED,
-          message: `Invalid parameter: ${key}`,
-        });
-        return;
-      }
-      backendPath = backendPath.replace(`{${key}}`, value);
-    }
-
-    // Quota check
-    const developerId = await getDeveloperId(appId);
-    let subscriptionId: string | undefined;
-    if (developerId) {
-      const quotaResult = await checkAndIncrement(developerId);
-      subscriptionId = quotaResult.subscriptionId;
-      if (!quotaResult.allowed) {
-        res.status(HttpCodes.TOO_MANY_REQUESTS).json({
-          code: 42901,
-          message: `Daily API quota exceeded (${quotaResult.currentUsage}/${quotaResult.dailyLimit})`,
-        });
-        return;
-      }
-    }
-
-    // Forward to backend
-    const response = await client.request({
-      method: config.method as any,
-      url: backendPath,
-      data: req.body?.business,
-      params: req.query as Record<string, string>,
-      headers: { 'x-trace-id': traceId },
-    });
-
-    const backendCode = response?.code ?? 0;
-    const isSuccess = backendCode === 0;
-
-    if (typeof response === 'object' && response !== null) {
-      res.json(response);
-    } else {
-      res.send(response);
-    }
-
-    logApiCall(appId, developerId, subscriptionId, normalizedPath, req, isSuccess ? 200 : 502, Date.now() - startTime, response, false);
-  } catch (error: any) {
-    handleForwardError(error, res, appId, normalizedPath, req, startTime);
-  }
-}
-
-function validateResourceKey(req: Request, backendPath: string): string | null {
-  // resourceKey can come from OauthResource (via authorizationId) or directly from business
-  const context = (req as any).context;
-  let resourceKey = context?.resource?.resourceKey || req.body?.business?.resourceKey;
-
-  // If not found, try to lookup from OauthResource via authorizationId
-  if (!resourceKey) {
-    const authorizationId = context?.resource?.authorizationId || req.body?.basic?.authorizationId;
-    if (authorizationId && backendPath.includes('{resourceKey}')) {
-      // resourceKey is the authorizationId itself (used as resource key in path)
-      resourceKey = authorizationId;
-    }
-  }
-
-  if (!resourceKey) return null;
-  if (!backendPath.includes('{resourceKey}')) return null;
-  if (!validateParamValue(resourceKey)) return null;
-  return resourceKey;
-}
-
-function logApiCall(appId: string, developerId: string | null | undefined, subscriptionId: string | undefined, endpoint: string, req: Request, status: number, elapsed: number, responseBody?: any, isError?: boolean): void {
+function logApiCall(ctx: LogContext, req: Request, status: number, elapsed: number, responseBody?: any, isError?: boolean) {
   createApiLog({
-    appId,
-    developerId: developerId || undefined,
-    subscriptionId,
-    endpoint,
+    ...ctx,
     method: req.method,
     requestHeaders: { 'x-trace-id': req.headers['x-trace-id'] as string },
     requestBody: req.body?.business,
     responseStatus: status,
-    responseBody: responseBody ? (typeof responseBody === 'object' ? responseBody : { data: responseBody }) : undefined,
+    responseBody: responseBody && typeof responseBody === 'object' ? responseBody : { data: responseBody },
     responseTime: elapsed,
     ipAddress: req.ip || req.socket.remoteAddress,
     userAgent: req.headers['user-agent'] as string,
@@ -170,20 +55,78 @@ function logApiCall(appId: string, developerId: string | null | undefined, subsc
   }).catch(() => {});
 }
 
-function handleForwardError(error: any, res: Response, appId: string, normalizedPath: string, req: Request, startTime: number): void {
-  console.error('[Forward] Error:', error.message || error);
+/** Send error response + log, then return */
+function fail(ctx: LogContext, req: Request, res: Response, status: number, code: number, message: string, startTime: number) {
   const elapsed = Date.now() - startTime;
-  logApiCall(appId, undefined, undefined, normalizedPath, req, 500, elapsed, { error: error.message }, true);
+  res.status(status).json({ code, message });
+  logApiCall(ctx, req, status, elapsed, { code, message }, true);
+}
 
-  if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND') {
-    res.status(HttpCodes.SERVICE_UNAVAILABLE).json({ code: BusinessCodes.SERVICE_UNAVAILABLE, message: 'Backend service unavailable' });
-    return;
+function validateResourceKey(req: Request, backendPath: string): string | null {
+  const ctx = (req as any).context;
+  let key = ctx?.resource?.resourceKey || req.body?.business?.resourceKey;
+  if (!key) {
+    const authId = ctx?.resource?.authorizationId || req.body?.basic?.authorizationId;
+    if (authId && backendPath.includes('{resourceKey}')) key = authId;
   }
-  if (error?.code === 'ETIMEDOUT' || error?.message?.includes('timeout')) {
-    res.status(HttpCodes.GATEWAY_TIMEOUT).json({ code: BusinessCodes.GATEWAY_TIMEOUT, message: 'Backend service timeout' });
-    return;
+  return (key && backendPath.includes('{resourceKey}') && validateParamValue(key)) ? key : null;
+}
+
+// ============ Main handler ============
+
+export async function forwardRequest(req: Request, res: Response): Promise<void> {
+  const startTime = Date.now();
+  const endpoint = normalizePath(req.baseUrl + req.path);
+  const matched = findForwardRoute(endpoint);
+  const ctx: LogContext = { appId: extractAppId(req), apiName: matched?.config?.name || endpoint, endpoint };
+
+  if (!matched) return fail(ctx, req, res, HttpCodes.NOT_FOUND, BusinessCodes.NOT_FOUND_RESOURCE, `Route not found: ${req.method} ${req.path}`, startTime);
+
+  const { config, urlParams } = matched;
+  const client = getHttpClients().get(config.clientName);
+  ctx.apiName = config.name || endpoint;
+
+  if (!client) return fail(ctx, req, res, HttpCodes.SERVICE_UNAVAILABLE, BusinessCodes.SERVICE_UNAVAILABLE, `Backend service not available: ${config.clientName}`, startTime);
+
+  try {
+    const traceId = (req.headers['x-trace-id'] as string) || uuidv4();
+
+    const resourceKey = validateResourceKey(req, config.route);
+    if (!resourceKey) return fail(ctx, req, res, HttpCodes.BAD_REQUEST, BusinessCodes.PARAM_REQUIRED, 'Missing resourceKey in request context', startTime);
+
+    let backendPath = config.route.replace('{resourceKey}', resourceKey);
+    for (const [key, value] of Object.entries(urlParams)) {
+      if (!validateParamValue(value)) return fail(ctx, req, res, HttpCodes.BAD_REQUEST, BusinessCodes.PARAM_REQUIRED, `Invalid parameter: ${key}`, startTime);
+      backendPath = backendPath.replace(`{${key}}`, value);
+    }
+
+    ctx.developerId = extractDeveloperId(req);
+    if (ctx.developerId) {
+      const quota = await checkAndIncrement(ctx.developerId);
+      ctx.subscriptionId = quota.subscriptionId;
+      if (!quota.allowed) return fail(ctx, req, res, HttpCodes.TOO_MANY_REQUESTS, 42901, `Daily API quota exceeded (${quota.currentUsage}/${quota.dailyLimit})`, startTime);
+    }
+
+    const response = await client.request({
+      method: config.method as any, url: backendPath,
+      data: req.body?.business, params: req.query as Record<string, string>,
+      headers: { 'x-trace-id': traceId },
+    });
+
+    const isSuccess = (response?.code ?? 0) === 0;
+    if (typeof response === 'object' && response !== null) res.json(response);
+    else res.send(response);
+
+    logApiCall(ctx, req, isSuccess ? 200 : 502, Date.now() - startTime, response, !isSuccess);
+  } catch (error: any) {
+    console.error('[Forward] Error:', error.message || error);
+
+    let status: number = HttpCodes.INTERNAL_SERVER_ERROR;
+    let message = error.message || 'Forwarding error';
+    if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND') { status = HttpCodes.SERVICE_UNAVAILABLE; message = 'Backend service unavailable'; }
+    else if (error?.code === 'ETIMEDOUT' || error?.message?.includes('timeout')) { status = HttpCodes.GATEWAY_TIMEOUT; message = 'Backend service timeout'; }
+
+    res.status(status).json({ code: status, message });
+    logApiCall(ctx, req, status, Date.now() - startTime, { code: status, message }, true);
   }
-  const code = error?.response?.status || HttpCodes.INTERNAL_SERVER_ERROR;
-  const message = error?.response?.data?.message || error.message || 'Forwarding error';
-  res.status(code).json({ code, message });
 }

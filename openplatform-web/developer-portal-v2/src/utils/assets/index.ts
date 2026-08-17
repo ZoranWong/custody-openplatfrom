@@ -6,7 +6,7 @@
  * @returns 完整资源路径
  */
 export function getAssetPath(path: string): string {
-  const base = import.meta.env.BASE_URL || '/'
+  const base = import.meta.env.BASE || '/'
   const normalizedBase = base.endsWith('/') ? base : `${base}/`
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path
   return `${normalizedBase}${normalizedPath}`

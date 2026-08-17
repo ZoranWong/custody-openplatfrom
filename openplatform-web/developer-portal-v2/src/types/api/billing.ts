@@ -18,6 +18,8 @@ export interface EndpointUsage {
   method: string
   calls: number
   percentage: number
+  avgResponseTime?: number
+  maxResponseTime?: number
 }
 
 export interface UsageStats {
@@ -27,10 +29,6 @@ export interface UsageStats {
   period: string
   dailyBreakdown: DailyUsage[]
   endpointBreakdown: EndpointUsage[]
-  // Prepaid dimension fields
-  treasuryUnits?: number
-  addressCount?: number
-  billingCost?: number
 }
 
 export type PeriodType = '7days' | '30days' | '90days'

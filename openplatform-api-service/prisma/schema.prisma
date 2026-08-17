@@ -135,6 +135,8 @@ model ApiLog {
   developerId     String?  @map("developer_id")
   /// 关联的订阅ID
   subscriptionId  String?  @map("subscription_id")
+  /// API 可读名称
+  apiName         String?  @map("api_name")
   /// 请求端点
   endpoint        String
   /// 请求方法

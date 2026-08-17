@@ -25,6 +25,7 @@ import { PackageRepositoryImpl } from './implementations/package.repository'
 import { SubscriptionRepositoryImpl } from './implementations/subscription.repository'
 import { OrderRepositoryImpl } from './implementations/order.repository'
 import { TicketRepositoryImpl } from './implementations/ticket.repository'
+import { ApiLogRepositoryImpl } from './implementations/api-log.repository'
 
 // Singleton instances
 let isvDeveloperRepo: IsvDeveloperRepository | null = null
@@ -40,6 +41,7 @@ let packageRepo: PackageRepositoryImpl | null = null
 let subscriptionRepo: SubscriptionRepositoryImpl | null = null
 let orderRepo: OrderRepositoryImpl | null = null
 let ticketRepo: TicketRepositoryImpl | null = null
+let apiLogRepo: ApiLogRepositoryImpl | null = null
 
 export function getIsvDeveloperRepository(): IsvDeveloperRepository {
   if (isvDeveloperRepo) return isvDeveloperRepo
@@ -121,6 +123,12 @@ export function getTicketRepository(): TicketRepositoryImpl {
   if (ticketRepo) return ticketRepo
   ticketRepo = new TicketRepositoryImpl(getPrismaClient())
   return ticketRepo
+}
+
+export function getApiLogRepository(): ApiLogRepositoryImpl {
+  if (apiLogRepo) return apiLogRepo
+  apiLogRepo = new ApiLogRepositoryImpl(getPrismaClient())
+  return apiLogRepo
 }
 
 /**

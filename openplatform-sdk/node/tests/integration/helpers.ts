@@ -10,12 +10,11 @@ import { CregisSDK } from '../../src';
 export const TEST_ENV = process.env.TEST_ENV || 'local';
 
 export const BASE_URL = TEST_ENV === 'testing'
-  ? 'http://api.vaulink.com/openplatform'
+  ? 'https://custody-sit.cregis.ae/openplatform'
   : 'http://127.0.0.1:1000';
 
 export const APP_ID = process.env.CREGIS_APP_ID || '5c6bef2e-3da7-4d7f-9bed-9d198b9b9e16';
 export const APP_SECRET = process.env.CREGIS_APP_SECRET || 'sk_mo4bd1bum5dv0s4k';
-export const AUTHORIZATION_ID = process.env.CREGIS_AUTHORIZATION_ID || 'dd28de60-6061-4c3d-9ea2-3553951db5f9';
 
 /**
  * Check if the API service is reachable via /health endpoint

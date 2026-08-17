@@ -325,7 +325,7 @@
       "applicationsCreate": "Create App",
       "applicationsDetail": "App Detail",
       "applicationsEdit": "Edit App",
-      "usageStatistics": "Usage Stats",
+      "usageStatistics": "API Log",
       "billing": "Billing",
       "invoiceGeneration": "Invoices",
       "paymentHistory": "Orders",
@@ -570,7 +570,10 @@
       "apiCalls": "API Calls",
       "billedAmount": "Billed Amount",
       "usageTrend": "Usage Trend",
-      "endpointBreakdown": "Endpoint Breakdown"
+      "endpointBreakdown": "Endpoint Breakdown",
+      "avgResponse": "Avg Response",
+      "todayCalls": "Today Calls",
+      "remainingCalls": "Remaining"
     },
     "invoiceGeneration": {
       "title": "Invoice Generation",
@@ -599,7 +602,8 @@
         "profile": "Profile Completion",
         "todayCalls": "Calls Today",
         "last30Days": "Last 30 Days",
-        "freePlan": "Free Plan"
+        "freePlan": "Free Plan",
+        "dailyQuota": "Daily Quota"
       },
       "quickActions": "Quick Actions",
       "actions": {
@@ -610,7 +614,9 @@
       },
       "usageTrendDesc": "API call volume trend over the last 30 days",
       "endpointTop5": "Top 5 Endpoints",
-      "endpointTop5Desc": "Most called API endpoints"
+      "endpointTop5Desc": "Most called API endpoints",
+      "recentErrors": "Recent Errors",
+      "recentErrorsDesc": "Recent API call errors"
     },
     "billing": {
       "loading": "Loading...",
@@ -620,7 +626,11 @@
         "noData": "No data",
         "path": "Path",
         "percentage": "Percentage",
-        "title": "Endpoint Breakdown"
+        "title": "Endpoint Breakdown",
+        "avgResponse": "Avg Response",
+        "maxResponse": "Max Response",
+        "successCount": "Success",
+        "successRate": "Rate"
       },
       "invoice": {
         "amount": "Amount",

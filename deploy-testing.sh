@@ -22,12 +22,12 @@ npm run build
 
 # Build Developer Portal
 echo "[2/3] Building Developer Portal..."
-cd "$PROJECT_ROOT/openplatform-web/developer-portal"
+cd "$PROJECT_ROOT/openplatform-web/developer-portal-v2"
 npm run build
 
 # Build Admin Portal
 echo "[3/3] Building Admin Portal..."
-cd "$PROJECT_ROOT/openplatform-web/admin-portal"
+cd "$PROJECT_ROOT/openplatform-web/admin-portal-v2"
 npm run build
 
 # Build Auth Page
@@ -51,20 +51,20 @@ scp "$PROJECT_ROOT/openplatform-api-service/.env" "$DEPLOY_HOST:$DEPLOY_PATH/api
 scp -r "$PROJECT_ROOT/openplatform-api-service/prisma/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
 scp "$PROJECT_ROOT/openplatform-api-service/prisma.config.ts" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
 
-# Run npm install, run migrations, and generate Prisma client on server
+# Run npm install and generate Prisma client on server
 ssh $DEPLOY_HOST "cd $DEPLOY_PATH/api-service && npm install --production && npx prisma migrate deploy && npx prisma generate"
 
 # Sync Developer Portal
 echo "Syncing Developer Portal..."
 ssh $DEPLOY_HOST "mkdir -p $DEPLOY_PATH/developer-portal"
-scp -r "$PROJECT_ROOT/openplatform-web/developer-portal/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/developer-portal/"
-scp "$PROJECT_ROOT/openplatform-web/developer-portal/.env" "$DEPLOY_HOST:$DEPLOY_PATH/developer-portal/"
+scp -r "$PROJECT_ROOT/openplatform-web/developer-portal-v2/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/developer-portal/"
+scp "$PROJECT_ROOT/openplatform-web/developer-portal-v2/.env" "$DEPLOY_HOST:$DEPLOY_PATH/developer-portal/"
 
 # Sync Admin Portal
 echo "Syncing Admin Portal..."
 ssh $DEPLOY_HOST "mkdir -p $DEPLOY_PATH/admin-portal"
-scp -r "$PROJECT_ROOT/openplatform-web/admin-portal/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/admin-portal/"
-scp "$PROJECT_ROOT/openplatform-web/admin-portal/.env" "$DEPLOY_HOST:$DEPLOY_PATH/admin-portal/"
+scp -r "$PROJECT_ROOT/openplatform-web/admin-portal-v2/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/admin-portal/"
+scp "$PROJECT_ROOT/openplatform-web/admin-portal-v2/.env" "$DEPLOY_HOST:$DEPLOY_PATH/admin-portal/"
 
 # Sync Auth Page
 echo "Syncing Auth Page..."

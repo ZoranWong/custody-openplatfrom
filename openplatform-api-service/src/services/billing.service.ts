@@ -5,6 +5,7 @@
 
 import { Invoice, InvoiceHistoryItem, PaymentHistoryItem, UsageStatistics, UsageTrend } from '../types/billing.types';
 import { getOrderRepository } from '../repositories/repository.factory';
+import { getRecentErrors } from './api-log.service';
 
 /**
  * Mock data for demonstration
@@ -168,9 +169,86 @@ export class BillingService {
   async getUsageStatistics(
     enterpriseId: string, periodStart?: string, periodEnd?: string
   ): Promise<UsageStatistics> {
-    return MOCK_USAGE_STATS;
-  }
+    try {
+      const { getPrismaClient } = await import('../database/prisma-client');
+      const prisma = getPrismaClient();
 
+      const now = new Date();
+      const days = 30;
+      const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      // Single CTE query for total stats (no todayCalls - use subscription dailyApiUsage)
+      const results = await (prisma as any).$queryRaw`
+        WITH s AS (
+          SELECT COUNT(*) as total_calls,
+                 SUM(CASE WHEN is_error = 1 THEN 1 ELSE 0 END) as error_calls,
+                 ROUND(AVG(response_time), 0) as avg_response_time
+          FROM api_logs
+          WHERE developer_id = ${enterpriseId} AND created_at >= ${startDate}
+        ) SELECT * FROM s
+      `;
+      const stats = (results as any[])[0] || {};
+      const totalCalls = Number(stats.total_calls) || 0;
+      const errorCalls = Number(stats.error_calls) || 0;
+      const avgResponseTime = Number(stats.avg_response_time) || 0;
+      const successRate = totalCalls > 0 ? ((totalCalls - errorCalls) / totalCalls) * 100 : 100;
+
+      // Daily breakdown
+      const dailyBreakdown = await (prisma as any).$queryRaw`
+        SELECT DATE(created_at) as date, COUNT(*) as calls,
+               SUM(CASE WHEN is_error = 0 THEN 1 ELSE 0 END) as success_count,
+               ROUND(AVG(response_time), 0) as avg_response_time
+        FROM api_logs
+        WHERE developer_id = ${enterpriseId} AND created_at >= ${startDate}
+        GROUP BY DATE(created_at) ORDER BY date ASC
+      `;
+
+      // Endpoint breakdown
+      const endpointBreakdown = await (prisma as any).$queryRaw`
+        SELECT endpoint, method, COUNT(*) as calls,
+               SUM(CASE WHEN is_error = 0 THEN 1 ELSE 0 END) as success_count,
+               ROUND(SUM(CASE WHEN is_error = 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) as success_rate,
+               ROUND(COUNT(*) * 100.0 / ${totalCalls || 1}, 1) as percentage,
+               ROUND(AVG(response_time), 0) as avg_response_time,
+               MAX(response_time) as max_response_time
+        FROM api_logs
+        WHERE developer_id = ${enterpriseId} AND created_at >= ${startDate}
+        GROUP BY endpoint, method
+        ORDER BY calls DESC LIMIT 10
+      `;
+
+      const activeSub = await (prisma as any).subscription.findFirst({
+        where: { developerId: enterpriseId, status: 'active' },
+        select: { dailyApiUsage: true, package: { select: { dailyApiLimit: true } } },
+        orderBy: { startDate: 'asc' }
+      });
+
+      return {
+        period: { start: startDate.toISOString().split('T')[0], end: now.toISOString().split('T')[0] },
+        totalApiCalls: totalCalls, totalBandwidth: 0, totalStorage: 0,
+        apiCallCost: 0, bandwidthCost: 0, storageCost: 0, totalCost: 0, currency: 'USD',
+        totalCalls, successRate, avgResponseTimeMs: avgResponseTime,
+        todayCalls: Number(activeSub?.dailyApiUsage) || 0,
+        dailyLimit: activeSub?.package?.dailyApiLimit ?? 0,
+        recentErrors: await getRecentErrors(enterpriseId),
+        dailyBreakdown: (dailyBreakdown as any[]).map((d: any) => ({
+          date: typeof d.date === 'string' ? d.date : new Date(d.date).toISOString().split('T')[0],
+          calls: Number(d.calls), successCount: Number(d.success_count),
+          avgResponseTime: Number(d.avg_response_time) || 0,
+        })),
+        endpointBreakdown: (endpointBreakdown as any[]).map((e: any) => ({
+          endpoint: e.endpoint, method: e.method,
+          calls: Number(e.calls), successCount: Number(e.success_count || 0),
+          successRate: Number(e.success_rate || 0), percentage: Number(e.percentage),
+          avgResponseTime: Number(e.avg_response_time || 0),
+          maxResponseTime: Number(e.max_response_time || 0),
+        })),
+      };
+    } catch {
+      return MOCK_USAGE_STATS;
+    }
+  }
   async getUsageTrend(
     enterpriseId: string, period: '7d' | '30d' | '90d' = '7d'
   ): Promise<UsageTrend[]> {

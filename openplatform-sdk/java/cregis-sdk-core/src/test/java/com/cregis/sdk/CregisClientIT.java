@@ -51,7 +51,7 @@ class CregisClientIT {
         }
         // 2. TEST_ENV 环境变量
         if ("testing".equals(TEST_ENV)) {
-            return "http://api.vaulink.com/openplatform";
+            return "https://custody-sit.cregis.ae/openplatform";
         }
         // 3. 默认 local
         return "http://127.0.0.1:1000";

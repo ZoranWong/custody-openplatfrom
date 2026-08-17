@@ -98,13 +98,36 @@ export interface PaymentHistoryItem {
 export interface UsageStatistics {
   period: BillingPeriod;
   totalApiCalls: number;
-  totalBandwidth: number; // GB
-  totalStorage: number; // GB
+  totalBandwidth: number;
+  totalStorage: number;
   apiCallCost: number;
   bandwidthCost: number;
   storageCost: number;
   totalCost: number;
   currency: string;
+  successRate?: number;
+  totalCalls?: number;
+  avgResponseTimeMs?: number;
+  todayCalls?: number;
+  dailyLimit?: number;
+  recentErrors?: Array<{
+    apiName: string;
+    endpoint: string;
+    responseStatus: number;
+    createdAt: string;
+  }>;
+  dailyBreakdown?: Array<{
+    date: string;
+    calls: number;
+    successCount: number;
+    avgResponseTime: number;
+  }>;
+  endpointBreakdown?: Array<{
+    endpoint: string;
+    method: string;
+    calls: number;
+    percentage: number;
+  }>;
 }
 
 /**

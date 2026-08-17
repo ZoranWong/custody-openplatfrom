@@ -3,12 +3,13 @@
  * Records third-party API calls to ApiLog table
  */
 
-import { getPrismaClient } from '../database/prisma-client';
+import { getApiLogRepository } from '../repositories/repository.factory';
 
 export interface ApiLogEntry {
   appId: string;
   developerId?: string;
   subscriptionId?: string;
+  apiName?: string;
   endpoint: string;
   method: string;
   requestHeaders?: Record<string, unknown>;
@@ -21,18 +22,17 @@ export interface ApiLogEntry {
   isError?: boolean;
 }
 
-const prisma = getPrismaClient();
-
 /**
  * Create API log entry (fire-and-forget, never throws)
  */
 export async function createApiLog(entry: ApiLogEntry): Promise<void> {
   try {
-    await prisma.apiLog.create({
-      data: {
+    const repo = getApiLogRepository();
+    await repo.create({
         appId: entry.appId,
         developerId: entry.developerId,
         subscriptionId: entry.subscriptionId,
+        apiName: entry.apiName,
         endpoint: entry.endpoint,
         method: entry.method,
         requestHeaders: entry.requestHeaders as any,
@@ -43,7 +43,6 @@ export async function createApiLog(entry: ApiLogEntry): Promise<void> {
         ipAddress: entry.ipAddress,
         userAgent: entry.userAgent,
         isError: entry.isError || false,
-      },
     });
   } catch (error) {
     // Silently fail - logging should never block or crash the request
@@ -56,12 +55,22 @@ export async function createApiLog(entry: ApiLogEntry): Promise<void> {
  */
 export async function cleanupOldLogs(retentionDays: number = 30): Promise<void> {
   try {
-    const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
-    const result = await prisma.apiLog.deleteMany({
-      where: { createdAt: { lt: cutoff } },
-    });
+    const repo = getApiLogRepository();
+    const result = await repo.cleanup(retentionDays);
     console.log(`[ApiLog] Cleaned up ${result.count} logs older than ${retentionDays} days`);
   } catch (error) {
     console.error('[ApiLog] Cleanup failed:', (error as Error).message);
+  }
+}
+
+/**
+ * Get recent API errors for dashboard display
+ */
+export async function getRecentErrors(developerId: string, limit: number = 5): Promise<any[]> {
+  try {
+    const repo = getApiLogRepository();
+    return await repo.findRecentErrors(developerId, limit);
+  } catch {
+    return [];
   }
 }

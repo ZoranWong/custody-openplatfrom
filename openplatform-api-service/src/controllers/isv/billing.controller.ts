@@ -220,27 +220,17 @@ export function createBillingController(billingService: BillingService = createB
           code: 0,
           message: 'success',
           data: {
-            total_calls: stats.totalApiCalls || 125840,
-            success_rate: 99.5,
-            avg_response_time_ms: stats.totalCost > 0 ? Math.round(stats.totalCost * 10) : 156,
+            total_calls: stats.totalCalls || stats.totalApiCalls || 0,
+            success_rate: stats.successRate ?? 99.5,
+            avg_response_time_ms: stats.avgResponseTimeMs || 0,
+            today_calls: stats.todayCalls || 0,
+            daily_limit: stats.dailyLimit || 0,
+            recent_errors: stats.recentErrors || [],
             period: period as string || '30days',
-            daily_breakdown: [
-              { date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], calls: 4521, success_count: 4498, avg_response_time: 145 },
-              { date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], calls: 3892, success_count: 3875, avg_response_time: 162 },
-              { date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], calls: 4125, success_count: 4108, avg_response_time: 148 },
-              { date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], calls: 5234, success_count: 5210, avg_response_time: 138 },
-              { date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], calls: 4892, success_count: 4868, avg_response_time: 152 },
-              { date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], calls: 5102, success_count: 5078, avg_response_time: 145 },
-              { date: new Date().toISOString().split('T')[0], calls: 4256, success_count: 4235, avg_response_time: 158 },
+            daily_breakdown: stats.dailyBreakdown?.length ? stats.dailyBreakdown : [
+              { date: new Date().toISOString().split('T')[0], calls: 0, success_count: 0, avg_response_time: 0 },
             ],
-            endpoint_breakdown: [
-              { endpoint: '/api/v1/enterprise/accounts', method: 'GET', calls: 45230, percentage: 35.9 },
-              { endpoint: '/api/v1/payment/create', method: 'POST', calls: 28450, percentage: 22.6 },
-              { endpoint: '/api/v1/transfer/history', method: 'GET', calls: 21340, percentage: 16.9 },
-              { endpoint: '/api/v1/enterprise/accounts/:id', method: 'GET', calls: 15670, percentage: 12.4 },
-              { endpoint: '/api/v1/pooling/sweep', method: 'POST', calls: 8920, percentage: 7.1 },
-              { endpoint: '/api/v1/other/endpoints', method: 'GET', calls: 5230, percentage: 4.1 },
-            ],
+            endpoint_breakdown: stats.endpointBreakdown?.length ? stats.endpointBreakdown : [],
           },
         });
       } catch (error) {

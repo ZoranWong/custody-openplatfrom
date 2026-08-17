@@ -3,13 +3,14 @@
  * External APIs for third-party developers to integrate with the platform
  */
 
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { HttpCodes } from '../../enums/http-codes.enum';
 import { BusinessCodes } from '../../enums/business-codes.enum';
 import { signJWT, verifyJWT } from '../../utils/jwt.util';
 import { ResourceValidationRequest } from '../../middleware/resource-validation.middleware';
 import { getApplicationRepository, getOauthResourceRepository } from '../../repositories/repository.factory';
 import { getApplicationCallbackService } from '../../services/application-callback.service';
+import { createApiLog } from '../../services/api-log.service';
 import { logger } from '../../utils/logger';
 import { Application } from '@prisma/client';
 
@@ -111,12 +112,14 @@ export async function issueOauthToken(req: ResourceValidationRequest, res: Respo
  * }
  */
 export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Response): Promise<void> {
-    const businessData = req.body.business as {
-        permissions?: string[];
-        callback?: string 
-        state?: string;
-        token?: string;  // Developer-generated token for user identity mapping
-    } | undefined;
+    const businessData = req.body.business as
+      | {
+          permissions?: string[];
+          callback?: string;
+          state?: string;
+          token?: string; // Developer-generated token for user identity mapping
+        }
+      | undefined;
     const appId = req.context?.application?.id;
 
     if (!appId) {
@@ -163,7 +166,9 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
 
     // Build authorization URL
     // Base URL from environment or default
-    const baseUrl = process.env.OPENPLATFORM_AUTH_URL || 'https://openplatform.cregis.com/openplatform';
+    const baseUrl =
+      process.env.OPENPLATFORM_AUTH_URL ||
+      'https://custody.cregis.ae/openplatform/auth';
     const authPath = '';
 
     const params = new URLSearchParams();
@@ -326,4 +331,51 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
             message: 'Internal server error',
         });
     }
+}
+
+/**
+ * Middleware to log OAuth API calls
+ */
+export function logOAuthCall(req: Request, res: Response, next: NextFunction): void {
+    const startTime = Date.now();
+    const context = (req as any).context;
+    const appId = context?.application?.id || req.body?.basic?.appId || 'unknown';
+    const developerId = context?.application?.isvDeveloperId || context?.developer?.id || undefined;
+
+    const apiNameMap: Record<string, string> = {
+        'oauth/authorizeUrl': 'Get Authorization URL',
+        'oauth/verify': 'Verify OAuth Token',
+        'oauth/token': 'Issue OAuth Token',
+    };
+    let apiName = '';
+    for (const [path, name] of Object.entries(apiNameMap)) {
+      if (req.path.includes(path)) { apiName = name; break; }
+    }
+    if (!apiName) apiName = req.path;
+    //   const apiName = apiNameMap[req.path] || req.path;
+
+    const originalJson = res.json.bind(res);
+    res.json = function (body: any) {
+        const elapsed = Date.now() - startTime;
+        const isSuccess = body?.code === 0;
+
+        createApiLog({
+            appId,
+            developerId,
+            apiName,
+            endpoint: req.baseUrl + req.path,
+            method: req.method,
+            requestBody: req.body?.business,
+            responseStatus: isSuccess ? 200 : (body?.code || 500),
+            responseBody: body,
+            responseTime: elapsed,
+            ipAddress: req.ip || req.socket.remoteAddress,
+            userAgent: req.headers['user-agent'] as string,
+            isError: !isSuccess,
+        }).catch(() => { });
+
+        return originalJson(body);
+    };
+
+    next();
 }

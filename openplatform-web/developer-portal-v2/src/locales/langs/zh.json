@@ -325,7 +325,7 @@
       "applicationsCreate": "创建应用",
       "applicationsDetail": "应用详情",
       "applicationsEdit": "编辑应用",
-      "usageStatistics": "用量统计",
+      "usageStatistics": "API日志",
       "billing": "账单管理",
       "invoiceGeneration": "发票生成",
       "paymentHistory": "订单管理",
@@ -570,7 +570,10 @@
       "apiCalls": "API调用",
       "billedAmount": "计费金额",
       "usageTrend": "用量趋势",
-      "endpointBreakdown": "接口分布"
+      "endpointBreakdown": "接口分布",
+      "avgResponse": "平均响应",
+      "todayCalls": "今日调用",
+      "remainingCalls": "剩余调用"
     },
     "invoiceGeneration": {
       "title": "发票生成",
@@ -599,7 +602,8 @@
         "profile": "资料完善度",
         "todayCalls": "今日调用量",
         "last30Days": "近30天",
-        "freePlan": "免费版"
+        "freePlan": "免费版",
+        "dailyQuota": "每日配额"
       },
       "quickActions": "快捷操作",
       "actions": {
@@ -610,7 +614,9 @@
       },
       "usageTrendDesc": "近30天API调用量变化趋势",
       "endpointTop5": "接口调用 Top 5",
-      "endpointTop5Desc": "调用量最高的接口分布"
+      "endpointTop5Desc": "调用量最高的接口分布",
+      "recentErrors": "最近错误",
+      "recentErrorsDesc": "最近的API调用错误"
     },
     "billing": {
       "loading": "加载中...",
@@ -620,7 +626,11 @@
         "noData": "暂无数据",
         "path": "路径",
         "percentage": "占比",
-        "title": "接口分布"
+        "title": "接口分布",
+        "avgResponse": "平均响应",
+        "maxResponse": "最长响应",
+        "successCount": "成功次数",
+        "successRate": "成功率"
       },
       "invoice": {
         "amount": "金额",

@@ -7,16 +7,12 @@ import { getPrismaClient } from '../database/prisma-client';
 
 const prisma = getPrismaClient();
 
-/** Track last reset date to avoid redundant resets */
-let lastResetDate: string | null = null;
-
 /**
  * Check if developer has remaining daily quota and atomically increment usage.
  * Returns true if allowed, false if quota exceeded.
  */
 export async function checkAndIncrement(developerId: string): Promise<{ allowed: boolean; currentUsage: number; dailyLimit: number; subscriptionId?: string }> {
   try {
-    // Find active subscription with package info
     const subscription = await prisma.subscription.findFirst({
       where: { developerId, status: 'active' },
       include: { package: { select: { dailyApiLimit: true } } },
@@ -28,43 +24,32 @@ export async function checkAndIncrement(developerId: string): Promise<{ allowed:
     }
 
     const dailyLimit = subscription.package?.dailyApiLimit ?? 1000;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // Atomic increment with WHERE guard
-    const result = await prisma.$executeRaw`
-      UPDATE subscriptions
-      SET daily_api_usage = daily_api_usage + 1
-      WHERE id = ${subscription.id}
-        AND daily_api_usage < ${dailyLimit}
-    `;
-
-    if (result === 0) {
-      // Quota exceeded - get current usage
-      const updated = await prisma.subscription.findUnique({
-        where: { id: subscription.id },
-        select: { dailyApiUsage: true },
-      });
-      return {
-        allowed: false,
-        currentUsage: updated?.dailyApiUsage ?? dailyLimit,
-        dailyLimit,
-        subscriptionId: subscription.id,
-      };
-    }
-
-    const updated = await prisma.subscription.findUnique({
-      where: { id: subscription.id },
-      select: { dailyApiUsage: true },
+    // Count actual API calls from ApiLog for today
+    const todayCount = await prisma.apiLog.count({
+      where: {
+        developerId,
+        isError: false,
+        createdAt: { gte: today },
+      },
     });
 
-    return {
-      allowed: true,
-      currentUsage: updated?.dailyApiUsage ?? 0,
-      dailyLimit,
-      subscriptionId: subscription.id,
-    };
+    // Check if exceeded
+    if (todayCount >= dailyLimit) {
+      return { allowed: false, currentUsage: todayCount, dailyLimit, subscriptionId: subscription.id };
+    }
+
+    // Sync dailyApiUsage with actual count
+    await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { dailyApiUsage: todayCount + 1 },
+    });
+
+    return { allowed: true, currentUsage: todayCount + 1, dailyLimit, subscriptionId: subscription.id };
   } catch (error) {
     console.error('[Quota] Check failed:', (error as Error).message);
-    // Fail open - allow request if quota check fails
     return { allowed: true, currentUsage: 0, dailyLimit: 0 };
   }
 }
@@ -79,7 +64,6 @@ export async function resetDailyUsage(): Promise<number> {
       SET daily_api_usage = 0
       WHERE daily_api_usage > 0
     `;
-    lastResetDate = new Date().toISOString().split('T')[0];
     console.log(`[Quota] Reset daily usage for ${result} subscriptions`);
     return result;
   } catch (error) {
@@ -89,26 +73,23 @@ export async function resetDailyUsage(): Promise<number> {
 }
 
 /**
- * Check if reset is needed and perform it
- */
-export async function checkAndResetIfNeeded(): Promise<void> {
-  const today = new Date().toISOString().split('T')[0];
-  if (lastResetDate !== today) {
-    await resetDailyUsage();
-  }
-}
-
-/**
- * Start daily reset scheduler (runs every minute, checks if new day)
+ * Start daily reset scheduler
+ * Uses setTimeout to trigger precisely at midnight, then reschedules
  */
 export function startDailyResetScheduler(): void {
-  // Check every 60 seconds if we've crossed midnight
-  setInterval(() => {
-    checkAndResetIfNeeded();
-  }, 60_000);
+  const scheduleNext = () => {
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const msUntilMidnight = tomorrow.getTime() - now.getTime();
+    setTimeout(() => {
+      resetDailyUsage();
+      scheduleNext();
+    }, msUntilMidnight);
+  };
 
-  // Also check immediately on startup
-  checkAndResetIfNeeded();
+  // Check immediately on startup
+  resetDailyUsage();
+  scheduleNext();
 
   console.log('[Quota] Daily reset scheduler started');
 }

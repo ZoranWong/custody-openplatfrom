@@ -21,6 +21,7 @@ export type ParamSource = 'url' | 'context';
  */
 export interface ForwardRouteConfig {
     routeId: string;                                    // Unique route identifier
+    name?: string;                                       // Human-readable API name for display
     inboundPath: string;                                 // Developer-facing path (matching key)
     route: string;                                      // Custody backend path (forwarding target)
     method: string;                                      // HTTP method
@@ -57,6 +58,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // Create treasury unit
   {
     routeId: 'treasury-create',
+    name: 'Create Treasury Unit',
     inboundPath: '/api/thirdparty/treasury/create',
     route: '/api/third-party/create/{resourceKey}',
     method: 'POST',
@@ -67,6 +69,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // List treasury units
   {
     routeId: 'treasury-list',
+    name: 'List Treasury Units',
     inboundPath: '/api/thirdparty/treasury/list',
     route: '/api/third-party/list/{resourceKey}',
     method: 'POST',
@@ -77,6 +80,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // Get treasury unit address
   {
     routeId: 'treasury-address',
+    name: 'Get Treasury Unit Address',
     inboundPath: '/api/thirdparty/treasury/address',
     route: '/api/third-party/get-unit-address/{resourceKey}',
     method: 'POST',
@@ -87,6 +91,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // Payout (出金)
   {
     routeId: 'treasury-payout',
+    name: 'Create Payout',
     inboundPath: '/api/thirdparty/treasury/payout',
     route: '/api/third-party/payout/{resourceKey}',
     method: 'POST',
@@ -97,6 +102,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // Submit task
   {
     routeId: 'treasury-submit-task',
+    name: 'Submit Task',
     inboundPath: '/api/thirdparty/treasury/submit-task/{taskId}',
     route: '/api/third-party/submit/task/{resourceKey}/{taskId}',
     method: 'POST',
@@ -107,6 +113,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // Query activities
   {
     routeId: 'treasury-activities',
+    name: 'List Activities',
     inboundPath: '/api/thirdparty/treasury/activities',
     route: '/api/third-party/activities/{resourceKey}',
     method: 'POST',
@@ -117,6 +124,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // Query transfer-out orders
   {
     routeId: 'treasury-transfer-out',
+    name: 'List Transfer-Out Orders',
     inboundPath: '/api/thirdparty/treasury/transfer-out-orders',
     route: '/api/third-party/transfer-out-orders/{resourceKey}',
     method: 'POST',
@@ -127,6 +135,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // Query transfer-in orders
   {
     routeId: 'treasury-transfer-in',
+    name: 'List Transfer-In Orders',
     inboundPath: '/api/thirdparty/treasury/transfer-in-orders',
     route: '/api/third-party/transfer-in-orders/{resourceKey}',
     method: 'POST',
@@ -137,6 +146,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // Query fund records
   {
     routeId: 'treasury-fund-records',
+    name: 'List Fund Records',
     inboundPath: '/api/thirdparty/treasury/fund-records',
     route: '/api/third-party/fund-records/{resourceKey}',
     method: 'POST',
@@ -146,6 +156,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // Query unit fund records
   {
     routeId: 'treasury-unit-fund-records',
+    name: 'List Unit Fund Records',
     inboundPath: '/api/thirdparty/treasury/unit-fund-records',
     route: '/api/third-party/unit-fund-records/{resourceKey}',
     method: 'POST',
@@ -156,6 +167,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // Pooling request (归集请求)
   {
     routeId: 'treasury-pooling',
+    name: 'Pooling Request',
     inboundPath: '/api/thirdparty/treasury/pooling',
     route: '/api/third-party/pooling/{resourceKey}',
     method: 'POST',
@@ -167,6 +179,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // Note: backend uses 'accountTypy' (original spelling), inbound matches this
   {
     routeId: 'treasury-create-unit-address',
+    name: 'Create Unit Address',
     inboundPath: '/api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number}',
     route: '/api/third-party/create-unit-address/{resourceKey}/{unitId}/{accountTypy}/{network}/{coinId}/{number}',
     method: 'POST',
@@ -184,6 +197,7 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   // List unit accounts (查询账户列表)
   {
     routeId: 'treasury-list-unit-account',
+    name: 'List Unit Accounts',
     inboundPath: '/api/thirdparty/treasury/list-unit-account/{unitId}',
     route: '/api/third-party/list-unit-account/{resourceKey}/{unitId}',
     method: 'POST',
