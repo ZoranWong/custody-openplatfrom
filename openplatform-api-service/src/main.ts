@@ -44,6 +44,7 @@ import { strictRateLimit } from './middleware/admin-rate-limit.middleware'
 import { createMetricsMiddleware } from './middleware/metrics.middleware'
 import metricsRoutes from './routes/metrics.routes'
 import { getMetricsCollector } from './services/metrics-collector.service'
+import { startDailyResetScheduler } from './services/quota.service'
 
 // Import trace modules
 import { createTraceMiddleware } from './middleware/trace.middleware'
@@ -204,6 +205,9 @@ async function startServer() {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`API Gateway running on port ${PORT}`)
         console.log(`Health check: http://localhost:${PORT}/health`)
+
+        // Start daily API usage quota reset scheduler
+        startDailyResetScheduler()
     })
 }
 

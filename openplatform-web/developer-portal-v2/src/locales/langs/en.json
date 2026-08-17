@@ -397,7 +397,9 @@
       "editProfile": "Edit Profile",
       "underReview": "Under Review",
       "approved": "Approved",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "status": "Account Status",
+      "website": "Website"
     },
     "applications": {
       "title": "My Applications",

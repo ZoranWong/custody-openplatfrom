@@ -62,6 +62,8 @@ export const useUserStore = defineStore(
     const info = ref<Partial<Api.Auth.UserInfo>>({})
     // ISV 信息 (公司/KYB)
     const isvInfo = ref<any>(null)
+    // ISV 用户原始数据（含 id, createdAt, updatedAt 等）
+    const isvUserData = ref<any>(null)
     // 搜索历史记录
     const searchHistory = ref<AppRouteRecord[]>([])
     // 访问令牌
@@ -186,6 +188,13 @@ export const useUserStore = defineStore(
     }
 
     /**
+     * 设置 ISV 用户原始数据
+     */
+    const setISVUserData = (data: any) => {
+      isvUserData.value = data
+    }
+
+    /**
      * 获取 ISV 信息 (公司/KYB)
      */
     const fetchISVInfo = async () => {
@@ -243,6 +252,7 @@ export const useUserStore = defineStore(
       lockPassword,
       info,
       isvInfo,
+      isvUserData,
       searchHistory,
       accessToken,
       refreshToken,
@@ -257,6 +267,7 @@ export const useUserStore = defineStore(
       setLockPassword,
       setToken,
       setISVInfo,
+      setISVUserData,
       fetchISVInfo,
       updateISVProfile,
       logOut,

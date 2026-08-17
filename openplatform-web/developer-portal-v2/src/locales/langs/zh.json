@@ -397,7 +397,9 @@
       "editProfile": "编辑资料",
       "underReview": "审核中",
       "approved": "已通过",
-      "rejected": "已拒绝"
+      "rejected": "已拒绝",
+      "status": "账号状态",
+      "website": "网站"
     },
     "applications": {
       "title": "我的应用",

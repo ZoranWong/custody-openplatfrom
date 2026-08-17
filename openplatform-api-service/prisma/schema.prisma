@@ -131,6 +131,10 @@ model ApiLog {
   traceId         String?  @map("trace_id")
   /// 关联的应用ID
   appId           String   @map("app_id")
+  /// 关联的开发者ID
+  developerId     String?  @map("developer_id")
+  /// 关联的订阅ID
+  subscriptionId  String?  @map("subscription_id")
   /// 请求端点
   endpoint        String
   /// 请求方法
@@ -149,6 +153,8 @@ model ApiLog {
   ipAddress       String?  @map("ip_address")
   /// 客户端User-Agent
   userAgent       String?  @map("user_agent")
+  /// 是否为异常调用
+  isError         Boolean  @default(false) @map("is_error")
   /// 创建时间
   createdAt       DateTime @default(now()) @map("created_at")
 

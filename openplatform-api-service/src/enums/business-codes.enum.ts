@@ -103,4 +103,5 @@ export enum BusinessCodes {
   // ========================
   GATEWAY_TIMEOUT = 50401,
   UPSTREAM_TIMEOUT = 50402,
+  API_RATE_LIMITED = 50403,
 }

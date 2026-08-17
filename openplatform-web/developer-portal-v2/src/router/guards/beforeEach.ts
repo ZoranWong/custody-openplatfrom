@@ -380,6 +380,8 @@ async function fetchUserInfo(): Promise<void> {
       roles: [isvUser.role === 'owner' ? 'R_SUPER' : 'R_ADMIN'],
       buttons: []
     })
+    // Store raw ISV user data for profile display
+    userStore.setISVUserData(isvUser)
   }
   // 检查并清理工作台标签页（如果是不同用户登录）
   userStore.checkAndClearWorktabs()
