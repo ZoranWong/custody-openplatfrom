@@ -1,35 +1,25 @@
-/**
- * API Log Routes (ISV)
- * Developer-side API call log queries
- */
-
-import { Router } from 'express';
-import { isvAuth } from '../../middleware/isv-auth.middleware';
+import { Request, Response } from 'express';
 import { getApiLogRepository } from '../../repositories/repository.factory';
-
-const router = Router();
+import { HttpCodes } from '../../enums/http-codes.enum';
+import { BusinessCodes } from '../../enums/business-codes.enum';
 
 /**
- * GET /api/v1/api-logs
- * Get paginated API call logs for the current developer
+ * GET /admin/api-logs
+ * Get paginated API call logs for admin (all developers)
  */
-router.get('/', isvAuth, async (req: any, res: any) => {
+export async function getApiLogs(req: Request, res: Response): Promise<void> {
   try {
-    const isvUser = req.isvUser;
     const repo = getApiLogRepository();
 
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 20;
+    const developerId = req.query.developerId as string | undefined;
     const isError = req.query.isError !== undefined ? req.query.isError === '1' : undefined;
     const apiName = req.query.apiName as string | undefined;
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
-    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
 
-    const result = await repo.findByDeveloper(isvUser.isvId, page, pageSize, {
+    const result = await repo.findByDeveloper('__admin__', page, pageSize, {
       isError,
       apiName,
-      startDate,
-      endDate,
     });
 
     res.json({
@@ -38,6 +28,9 @@ router.get('/', isvAuth, async (req: any, res: any) => {
       data: {
         list: result.list.map((log: any) => ({
           id: log.id,
+          appId: log.appId,
+          developerId: log.developerId,
+          subscriptionId: log.subscriptionId,
           apiName: log.apiName || log.endpoint,
           endpoint: log.endpoint,
           method: log.method,
@@ -51,11 +44,15 @@ router.get('/', isvAuth, async (req: any, res: any) => {
         page: result.page,
         pageSize: result.pageSize,
       },
+      trace_id: (req as any).context?.traceId || req.headers['x-trace-id'] || '',
     });
   } catch (error) {
     console.error('Get API logs error:', error);
-    res.status(500).json({ code: 50001, message: 'Internal server error' });
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
+      message: 'Failed to get API logs',
+      data: null,
+      trace_id: req.headers['x-trace-id'] as string || '',
+    });
   }
-});
-
-export default router;
+}

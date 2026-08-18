@@ -52,6 +52,9 @@ import {
   getServiceDetail,
   refreshHealthData
 } from '../../controllers/admin/health.controller'
+import {
+  getApiLogs
+} from '../../controllers/admin/api-log.controller'
 import { adminAuthMiddleware } from '../../middleware/admin-auth.middleware'
 import { requirePermission } from '../../middleware/admin-permission.middleware'
 import { Resource } from '../../constants/admin-permissions'
@@ -196,5 +199,12 @@ router.get('/health/service/:serviceId', adminAuthMiddleware, requirePermission(
 
 // Force refresh health data
 router.post('/health/refresh', adminAuthMiddleware, requirePermission(Resource.ANALYTICS_VIEW), refreshHealthData)
+
+// ============================================
+// API Log Routes (requires ANALYTICS_VIEW permission)
+// ============================================
+
+// Get paginated API call logs
+router.get('/api-logs', adminAuthMiddleware, requirePermission(Resource.ANALYTICS_VIEW), getApiLogs)
 
 export default router

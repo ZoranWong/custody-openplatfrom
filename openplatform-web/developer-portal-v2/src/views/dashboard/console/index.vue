@@ -80,20 +80,13 @@
     <!-- 接口分布 -->
     <ElRow :gutter="20">
       <ElCol :span="24">
-        <div class="art-card p-5 mb-5">
-          <div class="art-card-header">
-            <div class="title">
-              <h4>{{ $t('developer.usageStatistics.endpointBreakdown') }}</h4>
-              <p>{{ $t('developer.dashboard.endpointTop5Desc') }}</p>
-            </div>
-          </div>
-          <EndpointBreakdown
-            v-if="usageStats?.endpoint_breakdown?.length"
-            :endpoints="usageStats.endpoint_breakdown"
-            :loading="loading"
-          />
-          <ElEmpty v-else :image-size="60" />
-        </div>
+        <EndpointBreakdown
+          v-if="usageStats?.endpoint_breakdown?.length"
+          :endpoints="usageStats.endpoint_breakdown"
+          :loading="loading"
+          class="mb-5 art-card"
+        />
+        <ElEmpty v-else :image-size="60" />
       </ElCol>
     </ElRow>
   </div>
@@ -208,7 +201,7 @@
 
   const recentErrors = computed(() => {
     if (!usageStats.value?.recent_errors?.length) return []
-    return usageStats.value.recent_errors.slice(0, 5)
+    return usageStats.value.recent_errors.slice(0, 8)
   })
 
   onMounted(async () => {
