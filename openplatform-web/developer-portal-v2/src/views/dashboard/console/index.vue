@@ -114,7 +114,7 @@
     const label = expired
       ? t('developer.dashboard.stats.expired')
       : t('developer.dashboard.stats.expiresAt')
-    return `${label} ${formatDate(subscription.value.endDate, 'date', locale)}`
+    return `${label} ${formatDate(subscription.value.endDate, 'date', locale.value)}`
   })
 
   const subPackageLabel = computed(() => {

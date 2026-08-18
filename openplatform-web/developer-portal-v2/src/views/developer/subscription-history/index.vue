@@ -41,8 +41,8 @@ const { columns, columnChecks, data, loading, pagination, handleSizeChange, hand
           minWidth: 120,
           formatter: (row: any) => t('package.packageTypeLabels.' + row.packageCode)
         },
-        { prop: 'startDate', label: t('developer.subscription.startDate'), minWidth: 180, formatter: (row: any) => formatDate(row.startDate, undefined, locale) },
-        { prop: 'endDate', label: t('developer.subscription.endDate'), minWidth: 180, formatter: (row: any) => formatDate(row.endDate, undefined, locale) },
+        { prop: 'startDate', label: t('developer.subscription.startDate'), minWidth: 180, formatter: (row: any) => formatDate(row.startDate, undefined, locale.value) },
+        { prop: 'endDate', label: t('developer.subscription.endDate'), minWidth: 180, formatter: (row: any) => formatDate(row.endDate, undefined, locale.value) },
         {
           prop: 'billingCycle',
           label: t('developer.subscription.billingCycle'),

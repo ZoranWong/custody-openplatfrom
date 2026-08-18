@@ -17,5 +17,6 @@ declare module 'vue' {
     OrganizationSelector: typeof import('./src/components/OrganizationSelector.vue')['default']
     SvgIcon: typeof import('./src/components/SvgIcon.vue')['default']
     TotpForm: typeof import('./src/components/TotpForm.vue')['default']
+    VerificationDialog: typeof import('./src/components/VerificationDialog.vue')['default']
   }
 }

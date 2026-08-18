@@ -65,7 +65,7 @@ const { columns, columnChecks, data, loading, pagination, getData, replaceSearch
           return h(ElTag, { type: isError ? 'danger' : 'success', size: 'small' }, () => String(row.responseStatus))
         }
       },
-      { prop: 'createdAt', label: t('developer.billing.payment.submittedAt'), width: 180, formatter: (row: any) => formatDate(row.createdAt, undefined, locale) }
+      { prop: 'createdAt', label: t('developer.billing.payment.submittedAt'), width: 180, formatter: (row: any) => formatDate(row.createdAt, undefined, locale.value) }
     ] as any
   },
   transform: { responseAdapter: (res: any) => ({ records: res?.list || [], total: res?.total || 0, page: res?.page, pageSize: res?.pageSize }) }

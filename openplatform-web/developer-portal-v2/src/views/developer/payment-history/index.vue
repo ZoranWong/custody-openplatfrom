@@ -211,7 +211,7 @@
             prop: 'createdAt',
             label: t('developer.billing.payment.submittedAt'),
             minWidth: 180,
-            formatter: (row: any) => formatDate(row.createdAt, undefined, locale)
+            formatter: (row: any) => formatDate(row.createdAt, undefined, locale.value)
           },
           {
             label: t('package.actions'),
