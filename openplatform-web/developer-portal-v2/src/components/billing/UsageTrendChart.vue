@@ -67,7 +67,7 @@ const chartOption = computed(() => {
     return {}
   }
 
-  const dates = props.dailyData.map(d => formatDate(d.date, 'date', locale.value))
+  const dates = props.dailyData.map(d => formatDate(d.date, 'date', locale))
   const calls = props.dailyData.map(d => d.calls)
   const successCalls = props.dailyData.map(d => d.successCount)
 

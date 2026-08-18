@@ -74,7 +74,7 @@ const handlePrint = (): void => {
       <div class="flex justify-between mb-8">
         <div>
           <p class="text-sm text-gray-500 mb-1">{{ t('developer.billing.invoice.date') }}</p>
-          <p class="font-medium">{{ invoice ? formatDate(invoice.createdAt, undefined, locale.value) : '-' }}</p>
+          <p class="font-medium">{{ invoice ? formatDate(invoice.createdAt, undefined, locale) : '-' }}</p>
         </div>
         <div>
           <p class="text-sm text-gray-500 mb-1">{{ t('developer.billing.invoice.billingPeriod') }}</p>

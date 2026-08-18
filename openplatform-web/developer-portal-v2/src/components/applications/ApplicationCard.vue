@@ -87,7 +87,7 @@ const handleClick = () => {
       <div class="flex items-center gap-4 flex-shrink-0">
         <div class="flex items-center gap-1 text-gray-400 text-sm">
           <el-icon><Clock /></el-icon>
-          <span>{{ formatDate(application.createdAt, undefined, locale.value) }}</span>
+          <span>{{ formatDate(application.createdAt, undefined, locale) }}</span>
         </div>
         <el-icon class="w-5 h-5 text-gray-400">
           <ArrowRight />

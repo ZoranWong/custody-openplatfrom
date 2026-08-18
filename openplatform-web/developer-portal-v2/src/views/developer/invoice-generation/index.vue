@@ -61,7 +61,7 @@ const { columns, columnChecks, data, loading, pagination, getData, handleSizeCha
       { prop: 'totalAmount', label: t('developer.paymentHistory.totalAmount'), minWidth: 140 },
       { prop: 'currency', label: 'Currency', minWidth: 100 },
       { prop: 'status', label: 'Status', minWidth: 100 },
-      { prop: 'createdAt', label: t('package.createdAt'), minWidth: 180, formatter: (row: any) => formatDate(row.createdAt, undefined, locale.value) },
+      { prop: 'createdAt', label: t('package.createdAt'), minWidth: 180, formatter: (row: any) => formatDate(row.createdAt, undefined, locale) },
       {
         label: t('package.actions'),
         minWidth: 120,

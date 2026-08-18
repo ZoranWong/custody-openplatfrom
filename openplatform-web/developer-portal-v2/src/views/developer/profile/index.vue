@@ -90,8 +90,8 @@
             <template #header><span class="font-semibold">{{ $t('developer.profile.accountInfo') }}</span></template>
             <ElDescriptions :column="1" border>
               <ElDescriptionsItem :label="$t('developer.profile.accountId')"><span class="font-mono text-xs">{{ user.id }}</span></ElDescriptionsItem>
-              <ElDescriptionsItem :label="$t('developer.profile.registrationTime')">{{ formatDate(user.createdAt, undefined, locale.value) }}</ElDescriptionsItem>
-              <ElDescriptionsItem :label="$t('developer.profile.lastUpdated')">{{ formatDate(user.updatedAt, undefined, locale.value) }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.registrationTime')">{{ formatDate(user.createdAt, undefined, locale) }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.lastUpdated')">{{ formatDate(user.updatedAt, undefined, locale) }}</ElDescriptionsItem>
             </ElDescriptions>
           </ElCard>
 

@@ -78,7 +78,7 @@
               <span class="line-clamp-2">{{ app.appDescription }}</span>
             </ElDescriptionsItem>
             <ElDescriptionsItem :label="$t('package.createdAt')">
-              {{ formatDate(app.createdAt, undefined, locale.value) }}
+              {{ formatDate(app.createdAt, undefined, locale) }}
             </ElDescriptionsItem>
           </ElDescriptions>
 

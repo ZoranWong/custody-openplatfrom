@@ -28,7 +28,7 @@
               icon="ri:calendar-check-line"
               icon-style="bg-blue-500"
               :title="$t('developer.subscription.startDate')"
-              :description="formatDate(subscription.startDate, undefined, locale.value)"
+              :description="formatDate(subscription.startDate, undefined, locale)"
               :show-arrow="false"
             />
           </ElCol>
@@ -38,7 +38,7 @@
               icon="ri:calendar-event-line"
               icon-style="bg-orange-500"
               :title="$t('developer.subscription.endDate')"
-              :description="formatDate(subscription.endDate, undefined, locale.value)"
+              :description="formatDate(subscription.endDate, undefined, locale)"
               :show-arrow="false"
             />
           </ElCol>
