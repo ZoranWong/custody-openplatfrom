@@ -28,7 +28,6 @@ import isvRoutes from './routes/v1/isv.routes'
 import billingRoutes from './routes/v1/billing.routes'
 import usageRoutes from './routes/v1/usage.routes'
 import apiLogRoutes from './routes/v1/api-log.routes'
-import captchaRoutes from './routes/v1/captcha.routes'
 import oauthRoutes from './routes/oauth.routes'
 import authorizationRoutes from './routes/v1/authorization.routes'
 import thirdpartyRoutes from './routes/thirdparty.routes'
@@ -131,7 +130,6 @@ app.use('/api/v1/isv', isvRoutes)
 app.use('/api/v1/billing', billingRoutes)
 app.use('/api/v1/usage', usageRoutes)
 app.use('/api/v1/api-logs', apiLogRoutes)
-app.use('/api/v1/captcha', captchaRoutes)
 
 // Static file serving for uploads
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
