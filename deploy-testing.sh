@@ -41,6 +41,7 @@ build_admin() {
 }
 
 deploy_api() {
+  build_api
   echo "=========================================="
   echo "Deploying API Service..."
   echo "=========================================="
@@ -56,6 +57,7 @@ deploy_api() {
 }
 
 deploy_developer() {
+  build_developer
   echo "=========================================="
   echo "Deploying Developer Portal..."
   echo "=========================================="
@@ -66,6 +68,7 @@ deploy_developer() {
 }
 
 deploy_admin() {
+  build_admin
   echo "=========================================="
   echo "Deploying Admin Portal..."
   echo "=========================================="
@@ -77,18 +80,18 @@ deploy_admin() {
 
 case "$TARGET" in
   api-service)
-    build_api && deploy_api
+    deploy_api
     ;;
   developer-portal)
-    build_developer && deploy_developer
+    deploy_developer
     ;;
   admin-portal)
-    build_admin && deploy_admin
+    deploy_admin
     ;;
   all)
-    build_api && deploy_api
-    build_developer && deploy_developer
-    build_admin && deploy_admin
+    deploy_api
+    deploy_developer
+    deploy_admin
     ;;
   *)
     echo "Unknown target: $TARGET"
