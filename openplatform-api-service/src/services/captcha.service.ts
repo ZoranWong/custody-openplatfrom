@@ -5,7 +5,7 @@
  * Flow:
  *   1. generate() → returns captchaId + targetX stored in cache
  *   2. verify()  → slider-captcha-js onVerify passes { x, duration, trail },
- *                  compare x with targetX, return result
+ *                  validate track behavior + compare x with targetX
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -19,11 +19,17 @@ export interface CaptchaGenerateResult {
   captchaId: string;
 }
 
+export interface TrackPoint {
+  x: number;
+  y: number;
+  t: number;
+}
+
 export interface CaptchaVerifyData {
   captchaId: string;
   x: number;
   duration?: number;
-  trail?: [number, number][];
+  trail?: TrackPoint[];
 }
 
 export interface CaptchaVerifyResult {
@@ -46,13 +52,42 @@ export async function generateCaptcha(): Promise<CaptchaGenerateResult> {
 }
 
 /**
+ * Validate the slider track trajectory to detect bots.
+ * Returns true if the track looks like human behavior.
+ */
+function validateTrack(trail: TrackPoint[]): boolean {
+  if (!Array.isArray(trail) || trail.length < 5) return false;
+
+  // 1. Total duration: 500ms ~ 3000ms (too fast or too slow = bot)
+  const totalTime = trail[trail.length - 1].t - trail[0].t;
+  if (totalTime < 500 || totalTime > 3000) return false;
+
+  // 2. Speed variation: must have acceleration/deceleration
+  const speeds: number[] = [];
+  for (let i = 1; i < trail.length; i++) {
+    const dx = trail[i].x - trail[i - 1].x;
+    const dt = trail[i].t - trail[i - 1].t;
+    if (dt <= 0) return false; // time must be monotonically increasing
+    speeds.push(dx / dt);
+  }
+  const speedVariance = Math.max(...speeds) - Math.min(...speeds);
+  if (speedVariance < 0.1) return false; // constant speed = bot
+
+  // 3. Y-axis jitter: human finger has slight vertical movement
+  const hasJitter = trail.some(p => Math.abs(p.y - trail[0].y) > 2);
+  if (!hasJitter) return false; // perfectly straight line = bot
+
+  return true;
+}
+
+/**
  * Verify the slider result from slider-captcha-js onVerify callback.
- * The callback sends { x, duration, trail } — we only validate x.
+ * Validates both the track trajectory and the final x position.
  */
 export async function verifyCaptcha(
   data: CaptchaVerifyData
 ): Promise<CaptchaVerifyResult> {
-  const { captchaId, x } = data;
+  const { captchaId, x, trail } = data;
   const cache = await getCache();
   const targetX = await cache.get(`${CAPTCHA_PREFIX}${captchaId}`);
 
@@ -63,7 +98,13 @@ export async function verifyCaptcha(
   // One-time use — delete immediately
   await cache.del(`${CAPTCHA_PREFIX}${captchaId}`);
 
+  // Validate position
   if (Math.abs(Number(targetX) - x) > TOLERANCE) {
+    return { success: false, message: 'Verification failed, please try again' };
+  }
+
+  // Validate track behavior (anti-bot)
+  if (trail && trail.length > 0 && !validateTrack(trail)) {
     return { success: false, message: 'Verification failed, please try again' };
   }
 
