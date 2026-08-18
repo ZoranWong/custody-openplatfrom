@@ -40,9 +40,9 @@ const changeLanguage = (lang: LanguageEnum) => {
       <div class="flex justify-between h-16">
         <!-- Logo -->
         <div class="flex items-center">
-          <a href="/" class="flex items-center space-x-2" aria-label="Cregis Home">
+          <div class="flex items-center space-x-2" aria-label="Cregis Home">
             <img :src="getAssetPath('logo.svg')" alt="Cregis" class="h-6" />
-          </a>
+          </div>
         </div>
 
         <!-- Desktop Navigation -->

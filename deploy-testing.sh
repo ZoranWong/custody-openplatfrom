@@ -1,91 +1,103 @@
 #!/bin/bash
 
 # Build and Deploy script for Cregis Custody OpenPlatform
-# Usage: ./deploy-dist.sh
+# Usage:
+#   ./deploy-testing.sh                  # Build & deploy all projects
+#   ./deploy-testing.sh api-service      # Build & deploy api-service only
+#   ./deploy-testing.sh developer-portal # Build & deploy developer-portal only
+#   ./deploy-testing.sh admin-portal     # Build & deploy admin-portal only
 
 set -e
 
 DEPLOY_HOST="root@8.217.54.115"
 DEPLOY_PATH="/web/custody-openplatform"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+TARGET="${1:-all}"
 
 cd "$PROJECT_ROOT"
 
-echo "=========================================="
-echo "Building projects..."
-echo "=========================================="
+build_api() {
+  echo "=========================================="
+  echo "Building API Service..."
+  echo "=========================================="
+  cd "$PROJECT_ROOT/openplatform-api-service"
+  npm run build
+}
 
-# Build API Service
-echo "[1/3] Building API Service..."
-cd "$PROJECT_ROOT/openplatform-api-service"
-npm run build
+build_developer() {
+  echo "=========================================="
+  echo "Building Developer Portal..."
+  echo "=========================================="
+  cd "$PROJECT_ROOT/openplatform-web/developer-portal-v2"
+  npm run build
+}
 
-# Build Developer Portal
-echo "[2/3] Building Developer Portal..."
-cd "$PROJECT_ROOT/openplatform-web/developer-portal-v2"
-npm run build
+build_admin() {
+  echo "=========================================="
+  echo "Building Admin Portal..."
+  echo "=========================================="
+  cd "$PROJECT_ROOT/openplatform-web/admin-portal-v2"
+  npm run build
+}
 
-# Build Admin Portal
-echo "[3/3] Building Admin Portal..."
-cd "$PROJECT_ROOT/openplatform-web/admin-portal-v2"
-npm run build
+deploy_api() {
+  echo "=========================================="
+  echo "Deploying API Service..."
+  echo "=========================================="
+  ssh "$DEPLOY_HOST" "mkdir -p $DEPLOY_PATH/api-service"
+  scp -r "$PROJECT_ROOT/openplatform-api-service/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
+  scp "$PROJECT_ROOT/openplatform-api-service/package.json" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
+  scp "$PROJECT_ROOT/openplatform-api-service/package-lock.json" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
+  scp "$PROJECT_ROOT/openplatform-api-service/.env" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
+  scp -r "$PROJECT_ROOT/openplatform-api-service/prisma/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
+  scp "$PROJECT_ROOT/openplatform-api-service/prisma.config.ts" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
+  ssh "$DEPLOY_HOST" "cd $DEPLOY_PATH/api-service && npm install --production && npx prisma migrate deploy && npx prisma generate"
+  echo "API Service deployed."
+}
 
-# Build Auth Page
-echo "[4/4] Building Auth Page..."
-cd "$PROJECT_ROOT/openplatform-web/auth-page"
-npm run build
+deploy_developer() {
+  echo "=========================================="
+  echo "Deploying Developer Portal..."
+  echo "=========================================="
+  ssh "$DEPLOY_HOST" "mkdir -p $DEPLOY_PATH/developer-portal"
+  scp -r "$PROJECT_ROOT/openplatform-web/developer-portal-v2/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/developer-portal/"
+  scp "$PROJECT_ROOT/openplatform-web/developer-portal-v2/.env" "$DEPLOY_HOST:$DEPLOY_PATH/developer-portal/"
+  echo "Developer Portal deployed."
+}
 
-echo "=========================================="
-echo "Deploying to server..."
-echo "=========================================="
+deploy_admin() {
+  echo "=========================================="
+  echo "Deploying Admin Portal..."
+  echo "=========================================="
+  ssh "$DEPLOY_HOST" "mkdir -p $DEPLOY_PATH/admin-portal"
+  scp -r "$PROJECT_ROOT/openplatform-web/admin-portal-v2/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/admin-portal/"
+  scp "$PROJECT_ROOT/openplatform-web/admin-portal-v2/.env" "$DEPLOY_HOST:$DEPLOY_PATH/admin-portal/"
+  echo "Admin Portal deployed."
+}
 
-# Create remote directory if not exists
-ssh $DEPLOY_HOST "mkdir -p $DEPLOY_PATH/api-service $DEPLOY_PATH/developer-portal $DEPLOY_PATH/admin-portal $DEPLOY_PATH/auth-page"
+case "$TARGET" in
+  api-service)
+    build_api && deploy_api
+    ;;
+  developer-portal)
+    build_developer && deploy_developer
+    ;;
+  admin-portal)
+    build_admin && deploy_admin
+    ;;
+  all)
+    build_api && deploy_api
+    build_developer && deploy_developer
+    build_admin && deploy_admin
+    ;;
+  *)
+    echo "Unknown target: $TARGET"
+    echo "Usage: $0 [api-service|developer-portal|admin-portal|all]"
+    exit 1
+    ;;
+esac
 
-# Sync API Service files
-echo "Syncing API Service..."
-scp -r "$PROJECT_ROOT/openplatform-api-service/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
-scp "$PROJECT_ROOT/openplatform-api-service/package.json" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
-scp "$PROJECT_ROOT/openplatform-api-service/package-lock.json" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
-scp "$PROJECT_ROOT/openplatform-api-service/.env" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
-scp -r "$PROJECT_ROOT/openplatform-api-service/prisma/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
-scp "$PROJECT_ROOT/openplatform-api-service/prisma.config.ts" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
-
-# Run npm install and generate Prisma client on server
-ssh $DEPLOY_HOST "cd $DEPLOY_PATH/api-service && npm install --production && npx prisma migrate deploy && npx prisma generate"
-
-# Sync Developer Portal
-echo "Syncing Developer Portal..."
-ssh $DEPLOY_HOST "mkdir -p $DEPLOY_PATH/developer-portal"
-scp -r "$PROJECT_ROOT/openplatform-web/developer-portal-v2/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/developer-portal/"
-scp "$PROJECT_ROOT/openplatform-web/developer-portal-v2/.env" "$DEPLOY_HOST:$DEPLOY_PATH/developer-portal/"
-
-# Sync Admin Portal
-echo "Syncing Admin Portal..."
-ssh $DEPLOY_HOST "mkdir -p $DEPLOY_PATH/admin-portal"
-scp -r "$PROJECT_ROOT/openplatform-web/admin-portal-v2/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/admin-portal/"
-scp "$PROJECT_ROOT/openplatform-web/admin-portal-v2/.env" "$DEPLOY_HOST:$DEPLOY_PATH/admin-portal/"
-
-# Sync Auth Page
-echo "Syncing Auth Page..."
-ssh $DEPLOY_HOST "mkdir -p $DEPLOY_PATH/auth-page"
-scp -r "$PROJECT_ROOT/openplatform-web/auth-page/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/auth-page/"
-scp "$PROJECT_ROOT/openplatform-web/auth-page/.env" "$DEPLOY_HOST:$DEPLOY_PATH/auth-page/"
-scp "$PROJECT_ROOT/openplatform-web/auth-page/vite.config.ts" "$DEPLOY_HOST:$DEPLOY_PATH/auth-page/"
-
-# Sync Nginx config
-echo "Syncing Nginx config..."
-scp "$PROJECT_ROOT/deploy/nginx.conf" "$DEPLOY_HOST:$DEPLOY_PATH/"
-
+echo ""
 echo "=========================================="
 echo "Deployment completed!"
 echo "=========================================="
-
-# Output nginx config location
-echo ""
-echo "Nginx config synced to: $DEPLOY_HOST:$DEPLOY_PATH/nginx.conf"
-echo "Copy to /etc/nginx/sites-available/ and restart nginx:"
-echo "  ssh $DEPLOY_HOST"
-echo "  cp $DEPLOY_PATH/nginx.conf /etc/nginx/sites-available/custody-openplatform"
-echo "  ln -sf /etc/nginx/sites-available/custody-openplatform /etc/nginx/sites-enabled/"
-echo "  nginx -t && nginx -s reload"
