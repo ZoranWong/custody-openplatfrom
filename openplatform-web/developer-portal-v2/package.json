@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite --open",
     "build": "vue-tsc --noEmit && vite build",
-    "build:test": "vue-tsc --noEmit && vite build && bash ../../deploy-testing.sh developer-portal",
+    "build:test": "bash ../../deploy-testing.sh developer-portal",
     "serve": "vite preview",
     "lint": "eslint",
     "fix": "eslint --fix",

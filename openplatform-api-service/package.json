@@ -6,7 +6,7 @@
     "scripts": {
         "dev": "tsx watch src/main.ts",
         "build": "tsc",
-        "build:test": "tsc && bash ../deploy-testing.sh api-service",
+        "build:test": "bash ../deploy-testing.sh api-service",
         "start": "node dist/main.js",
         "test": "vitest"
     },
