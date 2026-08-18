@@ -11,7 +11,7 @@ import {
   logRateLimitHit,
   logValidationError,
   logger,
-} from '../utils/logger.js';
+} from '../utils/logger';
 
 /**
  * Audit event types

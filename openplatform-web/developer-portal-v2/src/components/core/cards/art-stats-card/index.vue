@@ -12,13 +12,19 @@
         {{ title }}
       </p>
       <ArtCountTo
-        class="m-0 text-2xl font-medium"
-        v-if="count !== undefined"
-        :target="count"
+        class="m-0 text-xl font-medium"
+        v-if="typeof subtitle === 'number'"
+        :target="subtitle"
         :duration="2000"
         :decimals="decimals"
         :separator="separator"
       />
+      <p
+        class="m-0 text-xl font-medium"
+        :style="{ color: textColor }"
+        v-else-if="typeof subtitle === 'string'"
+        >{{ subtitle }}
+      </p>
       <p
         class="mt-1 text-sm text-g-500 opacity-90"
         :style="{ color: textColor }"
@@ -44,8 +50,8 @@
     iconStyle?: string
     /** 标题 */
     title?: string
-    /** 数值 */
-    count?: number
+    /** 副标题（数字类型显示动画，字符串类型直接显示文本） */
+    subtitle?: number | string
     /** 小数位 */
     decimals?: number
     /** 分隔符 */

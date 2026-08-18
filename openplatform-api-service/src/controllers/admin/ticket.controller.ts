@@ -1,7 +1,8 @@
 import { Request, Response } from 'express'
-import { getTicketRepository, getOrderRepository, getSubscriptionRepository, getPackageRepository } from '../../repositories/repository.factory'
+import { getTicketRepository } from '../../repositories/repository.factory'
 import { HttpCodes } from '../../enums/http-codes.enum'
 import { BusinessCodes } from '../../enums/business-codes.enum'
+import { processPaymentApproval, processPaymentRejection } from '../../services/subscription-upgrade.service'
 
 // GET /admin/tickets
 export async function getTickets(req: Request, res: Response): Promise<void> {
@@ -232,87 +233,14 @@ async function handleTicketBusinessLogic(ticket: any, newStatus: string): Promis
 
 /**
  * Payment ticket business logic
- * When resolved: approve payment, upgrade subscription
- *   - Old subscription: end now, status -> upgraded
- *   - Calculate prorated credit: (oldPrice/oldDays * remainingDays) / newPricePerDay = bonusDays
- *   - New subscription: newDays + bonusDays, start now
- * When closed: reject payment, keep order as pending
+ * Delegates to SubscriptionUpgradeService for the actual upgrade logic.
+ * When resolved: approve payment, upgrade subscription with prorated credit.
+ * When closed: reject payment, keep order as pending.
  */
 async function handlePaymentTicket(ticket: any, newStatus: string): Promise<void> {
-  const orderRepo = getOrderRepository()
-  const { list: orders } = await orderRepo.findByFilters(
-    { developerId: ticket.developerId, status: 'pending' } as any, 1, 1
-  )
-
-  if (orders.length === 0) return
-  const order = orders[0]
-
   if (newStatus === 'resolved') {
-    const pkgRepo = getPackageRepository()
-    const newPkg = await pkgRepo.findById(order.packageId)
-    if (!newPkg) return
-
-    const subRepo = getSubscriptionRepository()
-    const now = new Date()
-
-    // Calculate base days for the new subscription
-    const newDays = order.period === 'yearly' ? 365 : 30
-    let bonusDays = 0
-
-    // Find active subscriptions and upgrade them
-    const activeSubs = await subRepo.findByFilters(
-      { developerId: ticket.developerId, status: 'active' } as any, 1, 10
-    )
-
-    for (const oldSub of activeSubs.list || []) {
-      const oldPkg = await pkgRepo.findById(oldSub.packageId)
-      if (!oldPkg) continue
-
-      const oldTotalDays = oldSub.billingCycle === 'yearly' ? 365 : 30
-      const oldMonthlyPrice = Number(oldPkg.monthlyPrice) || 0
-      const oldYearlyPrice = Number(oldPkg.yearlyPrice) || 0
-      const oldTotalPrice = oldSub.billingCycle === 'yearly' ? (oldYearlyPrice || oldMonthlyPrice * 10) : oldMonthlyPrice
-      const remainingMs = Math.max(0, oldSub.endDate.getTime() - now.getTime())
-      const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000))
-
-      // Prorated credit formula: (totalPrice / totalDays * remainingDays) / newPricePerDay
-      const newMonthlyPrice = Number(newPkg.monthlyPrice) || 0
-      const newYearlyPrice = Number(newPkg.yearlyPrice) || 0
-      const newTotalPrice = order.period === 'yearly' ? (newYearlyPrice || newMonthlyPrice * 10) : newMonthlyPrice
-      const newPricePerDay = newTotalPrice / newDays
-      if (newPricePerDay > 0 && oldTotalPrice > 0) {
-        const credit = (oldTotalPrice / oldTotalDays * remainingDays) / newPricePerDay
-        bonusDays += Math.ceil(credit)
-      }
-
-      // End old subscription, mark as upgraded
-      await subRepo.update(oldSub.id, {
-        endDate: now,
-        status: 'upgraded',
-      } as any)
-    }
-
-    const totalDays = newDays + bonusDays
-    const endDate = new Date(now.getTime() + totalDays * 24 * 60 * 60 * 1000)
-
-    // Create new subscription
-    const subscription = await subRepo.create({
-      developerId: ticket.developerId,
-      packageId: order.packageId,
-      status: 'active',
-      startDate: now,
-      endDate,
-      billingCycle: order.period || 'monthly',
-    } as any)
-
-    // Update order
-    await orderRepo.update(order.id, {
-      status: 'confirmed',
-      confirmedAt: new Date(),
-      subscriptionId: subscription.id,
-    } as any)
-
+    await processPaymentApproval(ticket.developerId);
   } else if (newStatus === 'closed') {
-    await orderRepo.update(order.id, { status: 'rejected' } as any)
+    await processPaymentRejection(ticket.developerId);
   }
 }

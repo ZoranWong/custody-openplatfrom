@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { OfficeBuilding, CreditCard, UserFilled, Clock, ArrowRight } from '@element-plus/icons-vue'
 import { applicationTypeConfig, type Application } from '@/types/api/application'
 import { useI18n } from 'vue-i18n'
+import { formatDate } from '@/utils/date'
 
 interface Props {
   application: Application
@@ -11,7 +12,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const router = useRouter()
 
@@ -37,15 +38,6 @@ const typeGradient = computed(() => {
   }
   return gradients[typeConfig.value.color] || gradients.amber
 })
-
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  })
-}
 
 const handleClick = () => {
   router.push(`/applications/${props.application.id}`)
@@ -95,7 +87,7 @@ const handleClick = () => {
       <div class="flex items-center gap-4 flex-shrink-0">
         <div class="flex items-center gap-1 text-gray-400 text-sm">
           <el-icon><Clock /></el-icon>
-          <span>{{ formatDate(application.createdAt) }}</span>
+          <span>{{ formatDate(application.createdAt, undefined, locale.value) }}</span>
         </div>
         <el-icon class="w-5 h-5 text-gray-400">
           <ArrowRight />

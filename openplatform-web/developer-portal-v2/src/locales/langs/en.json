@@ -603,7 +603,11 @@
         "todayCalls": "Calls Today",
         "last30Days": "Last 30 Days",
         "freePlan": "Free Plan",
-        "dailyQuota": "Daily Quota"
+        "dailyQuota": "Daily Quota",
+        "noSubscription": "No subscription",
+        "expiresAt": "Expires",
+        "expired": "Expired",
+        "manageSubscription": "Manage Subscription"
       },
       "quickActions": "Quick Actions",
       "actions": {
@@ -624,7 +628,7 @@
         "calls": "Calls",
         "method": "Method",
         "noData": "No data",
-        "path": "Path",
+        "path": "API",
         "percentage": "Percentage",
         "title": "Endpoint Breakdown",
         "avgResponse": "Avg Response",
@@ -729,6 +733,9 @@
       "todayUsage": "Today Usage",
       "dailyLimit": "Daily Limit",
       "noSubscription": "No subscription yet",
+      "expiresAt": "Expires",
+      "expired": "Expired",
+      "manageSubscription": "Manage Subscription",
       "purchaseNow": "Purchase a Plan",
       "availablePlans": "Available Plans",
       "purchase": "Purchase",

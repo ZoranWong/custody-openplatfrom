@@ -16,6 +16,7 @@ import {
 } from 'echarts/components'
 import type { DailyUsage } from '@/types/api/billing'
 import { useI18n } from 'vue-i18n'
+import { formatDate } from '@/utils/date'
 
 // Chart color constants
 const CHART_COLORS = {
@@ -50,18 +51,13 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const formatNumber = (num: number): string => {
   if (num >= 1000) {
     return (num / 1000).toFixed(1) + 'K'
   }
   return num.toString()
-}
-
-const formatDate = (dateStr: string): string => {
-  const date = new Date(dateStr)
-  return `${date.getMonth() + 1}/${date.getDate()}`
 }
 
 const hasData = computed(() => props.dailyData && props.dailyData.length > 0)
@@ -71,7 +67,7 @@ const chartOption = computed(() => {
     return {}
   }
 
-  const dates = props.dailyData.map(d => formatDate(d.date))
+  const dates = props.dailyData.map(d => formatDate(d.date, 'date', locale.value))
   const calls = props.dailyData.map(d => d.calls)
   const successCalls = props.dailyData.map(d => d.successCount)
 

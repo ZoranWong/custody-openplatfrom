@@ -3,19 +3,21 @@
  * Locale-aware date formatting without external dependencies
  */
 
-import { useI18n } from 'vue-i18n'
-
 /**
  * Format date to locale-aware string
  * @param dateStr - ISO date string
  * @param format - 'datetime' | 'date' | 'time'
+ * @param locale - locale string, e.g. 'zh' | 'en'
  */
-export function formatDate(dateStr: string | undefined | null, format: 'datetime' | 'date' | 'time' = 'datetime'): string {
+export function formatDate(
+  dateStr: string | undefined | null,
+  format: 'datetime' | 'date' | 'time' = 'datetime',
+  locale: string = 'zh'
+): string {
   if (!dateStr) return '-'
   try {
-    const { locale } = useI18n()
     const date = new Date(dateStr)
-    const isEn = locale.value === 'en'
+    const isEn = locale === 'en'
 
     const pad = (n: number) => String(n).padStart(2, '0')
     const y = date.getFullYear()
@@ -34,7 +36,8 @@ export function formatDate(dateStr: string | undefined | null, format: 'datetime
       default:
         return isEn ? `${m}/${d}/${y} ${h}:${min}` : `${y}-${m}-${d} ${h}:${min}`
     }
-  } catch {
+  } catch (e) {
+    console.error('Error formatting date:', e)
     return dateStr
   }
 }
@@ -42,6 +45,6 @@ export function formatDate(dateStr: string | undefined | null, format: 'datetime
 /**
  * Format date to YYYY-MM-DD
  */
-export function formatDateOnly(dateStr: string | undefined | null): string {
-  return formatDate(dateStr, 'date')
+export function formatDateOnly(dateStr: string | undefined | null, locale?: string): string {
+  return formatDate(dateStr, 'date', locale)
 }

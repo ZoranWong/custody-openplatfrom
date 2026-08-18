@@ -233,7 +233,6 @@ export class HttpClient {
    */
   async request<T = any>(config: AxiosRequestConfig): Promise<T> {
       const response = await this.client.request<T>(config)
-      console.log(response.config.baseURL, response.config.url, '======== ====== =====')
     return response.data;
   }
 

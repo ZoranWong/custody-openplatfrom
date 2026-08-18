@@ -158,8 +158,13 @@ export function createRateLimitMiddleware(
         traceId,
       });
 
-      // Fail open - allow request if rate limiting fails
-      next();
+      // Fail closed: deny request if rate limiting fails (security-first)
+      res.status(HttpCodes.INTERNAL_SERVER_ERROR).json(
+        errorMapper.mapError(
+          { code: BusinessCodes.SERVER_INTERNAL, message: 'Rate limit service unavailable' },
+          traceId
+        )
+      );
     }
   };
 }

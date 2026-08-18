@@ -78,7 +78,7 @@
               <span class="line-clamp-2">{{ app.appDescription }}</span>
             </ElDescriptionsItem>
             <ElDescriptionsItem :label="$t('package.createdAt')">
-              {{ formatDate(app.createdAt) }}
+              {{ formatDate(app.createdAt, undefined, locale.value) }}
             </ElDescriptionsItem>
           </ElDescriptions>
 
@@ -206,7 +206,7 @@
   import AppSecretDialog from '@/components/applications/AppSecretDialog.vue'
 import { formatDate } from '@/utils/date'
 
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const router = useRouter()
 
   const loading = ref(true)

@@ -20,9 +20,7 @@ import {
   getMyApplications
 } from '../../controllers/isv/isv-auth.controller'
 import { isvUserService, isvApplicationService, isvService } from '../../services/isv-user.service'
-import { getPrismaClient } from '../../database/prisma-client'
-import { getPackageRepository } from '../../repositories/repository.factory'
-import { getOrderRepository } from '../../repositories/repository.factory'
+import { getPackageRepository, getOrderRepository, getSubscriptionRepository } from '../../repositories/repository.factory'
 
 const router = Router()
 
@@ -581,25 +579,15 @@ router.get('/orders/:id', isvAuth, async (req, res) => {
 router.get('/subscriptions', isvAuth, async (req, res) => {
   try {
     const isvUser = (req as any).isvUser
-    const prisma = getPrismaClient()
+    const repo = getSubscriptionRepository()
     const page = parseInt(req.query.page as string) || 1
     const pageSize = parseInt(req.query.pageSize as string) || 20
-    const skip = (page - 1) * pageSize
 
-    const [list, total] = await Promise.all([
-      prisma.subscription.findMany({
-        where: { developerId: isvUser.isvId },
-        include: {
-          package: {
-            select: { id: true, packageCode: true, name: true }
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: pageSize,
-      }),
-      prisma.subscription.count({ where: { developerId: isvUser.isvId } }),
-    ])
+    const { list, total } = await repo.findByFilters(
+      { developerId: isvUser.isvId },
+      page,
+      pageSize
+    )
 
     res.json({
       code: 0, message: 'Success',
@@ -612,8 +600,8 @@ router.get('/subscriptions', isvAuth, async (req, res) => {
           billingCycle: s.billingCycle,
           autoRenew: s.autoRenew,
           dailyApiUsage: s.dailyApiUsage,
-          packageCode: s.package.packageCode,
-          name: s.package.name,
+          packageCode: (s as any).package?.packageCode,
+          name: (s as any).package?.name,
           createdAt: s.createdAt.toISOString(),
         })),
         total, page, pageSize,
@@ -632,25 +620,8 @@ router.get('/subscriptions', isvAuth, async (req, res) => {
 router.get('/subscription/current', isvAuth, async (req, res) => {
   try {
     const isvUser = (req as any).isvUser
-    const prisma = getPrismaClient()
-    // Get the earliest active subscription (current in-use one)
-    const subscriptions = await prisma.subscription.findMany({
-      where: { developerId: isvUser.isvId, status: 'active' },
-      include: {
-        package: {
-          select: {
-            id: true, packageCode: true, name: true, description: true,
-            dailyApiLimit: true, maxApplications: true, features: true,
-            monthlyPrice: true, yearlyPrice: true, supportLevel: true,
-            webhook: true, customDomain: true, whiteLabel: true,
-            sla: true, ipWhitelist: true, autoRenew: true, logRetention: true,
-          },
-        },
-      },
-      orderBy: { startDate: 'asc' },
-    })
-    // Current subscription = earliest active one (first in queue)
-    const subscription = subscriptions[0] || null
+    const repo = getSubscriptionRepository()
+    const subscription = await repo.findByDeveloperId(isvUser.isvId)
 
     res.json({
       code: 0, message: 'Success',
@@ -661,7 +632,7 @@ router.get('/subscription/current', isvAuth, async (req, res) => {
         billingCycle: subscription.billingCycle,
         autoRenew: subscription.autoRenew,
         dailyApiUsage: subscription.dailyApiUsage,
-        package: subscription.package,
+        package: (subscription as any).package,
       } : null,
     })
   } catch (error) {

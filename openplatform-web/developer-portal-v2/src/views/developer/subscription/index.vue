@@ -28,7 +28,7 @@
               icon="ri:calendar-check-line"
               icon-style="bg-blue-500"
               :title="$t('developer.subscription.startDate')"
-              :description="formatDate(subscription.startDate)"
+              :description="formatDate(subscription.startDate, undefined, locale.value)"
               :show-arrow="false"
             />
           </ElCol>
@@ -38,7 +38,7 @@
               icon="ri:calendar-event-line"
               icon-style="bg-orange-500"
               :title="$t('developer.subscription.endDate')"
-              :description="formatDate(subscription.endDate)"
+              :description="formatDate(subscription.endDate, undefined, locale.value)"
               :show-arrow="false"
             />
           </ElCol>
@@ -221,7 +221,7 @@
   import { fetchCurrentSubscription, fetchAvailablePackages, fetchCreateOrder } from '@/api/billing'
   import { formatDate } from '@/utils/date'
 
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const router = useRouter()
   const loading = ref(true)
   const subscription = ref<any>(null)

@@ -1,42 +1,30 @@
 /**
  * DeveloperApplication Repository Implementation
+ * Pure data access — only the developer_applications table.
+ * Client obtained from db-client.getClient().
  */
 
-import { PrismaClient, Prisma, DeveloperApplication } from '@prisma/client'
+import { Prisma, DeveloperApplication } from '@prisma/client'
+import { BaseRepository } from './base.repository'
 
-export class DeveloperApplicationRepositoryImpl {
-  constructor(private readonly prisma: PrismaClient) {}
+export class DeveloperApplicationRepositoryImpl extends BaseRepository<Prisma.DeveloperApplicationDelegate> {
+  protected get modelName(): string {
+    return 'developerApplication'
+  }
 
   async findByFilters(
     where: Prisma.DeveloperApplicationWhereInput,
     page: number,
     pageSize: number
   ): Promise<{ list: DeveloperApplication[]; total: number }> {
-    const skip = (page - 1) * pageSize
-    const [list, total] = await Promise.all([
-      this.prisma.developerApplication.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.developerApplication.count({ where }),
-    ])
-    return { list, total }
-  }
-
-  async findById(id: string): Promise<DeveloperApplication | null> {
-    return this.prisma.developerApplication.findUnique({ where: { id } })
-  }
-
-  async update(
-    id: string,
-    data: Prisma.DeveloperApplicationUpdateInput
-  ): Promise<DeveloperApplication> {
-    return this.prisma.developerApplication.update({ where: { id }, data })
+    return this.paginate(where, {
+      page,
+      pageSize,
+      orderBy: { createdAt: 'desc' },
+    })
   }
 
   async count(where: Prisma.DeveloperApplicationWhereInput): Promise<number> {
-    return this.prisma.developerApplication.count({ where })
+    return this.model.count({ where })
   }
 }

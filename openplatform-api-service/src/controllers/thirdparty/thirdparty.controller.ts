@@ -334,7 +334,9 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
 }
 
 /**
- * Middleware to log OAuth API calls
+ * Middleware to log OAuth API calls.
+ * Uses res.on('finish') event to capture response metadata
+ * without monkey-patching res.json — consistent with forward.controller.ts.
  */
 export function logOAuthCall(req: Request, res: Response, next: NextFunction): void {
     const startTime = Date.now();
@@ -352,13 +354,9 @@ export function logOAuthCall(req: Request, res: Response, next: NextFunction): v
       if (req.path.includes(path)) { apiName = name; break; }
     }
     if (!apiName) apiName = req.path;
-    //   const apiName = apiNameMap[req.path] || req.path;
 
-    const originalJson = res.json.bind(res);
-    res.json = function (body: any) {
+    res.on('finish', () => {
         const elapsed = Date.now() - startTime;
-        const isSuccess = body?.code === 0;
-
         createApiLog({
             appId,
             developerId,
@@ -366,16 +364,13 @@ export function logOAuthCall(req: Request, res: Response, next: NextFunction): v
             endpoint: req.baseUrl + req.path,
             method: req.method,
             requestBody: req.body?.business,
-            responseStatus: isSuccess ? 200 : (body?.code || 500),
-            responseBody: body,
+            responseStatus: res.statusCode,
             responseTime: elapsed,
             ipAddress: req.ip || req.socket.remoteAddress,
             userAgent: req.headers['user-agent'] as string,
-            isError: !isSuccess,
-        }).catch(() => { });
-
-        return originalJson(body);
-    };
+            isError: res.statusCode >= 400,
+        }).catch(() => {});
+    });
 
     next();
 }

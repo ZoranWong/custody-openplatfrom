@@ -215,7 +215,7 @@ export const isvApplicationService = {
         return repo.update(id, data)
     },
 
-    async deleteApplication(id: string): Promise<boolean> {
+    async deleteApplication(id: string): Promise<Application> {
         const repo = getApplicationRepository()
         return repo.delete(id)
     }

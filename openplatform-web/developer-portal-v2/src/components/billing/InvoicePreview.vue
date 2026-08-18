@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { Document, Printer, Close } from '@element-plus/icons-vue'
 import type { InvoiceData } from '@/types/api/billing'
 import { useI18n } from 'vue-i18n'
+import { formatDate } from '@/utils/date'
 
 interface Props {
   modelValue?: boolean
@@ -14,7 +15,7 @@ const props = withDefaults(defineProps<Props>(), {
   invoice: null
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
@@ -38,20 +39,6 @@ const formatCurrency = (amount: number, currency: string = 'USD'): string => {
     style: 'currency',
     currency: currency
   }).format(amount)
-}
-
-/**
- * Format a date string for display
- * @param dateStr - ISO date string
- * @returns Formatted date string
- */
-const formatDate = (dateStr: string): string => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
 }
 
 const handleClose = (): void => {
@@ -87,7 +74,7 @@ const handlePrint = (): void => {
       <div class="flex justify-between mb-8">
         <div>
           <p class="text-sm text-gray-500 mb-1">{{ t('developer.billing.invoice.date') }}</p>
-          <p class="font-medium">{{ invoice ? formatDate(invoice.createdAt) : '-' }}</p>
+          <p class="font-medium">{{ invoice ? formatDate(invoice.createdAt, undefined, locale.value) : '-' }}</p>
         </div>
         <div>
           <p class="text-sm text-gray-500 mb-1">{{ t('developer.billing.invoice.billingPeriod') }}</p>

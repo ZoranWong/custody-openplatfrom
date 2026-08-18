@@ -90,8 +90,8 @@
             <template #header><span class="font-semibold">{{ $t('developer.profile.accountInfo') }}</span></template>
             <ElDescriptions :column="1" border>
               <ElDescriptionsItem :label="$t('developer.profile.accountId')"><span class="font-mono text-xs">{{ user.id }}</span></ElDescriptionsItem>
-              <ElDescriptionsItem :label="$t('developer.profile.registrationTime')">{{ formatDate(user.createdAt) }}</ElDescriptionsItem>
-              <ElDescriptionsItem :label="$t('developer.profile.lastUpdated')">{{ formatDate(user.updatedAt) }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.registrationTime')">{{ formatDate(user.createdAt, undefined, locale.value) }}</ElDescriptionsItem>
+              <ElDescriptionsItem :label="$t('developer.profile.lastUpdated')">{{ formatDate(user.updatedAt, undefined, locale.value) }}</ElDescriptionsItem>
             </ElDescriptions>
           </ElCard>
 
@@ -117,7 +117,7 @@ import { useUserStore } from '@/store/modules/user'
 import { fetchUpdateDeveloperProfile } from '@/api/developer'
 import { formatDate } from '@/utils/date'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(true)

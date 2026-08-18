@@ -1,12 +1,16 @@
 /**
  * Refresh Token Repository Implementation
+ * Client obtained from db-client.getClient().
  */
 
-import { PrismaClient, RefreshToken } from '@prisma/client'
+import { Prisma, RefreshToken } from '@prisma/client'
+import { BaseRepository } from './base.repository'
 import { RefreshTokenRepository } from '../repository.interfaces'
 
-export class RefreshTokenRepositoryImpl implements RefreshTokenRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+export class RefreshTokenRepositoryImpl extends BaseRepository<Prisma.RefreshTokenDelegate> implements RefreshTokenRepository {
+  protected get modelName(): string {
+    return 'refreshToken'
+  }
 
   async create(record: {
     jti: string
@@ -18,21 +22,21 @@ export class RefreshTokenRepositoryImpl implements RefreshTokenRepository {
     created_at: bigint
     last_used_at: bigint | null
   }): Promise<RefreshToken> {
-    return this.prisma.refreshToken.create({ data: record })
+    return this.model.create({ data: record })
   }
 
   async findByJti(jti: string): Promise<RefreshToken | null> {
-    return this.prisma.refreshToken.findUnique({ where: { jti } })
+    return this.model.findUnique({ where: { jti } })
   }
 
   async findByAppid(appid: string): Promise<RefreshToken[]> {
-    return this.prisma.refreshToken.findMany({ where: { appid } })
+    return this.model.findMany({ where: { appid } })
   }
 
   async revoke(jti: string): Promise<boolean> {
-    const record = await this.prisma.refreshToken.findUnique({ where: { jti } })
+    const record = await this.model.findUnique({ where: { jti } })
     if (!record) return false
-    await this.prisma.refreshToken.update({
+    await this.model.update({
       where: { jti },
       data: { revoked: true },
     })
@@ -40,9 +44,9 @@ export class RefreshTokenRepositoryImpl implements RefreshTokenRepository {
   }
 
   async markReplaced(jti: string, replacedByJti: string): Promise<boolean> {
-    const record = await this.prisma.refreshToken.findUnique({ where: { jti } })
+    const record = await this.model.findUnique({ where: { jti } })
     if (!record) return false
-    await this.prisma.refreshToken.update({
+    await this.model.update({
       where: { jti },
       data: { replaced_by_jti: replacedByJti },
     })
@@ -51,7 +55,7 @@ export class RefreshTokenRepositoryImpl implements RefreshTokenRepository {
 
   async deleteExpired(): Promise<number> {
     const now = BigInt(Date.now())
-    const result = await this.prisma.refreshToken.deleteMany({
+    const result = await this.model.deleteMany({
       where: {
         expires_at: { lt: now },
       },

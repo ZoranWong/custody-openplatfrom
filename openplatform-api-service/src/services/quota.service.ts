@@ -1,56 +1,33 @@
 /**
  * Quota Service
- * Checks and manages daily API usage quotas per developer subscription
+ * Checks and manages daily API usage quotas per developer subscription.
+ * All data access goes through the Repository layer.
  */
 
-import { getPrismaClient } from '../database/prisma-client';
-
-const prisma = getPrismaClient();
+import { getSubscriptionRepository } from '../repositories/repository.factory';
 
 /**
  * Check if developer has remaining daily quota and atomically increment usage.
- * Returns true if allowed, false if quota exceeded.
+ * Returns { allowed, currentUsage, dailyLimit, subscriptionId }.
+ *
+ * Uses SubscriptionRepository.atomicIncrementDailyUsage() which performs
+ * a database-level atomic update — no read-then-write race condition.
  */
-export async function checkAndIncrement(developerId: string): Promise<{ allowed: boolean; currentUsage: number; dailyLimit: number; subscriptionId?: string }> {
+export async function checkAndIncrement(developerId: string): Promise<{
+  allowed: boolean;
+  currentUsage: number;
+  dailyLimit: number;
+  subscriptionId?: string;
+}> {
   try {
-    const subscription = await prisma.subscription.findFirst({
-      where: { developerId, status: 'active' },
-      include: { package: { select: { dailyApiLimit: true } } },
-      orderBy: { startDate: 'asc' },
-    });
-
-    if (!subscription) {
-      return { allowed: true, currentUsage: 0, dailyLimit: 0 };
-    }
-
-    const dailyLimit = subscription.package?.dailyApiLimit ?? 1000;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Count actual API calls from ApiLog for today
-    const todayCount = await prisma.apiLog.count({
-      where: {
-        developerId,
-        isError: false,
-        createdAt: { gte: today },
-      },
-    });
-
-    // Check if exceeded
-    if (todayCount >= dailyLimit) {
-      return { allowed: false, currentUsage: todayCount, dailyLimit, subscriptionId: subscription.id };
-    }
-
-    // Sync dailyApiUsage with actual count
-    await prisma.subscription.update({
-      where: { id: subscription.id },
-      data: { dailyApiUsage: todayCount + 1 },
-    });
-
-    return { allowed: true, currentUsage: todayCount + 1, dailyLimit, subscriptionId: subscription.id };
+    const repo = getSubscriptionRepository();
+    return await repo.atomicIncrementDailyUsage(developerId);
   } catch (error) {
     console.error('[Quota] Check failed:', (error as Error).message);
-    return { allowed: true, currentUsage: 0, dailyLimit: 0 };
+    // Fail-closed: deny access when quota service is unavailable.
+    // In a bank-grade custody platform, a quota failure must never
+    // result in unbounded API access.
+    return { allowed: false, currentUsage: 0, dailyLimit: 0 };
   }
 }
 
@@ -59,11 +36,8 @@ export async function checkAndIncrement(developerId: string): Promise<{ allowed:
  */
 export async function resetDailyUsage(): Promise<number> {
   try {
-    const result = await prisma.$executeRaw`
-      UPDATE subscriptions
-      SET daily_api_usage = 0
-      WHERE daily_api_usage > 0
-    `;
+    const repo = getSubscriptionRepository();
+    const result = await repo.resetAllDailyUsage();
     console.log(`[Quota] Reset daily usage for ${result} subscriptions`);
     return result;
   } catch (error) {
@@ -73,8 +47,8 @@ export async function resetDailyUsage(): Promise<number> {
 }
 
 /**
- * Start daily reset scheduler
- * Uses setTimeout to trigger precisely at midnight, then reschedules
+ * Start daily reset scheduler.
+ * Uses setTimeout to trigger precisely at midnight, then reschedules.
  */
 export function startDailyResetScheduler(): void {
   const scheduleNext = () => {

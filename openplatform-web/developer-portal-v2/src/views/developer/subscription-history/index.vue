@@ -25,7 +25,7 @@ import { ElTag } from 'element-plus'
 import { fetchSubscriptionHistory } from '@/api/billing'
 import { formatDate } from '@/utils/date'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const { columns, columnChecks, data, loading, pagination, handleSizeChange, handleCurrentChange, refreshData } = useTable({
   core: {
@@ -41,8 +41,8 @@ const { columns, columnChecks, data, loading, pagination, handleSizeChange, hand
           minWidth: 120,
           formatter: (row: any) => t('package.packageTypeLabels.' + row.packageCode)
         },
-        { prop: 'startDate', label: t('developer.subscription.startDate'), minWidth: 180, formatter: (row: any) => formatDate(row.startDate) },
-        { prop: 'endDate', label: t('developer.subscription.endDate'), minWidth: 180, formatter: (row: any) => formatDate(row.endDate) },
+        { prop: 'startDate', label: t('developer.subscription.startDate'), minWidth: 180, formatter: (row: any) => formatDate(row.startDate, undefined, locale.value) },
+        { prop: 'endDate', label: t('developer.subscription.endDate'), minWidth: 180, formatter: (row: any) => formatDate(row.endDate, undefined, locale.value) },
         {
           prop: 'billingCycle',
           label: t('developer.subscription.billingCycle'),

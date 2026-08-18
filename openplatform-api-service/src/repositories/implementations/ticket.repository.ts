@@ -1,47 +1,29 @@
-import { PrismaClient, Prisma, Ticket } from '@prisma/client'
+import { Prisma, Ticket } from '@prisma/client';
+import { BaseRepository } from './base.repository';
 
-export class TicketRepositoryImpl {
-  constructor(private readonly prisma: PrismaClient) {}
-
-  async findByFilters(where: Prisma.TicketWhereInput, page: number, pageSize: number) {
-    const skip = (page - 1) * pageSize
-    const [list, total] = await Promise.all([
-      this.prisma.ticket.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          replies: {
-            orderBy: { createdAt: 'asc' },
-          },
-        },
-      }),
-      this.prisma.ticket.count({ where }),
-    ])
-    return { list, total }
+export class TicketRepositoryImpl extends BaseRepository<Prisma.TicketDelegate> {
+  protected get modelName(): string {
+    return 'ticket';
   }
 
-  async findById(id: string) {
-    return this.prisma.ticket.findUnique({
-      where: { id },
+  async findByFilters(
+    where: Prisma.TicketWhereInput,
+    page: number,
+    pageSize: number,
+  ) {
+    return this.paginate(where, {
+      page,
+      pageSize,
+      orderBy: { createdAt: 'desc' },
       include: {
         replies: {
           orderBy: { createdAt: 'asc' },
         },
       },
-    })
-  }
-
-  async create(data: Prisma.TicketCreateInput) {
-    return this.prisma.ticket.create({ data })
-  }
-
-  async update(id: string, data: Prisma.TicketUpdateInput) {
-    return this.prisma.ticket.update({ where: { id }, data })
+    });
   }
 
   async createReply(data: Prisma.TicketReplyCreateInput) {
-    return this.prisma.ticketReply.create({ data })
+    return (this.client as any).ticketReply.create({ data });
   }
 }

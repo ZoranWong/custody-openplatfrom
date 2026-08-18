@@ -1,30 +1,30 @@
 /**
  * OauthResource Repository Implementation
+ * Client obtained from db-client.getClient().
  */
 
-import { PrismaClient, Prisma, OauthResource } from '@prisma/client'
+import { Prisma, OauthResource } from '@prisma/client'
+import { BaseRepository } from './base.repository'
 import { OauthResourceRepository } from '../repository.interfaces'
 
-export class OauthResourceRepositoryImpl implements OauthResourceRepository {
-  constructor(private readonly prisma: PrismaClient) {}
-
-  async findById(id: string): Promise<OauthResource | null> {
-    return this.prisma.oauthResource.findUnique({ where: { id } })
+export class OauthResourceRepositoryImpl extends BaseRepository<Prisma.OauthResourceDelegate> implements OauthResourceRepository {
+  protected get modelName(): string {
+    return 'oauthResource'
   }
 
   async findByAppId(appId: string): Promise<OauthResource[]> {
-    return this.prisma.oauthResource.findMany({ where: { appId } })
+    return this.model.findMany({ where: { appId } })
   }
 
   async findByAppAndResource(appId: string, resourceKey: string): Promise<OauthResource | null> {
-    return this.prisma.oauthResource.findFirst({ where: { appId, resourceKey } })
+    return this.model.findFirst({ where: { appId, resourceKey } })
   }
 
   async upsert(data: { appId: string; resourceKey: string | null; authorizedAt?: Date; expiresAt?: Date }): Promise<OauthResource> {
     // Atomic upsert using Prisma's upsert for non-null resourceKey
     // For null resourceKey, fallback to query+update/create (null can't be used in unique constraint lookup)
     if (data.resourceKey !== null) {
-      return this.prisma.oauthResource.upsert({
+      return (this.model as any).upsert({
         where: {
           appId_resourceKey: {
             appId: data.appId,
@@ -47,9 +47,9 @@ export class OauthResourceRepositoryImpl implements OauthResourceRepository {
     }
 
     // Fallback for null resourceKey: find first, update or create
-    const existing = await this.prisma.oauthResource.findFirst({ where: { appId: data.appId, resourceKey: null } })
+    const existing = await this.model.findFirst({ where: { appId: data.appId, resourceKey: null } })
     if (existing) {
-      return this.prisma.oauthResource.update({
+      return this.model.update({
         where: { id: existing.id },
         data: {
           authorizedAt: data.authorizedAt || existing.authorizedAt,
@@ -58,7 +58,7 @@ export class OauthResourceRepositoryImpl implements OauthResourceRepository {
         },
       })
     }
-    return this.prisma.oauthResource.create({
+    return this.model.create({
       data: {
         appId: data.appId,
         resourceKey: null,
@@ -67,18 +67,5 @@ export class OauthResourceRepositoryImpl implements OauthResourceRepository {
         status: 'active',
       },
     })
-  }
-
-  async create(data: Prisma.OauthResourceCreateInput): Promise<OauthResource> {
-    return this.prisma.oauthResource.create({ data })
-  }
-
-  async update(id: string, data: Prisma.OauthResourceUpdateInput): Promise<OauthResource> {
-    return this.prisma.oauthResource.update({ where: { id }, data })
-  }
-
-  async delete(id: string): Promise<boolean> {
-    await this.prisma.oauthResource.delete({ where: { id } })
-    return true
   }
 }

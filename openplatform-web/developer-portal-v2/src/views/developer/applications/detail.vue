@@ -22,8 +22,8 @@
           </ElDescriptionsItem>
           <ElDescriptionsItem :label="$t('developer.applications.callbackUrl')" :span="2">{{ app.callbackUrl || '-' }}</ElDescriptionsItem>
           <ElDescriptionsItem :label="$t('developer.applications.appDescription')" :span="2">{{ app.appDescription || '-' }}</ElDescriptionsItem>
-          <ElDescriptionsItem :label="$t('developer.profile.registrationTime')">{{ formatDate(app.createdAt) }}</ElDescriptionsItem>
-          <ElDescriptionsItem :label="$t('developer.profile.lastUpdated')">{{ formatDate(app.updatedAt) }}</ElDescriptionsItem>
+          <ElDescriptionsItem :label="$t('developer.profile.registrationTime')">{{ formatDate(app.createdAt, undefined, locale.value) }}</ElDescriptionsItem>
+          <ElDescriptionsItem :label="$t('developer.profile.lastUpdated')">{{ formatDate(app.updatedAt, undefined, locale.value) }}</ElDescriptionsItem>
         </ElDescriptions>
       </ElCard>
 

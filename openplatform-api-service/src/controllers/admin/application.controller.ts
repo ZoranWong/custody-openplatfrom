@@ -1,8 +1,7 @@
 import { Request, Response } from 'express'
 import { Prisma } from '@prisma/client'
-import { getDeveloperApplicationRepository } from '../../repositories/repository.factory'
-import { getDeveloperAuditRepository } from '../../repositories/repository.factory'
-import { getPrismaClient } from '../../database/prisma-client'
+import { getDeveloperApplicationRepository, getDeveloperAuditRepository } from '../../repositories/repository.factory'
+import { approveApplication as approveDeveloperApplication } from '../../services/developer-application.service'
 import { HttpCodes } from '../../enums/http-codes.enum'
 import { BusinessCodes } from '../../enums/business-codes.enum'
 
@@ -149,78 +148,19 @@ export async function approveApplication(req: Request, res: Response): Promise<v
     const adminId = (req as any).adminId || 'unknown'
     const adminEmail = (req as any).adminEmail || 'unknown'
 
-    // Use a transaction to ensure all three operations succeed or fail atomically
-    const prisma = getPrismaClient()
-    const developer = await prisma.$transaction(async (tx) => {
-      // Create IsvDeveloper record
-      const devData: Prisma.IsvDeveloperCreateInput = {
-        email: app.email,
-        passwordHash: app.passwordHash,
-        legalName: app.legalName,
-        registrationNumber: app.registrationNumber,
-        jurisdiction: app.jurisdiction,
-        dateOfIncorporation: app.dateOfIncorporation,
-        registeredAddress: app.registeredAddress,
-        website: app.website,
-        uboInfo: app.uboInfo ?? undefined,
-        kybStatus: 'approved',
-        kybReviewedAt: new Date(),
-        kybReviewedBy: adminEmail,
-        status: 'active',
-      }
-      const dev = await tx.isvDeveloper.create({ data: devData })
-
-      // Update application status
-      const appUpdateData: Prisma.DeveloperApplicationUpdateInput = {
-        status: 'approved',
-        reviewedAt: new Date(),
-        reviewedBy: adminId,
-        developerId: dev.id,
-      }
-      await tx.developerApplication.update({
-        where: { id: app.id },
-        data: appUpdateData,
-      })
-
-      // Write audit log
-      const auditData: Prisma.DeveloperAuditCreateInput = {
-        developerId: dev.id,
-        action: 'approve',
-        adminId,
-        adminEmail,
-        previousStatus: 'pending',
-        newStatus: 'approved',
-      }
-      await tx.developerAudit.create({ data: auditData })
-
-      // Auto-create trial subscription for new developer
-      const trialPackage = await tx.package.findFirst({
-        where: { packageCode: 'TRIAL', status: 'active' },
-      })
-      if (trialPackage) {
-        const now = new Date()
-        const trialEndDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-        await tx.subscription.create({
-          data: {
-            developerId: dev.id,
-            packageId: trialPackage.id,
-            status: 'active',
-            startDate: now,
-            endDate: trialEndDate,
-            billingCycle: 'trial',
-          },
-        })
-      }
-
-      return dev
+    // Delegate to Service: business logic lives in the service layer
+    const result = await approveDeveloperApplication({
+      applicationId: app.id,
+      adminId,
+      adminEmail,
     })
 
     res.json({
       code: 0,
       message: 'Application approved, developer created',
       data: {
-        applicationId: app.id,
-        developerId: developer.id,
+        applicationId: result.applicationId,
+        developerId: result.developerId,
       },
       trace_id: req.headers['x-trace-id'] as string || '',
     })

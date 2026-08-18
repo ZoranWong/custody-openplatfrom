@@ -42,7 +42,7 @@ import { formatDate } from '@/utils/date'
 import BillingPeriodSelector from '@/components/billing/BillingPeriodSelector.vue'
 import InvoicePreview from '@/components/billing/InvoicePreview.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 import type { BillingPeriodType } from '@/types/api/billing'
 
@@ -61,7 +61,7 @@ const { columns, columnChecks, data, loading, pagination, getData, handleSizeCha
       { prop: 'totalAmount', label: t('developer.paymentHistory.totalAmount'), minWidth: 140 },
       { prop: 'currency', label: 'Currency', minWidth: 100 },
       { prop: 'status', label: 'Status', minWidth: 100 },
-      { prop: 'createdAt', label: t('package.createdAt'), minWidth: 180, formatter: (row: any) => formatDate(row.createdAt) },
+      { prop: 'createdAt', label: t('package.createdAt'), minWidth: 180, formatter: (row: any) => formatDate(row.createdAt, undefined, locale.value) },
       {
         label: t('package.actions'),
         minWidth: 120,

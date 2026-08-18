@@ -1,9 +1,16 @@
 /**
  * Repository Factory
- * Creates repositories with Prisma Client injected
+ *
+ * Two responsibilities:
+ * 1. Registry — all repositories registered once, lazily instantiated
+ * 2. Transaction — runTransaction() swaps the shared client during the
+ *    callback so all repositories automatically participate
+ *
+ * Adding a repository: one line in the registry below.
  */
 
-import { getPrismaClient } from '../database/prisma-client'
+import { getClient, resetClient } from './db-client';
+import { txStorage } from './db-client';
 import {
   IsvDeveloperRepository,
   ISVUserRepository,
@@ -11,7 +18,12 @@ import {
   AdminRepository,
   OauthResourceRepository,
   RefreshTokenRepository,
-} from './repository.interfaces'
+  SubscriptionRepository,
+  ApiLogRepository,
+  TicketRepository,
+  OrderRepository,
+  PackageRepository,
+} from './repository.interfaces';
 import { IsvDeveloperRepositoryImpl } from './implementations/isv-developer.repository'
 import { ISVUserRepositoryImpl } from './implementations/isv-user.repository'
 import { ApplicationRepositoryImpl } from './implementations/application.repository'
@@ -26,126 +38,164 @@ import { SubscriptionRepositoryImpl } from './implementations/subscription.repos
 import { OrderRepositoryImpl } from './implementations/order.repository'
 import { TicketRepositoryImpl } from './implementations/ticket.repository'
 import { ApiLogRepositoryImpl } from './implementations/api-log.repository'
+import { getPrismaClient } from '../database/prisma-client';
 
-// Singleton instances
-let isvDeveloperRepo: IsvDeveloperRepository | null = null
-let isvUserRepo: ISVUserRepository | null = null
-let appRepo: ApplicationRepository | null = null
-let adminRepo: AdminRepository | null = null
-let oauthResourceRepo: OauthResourceRepository | null = null
-let refreshTokenRepo: RefreshTokenRepository | null = null
-let developerApplicationRepo: DeveloperApplicationRepositoryImpl | null = null
-let developerAuditRepo: DeveloperAuditRepositoryImpl | null = null
-let announcementRepo: AnnouncementRepositoryImpl | null = null
-let packageRepo: PackageRepositoryImpl | null = null
-let subscriptionRepo: SubscriptionRepositoryImpl | null = null
-let orderRepo: OrderRepositoryImpl | null = null
-let ticketRepo: TicketRepositoryImpl | null = null
-let apiLogRepo: ApiLogRepositoryImpl | null = null
+// ---------------------------------------------------------------------------
+// Registry
+// ---------------------------------------------------------------------------
 
-export function getIsvDeveloperRepository(): IsvDeveloperRepository {
-  if (isvDeveloperRepo) return isvDeveloperRepo
-  isvDeveloperRepo = new IsvDeveloperRepositoryImpl(getPrismaClient())
-  return isvDeveloperRepo
+type RepositoryKey =
+  | 'isvDeveloper'
+  | 'isvUser'
+  | 'application'
+  | 'admin'
+  | 'oauthResource'
+  | 'refreshToken'
+  | 'developerApplication'
+  | 'developerAudit'
+  | 'announcement'
+  | 'package'
+  | 'subscription'
+  | 'order'
+  | 'ticket'
+  | 'apiLog';
+
+interface RegistryEntry {
+  factory: () => any;
+  instance: any | null;
 }
 
-export function getISVUserRepository(): ISVUserRepository {
-  if (isvUserRepo) return isvUserRepo
-  isvUserRepo = new ISVUserRepositoryImpl(getPrismaClient())
-  return isvUserRepo
+const registry = new Map<RepositoryKey, RegistryEntry>();
+
+// -- registration (one line per repository) ---------------------------------
+
+registry.set('isvDeveloper', {
+  factory: () => new IsvDeveloperRepositoryImpl(),
+  instance: null,
+});
+registry.set('isvUser', {
+  factory: () => new ISVUserRepositoryImpl(),
+  instance: null,
+});
+registry.set('application', {
+  factory: () => new ApplicationRepositoryImpl(),
+  instance: null,
+});
+registry.set('admin', {
+  factory: () => new AdminRepositoryImpl(),
+  instance: null,
+});
+registry.set('oauthResource', {
+  factory: () => new OauthResourceRepositoryImpl(),
+  instance: null,
+});
+registry.set('refreshToken', {
+  factory: () => new RefreshTokenRepositoryImpl(),
+  instance: null,
+});
+registry.set('developerApplication', {
+  factory: () => new DeveloperApplicationRepositoryImpl(),
+  instance: null,
+});
+registry.set('developerAudit', {
+  factory: () => new DeveloperAuditRepositoryImpl(),
+  instance: null,
+});
+registry.set('announcement', {
+  factory: () => new AnnouncementRepositoryImpl(),
+  instance: null,
+});
+registry.set('package', {
+  factory: () => new PackageRepositoryImpl(),
+  instance: null,
+});
+registry.set('subscription', {
+  factory: () => new SubscriptionRepositoryImpl(),
+  instance: null,
+});
+registry.set('order', {
+  factory: () => new OrderRepositoryImpl(),
+  instance: null,
+});
+registry.set('ticket', {
+  factory: () => new TicketRepositoryImpl(),
+  instance: null,
+});
+registry.set('apiLog', {
+  factory: () => new ApiLogRepositoryImpl(),
+  instance: null,
+});
+
+// ---------------------------------------------------------------------------
+// Generic accessor
+// ---------------------------------------------------------------------------
+
+function getRepository<T>(key: RepositoryKey): T {
+  const entry = registry.get(key);
+  if (!entry) throw new Error(`Repository "${key}" not registered`);
+  if (!entry.instance) {
+    entry.instance = entry.factory();
+  }
+  return entry.instance as T;
 }
 
-export function getApplicationRepository(): ApplicationRepository {
-  if (appRepo) return appRepo
-  appRepo = new ApplicationRepositoryImpl(getPrismaClient())
-  return appRepo
-}
+// ---------------------------------------------------------------------------
+// Backward-compatible named exports
+// ---------------------------------------------------------------------------
 
-export function getAdminRepository(): AdminRepository {
-  if (adminRepo) return adminRepo
-  adminRepo = new AdminRepositoryImpl(getPrismaClient())
-  return adminRepo
-}
+export const getIsvDeveloperRepository = () =>
+  getRepository<IsvDeveloperRepository>('isvDeveloper');
+export const getISVUserRepository = () =>
+  getRepository<ISVUserRepository>('isvUser');
+export const getApplicationRepository = () =>
+  getRepository<ApplicationRepository>('application');
+export const getAdminRepository = () => getRepository<AdminRepository>('admin');
+export const getOauthResourceRepository = () =>
+  getRepository<OauthResourceRepository>('oauthResource');
+export const getAuthorizationRepository = () => getOauthResourceRepository(); // alias
+export const getRefreshTokenRepository = () =>
+  getRepository<RefreshTokenRepository>('refreshToken');
+export const getDeveloperApplicationRepository = () =>
+  getRepository<DeveloperApplicationRepositoryImpl>('developerApplication');
+export const getDeveloperAuditRepository = () =>
+  getRepository<DeveloperAuditRepositoryImpl>('developerAudit');
+export const getAnnouncementRepository = () =>
+  getRepository<AnnouncementRepositoryImpl>('announcement');
+export const getSubscriptionRepository = () =>
+  getRepository<SubscriptionRepository>('subscription');
+export const getOrderRepository = () => getRepository<OrderRepository>('order');
+export const getTicketRepository = () =>
+  getRepository<TicketRepository>('ticket');
+export const getApiLogRepository = () =>
+  getRepository<ApiLogRepository>('apiLog');
+export const getPackageRepository = () =>
+  getRepository<PackageRepository>('package');
 
-export function getOauthResourceRepository(): OauthResourceRepository {
-  if (oauthResourceRepo) return oauthResourceRepo
-  oauthResourceRepo = new OauthResourceRepositoryImpl(getPrismaClient())
-  return oauthResourceRepo
-}
-
-export function getAuthorizationRepository(): OauthResourceRepository {
-  return getOauthResourceRepository()
-}
-
-export function getRefreshTokenRepository(): RefreshTokenRepository {
-  if (refreshTokenRepo) return refreshTokenRepo
-  refreshTokenRepo = new RefreshTokenRepositoryImpl(getPrismaClient())
-  return refreshTokenRepo
-}
-
-export function getDeveloperApplicationRepository(): DeveloperApplicationRepositoryImpl {
-  if (developerApplicationRepo) return developerApplicationRepo
-  developerApplicationRepo = new DeveloperApplicationRepositoryImpl(getPrismaClient())
-  return developerApplicationRepo
-}
-
-export function getDeveloperAuditRepository(): DeveloperAuditRepositoryImpl {
-  if (developerAuditRepo) return developerAuditRepo
-  developerAuditRepo = new DeveloperAuditRepositoryImpl(getPrismaClient())
-  return developerAuditRepo
-}
-
-export function getAnnouncementRepository(): AnnouncementRepositoryImpl {
-  if (announcementRepo) return announcementRepo
-  announcementRepo = new AnnouncementRepositoryImpl(getPrismaClient())
-  return announcementRepo
-}
-
-export function getPackageRepository(): PackageRepositoryImpl {
-  if (packageRepo) return packageRepo
-  packageRepo = new PackageRepositoryImpl(getPrismaClient())
-  return packageRepo
-}
-
-export function getSubscriptionRepository(): SubscriptionRepositoryImpl {
-  if (subscriptionRepo) return subscriptionRepo
-  subscriptionRepo = new SubscriptionRepositoryImpl(getPrismaClient())
-  return subscriptionRepo
-}
-
-export function getOrderRepository(): OrderRepositoryImpl {
-  if (orderRepo) return orderRepo
-  orderRepo = new OrderRepositoryImpl(getPrismaClient())
-  return orderRepo
-}
-
-export function getTicketRepository(): TicketRepositoryImpl {
-  if (ticketRepo) return ticketRepo
-  ticketRepo = new TicketRepositoryImpl(getPrismaClient())
-  return ticketRepo
-}
-
-export function getApiLogRepository(): ApiLogRepositoryImpl {
-  if (apiLogRepo) return apiLogRepo
-  apiLogRepo = new ApiLogRepositoryImpl(getPrismaClient())
-  return apiLogRepo
-}
+// ---------------------------------------------------------------------------
+// Transaction support
+// ---------------------------------------------------------------------------
 
 /**
- * Reset all repository instances (for testing)
+ * Execute a callback within a database transaction.
+ *
+ * During the callback, getClient() returns the transaction client, so all
+ * repository operations automatically participate in the same transaction.
+ * The active client is restored when the callback completes (or fails).
  */
+export async function runTransaction<T>(fn: () => Promise<T>): Promise<T> {
+  const client = getPrismaClient();
+  return await client.$transaction((tx: any) => {
+    return txStorage.run(tx, () => fn())
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Testing
+// ---------------------------------------------------------------------------
+
 export function resetRepositories(): void {
-  isvDeveloperRepo = null
-  isvUserRepo = null
-  appRepo = null
-  adminRepo = null
-  oauthResourceRepo = null
-  refreshTokenRepo = null
-  developerApplicationRepo = null
-  developerAuditRepo = null
-  announcementRepo = null
-  packageRepo = null
-  subscriptionRepo = null
-  orderRepo = null
-  ticketRepo = null
+  for (const entry of registry.values()) {
+    entry.instance = null;
+  }
+  resetClient();
 }

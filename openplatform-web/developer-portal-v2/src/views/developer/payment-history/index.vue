@@ -129,7 +129,7 @@
   import { Plus } from '@element-plus/icons-vue'
   import { formatDate } from '@/utils/date'
 
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const route = useRoute()
 
   const searchForm = ref({ status: undefined as string | undefined })
@@ -211,7 +211,7 @@
             prop: 'createdAt',
             label: t('developer.billing.payment.submittedAt'),
             minWidth: 180,
-            formatter: (row: any) => formatDate(row.createdAt)
+            formatter: (row: any) => formatDate(row.createdAt, undefined, locale.value)
           },
           {
             label: t('package.actions'),

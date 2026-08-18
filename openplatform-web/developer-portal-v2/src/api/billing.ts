@@ -109,3 +109,17 @@ export function fetchCreateOrder(data: { packageId: string; period: string; paym
 export function fetchOrderDetail(orderId: string) {
   return request.get<any>({ url: `/isv/orders/${orderId}` })
 }
+
+/**
+ * 获取 API 调用日志列表
+ */
+export function fetchApiLogs(params?: {
+  page?: number
+  pageSize?: number
+  isError?: string
+  apiName?: string
+  startDate?: string
+  endDate?: string
+}) {
+  return request.get<any>({ url: '/api-logs', params })
+}

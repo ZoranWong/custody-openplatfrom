@@ -1,39 +1,26 @@
 /**
  * ISV User Repository Implementation
+ * Client obtained from db-client.getClient().
  */
 
-import { PrismaClient, Prisma, IsvUser } from '@prisma/client'
+import { Prisma, IsvUser } from '@prisma/client'
+import { BaseRepository } from './base.repository'
 import { ISVUserRepository } from '../repository.interfaces'
 
-export class ISVUserRepositoryImpl implements ISVUserRepository {
-  constructor(private readonly prisma: PrismaClient) {}
-
-  async findById(id: string): Promise<IsvUser | null> {
-    return this.prisma.isvUser.findUnique({ where: { id } })
+export class ISVUserRepositoryImpl extends BaseRepository<Prisma.IsvUserDelegate> implements ISVUserRepository {
+  protected get modelName(): string {
+    return 'isvUser'
   }
 
   async findByEmail(email: string): Promise<IsvUser | null> {
-    return this.prisma.isvUser.findUnique({ where: { email } })
+    return this.model.findUnique({ where: { email } })
   }
 
   async findByIsvDeveloper(isvDeveloperId: string): Promise<IsvUser[]> {
-    return this.prisma.isvUser.findMany({ where: { isvDeveloperId } })
+    return this.model.findMany({ where: { isvDeveloperId } })
   }
 
   async findByIsvDeveloperAndEmail(isvDeveloperId: string, email: string): Promise<IsvUser | null> {
-    return this.prisma.isvUser.findFirst({ where: { isvDeveloperId, email } })
-  }
-
-  async create(data: Prisma.IsvUserCreateInput): Promise<IsvUser> {
-    return this.prisma.isvUser.create({ data })
-  }
-
-  async update(id: string, data: Prisma.IsvUserUpdateInput): Promise<IsvUser> {
-    return this.prisma.isvUser.update({ where: { id }, data })
-  }
-
-  async delete(id: string): Promise<boolean> {
-    await this.prisma.isvUser.delete({ where: { id } })
-    return true
+    return this.model.findFirst({ where: { isvDeveloperId, email } })
   }
 }
