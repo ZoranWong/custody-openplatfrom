@@ -45,7 +45,8 @@ export interface CaptchaVerifyResult {
  */
 export async function generateCaptcha(): Promise<CaptchaGenerateResult> {
   const captchaId = uuidv4();
-  const targetX = Math.floor(Math.random() * 220) + 30; // 30 ~ 250
+  // targetX covers the full track range (excluding the handler width ~40px)
+  const targetX = Math.floor(Math.random() * 200) + 40; // 40 ~ 240
 
   const cache = await getCache();
   await cache.set(`${CAPTCHA_PREFIX}${captchaId}`, targetX, CAPTCHA_TTL * 1000);
