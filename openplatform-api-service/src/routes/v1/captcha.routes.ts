@@ -45,7 +45,7 @@ router.get('/generate', async (_req: any, res: any) => {
  * POST /api/v1/captcha/verify
  * Verify the slider result from slider-captcha-js onVerify callback.
  * Body: { captchaId, x, duration, trail }
- * Returns: { success: boolean }
+ * Returns: { success, captchaToken }
  */
 router.post('/verify', async (req: any, res: any) => {
   try {

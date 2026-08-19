@@ -1,25 +1,25 @@
 /**
  * Captcha Middleware
- * Validates captcha token before login.
+ * Validates the captcha token before login.
+ *
+ * Flow:
+ *   1. Frontend calls GET /api/v1/captcha/generate → gets captchaId
+ *   2. User completes slider → POST /api/v1/captcha/verify → gets captchaToken
+ *   3. Login request carries { captchaToken } → middleware validates it
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { verifyCaptcha } from '../services/captcha.service';
+import { validateCaptchaToken } from '../services/captcha.service';
 
-/**
- * Middleware to verify the captcha before proceeding to the login handler.
- * Expects req.body to contain { captchaId, captchaX }.
- * If captcha fails, returns 400 immediately.
- */
 export async function captchaMiddleware(
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const { captchaId, captchaX } = req.body;
+    const { captchaToken } = req.body;
 
-    if (!captchaId || captchaX === undefined) {
+    if (!captchaToken) {
       res.status(400).json({
         code: 40002,
         message: 'Captcha verification required',
@@ -27,12 +27,10 @@ export async function captchaMiddleware(
       return;
     }
 
-    const result = await verifyCaptcha({ captchaId, x: Number(captchaX) });
-
-    if (!result.success) {
+    if (!validateCaptchaToken(captchaToken)) {
       res.status(400).json({
         code: 40003,
-        message: result.message || 'Captcha verification failed',
+        message: 'Captcha verification failed or expired',
       });
       return;
     }

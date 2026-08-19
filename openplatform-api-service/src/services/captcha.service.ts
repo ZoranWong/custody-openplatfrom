@@ -10,6 +10,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { getCache } from './cache.service';
+import { signJWT, verifyJWT } from '../utils/jwt.util';
 
 const CAPTCHA_PREFIX = 'captcha:';
 const CAPTCHA_TTL = 300; // 5 minutes
@@ -34,6 +35,7 @@ export interface CaptchaVerifyData {
 
 export interface CaptchaVerifyResult {
   success: boolean;
+  captchaToken?: string;
   message?: string;
 }
 
@@ -154,5 +156,20 @@ export async function verifyCaptcha(
     return { success: false, message: 'Verification failed, please try again' };
   }
 
-  return { success: true };
+  // Issue captcha token (JWT, 5min)
+  const { token } = signJWT(
+    { captchaId, verified: true, type: 'captcha' },
+    { expiresIn: CAPTCHA_TTL }
+  );
+
+  return { success: true, captchaToken: token };
+}
+
+/**
+ * Validate a captcha token.
+ * Used by the login middleware to verify the token from the verify step.
+ */
+export function validateCaptchaToken(token: string): boolean {
+  const payload = verifyJWT<{ verified: boolean; type: string }>(token);
+  return payload !== null && payload.verified === true && payload.type === 'captcha';
 }
