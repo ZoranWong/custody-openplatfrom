@@ -55,6 +55,7 @@
                   progressBarBg="var(--main-color)"
                   :background="isDark ? '#26272F' : '#F1F1F4'"
                   handlerBg="var(--default-box-color)"
+                  @passCallback="onCaptchaPass"
                 />
               </div>
               <p
@@ -121,6 +122,11 @@
   })
 
   const dragVerify = ref()
+  const captchaToken = ref('')
+
+  const onCaptchaPass = (data: any) => {
+    captchaToken.value = data?.captchaToken || ''
+  }
 
   const userStore = useUserStore()
   const router = useRouter()
@@ -167,7 +173,7 @@
       // ISV 登录请求
       const { email, password } = formData
 
-      const response: any = await fetchISVLogin({ email, password })
+      const response: any = await fetchISVLogin({ email, password, captchaToken: captchaToken.value })
 
       // http 层已解包，response 就是 data 字段
       const accessToken = response?.accessToken

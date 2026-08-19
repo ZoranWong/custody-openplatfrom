@@ -106,6 +106,11 @@
     isOk: boolean // 是否验证成功
   }
 
+  // Captcha 状态
+  const captchaId = ref('')
+  const captchaToken = ref('')
+  const captchaVerifying = ref(false)
+
   // 响应式状态定义
   const state = reactive(<StateType>{
     isMoving: false,
@@ -124,6 +129,20 @@
 
   // 触摸事件变量 - 用于禁止页面滑动
   let startX: number, startY: number, moveX: number, moveY: number
+
+  // 获取 captcha 配置
+  const fetchCaptcha = async () => {
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || '/api/v1'
+      const res = await fetch(`${baseUrl}/captcha/generate`)
+      const data = await res.json()
+      if (data.code === 0 && data.data?.captchaId) {
+        captchaId.value = data.data.captchaId
+      }
+    } catch (e) {
+      console.error('[ArtDragVerify] Failed to fetch captcha:', e)
+    }
+  }
 
   /**
    * 触摸开始事件处理
@@ -155,7 +174,6 @@
   // 获取数值形式的宽度
   const getNumericWidth = (): number => {
     if (typeof props.width === 'string') {
-      // 如果是字符串，尝试从DOM元素获取实际宽度
       return dragVerify.value?.offsetWidth || 260
     }
     return props.width
@@ -171,19 +189,19 @@
 
   // 组件挂载后的初始化
   onMounted(() => {
-    // 设置 CSS 自定义属性
     dragVerify.value?.style.setProperty('--textColor', props.textColor)
 
-    // 等待DOM更新后设置宽度相关属性
     nextTick(() => {
       const numericWidth = getNumericWidth()
       dragVerify.value?.style.setProperty('--width', Math.floor(numericWidth / 2) + 'px')
       dragVerify.value?.style.setProperty('--pwidth', -Math.floor(numericWidth / 2) + 'px')
     })
 
-    // 重复添加事件监听器（确保事件绑定）
     document.addEventListener('touchstart', onTouchStart)
     document.addEventListener('touchmove', onTouchMove, { passive: false })
+
+    // 获取 captcha
+    fetchCaptcha()
   })
 
   // 组件卸载前清理事件监听器
@@ -236,7 +254,6 @@
     if (!props.value) {
       state.isMoving = true
       handler.value.style.transition = 'none'
-      // 计算拖拽起始位置
       state.x =
         (e.pageX || e.touches[0].pageX) - parseInt(handler.value.style.left.replace('px', ''), 10)
     }
@@ -250,15 +267,12 @@
   const dragMoving = (e: any) => {
     if (state.isMoving && !props.value) {
       const numericWidth = getNumericWidth()
-      // 计算当前位置
       let _x = (e.pageX || e.touches[0].pageX) - state.x
 
-      // 在有效范围内移动
       if (_x > 0 && _x <= numericWidth - props.height) {
         handler.value.style.left = _x + 'px'
         progressBar.value.style.width = _x + props.height / 2 + 'px'
       } else if (_x > numericWidth - props.height) {
-        // 拖拽到末端，触发验证成功
         handler.value.style.left = numericWidth - props.height + 'px'
         progressBar.value.style.width = numericWidth - props.height / 2 + 'px'
         passVerify()
@@ -273,18 +287,15 @@
   const dragFinish = (e: any) => {
     if (state.isMoving && !props.value) {
       const numericWidth = getNumericWidth()
-      // 计算最终位置
       let _x = (e.pageX || e.changedTouches[0].pageX) - state.x
 
       if (_x < numericWidth - props.height) {
-        // 未拖拽到末端，重置位置
         state.isOk = true
         handler.value.style.left = '0'
         handler.value.style.transition = 'all 0.2s'
         progressBar.value.style.width = '0'
         state.isOk = false
       } else {
-        // 拖拽到末端，保持验证成功状态
         handler.value.style.transition = 'none'
         handler.value.style.left = numericWidth - props.height + 'px'
         progressBar.value.style.width = numericWidth - props.height / 2 + 'px'
@@ -296,40 +307,77 @@
 
   /**
    * 验证通过处理函数
+   * 调用后端 captcha verify 接口获取 token
    */
-  const passVerify = () => {
-    emit('update:value', true)
-    state.isMoving = false
-    // 更新样式为成功状态
-    progressBar.value.style.background = props.completedBg
-    messageRef.value.style['-webkit-text-fill-color'] = 'unset'
-    messageRef.value.style.animation = 'slidetounlock2 2s cubic-bezier(0, 0.2, 1, 1) infinite'
-    messageRef.value.style.color = '#fff'
-    emit('passCallback')
+  const passVerify = async () => {
+    if (captchaVerifying.value) return
+    captchaVerifying.value = true
+
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || '/api/v1'
+      const x = getNumericWidth() - props.height
+
+      const res = await fetch(`${baseUrl}/captcha/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ captchaId: captchaId.value, x }),
+      })
+      const data = await res.json()
+
+      if (data.code === 0 && data.data?.success) {
+        captchaToken.value = data.data.captchaToken || ''
+        emit('update:value', true)
+        state.isMoving = false
+        progressBar.value.style.background = props.completedBg
+        messageRef.value.style['-webkit-text-fill-color'] = 'unset'
+        messageRef.value.style.animation = 'slidetounlock2 2s cubic-bezier(0, 0.2, 1, 1) infinite'
+        messageRef.value.style.color = '#fff'
+        emit('passCallback', { captchaToken: captchaToken.value, captchaId: captchaId.value })
+      } else {
+        // 验证失败，重置
+        state.isOk = true
+        handler.value.style.left = '0'
+        handler.value.style.transition = 'all 0.2s'
+        progressBar.value.style.width = '0'
+        state.isOk = false
+        // 重新获取 captcha
+        fetchCaptcha()
+      }
+    } catch (e) {
+      console.error('[ArtDragVerify] Captcha verify error:', e)
+      state.isOk = true
+      handler.value.style.left = '0'
+      handler.value.style.transition = 'all 0.2s'
+      progressBar.value.style.width = '0'
+      state.isOk = false
+    } finally {
+      captchaVerifying.value = false
+    }
   }
 
   /**
    * 重置验证状态函数
    */
   const reset = () => {
-    // 重置滑块位置
     handler.value.style.left = '0'
     progressBar.value.style.width = '0'
     progressBar.value.style.background = props.progressBarBg
-    // 重置文本样式
     messageRef.value.style['-webkit-text-fill-color'] = 'transparent'
     messageRef.value.style.animation = 'slidetounlock 2s cubic-bezier(0, 0.2, 1, 1) infinite'
     messageRef.value.style.color = props.background
-    // 重置状态
     emit('update:value', false)
     state.isOk = false
     state.isMoving = false
     state.x = 0
+    captchaToken.value = ''
+    fetchCaptcha()
   }
 
-  // 暴露重置方法给父组件
+  // 暴露重置方法和 token 给父组件
   defineExpose({
-    reset
+    reset,
+    captchaToken,
+    captchaId
   })
 </script>
 

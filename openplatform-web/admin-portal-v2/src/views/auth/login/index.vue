@@ -53,6 +53,7 @@
                 progressBarBg="var(--main-color)"
                 :background="isDark ? '#26272F' : '#F1F1F4'"
                 handlerBg="var(--default-box-color)"
+                @passCallback="onCaptchaPass"
               />
             </div>
             <p
@@ -111,6 +112,11 @@
   })
 
   const dragVerify = ref()
+  const captchaToken = ref('')
+
+  const onCaptchaPass = (data: any) => {
+    captchaToken.value = data?.captchaToken || ''
+  }
 
   const userStore = useUserStore()
   const router = useRouter()
@@ -153,7 +159,7 @@
 
       // 登录请求
       const { email, password } = formData
-      const response = await fetchAdminLogin({ email, password })
+      const response = await fetchAdminLogin({ email, password, captchaToken: captchaToken.value })
 
       if (!response) {
         throw new Error('Login failed - no response')
