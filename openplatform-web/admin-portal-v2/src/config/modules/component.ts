@@ -27,7 +27,7 @@ export const globalComponentsConfig: GlobalComponentConfig[] = [
     component: defineAsyncComponent(
       () => import('@/components/core/layouts/art-settings-panel/index.vue')
     ),
-    enabled: false
+    enabled: true
   },
   {
     name: '全局搜索',
@@ -35,7 +35,7 @@ export const globalComponentsConfig: GlobalComponentConfig[] = [
     component: defineAsyncComponent(
       () => import('@/components/core/layouts/art-global-search/index.vue')
     ),
-    enabled: false
+    enabled: true
   },
   {
     name: '锁屏',
@@ -43,7 +43,7 @@ export const globalComponentsConfig: GlobalComponentConfig[] = [
     component: defineAsyncComponent(
       () => import('@/components/core/layouts/art-screen-lock/index.vue')
     ),
-    enabled: false
+    enabled: true
   },
   {
     name: '聊天窗口',
@@ -51,7 +51,7 @@ export const globalComponentsConfig: GlobalComponentConfig[] = [
     component: defineAsyncComponent(
       () => import('@/components/core/layouts/art-chat-window/index.vue')
     ),
-    enabled: false
+    enabled: true
   },
   {
     name: '礼花效果',
@@ -59,7 +59,7 @@ export const globalComponentsConfig: GlobalComponentConfig[] = [
     component: defineAsyncComponent(
       () => import('@/components/core/layouts/art-fireworks-effect/index.vue')
     ),
-    enabled: false
+    enabled: true
   },
   {
     name: '水印效果',
@@ -67,7 +67,7 @@ export const globalComponentsConfig: GlobalComponentConfig[] = [
     component: defineAsyncComponent(
       () => import('@/components/core/others/art-watermark/index.vue')
     ),
-    enabled: false
+    enabled: true
   }
 ]
 
