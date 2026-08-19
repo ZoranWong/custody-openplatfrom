@@ -54,28 +54,74 @@ export async function generateCaptcha(): Promise<CaptchaGenerateResult> {
 /**
  * Validate the slider track trajectory to detect bots.
  * Returns true if the track looks like human behavior.
+ *
+ * Human sliding characteristics:
+ * - Variable speed with acceleration and deceleration phases
+ * - Slight pauses (hesitation) during the slide
+ * - Y-axis jitter (finger naturally wobbles)
+ * - Non-linear X progression (not perfectly smooth)
+ * - Reasonable total duration
  */
 function validateTrack(trail: TrackPoint[]): boolean {
   if (!Array.isArray(trail) || trail.length < 5) return false;
 
-  // 1. Total duration: 500ms ~ 3000ms (too fast or too slow = bot)
+  // 1. Total duration: 500ms ~ 3000ms
   const totalTime = trail[trail.length - 1].t - trail[0].t;
   if (totalTime < 500 || totalTime > 3000) return false;
 
-  // 2. Speed variation: must have acceleration/deceleration
+  // 2. Must have at least one pause (dt > 100ms between consecutive points)
+  const hasPause = trail.some((p, i) => {
+    if (i === 0) return false;
+    return p.t - trail[i - 1].t > 100;
+  });
+  if (!hasPause) return false;
+
+  // 3. Speed variation: must have acceleration and deceleration
   const speeds: number[] = [];
   for (let i = 1; i < trail.length; i++) {
     const dx = trail[i].x - trail[i - 1].x;
     const dt = trail[i].t - trail[i - 1].t;
-    if (dt <= 0) return false; // time must be monotonically increasing
+    if (dt <= 0) return false;
     speeds.push(dx / dt);
   }
-  const speedVariance = Math.max(...speeds) - Math.min(...speeds);
-  if (speedVariance < 0.1) return false; // constant speed = bot
 
-  // 3. Y-axis jitter: human finger has slight vertical movement
-  const hasJitter = trail.some(p => Math.abs(p.y - trail[0].y) > 2);
-  if (!hasJitter) return false; // perfectly straight line = bot
+  const maxSpeed = Math.max(...speeds);
+  const minSpeed = Math.min(...speeds);
+  const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+
+  // Speed must vary significantly (not constant)
+  if (maxSpeed - minSpeed < 0.1) return false;
+
+  // 4. Acceleration pattern: must have both speed-up and slow-down phases
+  const firstHalf = speeds.slice(0, Math.floor(speeds.length / 2));
+  const secondHalf = speeds.slice(Math.floor(speeds.length / 2));
+  const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+  const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+
+  // Human typically accelerates then decelerates near the target
+  // Bot typically has flat speed or weird acceleration pattern
+  const speedDiff = Math.abs(firstAvg - secondAvg);
+  if (speedDiff < avgSpeed * 0.05) return false; // too flat
+
+  // 5. Y-axis jitter: finger has natural vertical wobble
+  const yValues = trail.map(p => p.y);
+  const yRange = Math.max(...yValues) - Math.min(...yValues);
+  if (yRange < 2) return false; // too straight
+
+  // 6. X progression: should not be perfectly linear
+  const totalX = trail[trail.length - 1].x - trail[0].x;
+  const expectedStep = totalX / (trail.length - 1);
+  let linearityScore = 0;
+  for (let i = 1; i < trail.length; i++) {
+    const actualStep = trail[i].x - trail[i - 1].x;
+    linearityScore += Math.abs(actualStep - expectedStep);
+  }
+  const avgLinearity = linearityScore / trail.length;
+  if (avgLinearity < 0.3) return false; // too linear = bot
+
+  // 7. Track density: too few points for the duration = bot
+  const pointDensity = trail.length / totalTime; // points per ms
+  if (pointDensity < 0.005 || pointDensity > 0.1) return false;
 
   return true;
 }
