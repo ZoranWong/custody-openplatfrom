@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { HttpCodes } from '../../enums/http-codes.enum'
 import { BusinessCodes } from '../../enums/business-codes.enum'
 import { isvAuth, requireOwner, ISVAuthRequest } from '../../middleware/isv-auth.middleware'
+import { captchaMiddleware } from '../../middleware/captcha.middleware'
 import { validateRegister, validateISVLogin, validateCreateApplication } from '../../validate/rules'
 
 import {
@@ -38,7 +39,7 @@ router.post('/auth/register', validateRegister, register)
  * POST /isv/auth/login
  * ISV Owner/Developer login
  */
-router.post('/auth/login', validateISVLogin, ownerLogin)
+router.post('/auth/login', captchaMiddleware, validateISVLogin, ownerLogin)
 
 /**
  * POST /isv/auth/logout

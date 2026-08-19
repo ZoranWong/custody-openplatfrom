@@ -23,10 +23,12 @@ import {
   getDeveloperAudit
 } from '../../controllers/admin/developer.controller'
 
+import { captchaMiddleware } from '../../middleware/captcha.middleware'
+
 const router = Router()
 
 // Admin auth routes (public)
-router.post('/auth/login', validateLogin, adminLogin)
+router.post('/auth/login', captchaMiddleware, validateLogin, adminLogin)
 router.post('/auth/refresh', validateRefreshToken, adminRefreshToken)
 
 // Protected routes (require authentication)
