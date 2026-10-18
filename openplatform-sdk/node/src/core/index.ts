@@ -2,32 +2,29 @@
  * Cregis OpenPlatform SDK - Main Entry Point
  *
  * A comprehensive Node.js SDK for Cregis Custody OpenPlatform API.
- * All 13 treasury management APIs are supported.
+ * All 25 third-party APIs are supported.
  */
 
-import { SDKConfig, CallbackPayload, CallbackRequest,
+import {
+  SDKConfig, CallbackPayload, CallbackRequest,
   CreateTreasuryUnitRequest, CreateTreasuryUnitResponse,
-  GetUnitAddressRequest, CreateUnitAddressRequest, UnitAccount,
+  CreateCustomUnitRequest, TreasuryUnit,
+  GetUnitAddressRequest, CreateUnitAddressRequest, UnitAccount, UnitAddress,
   PoolingRequest,
-  CreatePayoutRequest, PayoutOrder,
-  SubmitTaskRequest, WCCIPCmdAuditTask,
-  PaginationQuery, ProjectUnitActivity,
+  CreatePayoutRequest, WCCIPCmdAuditTask,
+  SubmitTaskRequest, PaginationQuery, ProjectUnitActivity,
   ProjectUnitTransferOutOrder, ProjectUnitTransferInOrder,
   ProjectUnitFundRecord, ProjectUnitLedgerFundRecord,
-  TreasuryUnit
+  MerchantRegisterRequest, MerchantRegisterResult,
+  AddUserRequest, InitBoardRequest, MerchantBoard,
+  AddUnitCoinsRequest, FundControlUpdateRequest, WhitelistUpdateRequest,
+  PaginatedResponse, GetAuthorizationUrlRequest, GetAuthorizationUrlResult,
+  VerifyOAuthTokenResult,
 } from '../types';
 import { SDKError, SDKErrorCode } from './error';
 import { HttpClient } from './http';
 import { isValidUUID, generateNonce, getTimestamp, buildBasicInfo, buildBasicInfoWithAuthorization, ResourceSignatureParams } from './signature';
 import { CallbackService } from './callback.service';
-
-export interface PaginatedResponse<T> {
-  records: T[];
-  total: number;
-  current: number;
-  size: number;
-  pages: number;
-}
 
 /**
  * Cregis OpenPlatform Node.js SDK
@@ -54,21 +51,21 @@ export class CregisSDK {
   // ============ OAuth / Authorization Methods ============
 
   /** Get authorization URL for OAuth flow. POST /api/thirdparty/oauth/authorizeUrl */
-  async getAuthorizationUrl(params: {
-    permissions: string[]; redirectUri: string; state: string;
-  }): Promise<{ authorizeUrl: string; expiresIn: number }> {
+  async getAuthorizationUrl(params: GetAuthorizationUrlRequest): Promise<GetAuthorizationUrlResult> {
     const timestamp = getTimestamp(); const nonce = generateNonce();
-    const business = { permissions: params.permissions, redirectUri: params.redirectUri, state: params.state };
+    const business: Record<string, unknown> = { permissions: params.permissions, state: params.state };
+    if (params.callback !== undefined) business.callback = params.callback;
+    if (params.token !== undefined) business.token = params.token;
     const basic = buildBasicInfo({ appId: this.config.appId, appSecret: this.config.appSecret, timestamp, nonce, business });
-    return this.http.post('/api/thirdparty/oauth/authorizeUrl', { basic, business });
+    return this.http.post<GetAuthorizationUrlResult>('/api/thirdparty/oauth/authorizeUrl', { basic, business });
   }
 
   /** Verify OAuth token. POST /api/thirdparty/oauth/verify */
-  async verifyOAuthToken(oauthToken: string): Promise<{ authorizeId: string }> {
+  async verifyOAuthToken(oauthToken: string): Promise<VerifyOAuthTokenResult> {
     const timestamp = getTimestamp(); const nonce = generateNonce();
     const business = { oauthToken };
     const basic = buildBasicInfo({ appId: this.config.appId, appSecret: this.config.appSecret, timestamp, nonce, business });
-    return this.http.post('/api/thirdparty/oauth/verify', { basic, business });
+    return this.http.post<VerifyOAuthTokenResult>('/api/thirdparty/oauth/verify', { basic, business });
   }
 
   // ============ Treasury Unit Methods ============
@@ -76,7 +73,13 @@ export class CregisSDK {
   /** Create a new treasury unit. POST /api/thirdparty/treasury/create */
   async createTreasuryUnit(authorizationId: string, request: CreateTreasuryUnitRequest): Promise<CreateTreasuryUnitResponse> {
     const { basic, business } = this.buildResourceRequest(authorizationId, request);
-    return this.http.post('/api/thirdparty/treasury/create', { basic, business }) as unknown as CreateTreasuryUnitResponse;
+    return this.http.post<CreateTreasuryUnitResponse>('/api/thirdparty/treasury/create', { basic, business });
+  }
+
+  /** Create a custom treasury unit. POST /api/thirdparty/treasury/create-custom */
+  async createCustomUnit(authorizationId: string, request: CreateCustomUnitRequest): Promise<TreasuryUnit> {
+    const { basic, business } = this.buildResourceRequest(authorizationId, request);
+    return this.http.post<TreasuryUnit>('/api/thirdparty/treasury/create-custom', { basic, business });
   }
 
   /** List treasury units. POST /api/thirdparty/treasury/list */
@@ -86,60 +89,115 @@ export class CregisSDK {
     if (options.pageNum) business.pageNum = options.pageNum;
     if (options.sortFields) business.sortFields = options.sortFields;
     const { basic } = this.buildResourceRequest(authorizationId, business);
-    return this.http.post('/api/thirdparty/treasury/list', { basic, business }) as unknown as TreasuryUnit[];
+    return this.http.post<TreasuryUnit[]>('/api/thirdparty/treasury/list', { basic, business });
   }
 
   /** Get treasury unit addresses. POST /api/thirdparty/treasury/address */
-  async getTreasuryUnitAddress(authorizationId: string, request: GetUnitAddressRequest): Promise<Array<{ address: string; accountType: string }>> {
+  async getTreasuryUnitAddress(authorizationId: string, request: GetUnitAddressRequest): Promise<UnitAddress[]> {
     const { basic, business } = this.buildResourceRequest(authorizationId, request);
-    return this.http.post('/api/thirdparty/treasury/address', { basic, business }) as unknown as Array<{ address: string; accountType: string }>;
+    return this.http.post<UnitAddress[]>('/api/thirdparty/treasury/address', { basic, business });
+  }
+
+  /** Get unit addresses by account id. POST /api/thirdparty/treasury/address-by-account/{cusAccountId} */
+  async getUnitAddressByAccount(authorizationId: string, cusAccountId: number, request: GetUnitAddressRequest = {}): Promise<UnitAddress[]> {
+    const { basic, business } = this.buildResourceRequest(authorizationId, request);
+    return this.http.post<UnitAddress[]>(`/api/thirdparty/treasury/address-by-account/${cusAccountId}`, { basic, business });
   }
 
   /** Pooling request - sweep funds to primary account. POST /api/thirdparty/treasury/pooling */
-  async pooling(authorizationId: string, request: PoolingRequest): Promise<{ success: boolean }> {
+  async pooling(authorizationId: string, request: PoolingRequest): Promise<ProjectUnitTransferOutOrder> {
     const { basic, business } = this.buildResourceRequest(authorizationId, request);
-    return this.http.post('/api/thirdparty/treasury/pooling', { basic, business }) as unknown as { success: boolean };
+    return this.http.post<ProjectUnitTransferOutOrder>('/api/thirdparty/treasury/pooling', { basic, business });
   }
 
   /** List unit accounts. POST /api/thirdparty/treasury/list-unit-account/{unitId} */
   async listUnitAccount(authorizationId: string, unitId: number): Promise<UnitAccount[]> {
     const { basic, business } = this.buildResourceRequest(authorizationId, {});
-    return this.http.post(`/api/thirdparty/treasury/list-unit-account/${unitId}`, { basic, business }) as unknown as UnitAccount[];
+    return this.http.post<UnitAccount[]>(`/api/thirdparty/treasury/list-unit-account/${unitId}`, { basic, business });
   }
 
-  /** Create unit address. POST /api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number} */
-  async createUnitAddress(authorizationId: string, request: CreateUnitAddressRequest): Promise<{ success: boolean }> {
-    const { basic, business } = this.buildResourceRequest(authorizationId, {});
-    const { unitId, accountTypy, network, coinId, number } = request;
-    return this.http.post(`/api/thirdparty/treasury/create-unit-address/${unitId}/${accountTypy}/${network}/${coinId}/${number}`, { basic, business }) as unknown as { success: boolean };
+  /** Create unit address by unit account type. POST /api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number} */
+  async createUnitAddress(authorizationId: string, request: CreateUnitAddressRequest): Promise<void> {
+    const { basic } = this.buildResourceRequest(authorizationId, {});
+    const { unitId, accountType, network, coinId, number } = request;
+    const path = [unitId, accountType, network, coinId, number].map(v => encodeURIComponent(String(v))).join('/');
+    await this.http.post<void>(`/api/thirdparty/treasury/create-unit-address/${path}`, { basic, business: {} });
+  }
+
+  /** Create unit address by account id. POST /api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number} */
+  async createUnitAddressByAccount(authorizationId: string, cusAccountId: number, number: number): Promise<void> {
+    const { basic } = this.buildResourceRequest(authorizationId, {});
+    await this.http.post<void>(`/api/thirdparty/treasury/create-unit-address-by-account/${cusAccountId}/${number}`, { basic, business: {} });
+  }
+
+  // ============ Merchant / User / Board ============
+
+  /** Register merchant enterprise. POST /api/thirdparty/merchant/register (no authorizationId) */
+  async registerMerchant(request: MerchantRegisterRequest): Promise<MerchantRegisterResult> {
+    const timestamp = getTimestamp(); const nonce = generateNonce();
+    const business = request as unknown as Record<string, unknown>;
+    const basic = buildBasicInfo({ appId: this.config.appId, appSecret: this.config.appSecret, timestamp, nonce, business });
+    return this.http.post<MerchantRegisterResult>('/api/thirdparty/merchant/register', { basic, business: request as unknown as Record<string, unknown> });
+  }
+
+  /** Add a user. POST /api/thirdparty/user/add */
+  async addUser(authorizationId: string, request: AddUserRequest): Promise<Record<string, unknown>> {
+    const { basic, business } = this.buildResourceRequest(authorizationId, request);
+    return this.http.post<Record<string, unknown>>('/api/thirdparty/user/add', { basic, business });
+  }
+
+  /** Initialize guardian board. POST /api/thirdparty/board/init */
+  async initBoard(authorizationId: string, request: InitBoardRequest): Promise<MerchantBoard> {
+    const { basic, business } = this.buildResourceRequest(authorizationId, request);
+    return this.http.post<MerchantBoard>('/api/thirdparty/board/init', { basic, business });
+  }
+
+  // ============ Coins / Rules ============
+
+  /** Add coins to unit. POST /api/thirdparty/treasury/add-coins */
+  async addCoins(authorizationId: string, request: AddUnitCoinsRequest): Promise<WCCIPCmdAuditTask[]> {
+    const { basic, business } = this.buildResourceRequest(authorizationId, request);
+    return this.http.post<WCCIPCmdAuditTask[]>('/api/thirdparty/treasury/add-coins', { basic, business });
+  }
+
+  /** Update fund control rules. POST /api/thirdparty/treasury/fund-control-update */
+  async updateFundControl(authorizationId: string, request: FundControlUpdateRequest): Promise<void> {
+    const { basic, business } = this.buildResourceRequest(authorizationId, request);
+    await this.http.post<void>('/api/thirdparty/treasury/fund-control-update', { basic, business });
+  }
+
+  /** Update whitelist. POST /api/thirdparty/treasury/whitelist-update */
+  async updateWhitelist(authorizationId: string, request: WhitelistUpdateRequest): Promise<WCCIPCmdAuditTask> {
+    const { basic, business } = this.buildResourceRequest(authorizationId, request);
+    return this.http.post<WCCIPCmdAuditTask>('/api/thirdparty/treasury/whitelist-update', { basic, business });
   }
 
   // ============ Payout Methods ============
 
   /** Create a payout order. POST /api/thirdparty/treasury/payout */
-  async createPayout(authorizationId: string, request: CreatePayoutRequest): Promise<PayoutOrder> {
+  async createPayout(authorizationId: string, request: CreatePayoutRequest): Promise<WCCIPCmdAuditTask> {
     const { basic, business } = this.buildResourceRequest(authorizationId, request);
-    return this.http.post('/api/thirdparty/treasury/payout', { basic, business }) as unknown as PayoutOrder;
+    return this.http.post<WCCIPCmdAuditTask>('/api/thirdparty/treasury/payout', { basic, business });
   }
 
   /** List transfer-out orders. POST /api/thirdparty/treasury/transfer-out-orders */
   async listTransferOutOrders(authorizationId: string, options: PaginationQuery = {}): Promise<PaginatedResponse<ProjectUnitTransferOutOrder>> {
     const { basic, business } = this.buildResourceRequest(authorizationId, this.buildQueryOptions(options));
-    return this.http.post('/api/thirdparty/treasury/transfer-out-orders', { basic, business }) as unknown as PaginatedResponse<ProjectUnitTransferOutOrder>;
+    return this.http.post<PaginatedResponse<ProjectUnitTransferOutOrder>>('/api/thirdparty/treasury/transfer-out-orders', { basic, business });
   }
 
   /** List transfer-in orders. POST /api/thirdparty/treasury/transfer-in-orders */
   async listTransferInOrders(authorizationId: string, options: PaginationQuery = {}): Promise<PaginatedResponse<ProjectUnitTransferInOrder>> {
     const { basic, business } = this.buildResourceRequest(authorizationId, this.buildQueryOptions(options));
-    return this.http.post('/api/thirdparty/treasury/transfer-in-orders', { basic, business }) as unknown as PaginatedResponse<ProjectUnitTransferInOrder>;
+    return this.http.post<PaginatedResponse<ProjectUnitTransferInOrder>>('/api/thirdparty/treasury/transfer-in-orders', { basic, business });
   }
 
   // ============ Signature Task Methods ============
 
   /** Submit task approval/rejection. POST /api/thirdparty/treasury/submit-task/{taskId} */
-  async submitTask(authorizationId: string, taskId: string, request: SubmitTaskRequest): Promise<WCCIPCmdAuditTask> {
+  async submitTask(authorizationId: string, taskId: string, request: SubmitTaskRequest): Promise<void> {
     const { basic, business } = this.buildResourceRequest(authorizationId, request);
-    return this.http.post(`/api/thirdparty/treasury/submit-task/${taskId}`, { basic, business }) as unknown as WCCIPCmdAuditTask;
+    await this.http.post<void>(`/api/thirdparty/treasury/submit-task/${taskId}`, { basic, business });
   }
 
   // ============ Transaction Methods ============
@@ -147,58 +205,52 @@ export class CregisSDK {
   /** List activities. POST /api/thirdparty/treasury/activities */
   async listActivities(authorizationId: string, options: PaginationQuery = {}): Promise<PaginatedResponse<ProjectUnitActivity>> {
     const { basic, business } = this.buildResourceRequest(authorizationId, this.buildQueryOptions(options));
-    return this.http.post('/api/thirdparty/treasury/activities', { basic, business }) as unknown as PaginatedResponse<ProjectUnitActivity>;
+    return this.http.post<PaginatedResponse<ProjectUnitActivity>>('/api/thirdparty/treasury/activities', { basic, business });
   }
 
   /** List fund records (account-level). POST /api/thirdparty/treasury/fund-records */
   async listFundRecords(authorizationId: string, options: PaginationQuery = {}): Promise<PaginatedResponse<ProjectUnitFundRecord>> {
     const { basic, business } = this.buildResourceRequest(authorizationId, this.buildQueryOptions(options));
-    return this.http.post('/api/thirdparty/treasury/fund-records', { basic, business }) as unknown as PaginatedResponse<ProjectUnitFundRecord>;
+    return this.http.post<PaginatedResponse<ProjectUnitFundRecord>>('/api/thirdparty/treasury/fund-records', { basic, business });
   }
 
   /** List fund records (unit-level). POST /api/thirdparty/treasury/unit-fund-records */
   async listUnitFundRecords(authorizationId: string, options: PaginationQuery = {}): Promise<PaginatedResponse<ProjectUnitLedgerFundRecord>> {
     const { basic, business } = this.buildResourceRequest(authorizationId, this.buildQueryOptions(options));
-    return this.http.post('/api/thirdparty/treasury/unit-fund-records', { basic, business }) as unknown as PaginatedResponse<ProjectUnitLedgerFundRecord>;
-  }
-
-  // ============ Webhook Methods ============
-
-  async registerWebhook(request: { url: string; eventTypes: string[] }): Promise<{ id: string; url: string; eventTypes: string[]; isActive: boolean; secret: string }> {
-    const response = await this.http.post<{ id: string; url: string; event_types: string[]; is_active: boolean; secret: string }>('/api/v1/isv/webhooks/webhooks', request);
-    return { id: response.id, url: response.url, eventTypes: response.event_types, isActive: response.is_active, secret: response.secret };
-  }
-
-  async listWebhooks(): Promise<Array<{ id: string; url: string; eventTypes: string[]; isActive: boolean }>> {
-    const response = await this.http.get<Array<{ id: string; url: string; event_types: string[]; is_active: boolean }>>('/api/v1/isv/webhooks/webhooks');
-    return response.map(wh => ({ id: wh.id, url: wh.url, eventTypes: wh.event_types, isActive: wh.is_active }));
-  }
-
-  async deleteWebhook(id: string): Promise<{ success: boolean }> {
-    await this.http.delete(`/api/v1/isv/webhooks/webhooks/${id}`);
-    return { success: true };
+    return this.http.post<PaginatedResponse<ProjectUnitLedgerFundRecord>>('/api/thirdparty/treasury/unit-fund-records', { basic, business });
   }
 
   // ============ Callback Methods ============
 
-  public onCallback(req: CallbackRequest, callback: (payload: CallbackPayload) => void): void {
+  /**
+   * Verify a callback and dispatch to the business handler.
+   *
+   * The handler may be synchronous or asynchronous; the returned promise resolves
+   * once the handler completes, so HTTP controllers can `await` the business work.
+   */
+  public async onCallback(
+    req: CallbackRequest,
+    callback: (payload: CallbackPayload) => void | Promise<void>
+  ): Promise<void> {
     const signature = req.headers['x-signature']?.replace('sha256=', '');
     const timestamp = req.headers['x-timestamp'];
-    const event = req.body?.event || req.headers['x-event'];
+    const appId = req.headers['x-app-id'];
+    const event = req.headers['x-event'];
 
-    if (!signature || !timestamp) {
-      throw new SDKError(SDKErrorCode.SIGNATURE_INVALID, 'Missing required signature or timestamp headers');
+    if (!signature || !timestamp || !appId) {
+      throw new SDKError(SDKErrorCode.SIGNATURE_INVALID, 'Missing required signature, timestamp or appId headers');
     }
 
     const isValid = this.callbackService.verifySignature({
       appSecret: this.config.appSecret,
-      appId: req.body?.appId || this.config.appId,
+      appId,
       event, timestamp, signature,
+      data: req.body,
     });
 
     if (!isValid) throw new SDKError(SDKErrorCode.SIGNATURE_INVALID, 'Invalid callback signature');
     if (this.config.debug) console.log('[CregisSDK] Callback verified:', { event, timestamp });
-    callback(req.body as CallbackPayload);
+    await callback(req.body as CallbackPayload);
   }
 
   // ============ Utility Methods ============

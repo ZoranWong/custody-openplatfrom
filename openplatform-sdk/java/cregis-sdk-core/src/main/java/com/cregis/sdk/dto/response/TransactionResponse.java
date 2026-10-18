@@ -4,26 +4,31 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 /**
- * Transaction (Activity) response.
+ * Activity record response (活动记录).
+ * Maps to OpenAPI `ProjectUnitActivity`.
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TransactionResponse {
     private Long id;
-    private String activityId;
-    private Long unitId;
-    private String unitEcode;
+    private String ecode;
+    private Long projectId;
+    private Long treasuryUnitId;
+    private Long ledgerId;
+    private Long cusAccountId;
+    private String accountType;
+    private Long cpAccountId;
     private String coinId;
     private String network;
     private String type;
+    private Long amount;
     private String direction;
-    private String amount;
-    private String balanceBefore;
-    private String balanceAfter;
-    private String fee;
-    private String txHash;
-    private String fromAddress;
-    private String toAddress;
+    private String orderId;
+    private String businessId;
     private String status;
-    private String createdAt;
+    private String travelRuleStatus;
+    private String kytStatus;
+    private String kyaStatus;
+    private String createTime;
+    private String updateTime;
 }

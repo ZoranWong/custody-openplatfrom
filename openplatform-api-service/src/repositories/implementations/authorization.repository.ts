@@ -16,6 +16,10 @@ export class OauthResourceRepositoryImpl extends BaseRepository<Prisma.OauthReso
     return this.model.findMany({ where: { appId } })
   }
 
+  async findByResourceKey(resourceKey: string): Promise<OauthResource | null> {
+    return this.model.findFirst({ where: { resourceKey } })
+  }
+
   async findByAppAndResource(appId: string, resourceKey: string): Promise<OauthResource | null> {
     return this.model.findFirst({ where: { appId, resourceKey } })
   }

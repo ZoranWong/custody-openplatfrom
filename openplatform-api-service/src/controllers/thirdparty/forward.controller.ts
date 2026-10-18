@@ -92,9 +92,17 @@ export async function forwardRequest(req: Request, res: Response): Promise<void>
     const traceId = (req.headers['x-trace-id'] as string) || uuidv4();
 
     const resourceKey = validateResourceKey(req, config.route);
-    if (!resourceKey) return fail(ctx, req, res, HttpCodes.BAD_REQUEST, BusinessCodes.PARAM_REQUIRED, 'Missing resourceKey in request context', startTime);
+    // Routes without a {resourceKey} placeholder (e.g. merchant/register) do not require a key.
+    if (!config.route.includes('{resourceKey}')) {
+      // no resourceKey needed; proceed without key
+    } else if (!resourceKey) {
+      return fail(ctx, req, res, HttpCodes.BAD_REQUEST, BusinessCodes.PARAM_REQUIRED, 'Missing resourceKey in request context', startTime);
+    }
 
-    let backendPath = config.route.replace('{resourceKey}', resourceKey);
+    let backendPath = config.route;
+    if (config.route.includes('{resourceKey}')) {
+      backendPath = backendPath.replace('{resourceKey}', resourceKey!);
+    }
     for (const [key, value] of Object.entries(urlParams)) {
       if (!validateParamValue(value)) return fail(ctx, req, res, HttpCodes.BAD_REQUEST, BusinessCodes.PARAM_REQUIRED, `Invalid parameter: ${key}`, startTime);
       backendPath = backendPath.replace(`{${key}}`, value);

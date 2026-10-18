@@ -848,9 +848,10 @@ npx prisma db push
 
 ### Task 7.6: Webhook 配置管理
 
-- 后端 API：`POST/GET/PUT/DELETE /api/v1/isv/webhooks`
-- 前端页面：注册、列表、编辑、删除、测试发送
-- Webhook 推送日志
+> **已废弃**：Webhook 配置现已合并到 Application（`Application.callbackUrl`），不再使用独立的 `/api/v1/isv/webhooks` CRUD。
+
+- （历史规划）后端 API：`POST/GET/PUT/DELETE /api/v1/isv/webhooks`
+- （历史规划）前端页面：注册、列表、编辑、删除、测试发送
 
 ### Task 7.7: API 密钥管理
 
@@ -881,7 +882,6 @@ npx prisma db push
 ### Task 8.2: Java SDK 补齐遗漏方法
 
 - 补齐 treasury 遗漏方法
-- 新增 WebhookService
 
 ### Task 8.3: Java SDK 启用 netty 和 spring-boot-starter
 

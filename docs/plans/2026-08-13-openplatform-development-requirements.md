@@ -680,12 +680,9 @@ app.use('/api/v1/isv', isvRateLimit)
 
 #### DEV-6: Webhook 配置管理
 
-**说明:** Node SDK 已有 WebhookService，但后端路由不存在，前端无页面。
+> **已废弃**：Webhook 配置现已合并到 Application（`Application.callbackUrl` 字段），不再使用独立的 `/api/v1/isv/webhooks` CRUD API。回调地址在创建/更新应用时设置。
 
-**目标:**
-- 后端：实现 Webhook CRUD API（`/api/v1/isv/webhooks`）
-- 前端：Webhook 配置页面（注册、列表、编辑、删除、测试发送）
-- 展示 Webhook 推送日志和重试历史
+**说明:** （历史规划）Node SDK 已有 WebhookService，但后端路由不存在，前端无页面。
 
 #### DEV-7: API 密钥管理
 

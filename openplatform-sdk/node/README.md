@@ -304,28 +304,6 @@ sdk.listUnitFundRecords(authorizationId, options?): Promise<PaginatedResponse<Pr
 
 ---
 
-### Webhook
-
-#### `registerWebhook(request)`
-
-```typescript
-sdk.registerWebhook({ url: string; eventTypes: string[] }): Promise<WebhookInfo>
-```
-
-#### `listWebhooks()`
-
-```typescript
-sdk.listWebhooks(): Promise<WebhookInfo[]>
-```
-
-#### `deleteWebhook(id)`
-
-```typescript
-sdk.deleteWebhook(id: string): Promise<{ success: boolean }>
-```
-
----
-
 ### 回调验证
 
 #### `onCallback(req, callback)`

@@ -79,34 +79,28 @@ Content-Type: application/json
 
 ### 请求头
 
+所有元数据通过请求头传递，请求体仅包含业务数据（`data`）。
+
 | 头部字段 | 必填 | 说明 | 示例 |
 |----------|------|------|------|
 | `Content-Type` | 是 | 内容类型，固定为 `application/json` | `application/json` |
+| `X-App-Id` | 是 | 应用 ID（UUID 格式） | `550e8400-e29b-41d4-a716-446655440000` |
 | `X-Timestamp` | 是 | 推送时间戳（毫秒） | `1745220600000` |
 | `X-Signature` | 是 | HMAC-SHA256 签名 | `sha256=xxxxxx...` |
-| `X-Event` | 否 | 事件类型（授权事件时必填） | `authorization.created` |
+| `X-Event` | 否 | 事件类型（有事件时必填） | `transaction.completed` |
 
 ### 请求体
 
+请求体为纯业务数据（`data` 对象）：
+
 ```json
 {
-  "appId": "550e8400-e29b-41d4-a716-446655440000",
-  "event": "transaction.completed",
-  "timestamp": "1745220600000",
-  "data": {
-    // 事件相关数据
-  }
+  // 事件相关数据
 }
 ```
 
-**字段说明：**
-
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| appId | string | 是 | 应用 ID（UUID 格式） |
-| event | string | 否 | 事件类型，无事件时可不填 |
-| timestamp | string | 是 | 推送时间戳（毫秒） |
-| data | object | 是 | 事件数据对象 |
+**说明：**
+- `appId`、`event`、`timestamp` 等元数据均在请求头中，请求体只承载业务数据本身。
 
 ---
 
@@ -114,12 +108,12 @@ Content-Type: application/json
 
 ### 签名算法
 
-使用 HMAC-SHA256 算法验证消息的完整性和来源。
+使用 HMAC-SHA256 算法验证消息的完整性和来源。**`data` 参与签名**，防止请求体被篡改。
 
 **签名公式：**
 
 ```
-signData = appId + "." + [event] + "." + timestamp
+signData = appId + "." + [event] + "." + timestamp + "." + md5(sortedJSON(data))
 signature = HMAC-SHA256(appSecret, signData).toHex()
 ```
 
@@ -127,7 +121,9 @@ signature = HMAC-SHA256(appSecret, signData).toHex()
 - `appId`: 应用 ID
 - `event`: 事件类型（可选，无事件时为空）
 - `timestamp`: X-Timestamp 头部的值（毫秒）
+- `data`: 请求体中的事件数据对象（按 key 排序后序列化为 JSON，再取 MD5）
 - `appSecret`: 应用密钥
+- 无 `data` 时（历史兼容），省略 `"." + md5(...)` 段
 
 ### 签名示例
 
@@ -137,14 +133,17 @@ signature = HMAC-SHA256(appSecret, signData).toHex()
 appId     = "550e8400-e29b-41d4-a716-446655440000"
 event     = "transaction.completed"
 timestamp = "1745220600000"
+data      = {"taskId":"789e0123","amount":"1000.00"}
+dataMd5   = MD5('{"amount":"1000.00","taskId":"789e0123"}')
 
-signData  = "550e8400-e29b-41d4-a716-446655440000.transaction.completed.1745220600000"
+signData  = "550e8400-e29b-41d4-a716-446655440000.transaction.completed.1745220600000." + dataMd5
 signature = HMAC-SHA256(appSecret, signData).toHex()
 ```
 
 **请求头设置：**
 
 ```http
+X-App-Id: 550e8400-e29b-41d4-a716-446655440000
 X-Timestamp: 1745220600000
 X-Signature: sha256=xxxxxx...
 X-Event: transaction.completed
@@ -157,13 +156,27 @@ X-Event: transaction.completed
 ```javascript
 const crypto = require('crypto');
 
-function verifySignature(appSecret, appId, event, timestamp, signature) {
+function sortObjectKeys(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(sortObjectKeys);
+    const sorted = {};
+    for (const key of Object.keys(obj).sort()) {
+        sorted[key] = sortObjectKeys(obj[key]);
+    }
+    return sorted;
+}
+
+function verifySignature(appSecret, appId, event, timestamp, signature, data) {
     // 构建签名数据
     let signData = appId;
     if (event) {
         signData += '.' + event;
     }
     signData += '.' + timestamp;
+    if (data !== undefined) {
+        const dataMd5 = crypto.createHash('md5').update(JSON.stringify(sortObjectKeys(data))).digest('hex');
+        signData += '.' + dataMd5;
+    }
 
     // 计算 HMAC-SHA256
     const expected = crypto
@@ -186,9 +199,10 @@ const appSecret = 'your-app-secret';
 const signature = req.headers['x-signature'];
 const timestamp = req.headers['x-timestamp'];
 const event = req.headers['x-event'];
-const appId = req.body.appId;
+const appId = req.headers['x-app-id'];
+const data = req.body;  // 请求体即业务数据
 
-if (!verifySignature(appSecret, appId, event, timestamp, signature)) {
+if (!verifySignature(appSecret, appId, event, timestamp, signature, data)) {
     return res.status(401).json({ error: 'Invalid signature' });
 }
 ```
@@ -198,13 +212,24 @@ if (!verifySignature(appSecret, appId, event, timestamp, signature)) {
 ```python
 import hmac
 import hashlib
+import json
 
-def verify_signature(app_secret: str, app_id: str, event: str, timestamp: str, signature: str) -> bool:
+def sort_keys(obj):
+    if isinstance(obj, dict):
+        return {k: sort_keys(obj[k]) for k in sorted(obj)}
+    if isinstance(obj, list):
+        return [sort_keys(item) for item in obj]
+    return obj
+
+def verify_signature(app_secret: str, app_id: str, event: str, timestamp: str, signature: str, data=None) -> bool:
     # 构建签名数据
     sign_data = app_id
     if event:
         sign_data += '.' + event
     sign_data += '.' + timestamp
+    if data is not None:
+        data_md5 = hashlib.md5(json.dumps(sort_keys(data), separators=(',', ':')).encode('utf-8')).hexdigest()
+        sign_data += '.' + data_md5
 
     # 计算 HMAC-SHA256
     expected = hmac.new(
@@ -225,10 +250,11 @@ def handle_callback():
     signature = request.headers.get('X-Signature', '')
     timestamp = request.headers.get('X-Timestamp', '')
     event = request.headers.get('X-Event', '')
-    app_id = request.json.get('appId', '')
+    app_id = request.headers.get('X-App-Id', '')
+    data = request.json  # 请求体即业务数据
     app_secret = get_app_secret(app_id)
 
-    if not verify_signature(app_secret, app_id, event, timestamp, signature):
+    if not verify_signature(app_secret, app_id, event, timestamp, signature, data):
         return jsonify({'error': 'Invalid signature'}), 401
 
     # 处理回调
@@ -242,18 +268,39 @@ package main
 
 import (
     "crypto/hmac"
+    "crypto/md5"
     "crypto/sha256"
     "encoding/hex"
+    "encoding/json"
+    "sort"
     "strings"
 )
 
-func verifySignature(appSecret, appId, event, timestamp, signature string) bool {
+func sortedJSON(data map[string]interface{}) string {
+    keys := make([]string, 0, len(data))
+    for k := range data {
+        keys = append(keys, k)
+    }
+    sort.Strings(keys)
+    ordered := make(map[string]interface{}, len(data))
+    for _, k := range keys {
+        ordered[k] = data[k]
+    }
+    b, _ := json.Marshal(ordered)
+    return string(b)
+}
+
+func verifySignature(appSecret, appId, event, timestamp, signature string, data map[string]interface{}) bool {
     // 构建签名数据
     signData := appId
     if event != "" {
         signData += "." + event
     }
     signData += "." + timestamp
+    if data != nil {
+        sum := md5.Sum([]byte(sortedJSON(data)))
+        signData += "." + hex.EncodeToString(sum[:])
+    }
 
     // 计算 HMAC-SHA256
     mac := hmac.New(sha256.New, []byte(appSecret))
@@ -275,6 +322,8 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class CallbackVerifier {
 
@@ -283,7 +332,8 @@ public class CallbackVerifier {
             String appId,
             String event,
             String timestamp,
-            String signature) throws Exception {
+            String signature,
+            Map<String, Object> data) throws Exception {
 
         // 构建签名数据
         StringBuilder signData = new StringBuilder(appId);
@@ -291,6 +341,11 @@ public class CallbackVerifier {
             signData.append(".").append(event);
         }
         signData.append(".").append(timestamp);
+        if (data != null) {
+            String sortedJson = new ObjectMapper().writeValueAsString(new TreeMap<>(data));
+            String dataMd5 = md5(sortedJson);
+            signData.append(".").append(dataMd5);
+        }
 
         // 计算 HMAC-SHA256
         Mac mac = Mac.getInstance("HmacSHA256");
@@ -310,6 +365,11 @@ public class CallbackVerifier {
             expected.getBytes(StandardCharsets.UTF_8),
             requestSignature.getBytes(StandardCharsets.UTF_8)
         );
+    }
+
+    private static String md5(String input) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        return bytesToHex(md.digest(input.getBytes(StandardCharsets.UTF_8)));
     }
 
     private static String bytesToHex(byte[] bytes) {
@@ -412,7 +472,7 @@ public class CallbackVerifier {
 ```javascript
 // 使用幂等键避免重复处理
 async function handleCallback(req, res) {
-    const eventId = req.headers['x-event'] + '-' + req.body.timestamp;
+    const eventId = req.headers['x-event'] + '-' + req.headers['x-timestamp'];
 
     // 检查是否已处理
     const processed = await redis.get(`processed:${eventId}`);
@@ -469,7 +529,7 @@ function handleCallback(req, res) {
         timestamp: req.headers['x-timestamp'],
         event: req.headers['x-event'],
         signature: req.headers['x-signature'],
-        appId: req.body.appId
+        appId: req.headers['x-app-id']
     });
     // ...
 }

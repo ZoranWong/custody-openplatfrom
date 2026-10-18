@@ -175,23 +175,33 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
     paramMapping: { resourceKey: 'context' },
   },
 
-  // Create unit address (创建地址)
-  // Note: backend uses 'accountTypy' (original spelling), inbound matches this
+  // Create unit address by unit account type (创建地址)
   {
     routeId: 'treasury-create-unit-address',
     name: 'Create Unit Address',
-    inboundPath: '/api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number}',
-    route: '/api/third-party/create-unit-address/{resourceKey}/{unitId}/{accountTypy}/{network}/{coinId}/{number}',
+    inboundPath: '/api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number}',
+    route: '/api/third-party/create-unit-address/{resourceKey}/{unitId}/{accountType}/{network}/{coinId}/{number}',
     method: 'POST',
     clientName: 'custodyService',
     paramMapping: {
       resourceKey: 'context',
       unitId: 'url',
-      accountTypy: 'url',
+      accountType: 'url',
       network: 'url',
       coinId: 'url',
       number: 'url',
     },
+  },
+
+  // Create unit address by account id (根据账户id创建地址)
+  {
+    routeId: 'treasury-create-unit-address-by-account',
+    name: 'Create Unit Address By Account',
+    inboundPath: '/api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number}',
+    route: '/api/third-party/create-unit-address/{resourceKey}/{cusAccountId}/{number}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context', cusAccountId: 'url', number: 'url' },
   },
 
   // List unit accounts (查询账户列表)
@@ -203,6 +213,95 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
     method: 'POST',
     clientName: 'custodyService',
     paramMapping: { resourceKey: 'context', unitId: 'url' },
+  },
+
+  // Get unit address by account id (根据账户id查询地址)
+  {
+    routeId: 'treasury-address-by-account',
+    name: 'Get Unit Address By Account',
+    inboundPath: '/api/thirdparty/treasury/address-by-account/{cusAccountId}',
+    route: '/api/third-party/get-unit-address/{resourceKey}/{cusAccountId}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context', cusAccountId: 'url' },
+  },
+
+  // ===== Third-Party Enterprise & User Management =====
+
+  // Create custom treasury unit (创建自定义结构unit)
+  {
+    routeId: 'treasury-create-custom',
+    name: 'Create Custom Treasury Unit',
+    inboundPath: '/api/thirdparty/treasury/create-custom',
+    route: '/api/third-party/create-custom/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
+
+  // Register merchant enterprise (三方平台注册企业) — no resourceKey
+  {
+    routeId: 'merchant-register',
+    name: 'Register Merchant',
+    inboundPath: '/api/thirdparty/merchant/register',
+    route: '/api/third-party/merchant/register',
+    method: 'POST',
+    clientName: 'custodyService',
+  },
+
+  // Add user (三方平台添加用户)
+  {
+    routeId: 'user-add',
+    name: 'Add User',
+    inboundPath: '/api/thirdparty/user/add',
+    route: '/api/third-party/user/add/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
+
+  // Initialize board (初始化护卫队)
+  {
+    routeId: 'board-init',
+    name: 'Initialize Board',
+    inboundPath: '/api/thirdparty/board/init',
+    route: '/api/third-party/board/init/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
+
+  // Add coins to unit (给财务单元添加币种/网络)
+  {
+    routeId: 'treasury-add-coins',
+    name: 'Add Coins',
+    inboundPath: '/api/thirdparty/treasury/add-coins',
+    route: '/api/third-party/add-coins/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
+
+  // Update fund control rules (修改资金流控制规则)
+  {
+    routeId: 'treasury-fund-control-update',
+    name: 'Update Fund Control',
+    inboundPath: '/api/thirdparty/treasury/fund-control-update',
+    route: '/api/third-party/fundControl/update/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
+
+  // Update whitelist (白名单设置) — note backend misspells 'whiltlist'
+  {
+    routeId: 'treasury-whiltlist-update',
+    name: 'Update Whitelist',
+    inboundPath: '/api/thirdparty/treasury/whitelist-update',
+    route: '/api/third-party/whiltlist/update/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
   },
 ];
 

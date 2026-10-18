@@ -83,6 +83,7 @@ export interface AdminRepository {
 
 export interface OauthResourceRepository {
   findById(id: string): Promise<OauthResource | null>
+  findByResourceKey(resourceKey: string): Promise<OauthResource | null>
   findByAppId(appId: string): Promise<OauthResource[]>
   findByAppAndResource(appId: string, resourceKey: string): Promise<OauthResource | null>
   upsert(data: { appId: string; resourceKey: string | null; authorizedAt?: Date; expiresAt?: Date }): Promise<OauthResource>

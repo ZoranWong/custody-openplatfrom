@@ -269,7 +269,7 @@ class CregisClientIT {
         void getAuthorizationUrl() {
             GetAuthorizationUrlRequest request = GetAuthorizationUrlRequest.builder()
                     .permissions(List.of("treasury:create", "payout:create"))
-                    .redirectUri("https://example.com/callback")
+                    .callback("https://example.com/callback")
                     .state("test-state-" + System.currentTimeMillis())
                     .build();
 
@@ -290,7 +290,7 @@ class CregisClientIT {
     class TreasuryTests {
 
         @Test
-        @DisplayName("listUnits — 查询财务单元列表")
+        @DisplayName("listTreasuryUnits — 查询财务单元列表")
         void listTreasuryUnits() {
             ListTreasuryUnitsRequest request = ListTreasuryUnitsRequest.builder()
                     .pageNum(1)
@@ -298,7 +298,7 @@ class CregisClientIT {
                     .build();
 
             List<TreasuryUnitResponse> result =
-                    client.treasury().listUnits(AUTHORIZATION_ID, request);
+                    client.treasury().listTreasuryUnits(AUTHORIZATION_ID, request);
 
             assertNotNull(result);
             System.out.println("[Treasury] List result count: " + result.size());
@@ -311,11 +311,11 @@ class CregisClientIT {
         @Test
         @DisplayName("getUnitAddress — 查询财务单元地址 (unitId=1)")
         void getUnitAddress() {
-            GetTreasuryUnitRequest request = GetTreasuryUnitRequest.builder()
+            GetUnitAddressRequest request = GetUnitAddressRequest.builder()
                     .unitId(1L)
                     .build();
 
-            List<Map> result =
+            List<UnitAddressResponse> result =
                     client.treasury().getUnitAddress(AUTHORIZATION_ID, request);
 
             assertNotNull(result);
@@ -334,9 +334,8 @@ class CregisClientIT {
         @Test
         @DisplayName("listTransferOutOrders — 查询出金订单")
         void listTransferOutOrders() {
-            ListPayoutsRequest request = ListPayoutsRequest.builder()
-                    .unitId(1L)
-                    .pageNum(1)
+            QueryRequest request = QueryRequest.builder()
+                    .pageIndex(0)
                     .pageSize(10)
                     .build();
 
@@ -348,21 +347,20 @@ class CregisClientIT {
             if (result.getRecords() != null) {
                 result.getRecords().forEach(order ->
                         System.out.println("  Order: orderId=" + order.getOrderId()
-                                + ", status=" + order.getStatus()
-                                + ", amount=" + order.getAmount()));
+                                + ", orderState=" + order.getOrderState()
+                                + ", totalAmount=" + order.getTotalAmount()));
             }
         }
 
         @Test
         @DisplayName("listTransferInOrders — 查询入金订单")
         void listTransferInOrders() {
-            ListPayoutsRequest request = ListPayoutsRequest.builder()
-                    .unitId(1L)
-                    .pageNum(1)
+            QueryRequest request = QueryRequest.builder()
+                    .pageIndex(0)
                     .pageSize(10)
                     .build();
 
-            PageResponse<PayoutResponse> result =
+            PageResponse<TransferInOrderResponse> result =
                     client.payout().listTransferInOrders(AUTHORIZATION_ID, request);
 
             assertNotNull(result);
@@ -379,10 +377,11 @@ class CregisClientIT {
         @Test
         @DisplayName("listActivities — 查询活动记录")
         void listActivities() {
-            Map<String, Object> request = new LinkedHashMap<>();
-            request.put("pageIndex", 0);
-            request.put("pageSize", 10);
-            request.put("sortFields", "createTime_d");
+            QueryRequest request = QueryRequest.builder()
+                    .pageIndex(0)
+                    .pageSize(10)
+                    .sortFields("createTime_d")
+                    .build();
 
             PageResponse<TransactionResponse> result =
                     client.transaction().listActivities(AUTHORIZATION_ID, request);
@@ -401,12 +400,13 @@ class CregisClientIT {
         @Test
         @DisplayName("listFundRecords — 查询资金流水")
         void listFundRecords() {
-            Map<String, Object> request = new LinkedHashMap<>();
-            request.put("pageIndex", 0);
-            request.put("pageSize", 10);
-            request.put("sortFields", "createTime_d");
+            QueryRequest request = QueryRequest.builder()
+                    .pageIndex(0)
+                    .pageSize(10)
+                    .sortFields("createTime_d")
+                    .build();
 
-            PageResponse<TransactionResponse> result =
+            PageResponse<FundRecordResponse> result =
                     client.transaction().listFundRecords(AUTHORIZATION_ID, request);
 
             assertNotNull(result);
@@ -481,7 +481,7 @@ class CregisClientIT {
 
             // 无效 UUID 应导致签名验证失败或授权查找失败
             assertThrows(Exception.class, () ->
-                    client.treasury().listUnits("invalid-uuid", request));
+                    client.treasury().listTreasuryUnits("invalid-uuid", request));
         }
 
         @Test
@@ -493,7 +493,7 @@ class CregisClientIT {
                     .build();
 
             assertThrows(Exception.class, () ->
-                    client.treasury().listUnits("", request));
+                    client.treasury().listTreasuryUnits("", request));
         }
 
         @Test
@@ -505,7 +505,7 @@ class CregisClientIT {
                     .build();
 
             assertThrows(Exception.class, () ->
-                    client.treasury().listUnits(null, request));
+                    client.treasury().listTreasuryUnits(null, request));
         }
 
         @Test

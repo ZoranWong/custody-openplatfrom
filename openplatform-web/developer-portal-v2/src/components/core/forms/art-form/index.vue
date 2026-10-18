@@ -235,7 +235,7 @@
 
   const emit = defineEmits<FormEmits>()
 
-  const modelValue = defineModel<Record<string, any>>({ default: {} })
+  const modelValue = defineModel<Record<string, any>>({ default: () => ({}) })
   const initialModelValue = ref<Record<string, any>>({})
 
   // 保存组件初始化时的表单快照，用于 reset 时恢复默认值。

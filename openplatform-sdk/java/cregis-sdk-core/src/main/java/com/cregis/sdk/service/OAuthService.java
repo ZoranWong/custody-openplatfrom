@@ -30,16 +30,10 @@ public class OAuthService {
     /**
      * Get authorization URL for OAuth flow.
      * POST /api/thirdparty/oauth/authorizeUrl
-     *
-     * @param request the authorization URL request containing permissions, redirectUri, state
-     * @return AuthorizationResponse with authorizeUrl and expiresIn
      */
     public AuthorizationResponse getAuthorizationUrl(GetAuthorizationUrlRequest request) {
-        log.debug("Getting authorization URL for redirectUri: {}", request.getRedirectUri());
-
         Map<String, Object> business = new LinkedHashMap<>();
         business.put("permissions", request.getPermissions());
-        business.put("redirectUri", request.getRedirectUri());
         business.put("state", request.getState());
         if (request.getCallback() != null) {
             business.put("callback", request.getCallback());
@@ -60,16 +54,10 @@ public class OAuthService {
     /**
      * Get authorization URL asynchronously.
      * POST /api/thirdparty/oauth/authorizeUrl
-     *
-     * @param request the authorization URL request
-     * @return CompletableFuture with AuthorizationResponse
      */
     public CompletableFuture<AuthorizationResponse> getAuthorizationUrlAsync(GetAuthorizationUrlRequest request) {
-        log.debug("Getting authorization URL async for redirectUri: {}", request.getRedirectUri());
-
         Map<String, Object> business = new LinkedHashMap<>();
         business.put("permissions", request.getPermissions());
-        business.put("redirectUri", request.getRedirectUri());
         business.put("state", request.getState());
         if (request.getCallback() != null) {
             business.put("callback", request.getCallback());
@@ -89,9 +77,6 @@ public class OAuthService {
     /**
      * Verify OAuth token.
      * POST /api/thirdparty/oauth/verify
-     *
-     * @param request the verify token request containing oauthToken
-     * @return AuthorizationResponse with authorizeId
      */
     public AuthorizationResponse verifyOAuthToken(VerifyOAuthTokenRequest request) {
         log.debug("Verifying OAuth token");
@@ -111,9 +96,6 @@ public class OAuthService {
     /**
      * Verify OAuth token asynchronously.
      * POST /api/thirdparty/oauth/verify
-     *
-     * @param request the verify token request
-     * @return CompletableFuture with AuthorizationResponse
      */
     public CompletableFuture<AuthorizationResponse> verifyOAuthTokenAsync(VerifyOAuthTokenRequest request) {
         log.debug("Verifying OAuth token async");
