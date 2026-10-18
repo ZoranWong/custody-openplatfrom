@@ -19,6 +19,8 @@ build/
 .env.*.local
 .env.development
 .env.production
+# Allow example templates to be committed
+!**/.env.example
 
 # IDE
 .idea/
