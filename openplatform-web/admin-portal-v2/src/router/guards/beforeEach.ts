@@ -206,12 +206,17 @@ function handleLoginStatus(
   userStore: ReturnType<typeof useUserStore>,
   next: NavigationGuardNext
 ): boolean {
+  // A persisted `isLogin` flag is not enough: if the access token is gone
+  // (cleared/expired storage), treat the session as logged out so we never
+  // fire authenticated requests from the login page.
+  const hasValidSession = userStore.isLogin && !!userStore.accessToken
+
   // 已登录或访问登录页或静态路由，直接放行
-  if (userStore.isLogin || to.path === RoutesAlias.Login || isStaticRoute(to.path)) {
+  if (hasValidSession || to.path === RoutesAlias.Login || isStaticRoute(to.path)) {
     return true
   }
 
-  // 未登录且访问需要权限的页面，跳转到登录页并携带 redirect 参数
+  // 未登录（或会话失效）且访问需要权限的页面，跳转到登录页并携带 redirect 参数
   userStore.logOut()
   next({
     name: 'Login',

@@ -44,8 +44,28 @@ export async function isvAuth(req: ISVAuthRequest, res: Response, next: NextFunc
     return
   }
 
+  // A valid JWT without a userId is not an ISV user token (e.g. an admin token).
+  if (!payload.userId) {
+    res.status(HttpCodes.UNAUTHORIZED).json({
+      code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,
+      message: 'Invalid token: missing user identity'
+    })
+    return
+  }
+
   // Verify user still exists and is active
-  const user = await isvUserService.getUserById(payload.userId)
+  let user
+  try {
+    user = await isvUserService.getUserById(payload.userId)
+  } catch (error) {
+    console.error('[isvAuth] Failed to look up user:', error instanceof Error ? error.message : error)
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
+      message: 'Failed to verify user'
+    })
+    return
+  }
+
   if (!user) {
     res.status(HttpCodes.UNAUTHORIZED).json({
       code: BusinessCodes.AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN,

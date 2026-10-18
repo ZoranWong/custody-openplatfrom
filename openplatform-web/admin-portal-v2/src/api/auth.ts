@@ -27,7 +27,7 @@ export function fetchGetUserInfo() {
 /**
  * Admin 登录
  */
-export function fetchAdminLogin(params: { email: string; password: string }) {
+export function fetchAdminLogin(params: { email: string; password: string; captchaToken?: string }) {
   return request.post<any>({ url: '/admin/auth/login', params })
 }
 
