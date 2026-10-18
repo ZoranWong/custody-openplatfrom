@@ -49,3 +49,16 @@ export function fetchActivateDeveloper(id: string) {
 export function fetchSuspendDeveloper(id: string) {
   return request.post<any>({ url: `/admin/developers/${id}/suspend` })
 }
+
+/** 开发者下的 ISV 用户列表 */
+export function fetchDeveloperUsers(id: string) {
+  return request.get<any>({ url: `/admin/developers/${id}/users` })
+}
+
+/** 重置 ISV 用户登录密码 */
+export function fetchResetDeveloperUserPassword(id: string, userId: string, password: string) {
+  return request.post<any>({
+    url: `/admin/developers/${id}/users/${userId}/reset-password`,
+    params: { password },
+  })
+}

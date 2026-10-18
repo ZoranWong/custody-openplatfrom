@@ -106,6 +106,30 @@
         </ElTable>
       </ElCard>
 
+      <!-- 用户列表 -->
+      <ElCard class="mb-4">
+        <template #header>
+          <span class="font-semibold">登录用户</span>
+        </template>
+        <ElTable :data="users" border>
+          <ElTableColumn type="index" label="序号" width="60" />
+          <ElTableColumn prop="email" label="邮箱" minWidth="200" />
+          <ElTableColumn prop="name" label="姓名" minWidth="120" />
+          <ElTableColumn prop="role" label="角色" width="120" />
+          <ElTableColumn prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <ElTag :type="row.status === 'active' ? 'success' : 'info'">{{ row.status }}</ElTag>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn prop="createdAt" label="创建时间" width="180" />
+          <ElTableColumn label="操作" width="140" fixed="right">
+            <template #default="{ row }">
+              <ElButton type="primary" link @click="handleResetPassword(row)">重置密码</ElButton>
+            </template>
+          </ElTableColumn>
+        </ElTable>
+      </ElCard>
+
       <!-- Applications Card -->
       <ElCard v-if="developer.applications && developer.applications.length > 0" class="mb-4">
         <template #header>
@@ -144,12 +168,15 @@ import {
   fetchSuspendDeveloper,
   fetchBanDeveloper,
   fetchActivateDeveloper,
+  fetchDeveloperUsers,
+  fetchResetDeveloperUserPassword,
 } from '@/api/developer'
 
 const route = useRoute()
 const router = useRouter()
 
 const developer = ref<any>(null)
+const users = ref<any[]>([])
 const loading = ref(false)
 
 const KYB_STATUS_MAP: Record<string, { type: 'warning' | 'success' | 'danger' | 'info'; text: string }> = {
@@ -169,6 +196,7 @@ const loadDeveloper = async () => {
   loading.value = true
   try {
     developer.value = await fetchDeveloperById(id)
+    users.value = (await fetchDeveloperUsers(id)) || []
   } catch {
     // error handled by http interceptor
   } finally {
@@ -226,6 +254,29 @@ const handleActivate = async () => {
     await fetchActivateDeveloper(developer.value.id)
     ElMessage.success('激活成功')
     await loadDeveloper()
+  } catch {
+    // cancelled or error
+  }
+}
+
+const handleResetPassword = async (user: any) => {
+  try {
+    const { value: password } = await ElMessageBox.prompt(
+      `重置用户 ${user.email} 的登录密码`,
+      '重置密码',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        inputType: 'password',
+        inputPlaceholder: '请输入新密码（至少 8 位）',
+        inputValidator: (val) => {
+          if (!val || val.length < 8) return '密码至少 8 位'
+          return true
+        },
+      }
+    )
+    await fetchResetDeveloperUserPassword(developer.value.id, user.id, password)
+    ElMessage.success('密码重置成功')
   } catch {
     // cancelled or error
   }

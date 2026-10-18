@@ -9,6 +9,23 @@ import { getIsvDeveloperRepository, getISVUserRepository, getDeveloperAuditRepos
 import { IsvDeveloper } from '../../repositories/repository.interfaces'
 import { HttpCodes } from '../../enums/http-codes.enum'
 import { BusinessCodes } from '../../enums/business-codes.enum'
+import { isvUserService } from '../../services/isv-user.service'
+
+const MIN_PASSWORD_LENGTH = 8
+
+/**
+ * Validate a new password for reset operations.
+ * Returns an error message, or null when valid.
+ */
+function validateNewPassword(password: unknown): string | null {
+  if (typeof password !== 'string' || password.length === 0) {
+    return 'New password is required'
+  }
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+  }
+  return null
+}
 
 /**
  * GET /admin/developers
@@ -169,6 +186,77 @@ export async function getDeveloperUsers(req: Request, res: Response): Promise<vo
     res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
       code: BusinessCodes.SERVER_INTERNAL,
       message: 'Failed to get developer users',
+    })
+  }
+}
+
+/**
+ * POST /admin/developers/:id/users/:userId/reset-password
+ * Reset an ISV user's login password.
+ */
+export async function resetDeveloperUserPassword(req: Request, res: Response): Promise<void> {
+  try {
+    const { id, userId } = req.params
+    const { password } = req.body as { password?: unknown }
+
+    const validationError = validateNewPassword(password)
+    if (validationError) {
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
+        message: validationError,
+      })
+      return
+    }
+
+    const userRepo = getISVUserRepository()
+    const user = await userRepo.findById(userId)
+
+    if (!user) {
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
+        message: 'User not found',
+      })
+      return
+    }
+
+    // Ensure the user actually belongs to the developer in the path.
+    if (user.isvDeveloperId !== id) {
+      res.status(HttpCodes.BAD_REQUEST).json({
+        code: BusinessCodes.PARAM_REQUIRED,
+        message: 'User does not belong to this developer',
+      })
+      return
+    }
+
+    const updated = await isvUserService.resetPassword(userId, password as string)
+    if (!updated) {
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
+        message: 'User not found',
+      })
+      return
+    }
+
+    // Write audit log
+    const auditRepo = getDeveloperAuditRepository()
+    const adminId = (req as any).adminId || 'unknown'
+    const adminEmail = (req as any).adminEmail || 'unknown'
+    await auditRepo.create({
+      developerId: id,
+      action: 'reset_user_password',
+      reason: `Reset password for user ${user.email}`,
+      adminId,
+      adminEmail,
+      previousStatus: user.status,
+      newStatus: user.status,
+    } as any)
+
+    res.json({ code: 0, message: 'Password reset successfully' })
+  } catch (error) {
+    console.error('Failed to reset user password:', error)
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
+      message: 'Failed to reset user password',
     })
   }
 }

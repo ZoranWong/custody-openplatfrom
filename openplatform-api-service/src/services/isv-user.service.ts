@@ -165,6 +165,23 @@ export const isvUserService = {
         }
         if (passwordHash) updateData.passwordHash = passwordHash
         return repo.update(id, updateData)
+    },
+
+    /**
+     * Reset an ISV user's login password (admin operation).
+     * Returns the updated user (without passwordHash), or null if not found.
+     */
+    async resetPassword(id: string, newPassword: string): Promise<Omit<IsvUser, 'passwordHash'> | null> {
+        const repo = getISVUserRepository()
+        const existing = await repo.findById(id)
+        if (!existing) {
+            return null
+        }
+
+        const passwordHash = bcrypt.hashSync(newPassword, 10)
+        const updated = await repo.update(id, { passwordHash })
+        const { passwordHash: _, ...result } = updated
+        return result
     }
 }
 

@@ -14,6 +14,8 @@ import { validateLogin, validateRefreshToken, validateChangePassword, validateBa
 import {
   getDevelopers,
   getDeveloperById,
+  getDeveloperUsers,
+  resetDeveloperUserPassword,
   approveDeveloper,
   rejectDeveloper,
   activateDeveloper,
@@ -46,11 +48,15 @@ router.get('/developers', adminAuthMiddleware, getDevelopers)
 router.get('/developers/stats', adminAuthMiddleware, getDeveloperStats)
 router.get('/developers/:id', adminAuthMiddleware, getDeveloperById)
 router.get('/developers/:id/audit', adminAuthMiddleware, getDeveloperAudit)
+router.get('/developers/:id/users', adminAuthMiddleware, getDeveloperUsers)
 
 // Mutation routes - need KYB approval permission
 router.post('/developers/:id/approve', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), approveDeveloper)
 router.post('/developers/:id/reject', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), validateBanDeveloper, rejectDeveloper)
 router.post('/developers/:id/ban', adminAuthMiddleware, requirePermission(Resource.ISV_KYB), validateBanDeveloper, banDeveloper)
+
+// Reset an ISV user's login password - account management permission
+router.post('/developers/:id/users/:userId/reset-password', adminAuthMiddleware, requirePermission(Resource.ISV_MANAGE), resetDeveloperUserPassword)
 
 // Status management routes - need ISV status permission
 router.post('/developers/:id/activate', adminAuthMiddleware, requirePermission(Resource.ISV_STATUS), activateDeveloper)
