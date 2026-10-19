@@ -373,8 +373,8 @@ func sortValue(value interface{}) interface{} {
 func sortedJSON(data map[string]interface{}) string {
     var buf bytes.Buffer
     encoder := json.NewEncoder(&buf)
-    // 必须关闭 HTML 转义：json.Marshal 默认把 < > & 转义为 < > &，
-    // 与平台侧 JSON.stringify 的输出不同，会导致 MD5 不一致。
+    // 必须关闭 HTML 转义：json.Marshal 默认把 < > & 写成 JSON 的
+    // < > &，与平台侧 JSON.stringify 的输出不同，会导致 MD5 不一致。
     encoder.SetEscapeHTML(false)
     if err := encoder.Encode(sortValue(data)); err != nil {
         return ""
@@ -630,8 +630,14 @@ function buildIdempotencyKey(req, rawBody) {
     return `${req.headers['x-app-id']}:${event}:${bodyHash}`;
 }
 
-const DONE_TTL = 7 * 24 * 3600; // 已完成：保留 7 天
-const PROCESSING_TTL = 300;     // 处理中：5 分钟后允许重试（防止处理进程崩溃后永久卡死）
+const DONE_TTL = 7 * 24 * 3600; // 已完成（已入队）：保留 7 天
+// 仅用于防止卡死的键无限期占用；恢复依赖本地队列 / 对账，而不是平台重投
+const PROCESSING_TTL = 300;
+
+// 本地持久化队列：以 eventId 为唯一键写入表 / 消息队列，重复写入是幂等的
+const eventQueue = {
+    async enqueueOnce(eventId, payload) { /* INSERT ... ON CONFLICT DO NOTHING / MQ 幂等发送 */ },
+};
 
 async function handleCallback(req, res, rawBody) {
     const eventId = buildIdempotencyKey(req, rawBody);
@@ -639,31 +645,46 @@ async function handleCallback(req, res, rawBody) {
 
     // 原子抢占：只有第一个请求能成功，避免 check-then-act 竞态
     const claimed = await redis.set(key, 'processing', 'NX', 'EX', PROCESSING_TTL);
+
+    try {
+        // 无论是否抢到，都必须先把载荷持久化 / 入队，再返回 2xx。
+        // 抢占者可能在持久化前崩溃；平台的重试会走 !claimed 分支，
+        // 只有这里也入队，才能补上那一次可能丢失的事件。
+        await eventQueue.enqueueOnce(eventId, req.body);
+    } catch (err) {
+        await redis.del(key);
+        throw err; // 未持久化：绝不能返回 2xx
+    }
+
     if (!claimed) {
         const state = await redis.get(key);
-        // 已处理完或正在处理：都直接返回 2xx，避免重复副作用
         return res.status(200).json({
             status: state === 'done' ? 'already_processed' : 'processing',
         });
     }
 
-    try {
-        await processEvent(req.body); // 业务处理仍需可重入
-        await redis.set(key, 'done', 'EX', DONE_TTL);
-    } catch (err) {
-        await redis.del(key); // 失败释放锁，允许后续重投再试
-        throw err;
-    }
-
+    await redis.set(key, 'done', 'EX', DONE_TTL); // done 表示“已入队”
     res.status(200).json({ status: 'ok' });
 }
+
+// 队列消费者异步处理；处理失败在本地重试 / 对账，不依赖平台重投
+async function consumeQueue() {
+    // for (;;) { const job = await eventQueue.take(); await processEvent(job.payload); }
+}
 ```
+
+**平台不会因为 200 而重投：任何「返回 2xx 但未持久化」的路径都会永久丢失事件。** 因此入队失败时绝不能返回 2xx；此时可返回非 2xx，但平台同样不会因 429/5xx 重试（D14），最终仍需本地队列或对账兜底。
 
 ### 2. 快速响应
 
 回调处理应当快速返回，异步处理业务逻辑。注意顺序：**先持久化事件，再返回 2xx**；如果先返回 2xx 再处理，进程崩溃时事件会永久丢失（平台没有持久化重投）：
 
 ```javascript
+// Express：保留原始请求体，供请求体哈希兜底使用（验签仍使用解析后的 req.body）
+app.use(express.json({
+    verify: (req, _res, buf) => { req.rawBody = buf.toString('utf8'); },
+}));
+
 async function handleCallback(req, res) {
     // 先落库 / 入队（幂等键见上一节），确保返回 2xx 后事件不丢
     await eventStore.saveOnce(req.body, buildIdempotencyKey(req, req.rawBody));
@@ -806,3 +827,4 @@ npx serve . -l 3000
 | 1.0 | 2026-04-20 | 初始版本 |
 | 1.1 | 2026-10-19 | 对齐 `CallbackEventType` 与推送实现：请求体改为纯业务数据、补充两条路径的 `X-Event` 差异、修正重试间隔（30s 档位不可达）与限制值 |
 | 1.2 | 2026-10-19 | 按实现修正重试契约：仅网络/超时错误重试，429/5xx 不重试（缺陷 D14）；补充尽力而为的投递保证、幂等竞态与重放防护；修正 Node/Python/Go/Java 验签示例 |
+| 1.3 | 2026-10-19 | 修复幂等示例的事件丢失窗口：所有路径先持久化 / 入队再返回 2xx；补充 Express rawBody 配置示例 |
