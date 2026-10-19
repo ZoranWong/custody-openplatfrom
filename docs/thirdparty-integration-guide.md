@@ -1,733 +1,409 @@
 # Cregis 开放平台 - 第三方开发者接入指南
 
-**Last Updated:** 2026-08-16
-**版本:** v4.1
+> **适用 SDK 版本：** Node SDK 1.1.0 / Java SDK 1.2.0 / Web SDK 1.0.5
+>
+> **接口基数：** 网关对外 22 条业务接口 + 7 条本地接口
+
+本指南面向接入 Cregis 托管能力的第三方平台开发者。第 1–6 章覆盖平台概述、端到端接入流程、开发者入驻、认证与签名、OAuth 授权和通用约定；业务接口参考、回调、错误码详解、SDK 集成与附录见后续章节。
 
 ---
 
 ## 目录
 
-1. [概述](#概述)
-2. [快速开始：完整使用流程](#快速开始完整使用流程)
-3. [集成前准备](#集成前准备)
-4. [接入流程](#接入流程)
-5. [一、授权接口](#一授权接口)
-6. [二、签名算法](#二签名算法)
-7. [三、财务单元管理接口](#三财务单元管理接口)
-8. [四、错误码](#四错误码)
-9. [五、SDK 示例](#五sdk-示例)
-10. [六、SDK 集成指南](#六sdk-集成指南)
-11. [七、注意事项](#七注意事项)
-12. [八、联系方式](#八联系方式)
+1. [概述](#1-概述)
+2. [接入总览](#2-接入总览)
+3. [开发者入驻](#3-开发者入驻)
+4. [认证与签名](#4-认证与签名)
+5. [OAuth 授权流程](#5-oauth-授权流程)
+6. [通用约定](#6-通用约定)
 
 ---
 
-## 概述
+## 1. 概述
 
-Cregis 开放平台为第三方开发者提供银行级加密货币托管能力的 API 接入服务。通过本平台，您可以：
+Cregis 开放平台为银行、支付机构和企业提供银行级的加密货币托管基础设施。第三方平台通过开放平台 API 完成三类业务：创建和管理财务单元（Treasury Unit）、发起出入金与归集、查询资金流水，并通过回调接收状态变更。
 
-- **注册成为开发者**，创建应用获取 API 凭证
-- **订阅服务套餐**，选择适合您业务规模的方案
-- **管理资金单元**，创建、查询和管理 Treasury Unit
-- **处理资金流转**，包括入金、出金、归集、审批等操作
-- **接收回调通知**，实时获取交易状态变更
+平台支持三种业务模式，对应创建应用时的 `appType`：
 
-本文档描述第三方开发者如何接入开放平台，包含完整的注册、订阅、授权流程和接口对接规范。
+| 业务模式 | `appType` | 典型场景 | 账户结构 |
+| --- | --- | --- | --- |
+| Individual Custody（个人托管 / B2B2C） | `custody` | 银行或金融机构为零售用户托管资产 | PRIMARY 主资产钱包、DEPOSIT_IN 入金地址、WITHDRAW_OUT 出金钱包、QUARANTINE 风险隔离钱包 |
+| Crypto Payment（加密支付处理） | `payment` | 电商平台收款与付款 | PRIMARY 结算钱包、PAYIN 收款钱包（pending / received）、PAYOUT 付款钱包、QUARANTINE 风险隔离钱包 |
+| Corporate Treasury（企业资金管理） | `corporate` | 跨境贸易、企业司库 | PRIMARY 主资金钱包、RECEIVABLE 归集钱包（按标签生成一次性地址）、PAYMENT 付款钱包、QUARANTINE 风险隔离钱包 |
 
----
+三类模式的底层能力一致，差异主要体现在账户类型的语义和资金流转路径上。
 
-## 快速开始：完整使用流程
+**本指南覆盖范围：**
 
-### 第一步：注册开发者账号
-
-1. 访问开发者门户：**测试环境** `https://custody-sit.cregis.ae/openplatform/developer/` 或 **生产环境** `https://custody.cregis.ae/openplatform/developer/`
-2. 点击「注册」，填写公司信息（法定名称、注册号、司法管辖区、成立日期、注册地址）和 UBO（实际受益人）信息
-3. 提交注册申请，等待平台管理员审核
-
-### 第二步：审核通过 & 获取体验套餐
-
-1. 管理员审核通过后，您的开发者账号自动激活
-2. 系统自动赠送 **30 天体验套餐**，可立即开始使用平台功能
-3. 登录开发者门户，进入「工作台」查看您的应用和订阅状态
-
-### 第三步：创建应用
-
-1. 登录后进入「应用管理」页面
-2. 点击「创建应用」，选择应用类型：
-   - **企业财务管理** — 适合跨境贸易和大型企业
-   - **支付处理** — 适合电商平台和支付服务商
-   - **个人托管** — 适合银行和金融机构（B2B2C）
-3. 填写应用名称、描述和回调地址
-4. 创建成功后，**立即保存 App ID 和 App Secret**（Secret 仅显示一次）
-
-### 第四步：订阅服务套餐
-
-1. 进入「订阅管理」→「当前订阅」查看套餐状态
-2. 体验期结束后，需要购买正式套餐：
-   - 在可选套餐中选择 BASIC / PROFESSIONAL / ENTERPRISE
-   - 点击「购买」→ 选择计费周期（月付/年付）和支付方式
-   - 提交订单后，进入「订单管理」上传支付凭证
-3. 管理员审核支付凭证后，套餐自动升级，旧套餐剩余天数按比例折算到新套餐
-
-### 第五步：集成 SDK 和 API 调用
-
-1. **安装 SDK**：
-   ```bash
-   npm install @cregis-kit/openplatform-node    # 后端业务调用
-   npm install @cregis-kit/openplatform-webkit  # 前端授权页面
-   ```
-
-2. **初始化 SDK**（使用 App ID 和 App Secret）：
-   ```typescript
-   const sdk = new CregisSDK({
-     baseUrl: 'https://custody-sit.cregis.ae/openplatform/',  // 测试环境
-     appId: 'your-app-id',
-     appSecret: 'your-app-secret',
-   });
-   ```
-
-3. **获取授权 → 创建 Treasury Unit → 业务操作**，详见下方各章节。
-
-### 完整对接流程图
-
-```
-开发者注册 → 审核通过 → 创建应用 → 订阅套餐 → 集成SDK
-    │                                            │
-    └── 获取 App ID/Secret ──────────────────────┘
-                                                    │
-    获取授权 URL → 用户授权 → 获取 authorizeId ─────┤
-                                                    │
-    创建 Treasury Unit → 创建地址 → 入金/出金 ──────┤
-                                                    │
-    提交审批任务 → 接收回调通知 → 完成资金流转 ─────┘
-```
+- 开发者入驻：注册、KYB 审核、登录、创建应用、订阅套餐、凭证管理
+- 认证与签名：Basic 签名与 Resource 签名、`business` 规范化、Node.js / Java 计算示例
+- OAuth 授权：获取授权地址、授权页交互、换取 `authorizeId`、授权回调
+- 通用约定：请求与响应结构、分页、幂等、每日配额、限流、`traceId`、错误码
 
 ---
 
-## 集成前准备
+## 2. 接入总览
 
-在开始对接之前，需要完成以下准备工作：
+### 2.1 端到端流程
 
-### 1. 注册开发者账号
+```
+┌────────────────┐          ┌────────────────────────────┐          ┌──────────────────┐
+│   开发者系统   │          │    Cregis 开放平台网关     │          │  Custody 托管服务 │
+└───────┬────────┘          └─────────────┬──────────────┘          └────────┬─────────┘
+        │                                 │                                  │
+        │ 1. 注册（/api/v1/isv/auth/register）                               │
+        │ 2. KYB 审核（运营侧处理，开发者等待或补件）                        │
+        │ 3. 登录（/api/v1/isv/auth/login）→ Bearer JWT                      │
+        │ 4. 创建应用（/api/v1/isv/applications）→ appId + appSecret         │
+        │ 5. 订阅套餐（/api/v1/isv/packages、/api/v1/isv/orders）            │
+        │    → dailyApiLimit                                                │
+        │────────────────────────────────▶│                                  │
+        │                                 │                                  │
+        │ 6. POST /api/thirdparty/oauth/authorizeUrl（Basic 签名）           │
+        │────────────────────────────────▶│                                  │
+        │◀──────────── authorizeUrl ──────│                                  │
+        │                                 │                                  │
+        │ 7. 前端打开授权页 → 用户登录 → 选择组织 → 确认授权                 │
+        │    授权页 --postMessage--> 你的前端 --> 你的后端                    │
+        │                                 │                                  │
+        │ 8. POST /api/thirdparty/oauth/verify                               │
+        │    { resourceKey, oauthToken }                                     │
+        │────────────────────────────────▶│ 校验 oauthToken，写入授权记录    │
+        │◀────────── { authorizeId } ─────│ 异步推送 authorization.created   │
+        │                                 │                                  │
+        │ 9. POST /api/thirdparty/treasury/...（Resource 签名）              │
+        │    basic{ authorizationId } + business                             │
+        │────────────────────────────────▶│ 验签 + 校验授权 + 每日配额       │
+        │                                 │─────────────────────────────────▶│
+        │                                 │◀──────────── 业务结果 ───────────│
+        │◀─── 业务响应 + x-trace-id ──────│                                  │
+        │                                 │                                  │
+        │ 10. 接收授权回调与业务回调（HMAC-SHA256 验签）                     │
+        │◀═══════════════════════════════════════════════════════════════════│
+```
 
-访问开发者平台完成注册：
+### 2.2 职责划分
 
-| 环境 | 地址 |
-|------|------|
-| **测试环境 (SIT)** | [https://custody-sit.cregis.ae/openplatform/developer/](https://custody-sit.cregis.ae/openplatform/developer/) |
-| **生产环境 (BETA)** | [https://custody.cregis.ae/openplatform/developer/](https://custody.cregis.ae/openplatform/developer/) |
+| 你负责 | 平台负责 |
+| --- | --- |
+| 注册开发者账号并提交真实、完整的企业与 UBO 资料 | 审核 KYB，维护审核状态与审核记录 |
+| 妥善保管 `appSecret`，不写入前端代码或公开仓库 | 按 `appId` 校验签名、应用状态与开发者状态 |
+| 在服务端按规范计算 Basic / Resource 签名 | 校验时间戳容差、nonce 唯一性、签名与 `authorizationId` |
+| 创建应用、订阅套餐、选择业务模式 | 提供授权页、签发 `oauthToken`、维护授权关系 |
+| 在业务系统中维护 `authorizeId` 与自身用户的映射 | 生成并维护 `authorizeId`（授权记录 ID），校验授权有效性 |
+| 接收并验签回调，按业务语义处理幂等 | 推送授权与业务事件，失败时按策略重试 |
+| 控制调用量并处理 429 | 执行每日配额与限流，返回标准错误码 |
+| 记录 `x-trace-id` 便于双方联合排障 | 生成、透传并回写 `traceId` |
 
-### 2. 等待审核
+### 2.3 网关地址
 
-提交注册信息后，等待开放平台管理后台审核通过。审核通过后自动获得 30 天体验套餐。
+| 环境 | 网关地址（baseUrl） |
+| --- | --- |
+| 本地 | `http://127.0.0.1:1000` |
+| SIT | `https://custody-sit.cregis.ae/openplatform` |
+| 生产 | `https://custody.cregis.ae/openplatform` |
 
-### 3. 创建应用
+所有业务接口路径均以 `/api/thirdparty/` 开头，例如 `POST https://custody-sit.cregis.ae/openplatform/api/thirdparty/treasury/list`。SDK 会自动拼接 `/api/thirdparty/...`，`baseUrl` 末尾不要带斜杠。
 
-审核通过后，登录开发者平台，在「应用管理」中创建应用。填写应用名称、描述、回调地址等信息。
+> 注意：`/api/third-party/` 是网关转发到 Custody 后端时使用的上游路径，不是开发者调用的路径。开发者只使用 `/api/thirdparty/`。
 
-### 4. 保存凭证
+### 2.4 接口地图（节选）
 
-应用创建成功后，保存系统生成的 `appId` 和 `appSecret`。这两个值是调用开放平台接口的认证凭证，请妥善保管：
+| 领域 | 接口 | 认证 |
+| --- | --- | --- |
+| 财务单元 | `POST /api/thirdparty/treasury/create`、`POST /api/thirdparty/treasury/create-custom`、`POST /api/thirdparty/treasury/list` | Resource |
+| 地址与账户 | `POST /api/thirdparty/treasury/address`、`POST /api/thirdparty/treasury/address-by-account/{cusAccountId}`、`POST /api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number}`、`POST /api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number}`、`POST /api/thirdparty/treasury/list-unit-account/{unitId}` | Resource |
+| 出金 / 归集 / 审批 | `POST /api/thirdparty/treasury/payout`、`POST /api/thirdparty/treasury/pooling`、`POST /api/thirdparty/treasury/submit-task/{taskId}` | Resource |
+| 交易查询 | `POST /api/thirdparty/treasury/activities`、`POST /api/thirdparty/treasury/transfer-out-orders`、`POST /api/thirdparty/treasury/transfer-in-orders`、`POST /api/thirdparty/treasury/fund-records`、`POST /api/thirdparty/treasury/unit-fund-records` | Resource |
+| 商户 / 用户 / Board | `POST /api/thirdparty/merchant/register`、`POST /api/thirdparty/user/add`、`POST /api/thirdparty/board/init` | `merchant/register` 用 Basic，其余用 Resource |
+| OAuth | `POST /api/thirdparty/oauth/authorizeUrl`、`POST /api/thirdparty/oauth/token`、`POST /api/thirdparty/oauth/verify` | Basic 签名；`verify` 无需签名 |
 
-- **appId**：应用唯一标识，用于接口调用时的身份标识
-- **appSecret**：应用密钥，用于签名计算，**切勿泄露到客户端**
-
-### 5. 订阅套餐
-
-体验期结束后，在「订阅管理」中选择并购买正式套餐。
-
-### 6. 下载 SDK
-
-根据开发需求下载对应的 SDK：
-
-| SDK | 用途 | 安装方式 |
-|-----|------|---------|
-| **Node.js SDK** | 后端业务接口调用 | `npm install @cregis-kit/openplatform-node` |
-| **Web SDK** | 前端授权页面嵌入 | `npm install @cregis-kit/openplatform-webkit` |
-
-> **注意：**
-> - **测试环境 (SIT)** 网关地址为 `https://custody-sit.cregis.ae/openplatform/`
-> - **生产环境 (BETA)** 网关地址为 `https://custody.cregis.ae/openplatform/`
-> - 正式上线时请替换为生产环境地址。
+上表为节选，各接口的完整参数、请求 / 响应示例与业务码见第 7–13 章。
 
 ---
 
-## 接入流程
+## 3. 开发者入驻
 
-### 整体交互流程
-
-```mermaid
-sequenceDiagram
-    participant BE as 三方平台后端
-    participant CS as Custody 服务
-    participant FE as 三方平台前端
-    participant OP as 开放平台
-    participant AuthPage as 授权页面
-    participant DB as 数据库
-
-    rect rgb(240, 248, 255)
-        Note over BE,OP: 阶段一：获取授权 URL
-        BE->>CS: 1. getAuthorizationUrl()
-        CS->>OP: 2. POST /oauth/authorizeUrl
-        OP->>DB: 3. 查询应用配置
-        DB-->>OP: 4. appName, appLogoUrl
-        OP->>OP: 5. 生成 appToken (JWT)
-        OP-->>CS: 6. authorizeUrl
-        CS-->>BE: 7. authorizeUrl
-    end
-
-    rect rgb(255, 250, 240)
-        Note over FE,OP: 阶段二：发起授权
-        BE-->>FE: 8. 返回 authorizeUrl
-        FE->>AuthPage: 9. 打开授权页面
-        AuthPage->>OP: 10. 用户登录授权
-        OP-->>AuthPage: 11. oauthToken
-        AuthPage-->>FE: 12. postMessage(oauthToken)
-        FE-->>BE: 13. 回调 oauthToken
-        BE->>CS: 14. verifyOAuthToken(oauthToken)
-        CS->>OP: 15. POST /oauth/verify
-        OP->>OP: 16. 验证 JWT + 存储
-        OP-->>CS: 17. authorizeId
-        CS-->>BE: 18. authorizeId
-    end
-
-    rect rgb(240, 255, 240)
-        Note over BE,DB: 阶段三：业务调用
-        BE->>CS: 19. createTreasuryUnit(authorizeId, ...)
-        CS->>OP: 20. POST /api/thirdparty/treasury/create
-        OP->>OP: 21. 验证签名 + authorizeId
-        OP->>DB: 22. 业务操作
-        DB-->>OP: 23. 操作结果
-        OP-->>CS: 24. 业务响应
-        CS-->>BE: 25. 返回结果
-    end
-```
-
-### 接入流程说明
-
-| 阶段 | 说明 |
-|------|------|
-| 获取授权 URL | 三方平台后端调用 Custody 服务 `getAuthorizationUrl` 接口，Custody 服务内部调用开放平台 `/oauth/authorizeUrl` 获取授权页面 URL |
-| 发起授权 | 三方平台前端打开授权页面 → 用户登录授权 → 授权页面通过 postMessage 返回 oauthToken → 三方平台后端用 oauthToken 调用 Custody 服务 `verifyOAuthToken` 接口换取 authorizeId |
-| 业务调用 | 三方平台后端通过 Custody 服务调用开放平台业务接口（使用 authorizeId） |
-
----
-
-## 一、授权接口
-
-### 1.1 获取授权 URL
-
-用于第三方平台获取授权页面 URL。
-
-**请求**
+入驻流程全部通过开发者门户或 `/api/v1/isv/*` 接口完成。除注册和登录外，`/api/v1/isv/*` 接口都需要在请求头携带登录返回的 Bearer JWT：
 
 ```
-POST /api/thirdparty/oauth/authorizeUrl
-Content-Type: application/json
+Authorization: Bearer <accessToken>
 ```
+
+### 3.1 注册
+
+**POST** `/api/v1/isv/auth/register` · 无需认证
 
 **请求体**
 
 ```json
 {
-  "basic": {
-    "appId": "550e8400-e29b-41d4-a716-446655440000",
-    "timestamp": 1742947200,
-    "nonce": "abc123def456",
-    "signature": "md5-hash-signature"
-  },
-  "business": {
-    "permissions": ["read", "write"],
-    "state": "custom-state",
-    "callback": "https://your-app.com/callback",
-    "token": "developer-generated-token-xyz"
-  }
+  "email": "dev@example.com",
+  "password": "Str0ngPassw0rd",
+  "legalName": "Example Trading Ltd.",
+  "registrationNumber": "91310000XXXXXXXXXX",
+  "jurisdiction": "CN",
+  "dateOfIncorporation": "2020-01-15",
+  "registeredAddress": "Shanghai, China",
+  "website": "https://example.com",
+  "uboInfo": [
+    {
+      "name": "Zhang San",
+      "nationality": "CN",
+      "ownershipPercentage": 60,
+      "position": "Director",
+      "documentUrl": "https://example.com/ubo-id.pdf"
+    }
+  ]
 }
 ```
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| permissions | string[] | 是 | 权限列表 |
-| state | string | 是 | 防 CSRF 状态 |
-| callback | string | 否 | 授权成功后的回调通知地址 |
-| token | string | 否 | 开发者生成的 token，用于回调时身份映射 |
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `email` | string | 是 | 登录邮箱，全局唯一 |
+| `password` | string | 是 | 至少 6 位 |
+| `legalName` | string | 是 | 企业法定名称 |
+| `registrationNumber` | string | 否 | 统一社会信用代码或注册号 |
+| `jurisdiction` | string | 否 | 注册地国家 / 地区 |
+| `dateOfIncorporation` | string | 否 | 成立日期（`YYYY-MM-DD`） |
+| `registeredAddress` | string | 否 | 注册地址 |
+| `website` | string | 否 | 企业官网 |
+| `uboInfo` | array | 是 | 至少一位受益所有人（UBO）；每项含 `name`、`nationality`、`ownershipPercentage`、`position`，可选 `documentUrl` |
 
 **响应**
 
 ```json
 {
   "code": 0,
-  "message": "Success",
+  "message": "Registration successful",
   "data": {
-    "authorizeUrl": "https://custody.cregis.ae/openplatform/auth/authorize?appId=xxx&appToken=yyy&appName=zzz&permissions=...&state=...",
-    "expiresIn": 7200
+    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+    "user": {
+      "id": "0f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f",
+      "isvDeveloperId": "9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d",
+      "email": "dev@example.com",
+      "name": "Example Trading Ltd.",
+      "role": "owner",
+      "status": "active"
+    }
   }
 }
 ```
 
-**URL 参数说明**
+注册成功后：
 
-| 参数 | 来源 | 说明 |
-|------|------|------|
-| appId | 请求传入 | 应用标识 |
-| appToken | 后端生成 | JWT token (内含 appId + callback + token) |
-| appName | 平台配置 | 应用名称（不可伪造） |
-| permissions | 请求 + 平台校验 | 权限列表 |
-| state | 请求传入 | 防 CSRF 状态 |
+- 开发者记录的 `kybStatus` 初始为 `pending`，需要等待平台审核。
+- 注册响应已包含 `accessToken`，可立即登录开发者后台查看资料，但** KYB 未通过前不能创建应用**。
+- 邮箱重复注册返回 `40902`（Conflict）。
 
----
+### 3.2 KYB 审核
 
-### 1.2 验证授权并存储
+KYB（Know Your Business）是平台侧的合规审核，**由平台运营管理员操作，开发者不需要也不会调用审核接口**。审核状态流转如下：
 
-用于 Custody 服务验证 Token 并存储授权信息。**此接口由 Custody 服务在用户授权完成后内部调用**，无需第三方开发者直接调用。
+| `kybStatus` | 含义 | 开发者动作 |
+| --- | --- | --- |
+| `pending` | 待审核 | 等待 |
+| `pending_info` | 需补充材料 | 按邮件 / 工单指引补充材料后等待复审 |
+| `approved` | 审核通过 | 可创建应用并正式接入 |
+| `rejected` | 审核拒绝 | 查看拒绝原因，必要时重新提交入驻申请 |
 
-> 注意：此接口**无需签名认证**，由 Custody 服务内部使用。
+运营侧使用的接口（仅列出以便理解流程，开发者无权限调用）：
 
-**请求**
+| 接口 | 说明 |
+| --- | --- |
+| `POST /api/v1/admin/kyb/:id/approve` | 审核通过 |
+| `POST /api/v1/admin/kyb/:id/reject` | 审核拒绝，请求体必须包含 `comment`（拒绝原因） |
+| `POST /api/v1/admin/kyb/:id/request-info` | 要求补充材料，状态变为 `pending_info` |
 
-```
-POST /api/thirdparty/oauth/verify
-Content-Type: application/json
-```
+KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATOR_DENIED`，`KYB approval required before creating applications`）。
 
-**请求体**
+### 3.3 登录
 
-```json
-{
-  "resourceKey": "treasury_unit_123",
-  "oauthToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+登录需要先完成滑块验证码，流程如下：
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| resourceKey | string | 是 | 资源标识（如财务单元 ID） |
-| oauthToken | string | 是 | OAuth 授权 token（JWT 格式，内含 callback 和 token） |
+1. `GET /api/v1/captcha/generate` 获取 `captchaId`（验证码挑战 5 分钟内有效）。
+2. 用户在页面上完成滑块，前端调用 `POST /api/v1/captcha/verify`，请求体 `{ "captchaId": "...", "x": 123 }`，返回 `captchaToken`。
+3. 调用登录接口时携带 `captchaToken`。
 
-**回调通知**
-
-验证成功后，开放平台会根据 JWT 中的 callback 参数或应用的默认回调地址发送通知：
+**POST** `/api/v1/isv/auth/login`
 
 ```json
 {
-  "authorizeId": "uuid-authorization-id",
-  "token": "developer-generated-token-xyz"
+  "email": "dev@example.com",
+  "password": "Str0ngPassw0rd",
+  "captchaToken": "<captcha verify 返回的 token>"
 }
 ```
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| authorizeId | string | 授权记录 ID，用于后续业务接口的 authorizationId |
-| token | string | 开发者提供的身份映射 token（用于关联开发者系统的用户身份） |
 
 **响应**
 
 ```json
 {
   "code": 0,
-  "message": "Success",
+  "message": "Login successful",
   "data": {
-    "authorizeId": "uuid-authorization-id"
+    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+    "user": {
+      "id": "0f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f",
+      "isvDeveloperId": "9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d",
+      "email": "dev@example.com",
+      "role": "owner",
+      "status": "active"
+    }
   }
 }
 ```
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| authorizeId | string | 授权记录 ID，用于后续业务接口的 authorizationId |
+| 错误码 | 场景 |
+| --- | --- |
+| `40002` | 未携带 `captchaToken`（`Captcha verification required`） |
+| `40003` | `captchaToken` 无效或已过期 |
+| `40110` | 邮箱或密码错误、账号被停用 |
 
----
+`accessToken` 是访问开发者后台接口（`/api/v1/isv/*`）的 Bearer JWT，默认有效期 24 小时（可由平台通过 `ISV_JWT_EXPIRES_IN` 配置）。注销接口 `POST /api/v1/isv/auth/logout` 仅作客户端登出提示，请自行丢弃 token。该 JWT **不是**业务接口的凭证，业务接口使用第 4 章的签名机制。
 
-### 1.3 回调通知机制
+### 3.4 创建应用
 
-开放平台通过回调通知机制向开发者服务器推送事件通知，包括授权状态变更、交易状态变更、任务审核结果等。
+**POST** `/api/v1/isv/applications` · `Authorization: Bearer <accessToken>` · 仅 owner
 
-#### 回调地址配置
-
-开发者可以在创建应用时配置回调地址（Callback URL），也可在授权时通过 `callback` 参数指定。
-
-**配置优先级：**
-1. 授权请求中的 `callback` 参数（一次性回调）
-2. 应用默认的回调地址（持续订阅）
-
-#### 回调推送格式
-
-回调通过 HTTP POST 请求发送到开发者的回调地址：
-
-**请求头：**
-
-| 头部字段 | 必填 | 说明 | 示例 |
-|----------|------|------|------|
-| `Content-Type` | 是 | 内容类型 | `application/json` |
-| `X-Timestamp` | 是 | 推送时间戳（毫秒） | `1745220600000` |
-| `X-Signature` | 是 | HMAC-SHA256 签名 | `sha256=xxxxxx...` |
-| `X-Event` | 否 | 事件类型 | `authorization.created` |
-
-**请求体：**
+**请求体**
 
 ```json
 {
-  "appId": "550e8400-e29b-41d4-a716-446655440000",
-  "event": "authorization.created",
-  "timestamp": "1745220600000",
-  "data": {
-    "authorizeId": "123e4567-e89b-12d3-a456-426614174000",
-    "oauthToken": "developer-provided-token"
-  }
-}
-```
-
-#### 签名验证
-
-回调使用 HMAC-SHA256 算法进行签名验证：
-
-**签名公式：**
-
-```
-signData = appId + "." + [event] + "." + timestamp
-signature = HMAC-SHA256(appSecret, signData)
-```
-
-**示例（Node.js）：**
-
-```javascript
-const crypto = require('crypto');
-
-function verifyCallbackSignature(appSecret, appId, event, timestamp, signature) {
-    // 构建签名数据
-    let signData = appId;
-    if (event) {
-        signData += '.' + event;
-    }
-    signData += '.' + timestamp;
-
-    // 计算 HMAC-SHA256
-    const expected = crypto
-        .createHmac('sha256', appSecret)
-        .update(signData)
-        .digest('hex');
-
-    // 提取请求中的签名
-    const requestSignature = signature.replace('sha256=', '');
-
-    // 常数时间比较
-    return crypto.timingSafeEqual(
-        Buffer.from(expected),
-        Buffer.from(requestSignature)
-    );
-}
-
-// 使用示例
-app.post('/callback', (req, res) => {
-    const signature = req.headers['x-signature'];
-    const timestamp = req.headers['x-timestamp'];
-    const event = req.headers['x-event'];
-    const appId = req.body.appId;
-
-    const appSecret = getAppSecret(appId);
-    if (!verifyCallbackSignature(appSecret, appId, event, timestamp, signature)) {
-        return res.status(401).json({ error: 'Invalid signature' });
-    }
-
-    // 处理回调
-    const { event: eventType, data } = req.body;
-    // ...
-});
-```
-
-#### 事件类型
-
-| 类别 | 事件名称 | 说明 |
-|------|----------|------|
-| 授权 | `authorization.created` | 授权创建成功 |
-| | `authorization.revoked` | 授权被撤销 |
-| | `authorization.expired` | 授权已过期 |
-| 交易 | `transaction.submitted` | 交易已提交 |
-| | `transaction.confirming` | 交易确认中 |
-| | `transaction.completed` | 交易已完成 |
-| | `transaction.failed` | 交易失败 |
-| 任务 | `task.approved` | 任务审批通过 |
-| | `task.rejected` | 任务审批被拒绝 |
-
-#### 重试机制
-
-回调推送失败时，开放平台会自动重试：
-
-| 参数 | 值 |
-|------|-----|
-| 最大重试次数 | 3 次（总共 4 次尝试） |
-| 重试间隔 | 0s, 1s, 5s, 30s |
-| 单次请求超时 | 30 秒 |
-
-**会重试的情况：**
-- HTTP 状态码 429（限流）
-- HTTP 状态码 5xx（服务器错误）
-- 网络错误（超时、连接失败等）
-
-**不会重试的情况：**
-- HTTP 状态码 2xx（成功）
-- HTTP 状态码 4xx（客户端错误）
-
-#### 最佳实践
-
-**1. 幂等处理：**
-
-```javascript
-app.post('/callback', (req, res) => {
-    const eventId = req.headers['x-event'] + '-' + req.body.timestamp;
-
-    // 检查是否已处理
-    if (processedEvents.has(eventId)) {
-        return res.status(200).json({ status: 'already_processed' });
-    }
-
-    // 标记为处理中
-    processedEvents.add(eventId);
-
-    // 异步处理业务逻辑
-    processEvent(req.body).catch(err => {
-        processedEvents.delete(eventId); // 失败时删除标记，允许重试
-        console.error('Failed to process event:', err);
-    });
-
-    res.status(200).json({ status: 'ok' });
-});
-```
-
-**2. 快速响应：**
-
-回调处理应快速返回，异步执行业务逻辑：
-
-```javascript
-app.post('/callback', (req, res) => {
-    res.status(200).json({ status: 'ok' });
-
-    setImmediate(() => {
-        processEvent(req.body).catch(err => {
-            console.error('Callback processing failed:', err);
-        });
-    });
-});
-```
-
----
-
-## 二、签名算法
-
-### 2.1 签名类型
-
-开放平台使用两种签名算法：
-
-| 签名类型 | 适用接口 | 签名字符串 |
-|----------|----------|------------|
-| **Basic 签名** | `/oauth/*` | `appId + timestamp + nonce + md5(business)` |
-| **Resource 签名** | `/thirdparty/*` | `appId + authorizationId + timestamp + nonce + md5(business)` |
-
-### 2.2 Basic 签名计算步骤
-
-适用于 `/oauth/*` 接口。
-
-```
-1. 对 business JSON 按 key 排序后序列化:
-   JSON.stringify(sortKeys(business))
-
-2. 计算 business 的 MD5:
-   md5 = MD5(序列化后的 JSON)
-
-3. 拼接签名字符串:
-   signString = appId + timestamp + nonce + md5(business)
-
-4. 使用 appSecret 签名:
-   signature = MD5(appSecret + signString)
-
-5. 将签名结果放入 basic.signature 字段
-```
-
-**公式：**
-```
-signature = MD5(appSecret + appId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))
-```
-
-### 2.3 Resource 签名计算步骤
-
-适用于 `/thirdparty/*` 接口。
-
-```
-1. 对 business JSON 按 key 排序后序列化:
-   JSON.stringify(sortKeys(business))
-
-2. 计算 business 的 MD5:
-   md5 = MD5(序列化后的 JSON)
-
-3. 拼接签名字符串:
-   signString = appId + authorizationId + timestamp + nonce + md5(business)
-
-4. 使用 appSecret 签名:
-   signature = MD5(appSecret + signString)
-
-5. 将签名结果放入 basic.signature 字段
-```
-
-**公式：**
-```
-signature = MD5(appSecret + appId + authorizationId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))
-```
-
-### 2.4 签名示例 (Basic 签名)
-
-假设：
-
-- `appId` = `550e8400-e29b-41d4-a716-446655440000`
-- `appSecret` = `secret123`
-- `timestamp` = `1742947200`
-- `nonce` = `abc123def456`
-- `business` = `{"permissions":["read","write"],"state":"custom-state","callback":"https://example.com/callback","token":"xyz123"}`
-
-计算过程：
-
-```javascript
-// 1. business JSON (已排序)
-businessJson = '{"permissions":["read","write"],"state":"custom-state","callback":"https://example.com/callback","token":"xyz123"}'
-
-// 2. business MD5
-businessMd5 = MD5('{"permissions":["read","write"],"state":"custom-state","callback":"https://example.com/callback","token":"xyz123"}')
-
-// 3. 签名字符串 (Basic 签名不包含 authorizationId)
-signString = "550e8400-e29b-41d4-a716-446655440000" +
-             "1742947200" +
-             "abc123def456" +
-             businessMd5
-
-// 4. 最终签名
-signature = MD5("secret123" + signString)
-```
-
-### 2.5 business 空值处理规则
-
-当 `business` 为 `null`、`undefined` 或空对象 `{}` 时，统一视为空对象 `{}` 进行签名计算：
-
-```
-1. 归一化: if (business == null || Object.keys(business).length === 0) business = {}
-2. 排序序列化: JSON.stringify(sortKeys(business)) → "{}"
-3. 计算 MD5: MD5("{}") = e3d974191d03905c53f39002987cc56f
-```
-
-**典型场景：** 查询类接口（如 `/api/thirdparty/treasury/list`）通常不传业务参数，`business` 传 `{}` 即可。
-
-**重要：** 客户端与服务端必须使用相同的空值处理逻辑，否则签名校验会失败。
-
-### 2.6 签名验证规则
-
-- **时间戳容差**: 5 分钟（300 秒）
-- **Nonce TTL**: 1 小时（3600 秒），防重放
-- **appId 格式**: 必须是有效的 UUID
-- **authorizationId 格式**: 必须是有效的 UUID（Resource 签名）
-
-### 2.6 请求认证结构
-
-开放平台 API 将开发者请求分为两类，分别使用不同的认证结构：
-
-#### BasicInfo - 基础认证结构
-
-用于不涉及资源操作的接口（如 OAuth 接口）：
-
-| 接口 | 用途 |
-|------|------|
-| `POST /oauth/token` | 获取访问令牌 |
-| `POST /oauth/authorizeUrl` | 获取授权 URL |
-| `POST /oauth/verify` | 验证 OAuth Token |
-
-**结构定义：**
-
-```json
-{
-  "basic": {
-    "appId": "550e8400-e29b-41d4-a716-446655440000",
-    "timestamp": 1742947200,
-    "nonce": "abc123def456",
-    "signature": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
-  }
+  "appName": "Example Treasury",
+  "appDescription": "Enterprise treasury integration",
+  "appType": "corporate",
+  "callbackUrl": "https://api.example.com/cregis/callback"
 }
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| appId | string | 是 | 应用标识，必须是有效的 UUID 格式 |
-| timestamp | number | 是 | Unix 时间戳（秒），必须在当前时间 ±5 分钟内 |
-| nonce | string | 是 | 随机字符串，用于防重放，不可为空 |
-| signature | string | 是 | MD5 签名，32 位十六进制字符串 |
+| --- | --- | --- | --- |
+| `appName` | string | 是 | 应用名称，展示在授权页 |
+| `appDescription` | string | 否 | 应用描述 |
+| `appType` | string | 是 | `corporate`（企业资金管理）/ `payment`（加密支付）/ `custody`（个人托管） |
+| `callbackUrl` | string | 否 | 默认回调地址，接收授权与业务事件；生产环境必须为 HTTPS |
 
-#### BasicInfoWithAuthorization - 资源认证结构
-
-用于涉及资源操作的接口（所有 `/thirdparty/*` 接口）：
-
-**结构定义：**
+**响应**（HTTP 201）
 
 ```json
 {
-  "basic": {
-    "appId": "550e8400-e29b-41d4-a716-446655440000",
-    "timestamp": 1742947200,
-    "nonce": "abc123def456",
-    "signature": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
-    "authorizationId": "123e4567-e89b-12d3-a456-426614174000"
+  "code": 0,
+  "message": "Application created successfully",
+  "data": {
+    "application": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "isvDeveloperId": "9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d",
+      "appName": "Example Treasury",
+      "appDescription": "Enterprise treasury integration",
+      "appType": "corporate",
+      "callbackUrl": "https://api.example.com/cregis/callback",
+      "appSecret": "sk_1f2e3d4c5b6a79880a1b2c3d4e5f6789",
+      "status": "active",
+      "createdAt": "2026-10-19T08:00:00.000Z"
+    }
   }
 }
 ```
 
+关键说明：
+
+- 响应中的 `application.id` 就是后续签名使用的 **`appId`**（UUID 格式）。
+- `appSecret` 是敏感凭证，请立即保存到服务端密钥管理系统。创建应用、重置密钥的响应会返回它；应用列表接口不会返回；应用详情接口返回的是应用记录，请勿在浏览器或日志中暴露。
+- 创建应用要求当前开发者 `kybStatus === approved`，且登录用户角色为 `owner`。
+- 应用默认状态为 `active`；状态非 `active` 时，OAuth 与业务接口都会被拒绝。
+
+应用创建后可通过以下接口查看：
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/v1/isv/applications` | 当前用户可访问的应用列表（不含 `appSecret`） |
+| `GET /api/v1/isv/applications/:id` | 应用详情 |
+| `PUT /api/v1/isv/applications/:id` | 修改 `appName`、`appDescription`、`callbackUrl`（响应不含 `appSecret`） |
+
+### 3.5 订阅套餐
+
+业务接口的每日调用配额来自订阅套餐的 `dailyApiLimit`。
+
+**GET** `/api/v1/isv/packages` · 返回当前可售套餐数组
+
+**POST** `/api/v1/isv/orders` · 创建订阅订单
+
+```json
+{
+  "packageId": "b6f1c2d3-e4a5-4b6c-8d7e-9f0a1b2c3d4e",
+  "period": "monthly",
+  "paymentMethod": "bank_transfer"
+}
+```
+
 | 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| appId | string | 是 | 应用标识，必须是有效的 UUID 格式 |
-| timestamp | number | 是 | Unix 时间戳（秒），必须在当前时间 ±5 分钟内 |
-| nonce | string | 是 | 随机字符串，用于防重放，不可为空 |
-| signature | string | 是 | MD5 签名，32 位十六进制字符串 |
-| authorizationId | string | 是 | 授权标识，必须是有效的 UUID 格式，用于绑定签名与特定授权资源 |
+| --- | --- | --- | --- |
+| `packageId` | string | 是 | 套餐 ID，来自 `GET /api/v1/isv/packages` |
+| `period` | string | 是 | `monthly` 或 `yearly` |
+| `paymentMethod` | string | 否 | 默认 `bank_transfer` |
 
-**authorizationId 说明：**
+订单创建后状态为 `pending`，平台确认付款后开通订阅。可通过以下接口确认订阅状态：
 
-- 开发者发起资源操作前，需要先通过 OAuth 流程获取授权
-- 授权成功后，开放平台会返回 `authorizeId`（即 authorizationId）
-- 签名与 authorizationId 绑定，防止签名被用于其他授权资源
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/v1/isv/orders/:id` | 订单详情（`status`、`paidAt`、`confirmedAt`） |
+| `GET /api/v1/isv/subscriptions` | 订阅历史（分页：`page`、`pageSize`） |
+| `GET /api/v1/isv/subscription/current` | 当前生效订阅，含当日用量 `dailyApiUsage` 与套餐信息 |
 
-#### 验证器使用说明
+套餐的 `dailyApiLimit` 字段通过 `GET /api/v1/isv/packages` 获取，它决定每日可调用的业务接口次数（见 6.4）；另有独立的限流档位（见 6.5）。未确认订阅前请勿发起生产调用。
 
-服务端使用继承模式的验证器：
+### 3.6 凭证安全
 
+| 凭证 | 用途 | 存放位置 |
+| --- | --- | --- |
+| `appId` | 公开标识，放在 `basic.appId` | 可出现在前端授权 URL 中 |
+| `appSecret` | 计算签名，等价于密钥 | **只能存放在服务端**，不得下发到浏览器、移动端或公开仓库 |
+| 登录 `accessToken` | 访问开发者后台接口 | 服务端会话或安全存储，默认 24 小时有效 |
+| `authorizeId` | 业务接口的授权标识 | 服务端保存，与自身用户 / 企业映射 |
+
+**重置密钥**
+
+**POST** `/api/v1/isv/applications/:id/regenerate-secret` · `Authorization: Bearer <accessToken>` · 仅 owner
+
+```json
+{
+  "code": 0,
+  "message": "Secret regenerated successfully",
+  "data": {
+    "applicationSecret": "sk_9f8e7d6c5b4a39281706f5e4d3c2b1a0"
+  }
+}
 ```
-BasicValidator          → 验证 BasicInfo（OAuth 接口）
-└─ ResourceValidator   → 验证 BasicInfoWithAuthorization（资源操作接口）
-```
 
-| 验证器 | 验证字段 | 适用接口 |
-|--------|---------|---------|
-| BasicValidator | appId, timestamp, nonce, signature | /oauth/* |
-| ResourceValidator | BasicInfo + authorizationId | `/thirdparty/*` |
+重置后旧 `appSecret` 立即失效，所有使用旧密钥的签名请求都会返回 `40102`。请在低峰期操作，并同步更新所有服务实例的环境变量。
+
+**泄露处置建议**
+
+1. 立即调用 `regenerate-secret` 吊销旧密钥。
+2. 检查 API 日志（`GET /api/v1/api-logs`）中是否存在异常调用、异常 IP 或异常 `apiName`。
+3. 若出现未授权操作，暂停应用（平台侧可将应用置为 `suspended`）并联系平台安全团队。
+4. 排查泄露渠道（前端打包、日志打印、仓库提交记录），补齐密钥管理流程。
 
 ---
 
-## 三、财务单元管理接口
+## 4. 认证与签名
 
-### 3.1 接口列表 (Third-Party Treasury Unit Management)
+开放平台**不使用** Bearer Token 调用业务接口。除 `oauth/verify`（凭 `oauthToken` 自证）外，开发者调用的所有接口都要求在请求体 `basic` 中携带签名，签名覆盖 `business` 的规范化结果。平台提供两种签名：
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /api/thirdparty/treasury/create | 创建财务单元 |
-| POST | /api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number} | 创建财务单元地址 |
-| POST | /api/thirdparty/treasury/list | 查询财务单元列表 |
-| POST | /api/thirdparty/treasury/list-unit-account/{unitId} | 查询财务单元账户列表 |
-| POST | /api/thirdparty/treasury/address | 获取财务单元地址 |
-| POST | /api/thirdparty/treasury/pooling | 发起归集请求 |
-| POST | /api/thirdparty/treasury/payout | 出金操作 |
-| POST | /api/thirdparty/treasury/submit-task/{taskId} | 提交任务审批 |
-| POST | /api/thirdparty/treasury/activities | 查询活动记录 |
-| POST | /api/thirdparty/treasury/transfer-out-orders | 查询出金订单 |
-| POST | /api/thirdparty/treasury/transfer-in-orders | 查询入金订单 |
-| POST | /api/thirdparty/treasury/fund-records | 查询资金流水（账户级） |
-| POST | /api/thirdparty/treasury/unit-fund-records | 查询资金流水（财务单元级） |
+| 签名类型 | 用途 | 使用接口 | 签名串（`MD5(...)` 内层） |
+| --- | --- | --- | --- |
+| **Basic 签名** | 不涉及授权资源的操作 | `oauth/authorizeUrl`、`oauth/verify`、`oauth/token`；`merchant/register`（无 `authorizationId`） | `appSecret + appId + timestamp + nonce + md5(business)` |
+| **Resource 签名** | 绑定授权资源的业务操作 | 除 `merchant/register` 外的全部 `/api/thirdparty/*` 转发接口 | `appSecret + appId + authorizationId + timestamp + nonce + md5(business)` |
 
-### 3.2 通用请求格式
+两者的唯一区别是 Resource 签名在 `appId` 之后插入了 `authorizationId`。`authorizationId` 即 OAuth 流程得到的 `authorizeId`。
 
-所有接口请求格式统一包含 `basic` 和 `business` 两部分：
+推荐直接使用官方 SDK 的签名方法，避免自行实现产生偏差：
+
+- Node SDK：`calculateBasicSignature` / `calculateResourceSignature` / `buildBasicInfoWithAuthorization`（`@cregis-kit/openplatform-node`）
+- Java SDK：`Signer.calculateBasicSignature` / `Signer.calculateResourceSignature` / `Signer.buildBasicInfoWithAuthorization`（`com.cregis:cregis-sdk-core`）
+
+### 4.1 请求结构
 
 ```json
 {
@@ -735,1494 +411,632 @@ BasicValidator          → 验证 BasicInfo（OAuth 接口）
     "appId": "550e8400-e29b-41d4-a716-446655440000",
     "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
     "timestamp": 1742947200,
-    "nonce": "random-string",
-    "signature": "md5-hash"
+    "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6",
+    "signature": "998100de866cc5e065ec2b9a5df908b4"
   },
   "business": {
-    // 业务数据
+    "unitId": 80
   }
 }
 ```
 
-### 3.3 财务单元管理接口详情
+Basic 签名接口不传 `basic.authorizationId`。
 
-#### 3.3.1 创建财务单元
+### 4.2 字段规则
 
-**POST** `/api/thirdparty/treasury/create`
+| 字段 | 类型 | 必填 | 规则 |
+| --- | --- | --- | --- |
+| `basic.appId` | string | 是 | 必须是有效 UUID（应用创建接口返回的 `id`） |
+| `basic.timestamp` | number | 是 | **Unix 时间戳（秒）**，与服务器时间偏差不超过 **300 秒**（5 分钟）；使用毫秒时间戳会返回 `40103` |
+| `basic.nonce` | string | 是 | 每次请求唯一，不可为空。官方 SDK 生成 **32 位** `A-Za-z0-9` 随机串；服务端按 `appId + nonce` 去重，重复使用返回 `40104` |
+| `basic.signature` | string | 是 | 32 位**小写**十六进制 MD5；比较时区分大小写 |
+| `basic.authorizationId` | string | Resource 签名必填 | `oauth/verify` 返回的 `authorizeId`，必须是有效 UUID |
+| `business` | object | 视接口而定 | 业务参数；参与签名时必须严格按 4.3 规范化 |
 
-创建新的财务单元。
+服务端校验顺序：appId 存在且应用为 `active` → 开发者账号为 `active` → nonce 未使用 → 时间戳在容差内 → 签名匹配。任一失败均不执行业务逻辑。
 
-> Body Parameters
+### 4.3 business 规范化规则
 
-```json
-{
-  "unitName": "My Treasury Unit",
-  "businessScope": "DEDICATED_ACCOUNT",
-  "businessPurpose": "Payment processing",
-  "topology": "ORBIT",
-  "coinIds": [{"coinId": "USDT", "network": "TRC20"}],
-  "autoSignUrl": "https://example.com/auto-sign",
-  "primaryManager": [{"coinId": "USDT", "fundControlRules": [{"guardians": ["user@email.com"], "threshold": "1", "perTransferLimit": "1000", "dailyTransferLimit": "50000"}]}],
-  "primaryWhiteList": [{"network": "TRC20", "address": "0x...", "alias": "partner"}],
-  "primaryAnycallRules": [{"guardians": ["user@email.com"], "threshold": "1", "allowedCommands": ["withdraw", "allocate"]}],
-  "thirdPartyEcode": "TP-001",
-  "remark": "备注信息",
-  "payoutManager": [{"coinId": "USDT", "fundControlRules": [{"guardians": ["user@email.com"], "threshold": "1", "perTransferLimit": "1000", "dailyTransferLimit": "50000"}]}],
-  "payinAnycallRules": [{"guardians": ["user@email.com"], "threshold": "1", "allowedCommands": ["deposit"]}],
-  "payoutAnycallRules": [{"guardians": ["user@email.com"], "threshold": "1", "allowedCommands": ["withdraw"]}],
-  "riskAnycallRules": [{"guardians": ["user@email.com"], "threshold": "2", "allowedCommands": ["lock", "release"]}]
-}
-```
+签名对象是 `business` 的**规范化 JSON**，不是原始请求字符串：
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| unitName | string | **是** | 财务单元名称 |
-| businessScope | string | **是** | 业务类型：`DEDICATED_ACCOUNT`(专属账户) / `OMNIBUS_ACCOUNT`(Omnibus账户) / `OPEN_API_PROXY`(开放API代理) |
-| businessPurpose | string | 否 | 业务用途描述 |
-| topology | string | **是** | 账本拓扑结构：`ORBIT` / `SINGLE_GENERAL` / `QUAD_SMART_ISOLATION` |
-| coinIds | array | **是** | 币种信息列表 |
-| autoSignUrl | string | 否 | 自动签入地址 |
-| primaryManager | array | **是** | 资金管理员配置 |
-| primaryWhiteList | array | 否 | 资金白名单（出金地址白名单） |
-| primaryAnycallRules | array | 否 | 通用调用控制信息（主账户） |
-| thirdPartyEcode | string | 否 | 三方平台 ecode，用于标识三方平台身份 |
-| remark | string | 否 | 备注信息 |
-| payoutManager | array | **是** | 出金管理员配置 |
-| payinAnycallRules | array | 否 | 收款账户通用调用控制信息 |
-| payoutAnycallRules | array | 否 | 付款通用调用控制信息 |
-| riskAnycallRules | array | 否 | 风控账户出金通用调用控制信息 |
+1. **对象 key 递归排序**：所有层级（包括嵌套对象）按 key 的字典序升序排列。
+2. **数组元素保序**：数组顺序有业务含义，不能排序；但**数组内的对象同样按 key 排序**。
+3. **`null` / `undefined` 不参与**：值为 `null` 或 `undefined` 的字段不应出现在签名内容中。官方 SDK 序列化时会丢弃这类字段；为避免网关与 SDK 行为差异，请在构造 `business` 时直接省略这些字段。
+4. **空对象序列化为 `{}`**：`business` 为空（`{}`、`null` 或 `undefined`）时，统一按字符串 `{}` 计算，`md5("{}") = 99914b932bd37a50b983c5e7c90ae93b`。
+5. **值类型保持原样**：数字保持 JSON number（不要转成字符串），字符串保持原样，布尔值保持 `true` / `false`；不要对金额、ID 等做额外格式化。
+6. **UTF-8 编码**：MD5 输入按 UTF-8 字节计算。
 
-**coinIds 子参数说明**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| coinId | string | 是 | 币种 ID，如 `USDT`、`BTC`、`ETH` |
-| network | string | 是 | 网络类型，如 `TRC20`、`ERC20`、`BEP20` |
-
-**manager 配置子参数说明 (primaryManager / payoutManager)**
-
-每个 manager 配置包含以下字段：
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| coinId | string | 是 | 币种 ID |
-| fundControlRules | array | 是 | 资金控制规则列表 |
-
-**fundControlRules 子参数说明**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| guardians | array | 是 | 守护人邮箱列表，用于多签审批 |
-| threshold | string | 是 | 审批阈值，需要多少位守护人同意才能执行 |
-| perTransferLimit | string | 是 | 单笔转账限额，超过此金额需要多签审批 |
-| dailyTransferLimit | string | 是 | 每日转账限额，超过此金额需要多签审批 |
-
-**fundControlRules 配置示例**
+示例输入：
 
 ```json
 {
-  "coinId": "USDT",
-  "fundControlRules": [
-    {
-      "guardians": ["admin@company.com", "security@company.com"],
-      "threshold": "2",
-      "perTransferLimit": "1000",
-      "dailyTransferLimit": "50000"
-    }
-  ]
+  "unitId": 80,
+  "name": "Demo Treasury",
+  "coinIds": [
+    { "network": "TRC20", "coinId": "USDT" },
+    { "coinId": "BTC", "network": "BTC" }
+  ],
+  "meta": { "z": 1, "a": 2 },
+  "enabled": true
 }
 ```
 
-**primaryWhiteList 子参数说明**
+规范化后的 JSON（注意顶层与嵌套 key 已排序，数组顺序保持不变，数组内对象已排序）：
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| network | string | **是** | 网络类型 |
-| address | string | **是** | 出金地址 |
-| alias | string | 否 | 地址别名 |
-
-**AnyCallRule 子参数说明 (primaryAnycallRules / payinAnycallRules / payoutAnycallRules / riskAnycallRules)**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| guardians | array | **是** | 守护人邮箱列表 |
-| threshold | string | **是** | 审批阈值 |
-| allowedCommands | array | **是** | 允许执行的指令列表 |
-
-**响应示例**
-
-```json
-{
-  "code": 0,
-  "message": "Success",
-  "data": {
-    "id": 1,
-    "name": "My Treasury Unit",
-    "ecode": "TU-20260413001",
-    "vaultCode": "VLT-xxx",
-    "groupCode": "GRP-xxx",
-    "custodialBusinessScope": "DEDICATED_ACCOUNT",
-    "networks": ["TRC20"],
-    "status": "ACTIVATED",
-    "caaFactoryAddresses": [
-      {"network": "TRC20", "address": "0x..."}
-    ],
-    "factoryStatus": 3,
-    "createTime": "2026-04-13T10:00:00Z"
-  }
-}
+```
+{"coinIds":[{"coinId":"USDT","network":"TRC20"},{"coinId":"BTC","network":"BTC"}],"enabled":true,"meta":{"a":2,"z":1},"name":"Demo Treasury","unitId":80}
 ```
 
-#### 3.3.2 创建财务单元地址
-
-**POST** `/api/thirdparty/treasury/create-unit-address/{unitId}/{accountTypy}/{network}/{coinId}/{number}`
-
-为财务单元的指定账户类型创建链上地址。
-
-> Path Parameters
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| unitId | integer | **是** | 财务单元 ID |
-| accountTypy | string | **是** | 账户类型：`PRIMARY`(主账户) / `PAYOUT`(出金账户) / `PAYIN`(收款账户) |
-| network | string | **是** | 网络类型 |
-| coinId | string | **是** | 币种 ID |
-| number | integer | **是** | 创建地址数量 |
-
-> 注意：`accountTypy` 为 Custody 后端原始拼写，保持与后端参数名一致。
-
-**响应示例**
-
-```json
-{
-  "code": 0,
-  "message": "Success",
-  "data": null
-}
-```
-
-#### 3.3.3 查询财务单元列表
-
-**POST** `/api/thirdparty/treasury/list`
-
-查询当前商户下所有财务单元。
-
-> Body Parameters
-
-```json
-{
-  "pageSize": 10,
-  "pageNum": 1,
-  "sortFields": "createTime_d"
-}
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| pageSize | integer | 否 | 每页数量，默认 10 |
-| pageNum | integer | 否 | 页码，默认 1 |
-| sortFields | string | 否 | 排序字段，格式：`字段名_asc/desc`，如 `createTime_d` 表示按创建时间降序 |
-
-**响应示例**
-
-```json
-{
-  "code": 0,
-  "message": "Success",
-  "data": [
-    {
-      "id": 1,
-      "ecode": "TU-20260413001",
-      "projectId": 100,
-      "name": "My Treasury Unit",
-      "custodyServiceMode": "DEDICATED_ACCOUNT",
-      "coinIds": [{"coinId": "USDT", "network": "TRC20"}],
-      "accounts": [
-        {"account_name": "PRIMARY", "account_type": "PRIMARY"},
-        {"account_name": "PAYOUT", "account_type": "PAYOUT"},
-        {"account_name": "QUARANTINE", "account_type": "QUARANTINE"}
-      ],
-      "status": "Active",
-      "creationType": "THIRD_PARTY",
-      "createTime": "2026-04-13T10:00:00Z"
-    }
-  ]
-}
-```
-
-#### 3.3.4 获取财务单元地址
-
-**POST** `/api/thirdparty/treasury/address`
-
-获取财务单元下指定账户类型的地址列表。
-
-> Body Parameters
-
-```json
-{
-  "accountType": "PRIMARY",
-  "pageSize": 10,
-  "pageNum": 1,
-  "coinId": "USDT",
-  "network": "TRC20",
-  "unitId": 1
-}
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| unitId | integer | 是 | 财务单元ID |
-| accountType | string | 否 | 账户类型：`PRIMARY` / `PAYIN` / `PAYOUT` / `QUARANTINE` / `RECEIVABLE` 等 |
-| coinId | string | 否 | 币种ID |
-| network | string | 否 | 网络 |
-| pageSize | integer | 否 | 每页数量 |
-| pageNum | integer | 否 | 页码 |
-
-#### 3.3.5 查询财务单元账户列表
-
-**POST** `/api/thirdparty/treasury/list-unit-account/{unitId}`
-
-查询指定财务单元下的所有账户及其余额信息。
-
-> Path Parameters
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| unitId | integer | **是** | 财务单元 ID |
-
-**响应示例**
-
-```json
-{
-  "code": 0,
-  "message": "Success",
-  "data": [
-    {
-      "id": 1,
-      "ecode": "TU-001",
-      "vaultCode": "VLT-xxx",
-      "treasuryUnitId": 1,
-      "accountName": "PRIMARY",
-      "type": "PRIMARY",
-      "balance": 100000,
-      "freezeBalance": 0,
-      "holdBalance": 5000,
-      "coinId": "USDT",
-      "network": "TRC20",
-      "isSmart": true,
-      "status": 1,
-      "income": 500000,
-      "outcome": 400000,
-      "createTime": "2026-01-01T00:00:00Z"
-    }
-  ]
-}
-```
-
-**响应字段说明**
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| id | integer | 账户 ID |
-| ecode | string | 企业 code |
-| treasuryUnitId | integer | 所属财务单元 ID |
-| accountName | string | 账户名称 |
-| type | string | 账户类型：`PRIMARY` / `PAYOUT` / `PAYIN` / `QUARANTINE` / `RECEIVABLE` / `GENERAL_GAS` / `FREEZE` / `DEPOSIT` / `DIRTY` |
-| balance | integer | 主账户余额 |
-| freezeBalance | integer | 冻结余额 |
-| holdBalance | integer | 隔离余额（合规待确认/待复核的入金隔离资金） |
-| coinId | string | 币种 ID |
-| network | string | 网络 |
-| isSmart | boolean | 是否是智能账户 |
-| status | integer | 状态：0 不可用 / 1 可用 |
-| income | integer | 账户总入金 |
-| outcome | integer | 账户总出金 |
-
-#### 3.3.6 发起归集请求
-
-**POST** `/api/thirdparty/treasury/pooling`
-
-发起资金归集请求，将指定地址列表的资金归集到主账户。
-
-> Body Parameters
-
-```json
-{
-  "unitId": 1,
-  "amount": 100,
-  "lang": "zh_CN",
-  "coinId": "USDT",
-  "network": "TRC20",
-  "note": "日常归集",
-  "includes": ["0xabc..."],
-  "excludes": ["0xdef..."]
-}
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| unitId | integer | **是** | 财务单元 ID |
-| amount | integer | **是** | 归集门限金额（超过此金额才触发归集） |
-| coinId | string | **是** | 币种 ID |
-| network | string | **是** | 网络 |
-| lang | string | 否 | 语言，如 `zh_CN`、`en_US` 等 |
-| note | string | 否 | 备注 |
-| includes | array | 否 | 包含地址列表（只归集这些地址） |
-| excludes | array | 否 | 排除地址列表（不归集这些地址） |
-
-**响应示例**
-
-```json
-{
-  "code": 0,
-  "message": "Success",
-  "data": null
-}
-```
-
-#### 3.3.7 出金操作
-
-**POST** `/api/thirdparty/treasury/payout`
-
-发起出金操作。
-
-> Body Parameters
-
-```json
-{
-  "payTo": [{"to": "0x...", "amount": "100"}],
-  "unitId": 1,
-  "coinId": "USDT",
-  "network": "TRC20",
-  "operation": "withdraw",
-  "userId": "user-123",
-  "orderId": "ORDER-20260413001",
-  "note": "Payment for order #12345",
-  "merchantType": "NON_FINANCIAL_CORPORATE",
-  "travelRule": {
-    "referenceId": "TR-REF-001",
-    "payload": "{}"
-  }
-}
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| unitId | integer | 是 | 财务单元ID |
-| payTo | array | 是 | 出金地址列表 |
-| coinId | string | 是 | 币种ID |
-| network | string | 是 | 网络 |
-| operation | string | 否 | 操作类型：`withdraw` / `allocate` / `payout` |
-| orderId | string | 否 | 客户业务订单ID |
-| userId | string | 否 | 发起用户ID |
-| note | string | 否 | 备注 |
-| merchantType | string | 是 | 商户类型 |
-| travelRule | object | 否 | Travel Rule 信息 |
-
-#### 3.3.8 提交任务审批
-
-**POST** `/api/thirdparty/treasury/submit-task/{taskId}`
-
-提交任务审批（签名）。
-
-> Body Parameters
-
-```json
-{
-  "signatures": {"taskId-1": ["sig1", "sig2"]},
-  "confirmed": true
-}
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| signatures | object | 否 | 签名结果，key为taskId，value为签名字符串列表 |
-| confirmed | boolean | 是 | 操作确认：`true`同意 / `false`拒绝 |
-
-#### 3.3.9 查询活动记录
-
-**POST** `/api/thirdparty/treasury/activities`
-
-分页查询活动记录，包括所有资金操作如入金、出金、转账等。
-
-> Body Parameters
-
-```json
-{
-  "pageIndex": 0,
-  "pageSize": 20,
-  "sortFields": "createTime_d",
-  "queryList": [
-    {"key": "unitId", "value": 1, "oper": "=", "join": "and"},
-    {"key": "coinId", "value": "USDT", "oper": "=", "join": "and"},
-    {"key": "type", "value": "TRANSFER_OUT", "oper": "=", "join": "and"}
-  ]
-}
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| pageIndex | integer | 否 | 页码索引，从 0 开始，默认 0 |
-| pageSize | integer | 否 | 每页数量，默认 20 |
-| sortFields | string | 否 | 排序字段，格式：`字段名_asc/desc` |
-| queryList | array | 否 | 查询条件列表 |
-| queryList[].key | string | 否 | 查询字段名，可选值：`unitId` / `coinId` / `type` / `status` / `direction` |
-| queryList[].value | string/number | 否 | 查询值 |
-| queryList[].oper | string | 否 | 操作符：`=` / `!=` / `>` / `<` / `like` |
-| queryList[].join | string | 否 | 连接方式：`and` / `or` |
-
-**响应示例**
-
-```json
-{
-  "code": 0,
-  "message": "Success",
-  "data": {
-    "records": [
-      {
-        "id": 1,
-        "ecode": "TU-20260413001",
-        "treasuryUnitId": 1,
-        "accountType": "PRIMARY",
-        "coinId": "USDT",
-        "network": "TRC20",
-        "type": "TRANSFER_OUT",
-        "amount": "100",
-        "direction": "OUT",
-        "orderId": "ORDER-001",
-        "status": "SUCCEED",
-        "travelRuleStatus": "NOT_REQUIRED",
-        "kytStatus": "NOT_REQUIRED",
-        "createTime": "2026-04-13T10:00:00Z"
-      }
-    ],
-    "total": 100,
-    "size": 20,
-    "current": 1
-  }
-}
-```
-
-#### 3.3.10 查询出金订单
-
-**POST** `/api/thirdparty/treasury/transfer-out-orders`
-
-分页查询出金订单，包括提现和调拨订单。
-
-> Body Parameters
-
-```json
-{
-  "pageIndex": 0,
-  "pageSize": 20,
-  "sortFields": "createTime_d",
-  "queryList": [
-    {"key": "unitId", "value": 1, "oper": "=", "join": "and"},
-    {"key": "coinId", "value": "USDT", "oper": "=", "join": "and"}
-  ]
-}
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| pageIndex | integer | 否 | 页码索引，从 0 开始，默认 0 |
-| pageSize | integer | 否 | 每页数量，默认 20 |
-| sortFields | string | 否 | 排序字段，格式：`字段名_asc/desc` |
-| queryList | array | 否 | 查询条件列表 |
-| queryList[].key | string | 否 | 查询字段名 |
-| queryList[].value | string/number | 否 | 查询值 |
-| queryList[].oper | string | 否 | 操作符：`=` / `!=` / `>` / `<` / `like` |
-| queryList[].join | string | 否 | 连接方式：`and` / `or` |
-
-**响应示例**
-
-```json
-{
-  "code": 0,
-  "message": "Success",
-  "data": {
-    "records": [
-      {
-        "orderId": "ORDER-001",
-        "txId": "0x...",
-        "coinId": "USDT",
-        "network": "TRC20",
-        "totalAmount": 100,
-        "fee": "1",
-        "orderState": "SUCCEED",
-        "payToList": [{"to": "0x...", "amount": "100"}],
-        "businessId": "EXT-001",
-        "createTime": "2026-04-13T10:00:00Z"
-      }
-    ],
-    "total": 50,
-    "size": 20,
-    "current": 1
-  }
-}
-```
-
-#### 3.3.11 查询入金订单
-
-**POST** `/api/thirdparty/treasury/transfer-in-orders`
-
-分页查询入金订单，包括充值和收款订单。
-
-> Body Parameters
-
-```json
-{
-  "pageIndex": 0,
-  "pageSize": 20,
-  "sortFields": "createTime_d",
-  "queryList": [
-    {"key": "unitId", "value": 1, "oper": "=", "join": "and"}
-  ]
-}
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| pageIndex | integer | 否 | 页码索引，从 0 开始，默认 0 |
-| pageSize | integer | 否 | 每页数量，默认 20 |
-| sortFields | string | 否 | 排序字段，格式：`字段名_asc/desc` |
-| queryList | array | 否 | 查询条件列表 |
-| queryList[].key | string | 否 | 查询字段名 |
-| queryList[].value | string/number | 否 | 查询值 |
-| queryList[].oper | string | 否 | 操作符：`=` / `!=` / `>` / `<` / `like` |
-| queryList[].join | string | 否 | 连接方式：`and` / `or` |
-
-**响应示例**
-
-```json
-{
-  "code": 0,
-  "message": "Success",
-  "data": {
-    "records": [
-      {
-        "orderId": "ORDER-002",
-        "txId": "0x...",
-        "cpAddress": "0x...",
-        "amount": "500",
-        "coinId": "USDT",
-        "network": "TRC20",
-        "orderState": "SUCCEED",
-        "type": 1,
-        "initiator": 1,
-        "createTime": "2026-04-13T10:00:00Z"
-      }
-    ],
-    "total": 30,
-    "size": 20,
-    "current": 1
-  }
-}
-```
-
-#### 3.3.12 查询资金流水（账户级）
-
-**POST** `/api/thirdparty/treasury/fund-records`
-
-分页查询资金流水，记录每笔资金变动明细。
-
-> Body Parameters
-
-```json
-{
-  "pageIndex": 0,
-  "pageSize": 20,
-  "sortFields": "createTime_d",
-  "queryList": [
-    {"key": "unitId", "value": 1, "oper": "=", "join": "and"},
-    {"key": "coinId", "value": "USDT", "oper": "=", "join": "and"},
-    {"key": "txType", "value": "TRANSFER_OUT", "oper": "=", "join": "and"}
-  ]
-}
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| pageIndex | integer | 否 | 页码索引，从 0 开始，默认 0 |
-| pageSize | integer | 否 | 每页数量，默认 20 |
-| sortFields | string | 否 | 排序字段，格式：`字段名_asc/desc` |
-| queryList | array | 否 | 查询条件列表 |
-| queryList[].key | string | 否 | 查询字段名，可选值：`unitId` / `coinId` / `network` / `txType` / `accountType` |
-| queryList[].value | string/number | 否 | 查询值 |
-| queryList[].oper | string | 否 | 操作符：`=` / `!=` / `>` / `<` / `like` |
-| queryList[].join | string | 否 | 连接方式：`and` / `or` |
-
-**响应示例**
-
-```json
-{
-  "code": 0,
-  "message": "Success",
-  "data": {
-    "records": [
-      {
-        "id": 1,
-        "txId": "0x...",
-        "coinId": "USDT",
-        "network": "TRC20",
-        "amount": "100",
-        "preBalance": "1000",
-        "postBalance": "900",
-        "fee": "1",
-        "txType": "TRANSFER_OUT",
-        "createTime": "2026-04-13T10:00:00Z"
-      }
-    ],
-    "total": 200,
-    "size": 20,
-    "current": 1
-  }
-}
-```
-
-**txType 枚举值**
-
-| 值 | 说明 |
-|---|---|
-| TRANSFER_IN | 转入 |
-| TRANSFER_OUT | 转出 |
-| ALLOCATE_IN | 调拨转入 |
-| ALLOCATE_OUT | 调拨转出 |
-| POOL_IN | 归集转入 |
-| POOL_OUT | 归集转出 |
-| GAS_OUT | Gas消耗 |
-| FEE_OUT | 手续费 |
-
-#### 3.3.13 查询资金流水（财务单元级）
-
-**POST** `/api/thirdparty/treasury/unit-fund-records`
-
-分页查询财务单元级别的资金流水，汇总财务单元下所有账户的资金变动。
-
-> Body Parameters
-
-```json
-{
-  "pageIndex": 0,
-  "pageSize": 20,
-  "sortFields": "createTime_d",
-  "queryList": [
-    {"key": "unitId", "value": 1, "oper": "=", "join": "and"},
-    {"key": "coinId", "value": "USDT", "oper": "=", "join": "and"},
-    {"key": "txType", "value": "TRANSFER_OUT", "oper": "=", "join": "and"}
-  ]
-}
-```
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| pageIndex | integer | 否 | 页码索引，从 0 开始，默认 0 |
-| pageSize | integer | 否 | 每页数量，默认 20 |
-| sortFields | string | 否 | 排序字段，格式：`字段名_asc/desc` |
-| queryList | array | 否 | 查询条件列表 |
-| queryList[].key | string | 否 | 查询字段名，可选值：`unitId` / `coinId` / `network` / `txType` |
-| queryList[].value | string/number | 否 | 查询值 |
-| queryList[].oper | string | 否 | 操作符：`=` / `!=` / `>` / `<` / `like` |
-| queryList[].join | string | 否 | 连接方式：`and` / `or` |
-
-**响应示例**
-
-```json
-{
-  "code": 0,
-  "message": "Success",
-  "data": {
-    "records": [
-      {
-        "id": 1,
-        "txId": "0x...",
-        "coinId": "USDT",
-        "network": "TRC20",
-        "amount": "100",
-        "preBalance": "1000",
-        "postBalance": "900",
-        "fee": "1",
-        "txType": "TRANSFER_OUT",
-        "createTime": "2026-04-13T10:00:00Z"
-      }
-    ],
-    "total": 200,
-    "size": 20,
-    "current": 1
-  }
-}
-```
-
-- `txType` 枚举值与 3.3.12 账户级流水一致。
-
----
-
-## 四、错误码
-
-| 错误码 | HTTP状态 | 说明 |
-|--------|----------|------|
-| 40101 | 401 | 签名验证失败 |
-| 40102 | 401 | 时间戳超出容差范围 |
-| 40103 | 401 | Nonce 已使用（重放攻击） |
-| 40104 | 401 | 缺少必填字段 |
-| 40105 | 401 | 应用不存在 |
-| 40106 | 401 | 应用未激活 |
-| 40107 | 401 | 三方平台账户未激活 |
-
-### 4.2 授权错误
-
-| 错误码 | HTTP状态 | 说明 |
-|--------|----------|------|
-| 40301 | 403 | 资源未授权 |
-| 40901 | 409 | 授权已存在 |
-
-### 4.3 业务错误
-
-| 错误码 | HTTP状态 | 说明 |
-|--------|----------|------|
-| 40001 | 400 | 缺少必填参数 |
-| 40002 | 400 | 参数格式错误 |
-| 40401 | 404 | 资源不存在 |
-| 42901 | 429 | 请求过于频繁 |
-| 50001 | 500 | 服务器内部错误 |
-
----
-
-## 五、SDK 示例
-
-### 5.1 签名计算
-
-```typescript
-import crypto from 'crypto';
-
-/**
- * Basic 签名算法 - 用于 OAuth 接口
- *
- * 适用接口：/oauth/token, /oauth/authorizeUrl, /oauth/verify
- * 公式：signature = MD5(appSecret + appId + timestamp + nonce + MD5(JSON.stringify(sortKeys(business))))
- */
-function sortKeys(obj: Record<string, unknown>): Record<string, unknown> {
-  // Normalize null/undefined to empty object for consistent signing
-  if (obj === null || obj === undefined) return {};
-  if (Array.isArray(obj)) return obj.map(sortKeys) as unknown as Record<string, unknown>;
-  if (typeof obj !== 'object') return obj as Record<string, unknown>;
-
-  return Object.keys(obj).sort().reduce((result, key) => {
-    result[key] = sortKeys((obj as Record<string, unknown>)[key] as Record<string, unknown>);
-    return result;
-  }, {} as Record<string, unknown>);
-}
-
-function calculateBasicSignature(
-  appId: string,
-  appSecret: string,
-  timestamp: number,
-  nonce: string,
-  business: Record<string, unknown>
-): string {
-  // 1. Sort and stringify business
-  const sortedBusiness = sortKeys(business);
-  const businessJson = JSON.stringify(sortedBusiness);
-
-  // 2. Business MD5
-  const businessMd5 = crypto.createHash('md5').update(businessJson).digest('hex');
-
-  // 3. Build sign string (Basic: 不包含 authorizationId)
-  const signString = appId + timestamp + nonce + businessMd5;
-
-  // 4. Final signature
-  return crypto.createHash('md5').update(appSecret + signString).digest('hex');
-}
-
-// Usage for OAuth endpoints
+### 4.4 计算示例
+
+以下示例使用固定输入。Node.js 示例已在 Node 22 上实际运行，下表输出的中间值与最终签名均来自实际执行结果；Java 示例与 Java SDK `Signer` 算法一致，输出相同。
+
+| 参数 | 值 |
+| --- | --- |
+| `appId` | `550e8400-e29b-41d4-a716-446655440000` |
+| `appSecret` | `sk_demo_secret_9f8e7d6c` |
+| `authorizationId` | `123e4567-e89b-12d3-a456-426614174000` |
+| `timestamp` | `1742947200` |
+| `nonce` | `A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6` |
+| `business` | 见 4.3 示例 |
+
+**中间值与最终签名（已实际计算）：**
+
+| 项 | 值 |
+| --- | --- |
+| 规范化 JSON | `{"coinIds":[{"coinId":"USDT","network":"TRC20"},{"coinId":"BTC","network":"BTC"}],"enabled":true,"meta":{"a":2,"z":1},"name":"Demo Treasury","unitId":80}` |
+| `md5(business)` | `455c054f56043be5b467e44b6cbd192d` |
+| Basic 签名串（不含密钥） | `550e8400-e29b-41d4-a716-4466554400001742947200A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6455c054f56043be5b467e44b6cbd192d` |
+| **Basic 签名** | `59853ffb7f587089820379ea8ee32243` |
+| Resource 签名串（不含密钥） | `550e8400-e29b-41d4-a716-446655440000123e4567-e89b-12d3-a456-4266141740001742947200A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6455c054f56043be5b467e44b6cbd192d` |
+| **Resource 签名** | `c8a4718e976a5f632da56f02cb5b369b` |
+
+#### Node.js（零依赖，可直接运行）
+
+```js
+const crypto = require('node:crypto');
 const appId = '550e8400-e29b-41d4-a716-446655440000';
-const appSecret = 'secret123';
-const timestamp = Math.floor(Date.now() / 1000);
-const nonce = crypto.randomUUID();
+const appSecret = 'sk_demo_secret_9f8e7d6c';
+const authorizationId = '123e4567-e89b-12d3-a456-426614174000';
+const timestamp = 1742947200; // Unix 秒
+const nonce = 'A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6'; // 32 位
+
+function sortKeys(value) {
+  if (Array.isArray(value)) return value.map(sortKeys); // 数组保序，元素递归处理
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value)
+        .filter((key) => value[key] !== null && value[key] !== undefined) // 丢弃 null/undefined
+        .sort()
+        .map((key) => [key, sortKeys(value[key])]),
+    );
+  }
+  return value;
+}
+
+const md5 = (input) => crypto.createHash('md5').update(input, 'utf8').digest('hex');
+
 const business = {
-  permissions: ['read', 'write'],
-  state: 'custom-state',
-  callback: 'https://example.com/callback',
-  token: 'xyz123'
+  unitId: 80,
+  name: 'Demo Treasury',
+  coinIds: [
+    { network: 'TRC20', coinId: 'USDT' },
+    { coinId: 'BTC', network: 'BTC' },
+  ],
+  meta: { z: 1, a: 2 },
+  enabled: true,
 };
 
-const signature = calculateBasicSignature(
-  appId, appSecret, timestamp, nonce, business
+const businessJson = JSON.stringify(sortKeys(business));
+const businessMd5 = md5(businessJson);
+const basicSignature = md5(`${appSecret}${appId}${timestamp}${nonce}${businessMd5}`);
+const resourceSignature = md5(
+  `${appSecret}${appId}${authorizationId}${timestamp}${nonce}${businessMd5}`,
 );
+
+console.log(businessJson);
+// {"coinIds":[{"coinId":"USDT","network":"TRC20"},{"coinId":"BTC","network":"BTC"}],"enabled":true,"meta":{"a":2,"z":1},"name":"Demo Treasury","unitId":80}
+console.log(businessMd5);        // 455c054f56043be5b467e44b6cbd192d
+console.log(basicSignature);     // 59853ffb7f587089820379ea8ee32243
+console.log(resourceSignature);  // c8a4718e976a5f632da56f02cb5b369b
 ```
 
-### 5.2 获取授权 URL 并打开授权页面
+#### Java（Jackson，可直接编译运行）
 
-```typescript
-// 1. 后端：获取授权 URL
-async function getAuthorizeUrl(
-  appId: string,
-  appSecret: string,
-  permissions: string[],
-  state: string,
-  callback?: string,
-  token?: string
-): Promise<string> {
-  const timestamp = Math.floor(Date.now() / 1000);
-  const nonce = crypto.randomUUID();
-  const business: Record<string, unknown> = { permissions, state };
-  if (callback) business.callback = callback;
-  if (token) business.token = token;
+依赖：`com.fasterxml.jackson.core:jackson-databind`（版本与 Java SDK 一致即可）。
 
-  // 使用 Basic 签名（OAuth 接口不需要 authorizationId）
-  const signature = calculateBasicSignature(
-    appId, appSecret, timestamp, nonce, business
-  );
+```java
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.*;
 
-  const response = await fetch('/api/thirdparty/oauth/authorizeUrl', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      basic: { appId, timestamp, nonce, signature },
-      business
-    })
-  });
+public class SignatureDemo {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-  const result = await response.json();
-  if (result.code !== 0) {
-    throw new Error(result.message);
-  }
-
-  return result.data.authorizeUrl;
-}
-
-// 2. 前端：使用 SDK 打开授权页面
-import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
-
-const sdk = new CregisWebSDK({
-  appId: 'your-app-id',
-  container: document.getElementById('auth-container'),
-  authUrl: 'https://custody.cregis.ae/openplatform/auth/authorize',
-  mode: 'popup', // popup | tab | window
-
-  // 事件回调
-  onReady: ({ uuid }) => {
-    console.log('授权页面已就绪, UUID:', uuid);
-  },
-
-  onAuthorizationStarted: () => {
-    console.log('用户点击了授权按钮');
-  },
-
-  onAuthorizationComplete: ({ authorizeId }) => {
-    console.log('授权成功, authorizeId:', authorizeId);
-  },
-
-  onAuthorizationError: ({ code, message }) => {
-    console.error('授权失败:', code, message);
-  },
-
-  onAuthorizationCancelled: () => {
-    console.log('用户取消授权');
-  },
-});
-
-### 5.3 打开授权页面
-
-```typescript
-import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
-
-const sdk = new CregisWebSDK({
-  container: '#auth-container',    // CSS 选择器或 DOM 元素
-  mode: 'popup',                   // 'popup' | 'tab' | 'window'，默认 'popup'
-  debug: false,
-
-  // 事件回调
-  onReady: ({ uuid }) => {
-    console.log('SDK 已就绪, UUID:', uuid);
-  },
-
-  onAuthorizationStarted: () => {
-    console.log('授权流程已开始');
-  },
-
-  onAuthorizationComplete: ({ authorizeId }) => {
-    console.log('授权完成:', authorizeId);
-  },
-
-  onAuthorizationError: (error) => {
-    console.error('授权错误:', error.message);
-  },
-
-  onAuthorizationCancelled: () => {
-    console.log('授权已取消');
-  },
-});
-
-async function authorize() {
-  // 获取授权 URL（从后端）
-  const authorizeUrl = await getAuthorizeUrl(
-    'your-app-id',
-    'your-app-secret',
-    ['read', 'write'],
-    'https://yourapp.com/callback',
-    'custom-state'
-  );
-
-  // 使用 SDK 打开授权页面
-  // mode: 'popup' (默认) - iframe 弹窗
-  // mode: 'tab' - 新开浏览器标签页
-  // mode: 'window' - 浏览器弹窗
-  try {
-    const authResult = await sdk.openAuthorization(authorizeUrl);
-
-    if (authResult.status === 'success') {
-      console.log('授权成功, authorizeId:', authResult.authorizeId);
-    } else if (authResult.status === 'cancelled') {
-      console.log('用户取消授权');
-    } else {
-      console.error('授权失败:', authResult.error?.message);
+    /** 递归排序：对象按 key 升序；数组保序；数组内对象同样排序；丢弃 null。 */
+    private static Object sort(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            TreeMap<String, Object> sorted = new TreeMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (entry.getValue() != null) {
+                    sorted.put(String.valueOf(entry.getKey()), sort(entry.getValue()));
+                }
+            }
+            return sorted;
+        }
+        if (value instanceof List<?> list) {
+            List<Object> result = new ArrayList<>(list.size());
+            for (Object item : list) result.add(sort(item));
+            return result;
+        }
+        return value;
     }
-  } catch (error) {
-    console.error('授权异常:', error.message);
-  }
-}
-```
 
-### 5.4 打开模式说明
-
-| 模式 | 说明 | 通信方式 |
-|------|------|----------|
-| `popup` | 在 iframe 弹窗中打开授权页面 | postMessage |
-| `tab` | 在新浏览器标签页中打开 | window.opener.postMessage |
-| `window` | 在新浏览器窗口中打开 | window.opener.postMessage |
-
-### 5.5 安全机制
-
-SDK 使用 UUID 机制防止跨域消息污染：
-
-1. SDK 初始化时生成唯一 UUID
-2. UUID 通过 `sdkUuid` 参数添加到授权 URL
-3. SDK 和授权页面之间的所有消息都携带 UUID
-4. UUID 不匹配的消息将被拒绝
-
----
-
-## 六、SDK 集成指南
-
-### 6.1 SDK 能力速览
-
-Cregis 提供两种 SDK，覆盖前后端集成场景：
-
-| SDK | 包名 | 语言 | 用途 |
-|-----|------|------|------|
-| **Node.js SDK** | `@cregis-kit/openplatform-node` | TypeScript/JavaScript | 后端业务接口调用 |
-| **Web SDK** | `@cregis-kit/openplatform-webkit` | TypeScript/JavaScript | 前端授权页面嵌入 |
-
-**安装命令：**
-
-```bash
-# Node.js SDK
-npm install @cregis-kit/openplatform-node
-
-# Web SDK
-npm install @cregis-kit/openplatform-webkit
-```
-
-**最小依赖：**
-
-- Node.js SDK: Node.js >= 18.0.0
-- Web SDK: 现代浏览器（支持 iframe 和 postMessage）
-
----
-
-### 6.2 架构概览
-
-```mermaid
-graph TB
-    subgraph 开发者应用
-        FE[前端应用<br/>Web SDK]
-        BE[后端服务<br/>Node.js SDK]
-    end
-
-    subgraph Cregis
-        AUTH[授权页面]
-        API[开放平台 API]
-        CUSTODY[Custody 服务]
-    end
-
-    FE -->|1. 打开授权页| AUTH
-    AUTH -->|2. postMessage| FE
-    FE -->|3. 传递 oauthToken| BE
-    BE -->|4. 获取 authorizeId| API
-    API -->|5. 验证授权| CUSTODY
-    BE -->|6. 业务接口| API
-
-    style FE fill:#e1f5fe
-    style BE fill:#fff3e0
-    style AUTH fill:#f3e5f5
-    style API fill:#e8f5e9
-```
-
-**前后端分工：**
-
-- **后端 (Node.js SDK)**: 处理所有需要签名的业务接口调用，包括获取授权 URL、验证授权、创建 Treasury Unit、创建 Payout 等
-- **前端 (Web SDK)**: 嵌入授权页面，展示 TransferTaskDetailDialog，接收授权结果并传递给后端
-
----
-
-### 6.3 Node.js SDK 集成
-
-Node.js SDK 提供扁平化 API，所有方法直接在 `CregisSDK` 类上。
-
-**初始化：**
-
-```typescript
-import { CregisSDK } from '@cregis-kit/openplatform-node';
-
-const sdk = new CregisSDK({
-  baseUrl: 'https://custody-sit.cregis.ae/openplatform/',  // 测试沙盒网关地址
-  appId: 'your-app-id-uuid',    // 在开发者门户获取
-  appSecret: 'your-app-secret', // 在开发者门户获取
-  timeout: 30000,
-  debug: false,
-});
-```
-
-**认证流程（后端）：**
-
-```typescript
-// 1. 获取授权 URL
-const { authorizeUrl } = await sdk.getAuthorizationUrl({
-  permissions: ['treasury:create', 'payout:create'],
-  state: 'random-state-string',
-  callback: 'https://your-app.com/callback',
-  token: 'developer-token-xyz',
-});
-
-// 2. 将 authorizeUrl 传给前端，让用户完成授权
-
-// 3. 授权成功后，开放平台自动完成验证和存储
-//    前端会收到 oauthToken（用于调试/日志），但无需开发者调用验证接口
-
-// 4. 直接使用 authorizeId 调用业务接口
-//    authorizeId 由开放平台在授权成功后回调提供
-```
-
-**创建 Treasury Unit：**
-
-```typescript
-const treasury = await sdk.createTreasuryUnit(authorizeId, {
-  businessScope: 'DEDICATED_ACCOUNT',
-  topology: 'SINGLE_GENERAL',
-  coinIds: [{ coinId: 'BTC', network: 'BTC' }],
-  primaryManager: [...],
-  payoutManager: [...],
-  riskManager: [...],
-});
-
-// treasury.id 即后续接口需要的 unitId
-console.log('Treasury Unit ID:', treasury.id);
-```
-
-**创建 Payout：**
-
-```typescript
-const payout = await sdk.createPayout(authorizeId, {
-  unitId: treasury.id,  // 来自 createTreasuryUnit 返回的 id
-  payTo: [{ address: 'bc1q...', amount: '0.01' }],
-  coinId: 'BTC',
-  network: 'BTC',
-  merchantType: 'payment',
-});
-
-console.log('Order ID:', payout.orderId);
-```
-
-**完整 API 方法列表：**
-
-| 方法 | 用途 |
-|------|------|
-| `getAuthorizationUrl()` | 获取授权 URL |
-| `createTreasuryUnit()` | 创建财务单元 |
-| `listTreasuryUnits()` | 查询财务单元列表 |
-| `getTreasuryUnitAddress()` | 获取财务单元地址 |
-| `createPayout()` | 创建出金订单 |
-| `listTransferOutOrders()` | 查询出金订单 |
-| `listTransferInOrders()` | 查询入金订单 |
-| `submitTask()` | 提交任务审批 |
-| `listActivities()` | 查询活动记录 |
-| `listFundRecords()` | 查询资金流水 |
-| `getConfig()` | 获取配置（不含敏感信息） |
-
-详细 API 文档请参考：[Node.js SDK README](../openplatform-sdk/node/README.md)
-
----
-
-### 6.4 Web SDK 集成
-
-Web SDK 用于在前端应用中嵌入 Cregis 授权页面和处理用户交互。
-
-**初始化授权 SDK：**
-
-```typescript
-import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
-
-const sdk = new CregisWebSDK({
-  container: '#auth-container',    // CSS 选择器或 DOM 元素（必填）
-  mode: 'popup',                   // 'popup' | 'tab' | 'window'，默认 'popup'
-  debug: false,                    // 调试模式，开发环境建议开启
-  // allowedOrigins: ['https://your-app.com'],  // 可选：限制 postMessage 来源
-
-  // 事件回调
-  onReady: ({ uuid }) => {
-    console.log('SDK 已就绪, UUID:', uuid);
-  },
-
-  onAuthorizationStarted: () => {
-    console.log('授权流程已开始');
-  },
-
-  onAuthorizationComplete: ({ authorizeId }) => {
-    console.log('授权完成:', authorizeId);
-    // 将 authorizeId 发送给后端，用于后续业务接口调用
-    fetch('/api/bind-authorization', {
-      method: 'POST',
-      body: JSON.stringify({ authorizeId }),
-    });
-  },
-
-  onAuthorizationError: (error) => {
-    console.error('授权错误:', error.message);
-  },
-
-  onAuthorizationCancelled: () => {
-    console.log('授权已取消');
-  },
-});
-
-// 打开授权页面（authorizeUrl 由后端提供）
-async function startAuthorization(authorizeUrl: string) {
-  try {
-    const authResult = await sdk.openAuthorization(authorizeUrl);
-
-    if (authResult.status === 'success') {
-      console.log('授权成功, authorizeId:', authResult.authorizeId);
-    } else if (authResult.status === 'cancelled') {
-      console.log('用户取消授权');
-    } else {
-      console.error('授权失败:', authResult.error?.message);
+    private static String md5(String input) throws Exception {
+        byte[] digest = MessageDigest.getInstance("MD5")
+                .digest(input.getBytes(StandardCharsets.UTF_8));
+        StringBuilder hex = new StringBuilder();
+        for (byte b : digest) hex.append(String.format("%02x", b));
+        return hex.toString();
     }
-  } catch (error) {
-    console.error('授权异常:', error.message);
+
+    public static void main(String[] args) throws Exception {
+        String appId = "550e8400-e29b-41d4-a716-446655440000";
+        String appSecret = "sk_demo_secret_9f8e7d6c";
+        String authorizationId = "123e4567-e89b-12d3-a456-426614174000";
+        long timestamp = 1742947200L; // Unix 秒
+        String nonce = "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6"; // 32 位
+
+        Map<String, Object> business = new LinkedHashMap<>();
+        business.put("unitId", 80);
+        business.put("name", "Demo Treasury");
+        business.put("coinIds", List.of(
+                Map.of("network", "TRC20", "coinId", "USDT"),
+                Map.of("coinId", "BTC", "network", "BTC")));
+        business.put("meta", Map.of("z", 1, "a", 2));
+        business.put("enabled", true);
+
+        String businessJson = MAPPER.writeValueAsString(sort(business));
+        String businessMd5 = md5(businessJson);
+        String basicSignature = md5(appSecret + appId + timestamp + nonce + businessMd5);
+        String resourceSignature =
+                md5(appSecret + appId + authorizationId + timestamp + nonce + businessMd5);
+
+        System.out.println(businessJson);
+        // {"coinIds":[{"coinId":"USDT","network":"TRC20"},{"coinId":"BTC","network":"BTC"}],"enabled":true,"meta":{"a":2,"z":1},"name":"Demo Treasury","unitId":80}
+        System.out.println(businessMd5);       // 455c054f56043be5b467e44b6cbd192d
+        System.out.println(basicSignature);    // 59853ffb7f587089820379ea8ee32243
+        System.out.println(resourceSignature); // c8a4718e976a5f632da56f02cb5b369b
+    }
+}
+```
+
+> Java 的 `String.format("%02x", b)` 对 `byte` 按无符号十六进制输出，结果与 Node 的 `digest('hex')` 一致。
+
+### 4.5 验签失败排查
+
+| 现象 / 错误码 | 常见原因 | 排查方式 |
+| --- | --- | --- |
+| `40103`（时间戳过期） | 使用了毫秒时间戳；服务器时钟漂移；请求重放 | 确认是 10 位 Unix 秒；开启 NTP 同步；每次请求重新取时间 |
+| `40104`（nonce 重放） | 固定 nonce；失败重试沿用同一 nonce；并发请求共享 nonce | 每次请求（含重试）生成新 nonce；nonce 在 1 小时内不可重复 |
+| `40102`（签名错误），含对象数组的请求 | 只排序了顶层 key，没有排序数组内的对象 | 使用 1.1.0+ Node SDK / 1.2.0+ Java SDK，或按 4.3 递归排序 |
+| `40102`，字段被改写 | 签名后修改了 `business`；序列化时增删字段、数字/字符串互转、`null` 处理不一致 | 先构造最终 `business` 再签名；请求体原样发送；省略值为 `null` 的字段 |
+| `40102`，全部请求 | `appSecret` 错误；密钥已重置但环境变量未更新；复制时带入空格或换行 | 与开发者后台核对；重置后同步所有实例；对 secret 做 `trim` 检查 |
+| `40102`，仅 OAuth 接口 | 误用了 Resource 签名（签名串多了 `authorizationId`） | OAuth 接口使用 Basic 签名 |
+| `40102`，仅业务接口 | 未传 `basic.authorizationId`，或传入了另一个环境的 `authorizeId` | 使用本环境 `oauth/verify` 返回的 `authorizeId` |
+| `40301`（资源未授权） | `authorizationId` 不存在、已撤销，或不属于当前 `appId` | 重新走 OAuth 流程；确认应用与授权记录一致 |
+| `400103`（资源键不存在） | `resourceKey` 未在 Custody 侧开通 | 使用 `merchant/register` 返回的 `resourceAccessKey`，或联系平台开通 |
+| `40001`（缺少参数） | 缺少 `basic` 或必填字段 | 检查 `basic` 五项（Resource 为六项）是否完整 |
+
+---
+
+## 5. OAuth 授权流程
+
+### 5.1 流程总览
+
+```
+你的后端                 Cregis 网关               授权页                你的前端
+   │                        │                        │                     │
+   │ 1 POST oauth/authorizeUrl（Basic 签名）           │                     │
+   │───────────────────────▶│                        │                     │
+   │◀── authorizeUrl ───────│                        │                     │
+   │                        │                        │                     │
+   │ 2 返回 authorizeUrl 给前端 ───────────────────────────────────────────▶│
+   │                        │                        │  3 打开授权页        │
+   │                        │                        │◀────────────────────│
+   │                        │                        │  4 用户登录/选择组织 │
+   │                        │                        │  5 确认授权          │
+   │                        │                        │                     │
+   │                        │                        │ 6 postMessage       │
+   │                        │                        │   authorization_succeed
+   │                        │                        │────────────────────▶│
+   │◀── 7 前端回传授权结果（authorizationId / oauthToken） ────────────────│
+   │                        │                        │                     │
+   │ 8 POST oauth/verify    │                        │                     │
+   │   { resourceKey, oauthToken }                    │                     │
+   │───────────────────────▶│                        │                     │
+   │◀── { authorizeId } ────│                        │                     │
+   │                        │── authorization.created（异步回调）─────────▶│
+```
+
+关键点：
+
+- 授权结果有两种落地方式：授权页 / Web SDK 直接返回 `authorizationId`（推荐，见第 16 章），或服务端用 `oauthToken` 调用 `oauth/verify` 换取 `authorizeId`。
+- 业务接口使用的是 `authorizeId`（即 `basic.authorizationId`），不是 `oauthToken`。
+- `oauthToken` 是 JWT，默认 2 小时有效；`authorizeId` 是持久化的授权记录 ID。
+
+### 5.2 获取授权地址
+
+**POST** `/api/thirdparty/oauth/authorizeUrl` · Basic 签名
+
+**请求**
+
+```json
+{
+  "basic": {
+    "appId": "550e8400-e29b-41d4-a716-446655440000",
+    "timestamp": 1742947200,
+    "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6",
+    "signature": "0123456789abcdef0123456789abcdef"
+  },
+  "business": {
+    "permissions": ["read", "write"],
+    "state": "8f2c1d4e-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+    "callback": "https://api.example.com/cregis/oauth/callback",
+    "token": "user-42-order-20261019"
   }
 }
-
-// 页面卸载时清理资源
-window.addEventListener('beforeunload', () => {
-  sdk.destroy();
-});
 ```
 
-**TransferTaskDetailDialog 集成：**
+**参数**
 
-TransferTaskDetailDialog 用于展示转账任务详情，支持多签审批流程。
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `permissions` | string[] | 是 | 申请的权限列表；授权页支持 `read`、`write`、`admin`、`transfer`、`view` |
+| `state` | string | 是 | 防 CSRF 状态值，原样写入授权 URL，授权完成后由你的系统校验 |
+| `callback` | string | 否 | 授权完成后的回调地址；不传则使用应用配置的 `callbackUrl` |
+| `token` | string | 否 | 开发者自定义的不透明字符串，用于将授权结果映射到自身用户身份；会原样出现在授权回调载荷中 |
 
-```typescript
-import { openTransferTaskDetailDialog } from '@cregis-kit/openplatform-webkit';
+> **没有 `redirectUri` 参数。** 网关只接受上表中的四个字段；需要授权后的服务端通知时请使用 `callback`。`redirectUri` 不是网关参数，它最多只是授权页自身的页面级参数（见 5.3）。
 
-const taskData = {
-  taskId: '#TRX-8829',
-  status: 'pending',
-  amount: '10000',
-  coin: 'USDT',
-  network: 'Ethereum',
-  from: { name: 'Treasury', address: '0x1234...', type: 'account' },
-  to: { name: 'Vendor', address: '0xabcd...', type: 'external' },
-  meta: {
-    unit: 'Everypay-Treasury',
-    createdAt: '2024-01-15 10:30:00',
-    expiresIn: '24h',
-  },
-  approvalFlow: [
-    { name: 'Manager', status: 'completed', actor: 'manager@company.com' },
-    { name: 'CFO', status: 'current' },
-    { name: 'Final', status: 'pending' },
-  ],
-};
+**响应**
 
-openTransferTaskDetailDialog(taskData, {
-  title: 'Review Transfer',
-  onClose: () => console.log('Closed'),
-});
-```
-
-详细 API 文档请参考：[Web SDK README](../openplatform-sdk/web/README.md)
-
----
-
-### 6.5 前后端配合完整示例
-
-以下示例展示从创建 Treasury Unit 到完成 Payout 的完整流程：
-
-```mermaid
-sequenceDiagram
-    participant FE as 前端
-    participant BE as 后端服务
-    participant CS as Custody 服务
-    participant OP as 开放平台
-
-    FE->>BE: 1. 请求授权 URL
-    BE->>CS: 2. getAuthorizationUrl()
-    CS-->>BE: 3. authorizeUrl
-    BE-->>FE: 4. authorizeUrl
-    FE->>OP: 5. 打开授权页面，用户授权
-    OP-->>BE: 6. 回调通知 callback<br/>(authorizeId, token)
-    Note over BE: 通过 token 关联用户身份
-    BE->>CS: 7. createTreasuryUnit(authorizeId)
-    CS-->>BE: 8. treasury.id
-    BE-->>FE: 9. treasury.id
-    FE->>BE: 10. 请求创建 Payout
-    BE->>CS: 11. createPayout(authorizeId, unitId)
-    CS-->>BE: 12. orderId, taskId
-    BE-->>FE: 13. taskId
-    FE->>FE: 14. openTransferTaskDetailDialog(taskData)
-    Note over FE: 用户查看详情并确认
-    FE->>BE: 15. submitTask(taskId, confirmed)
-    BE->>CS: 16. submitTask(authorizeId, taskId)
-    CS-->>BE: 17. success
-```
-
-**后端代码：**
-
-```typescript
-import { CregisSDK } from '@cregis-kit/openplatform-node';
-
-const sdk = new CregisSDK({
-  baseUrl: 'http://api.vaulink.com/openplatform/',  // 测试沙盒网关地址
-  appId: process.env.APP_ID!,
-  appSecret: process.env.APP_SECRET!,
-});
-
-// 获取授权 URL
-app.post('/api/authorize-url', async (req, res) => {
-  const { customerId } = req.body; // 三方平台的用户 ID
-
-  // 1. 生成 token 用于关联用户身份
-  const token = generateOAuthToken(); // 开发者自己生成
-
-  // 2. 缓存 token -> customerId 映射
-  await db.pendingAuthorizations.create({
-    data: { token, customerId },
-  });
-
-  // 3. 调用 Custody 服务获取授权 URL
-  const { authorizeUrl } = await sdk.getAuthorizationUrl({
-    permissions: ['treasury:create', 'payout:create'],
-    state: crypto.randomUUID(),
-    callback: 'https://your-app.com/callback',
-    token,
-  });
-  res.json({ authorizeUrl });
-});
-
-// 授权回调 - 接收开放平台的通知，通过 token 查找客户身份并绑定 authorizeId
-app.post('/api/callback', async (req, res) => {
-  const { authorizeId, token } = req.body;
-
-  // 在开发者数据库中查找 token 对应的客户身份
-  const pendingAuth = await db.pendingAuthorizations.findUnique({
-    where: { token },
-  });
-
-  if (!pendingAuth) {
-    return res.status(404).json({ error: 'Pending authorization not found' });
+```json
+{
+  "code": 0,
+  "message": "Success",
+  "data": {
+    "authorizeUrl": "https://custody.cregis.ae/openplatform/auth?appId=550e8400-e29b-41d4-a716-446655440000&appToken=eyJhbGciOi...&appName=Example+Treasury&appLogoUrl=https%3A%2F%2Fexample.com%2Flogo.png&permissions=%5B%22read%22%2C%22write%22%5D&state=8f2c1d4e-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+    "expiresIn": 7200
   }
-
-  const { customerId } = pendingAuth;
-
-  // 绑定客户身份与 authorizeId
-  await db.authorizations.upsert({
-    where: { customerId },
-    update: { authorizeId, status: 'active' },
-    create: { customerId, authorizeId, status: 'active' },
-  });
-
-  // 删除待处理记录
-  await db.pendingAuthorizations.delete({ where: { token } });
-
-  res.json({ success: true });
-});
-
-// 创建 Payout
-app.post('/api/payout', async (req, res) => {
-  const authorizeId = req.session.authorizeId;
-  const { unitId, address, amount, coinId, network } = req.body;
-
-  const payout = await sdk.createPayout(authorizeId, {
-    unitId,
-    payTo: [{ address, amount }],
-    coinId,
-    network,
-    merchantType: 'payment',
-  });
-
-  res.json({
-    orderId: payout.orderId,
-    unitId: payout.unitId,
-    status: payout.status,
-  });
-});
-
-// 提交任务审批
-app.post('/api/submit-task', async (req, res) => {
-  const authorizeId = req.session.authorizeId;
-  const { taskId, confirmed, signatures } = req.body;
-
-  const result = await sdk.submitTask(authorizeId, taskId, {
-    confirmed,
-    signatures,
-  });
-
-  res.json(result);
-});
-```
-
-**前端代码：**
-
-```typescript
-import { CregisWebSDK, openTransferTaskDetailDialog } from '@cregis-kit/openplatform-webkit';
-
-// 1. 初始化 Web SDK
-const authSdk = new CregisWebSDK({
-  container: '#auth-container',
-  mode: 'popup',
-
-  onAuthorizationComplete: async ({ authorizeId }) => {
-    // 将 authorizeId 发送给后端
-    await fetch('/api/bind-authorization', {
-      method: 'POST',
-      body: JSON.stringify({ authorizeId }),
-    });
-  },
-
-  onAuthorizationError: (error) => {
-    console.error('授权失败:', error.message);
-  },
-
-  onAuthorizationCancelled: () => {
-    console.log('用户取消授权');
-  },
-});
-
-// 2. 获取授权 URL 并打开授权页面
-const { authorizeUrl } = await fetch('/api/authorize-url').then(r => r.json());
-
-try {
-  const authResult = await authSdk.openAuthorization(authorizeUrl);
-  if (authResult.status === 'success') {
-    console.log('授权成功, authorizeId:', authResult.authorizeId);
-  } else if (authResult.status === 'cancelled') {
-    console.log('用户取消授权');
-  } else {
-    console.error('授权失败:', authResult.error?.message);
-  }
-} catch (error) {
-  console.error('授权异常:', error.message);
 }
-
-// 3. 授权完成后，创建 Payout
-const payout = await fetch('/api/payout', {
-  method: 'POST',
-  body: JSON.stringify({
-    unitId: 123,
-    address: '0xabcd...',
-    amount: '10000',
-    coinId: 'USDT',
-    network: 'Ethereum',
-  }),
-}).then(r => r.json());
-
-// 4. 打开 TransferTaskDetailDialog 展示任务详情
-const taskData = {
-  taskId: `#TRX-${payout.orderId}`,
-  status: 'pending',
-  amount: '10000',
-  coin: 'USDT',
-  network: 'Ethereum',
-  from: { name: 'Treasury', address: '0x1234...', type: 'account' },
-  to: { name: 'Vendor', address: '0xabcd...', type: 'external' },
-  meta: { unit: 'Everypay-Treasury', createdAt: new Date().toISOString(), expiresIn: '24h' },
-  approvalFlow: [
-    { name: 'Manager', status: 'completed', actor: 'manager@company.com' },
-    { name: 'CFO', status: 'current' },
-  ],
-};
-
-openTransferTaskDetailDialog(taskData, {
-  onClose: () => console.log('User closed dialog'),
-});
 ```
 
----
+说明：
 
-### 6.6 安全模型
+- 应用必须存在且状态为 `active`；应用不存在或签约校验失败返回 `40102`，应用未激活返回 `40301`。
+- `authorizeUrl` 的域名由平台配置（`OPENPLATFORM_AUTH_URL`），生产环境默认 `https://custody.cregis.ae/openplatform/auth`。
+- `appToken` 是网关签发的 JWT（内含 `appId`、`callback`、`token`，有效期 2 小时），不要把 `appSecret` 放进 URL。
+- 请把 `authorizeUrl` 原样交给前端打开，不要自行拼接或删改查询参数。
 
-#### 签名机制
+### 5.3 授权页
 
-SDK 自动处理签名，无需手动计算：
+授权页是一个独立的前端应用（`openplatform-web/auth-page`），可被 iframe、弹窗或新标签页打开。
 
-- **Basic Signature**: 用于 OAuth 接口（`getAuthorizationUrl`）
-- **Resource Signature**: 用于业务接口（所有需要 `authorizeId` 的方法）
+**URL 参数**
 
+| 参数 | 来源 | 说明 |
+| --- | --- | --- |
+| `appId` | 网关生成 | 应用标识 |
+| `appToken` | 网关生成 | 授权 JWT，内含 `appId`、`callback`、`token` |
+| `appName` | 网关生成 | 应用名称，展示在授权页 |
+| `appLogoUrl` | 网关生成（应用配置了 Logo 时） | 应用 Logo |
+| `permissions` | 网关生成 | 权限列表的序列化结果，原样透传，不要修改 |
+| `state` | 网关生成 | 原样回传给你的前端，用于 CSRF 校验 |
+| `redirectUri` | 授权页页面级参数（可选） | **仅由授权页解析和校验，用于页面跳转，不是网关参数。** 网关生成的 `authorizeUrl` 不会包含它；需要服务端回调请使用 `callback`。 |
+| `sdkUuid` | Web SDK 自动追加 | 用于校验 postMessage 来源实例，避免多实例串话 |
+
+**iframe / 弹窗交互（postMessage）**
+
+授权页与父窗口的消息格式如下。父窗口通过 `init` 建立通道；授权页发出的所有事件都带有 `uuid`（即 `sdkUuid`）和 `timestamp`，并在收到父窗口消息后把目标 origin 固定为父窗口的 origin。
+
+父窗口发给授权页：
+
+| `action` | 说明 |
+| --- | --- |
+| `init` | 建立通信通道（建议在 iframe `load` 后发送，可携带 `uuid`） |
+| `cancel` | 请求取消授权，授权页回报 `authorization_failed`（`USER_CANCELLED`） |
+| `close` | 关闭授权页；若正在等待结果，按取消处理 |
+
+授权页发给父窗口：
+
+| `type` | 触发时机 | `data` |
+| --- | --- | --- |
+| `ready` | 页面初始化完成（参数校验通过） | 无 |
+| `authorization_started` | 用户点击“授权”按钮 | 无 |
+| `authorization_succeed` | 授权成功 | `{ "authorizationId": "<authorizeId>" }` |
+| `authorization_failed` | 参数错误、登录失败、用户取消、授权失败 | `{ "code": "...", "message": "..." }`，同时带 `error: { code, message, details? }` |
+| `close` | 授权成功后倒计时结束（约 10 秒）自动关闭 | 无 |
+
+取消授权固定使用 `code = "USER_CANCELLED"`。授权页成功视图会显示成功信息并在倒计时后自动关闭；如果你的授权页不是通过 iframe / 弹窗打开（例如直接新标签页且没有 opener），postMessage 没有接收方，请改用服务端 `callback` 或轮询自身业务状态。
+
+> Web SDK 1.0.5 已封装上述消息处理，推荐直接使用 `CregisWebSDK.openAuthorization(authorizeUrl)`，它会返回 `{ status, authorizeId }`（见第 16 章）。
+
+### 5.4 验证授权（换取 authorizeId）
+
+**POST** `/api/thirdparty/oauth/verify` · 无需签名
+
+**请求**
+
+```json
+{
+  "resourceKey": "access-key-d21396c169754470b3cdae0af9b2b8a6",
+  "oauthToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
 ```
-Basic Signature = MD5(appSecret + appId + timestamp + nonce + MD5(sortedBusinessJSON))
-Resource Signature = MD5(appSecret + appId + authorizationId + timestamp + nonce + MD5(sortedBusinessJSON))
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `resourceKey` | string | 是 | 资源标识。可使用 `merchant/register` 返回的 `resourceAccessKey`，或平台为你的企业开通的资源键 |
+| `oauthToken` | string | 是 | 授权流程产生的 JWT（由授权页 / Web SDK 交给你的后端） |
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "Success",
+  "data": {
+    "authorizeId": "123e4567-e89b-12d3-a456-426614174000"
+  }
+}
 ```
 
-**空 business 处理：** 当 `business` 为 `null`/`undefined`/`{}` 时，统一使用 `MD5("{}")` = `e3d974191d03905c53f39002987cc56f`。
+行为说明：
 
-#### 密钥管理
+- **幂等**：授权记录以 `(appId, resourceKey)` 唯一。同一应用用同一 `resourceKey` 重复调用 `verify` 不会创建新记录，返回同一个 `authorizeId`，并刷新 `authorizedAt`；不同 `resourceKey` 会得到不同的 `authorizeId`。
+- `appId` 取自 `oauthToken` 载荷，不接受调用方另行传入。
+- `oauthToken` 无效或过期返回 `40101`；应用不存在返回 `40401`。
+- **无需 Basic / Resource 签名**：本接口通过校验 JWT 本身完成认证，请求体是裸的 `{ resourceKey, oauthToken }`，不要再包一层 `basic` / `business`。
+- `resourceKey` 会绑定到授权记录，并决定后续业务请求转发到 Custody 的哪个资源；使用未开通的键会得到 `400103`。
+- 校验成功后会异步推送 `authorization.created` 回调（见 5.6）。回调是异步的，`verify` 的响应不等待回调结果。
 
-1. **appSecret 仅在后端使用**，切勿暴露在客户端代码中
-2. **authorizeId** 属于敏感信息，应存储在服务端 session 中
-3. 使用环境变量管理密钥，不要硬编码在代码中
+**关于 `oauthToken` 的来源：** `oauthToken` 是授权流程返回的 JWT（载荷中带 `appId`、`callback`、`token`，默认 2 小时有效），由你的前端在授权完成后交给后端。当前版本的 Web SDK 直接返回 `authorizationId`，此时可以跳过 `verify`；若你的架构需要在服务端换取授权记录、或需要平台推送 `authorization.created`，则用 `oauthToken` 调用本接口。两种方式得到的 `authorizeId` 都可用于业务接口。授权页的 `postMessage` 事件格式见 5.3，Web SDK 用法见第 16 章。
 
-#### UUID 防跨域攻击
+### 5.5 签发 OAuth Token（受限接口）
 
-Web SDK 使用 UUID 机制防止跨域消息污染：
+**POST** `/api/thirdparty/oauth/token` · Basic 签名
 
-1. SDK 实例化时生成唯一 UUID
-2. UUID 通过 URL 参数传递给授权页面
-3. 所有 postMessage 消息都携带 UUID 进行验证
-4. UUID 不匹配的消息将被拒绝
+**请求**
+
+```json
+{
+  "basic": {
+    "appId": "550e8400-e29b-41d4-a716-446655440000",
+    "timestamp": 1742947200,
+    "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6",
+    "signature": "0123456789abcdef0123456789abcdef"
+  },
+  "business": {
+    "oauthUserId": "user-42"
+  }
+}
+```
+
+**响应**
+
+```json
+{
+  "code": 0,
+  "message": "Success",
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "expires_in": 7200,
+    "token_type": "Bearer"
+  }
+}
+```
+
+实现现状与使用建议：
+
+- 该接口当前挂载在 Basic 签名中间件下，但处理逻辑会从请求上下文读取 `req.authorizationId` 作为资源标识，并要求提供 `business.oauthUserId`；它属于平台内部 / 受限接口。
+- 返回的 `access_token` 是 2 小时有效的 JWT，**不能**直接用于 `/api/thirdparty/treasury/*` 等业务接口；业务接口仍要求第 4 章的 Resource 签名。
+- **第三方开发者一般不需要调用此接口。** 正常接入只需 `authorizeUrl` + 授权页 + `verify`（或 Web SDK 返回的 `authorizationId`）。
+- 平台侧的 `/api/oauth/appToken/refresh`、`/api/oauth/revoke`、`/api/oauth/appToken/validate` 属于另一套内部令牌体系（`grant_type=client_credentials|refresh_token`），同样不用于本指南的业务调用链。
+
+### 5.6 授权回调
+
+`oauth/verify` 成功后，平台会向回调地址推送 `authorization.created` 事件。
+
+**回调请求头**
+
+| 请求头 | 说明 |
+| --- | --- |
+| `X-App-Id` | 应用的 `appId` |
+| `X-Event` | `authorization.created` |
+| `X-Timestamp` | 推送时的毫秒时间戳（每次重试重新生成） |
+| `X-Signature` | `sha256=<HMAC-SHA256>`，签名串为 `appId.event.timestamp.md5(sortedJSON(data))` |
+
+**回调载荷**
+
+```json
+{
+  "authorizeId": "123e4567-e89b-12d3-a456-426614174000",
+  "oauthToken": "user-42-order-20261019"
+}
+```
+
+- `authorizeId`：本次授权的授权记录 ID，用作业务请求的 `basic.authorizationId`。
+- `oauthToken`：这里是 `authorizeUrl` 请求中传入的 `token` 值（身份映射标识），**不是** JWT。
+- 回调地址优先级：`authorizeUrl` 的 `callback` > 应用配置的 `callbackUrl`。两者都没有时不会推送。
+- 注意：通过 `authorizeUrl` 的 `callback` 指定地址时，当前实现的推送不携带 `X-Event` 头；通过应用默认 `callbackUrl` 推送时携带 `X-Event: authorization.created`。请以请求体内容为准判断事件类型。
+- 回调是异步的，失败会重试（初始 + 3 次，间隔 0s / 1s / 5s / 30s，仅对 429、5xx 和网络错误重试）。请务必对 `authorizeId` 做幂等处理。
+
+回调的 HMAC 验签、重试策略、事件列表与响应要求详见 **第 14 章「回调与 Webhook」**。
 
 ---
 
-### 6.7 版本和兼容性
+## 6. 通用约定
 
-| 组件 | 版本要求 | 备注 |
-|------|----------|------|
-| Node.js SDK | Node.js >= 18.0.0 | 推荐使用 LTS 版本 |
-| Web SDK | 现代浏览器 | 支持 Chrome、Firefox、Safari、Edge 最新版 |
-| TypeScript | >= 4.5 | 完整类型定义支持 |
+### 6.1 请求与响应结构
 
-**详细文档：**
+**请求**
 
-- [Node.js SDK README](../openplatform-sdk/node/README.md)
-- [Web SDK README](../openplatform-sdk/web/README.md)
+- 业务与 OAuth 接口均为 `POST`，`Content-Type: application/json`。
+- 除 `oauth/verify` 外，请求体统一为 `{ "basic": {...}, "business": {...} }`；`verify` 直接使用 `{ "resourceKey", "oauthToken" }`。
+- 业务接口不使用 `Authorization: Bearer`；认证信息全部在 `basic` 中。
+- URL 路径参数（如 `unitId`、`taskId`、`cusAccountId`）不参与签名；参与签名的只有 `business` 和 `basic` 中的签名字段。
 
----
+**统一响应 envelope**
 
-## 七、注意事项
+```json
+{
+  "code": 0,
+  "message": "Success",
+  "data": {},
+  "trace_id": "6f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f"
+}
+```
 
-1. **签名时效**: 每次请求需要生成新的 timestamp 和 nonce
-2. **Nonce 防重放**: 相同 nonce 在 1 小时内不可重复使用
-3. **时间同步**: 确保服务器时间与 UTC 时间同步，误差不超过 5 分钟
-4. **敏感信息**: appSecret 仅在服务端使用，切勿暴露在客户端
-5. **错误处理**: 收到错误码时应根据文档进行相应处理
-6. **UUID 验证**: SDK 与授权页面通过 UUID 进行双向消息验证
-7. **回调签名验证**: 接收回调通知时必须验证 HMAC-SHA256 签名，确保消息来源可靠
-8. **回调幂等处理**: 回调处理器应支持幂等操作，避免重复处理同一事件
-9. **回调快速响应**: 回调处理应快速返回 200，避免长时间处理导致超时
+| 字段 | 说明 |
+| --- | --- |
+| `code` | 业务码。`0`（部分上游接口为 `200`）表示成功；其他值见 6.7 |
+| `message` | 可读描述，不保证稳定，请以 `code` 判断 |
+| `data` | 业务数据；可能为对象、数组、分页对象或 `null` |
+| `trace_id` | 请求追踪 ID；部分上游透传响应可能不含该字段，此时以响应头为准 |
 
----
+**重要：** 业务接口的 HTTP 状态码通常为 `200`，业务失败通过响应体 `code` 表达，请勿仅凭 HTTP 状态判断成败。网关自身产生的错误（路由不存在、缺少 `resourceKey`、配额超限、验签失败、上游不可用）会使用非 200 状态码，并返回同样结构的 envelope；参数校验失败还会附带 `errors` 数组。
 
-## 八、联系方式
+### 6.2 分页
 
-如有问题，请联系技术支持。
+**响应形态**
+
+| 接口 | 返回形态 |
+| --- | --- |
+| `treasury/list` | **数组**（`data` 直接是财务单元数组，不分页包装） |
+| `treasury/list-unit-account/{unitId}` | 数组（账户列表） |
+| `treasury/create-unit-address-by-account/{cusAccountId}/{number}` | 数组（新生成的地址） |
+| `treasury/address`、`treasury/address-by-account/{cusAccountId}` | 分页对象 |
+| `treasury/activities`、`transfer-out-orders`、`transfer-in-orders`、`fund-records`、`unit-fund-records` | 分页对象 |
+
+分页对象结构：
+
+```json
+{
+  "records": [],
+  "total": 120,
+  "current": 1,
+  "size": 20,
+  "pages": 6
+}
+```
+
+| 字段 | 说明 |
+| --- | --- |
+| `records` | 当前页数据 |
+| `total` | 总记录数 |
+| `current` | 当前页码（从 1 开始） |
+| `size` | 每页条数 |
+| `pages` | 总页数 |
+
+**两种查询参数**
+
+| 参数风格 | 参数 | 适用接口 |
+| --- | --- | --- |
+| 页码从 1 开始 | `pageSize`、`pageNum`、`sortFields` | `treasury/list`、`treasury/address`、`treasury/address-by-account/{cusAccountId}` |
+| 页索引从 0 开始 | `pageIndex`、`pageSize`、`sortFields`、`queryList` | `treasury/activities`、`treasury/transfer-out-orders`、`treasury/transfer-in-orders`、`treasury/fund-records`、`treasury/unit-fund-records` |
+
+`sortFields` 格式为 `字段名_asc` / `字段名_desc`，例如 `createTime_d`。`queryList` 为条件数组，每项形如 `{ "key": "unitId", "value": 80, "oper": "=", "join": "and" }`。
+
+> `treasury/list` 虽然接受 `pageSize` / `pageNum`，但**响应仍是数组**，请勿按分页对象解析。
+
+### 6.3 幂等
+
+平台不提供统一的 `Idempotency-Key` 请求头，幂等由业务字段保证：
+
+| 场景 | 幂等键 | 行为 |
+| --- | --- | --- |
+| 出金 `treasury/payout` | `business.orderId`（你的业务订单号） | 同一 `orderId` 重复提交时，Custody 侧按同一笔业务识别，避免重复出金；请在重试时复用原 `orderId` |
+| 商户注册 `merchant/register` | `business.legalName` | 同一企业重复注册不会重复创建，返回 `alreadyExists: true` 及相同的 `ecode`、`resourceAccessKey` |
+| 添加用户 `user/add` | `business.email` | 同一企业下同一邮箱不会重复创建用户 |
+| 授权 `oauth/verify` | `(appId, resourceKey)` | 重复验证返回同一个 `authorizeId`，并刷新授权时间 |
+| 授权回调 `authorization.created` | `authorizeId` | 可能重试推送，接收方必须按 `authorizeId` 去重 |
+
+建议：所有写操作在调用方生成稳定的业务单号，重试时复用；收到回调时先按事件主键去重再执行业务。
+
+### 6.4 每日配额
+
+- 配额按**开发者（ISV）**维度、按自然日统计，上限来自当前生效订阅套餐的 `dailyApiLimit`。
+- 仅统计通过网关转发的业务接口调用（`/api/thirdparty/*` 中除 `oauth/verify` 等本地接口外的转发请求）。
+- 超出配额返回 HTTP `429`，业务码 `42901`，消息形如 `Daily API quota exceeded (1000/1000)`。
+- 用量每日 0 点重置（平台定时任务将 `dailyApiUsage` 归零）。当前用量可通过 `GET /api/v1/isv/subscription/current` 的 `dailyApiUsage` 查看。
+- **fail-closed**：当配额服务异常、无法确认剩余额度时，请求会被拒绝（同样表现为 `42901`），而不是放行。这是银行级托管平台的默认安全策略，请在你的系统中把 `42901` 视为“可重试但需退避”的错误。
+- 当前实现中，开发者若没有生效中的订阅，配额校验会直接放行；生产环境请始终保持有效订阅，不要依赖该行为。
+
+### 6.5 限流档位
+
+除每日配额外，网关对 `/api` 下的请求执行多窗口限流（分钟 / 小时 / 天 + 突发桶）：
+
+| 档位 | 每日 | 每小时 | 每分钟 | 突发（burst） |
+| --- | --- | --- | --- | --- |
+| `free` | 1,000 | 100 | 10 | 20 |
+| `basic` | 10,000 | 1,000 | 100 | 200 |
+| `pro` | 100,000 | 10,000 | 1,000 | 2,000 |
+| `enterprise` | 不限 | 100,000 | 10,000 | 20,000 |
+
+- 档位由平台按应用 / 套餐配置；当前版本的默认实现统一使用 `basic` 档，平台侧可按应用调整。
+- 超限返回 HTTP `429` 与业务码 `42901`，并带有 `Retry-After` 响应头。
+- 限流响应头：`X-RateLimit-Limit`、`X-RateLimit-Remaining`、`X-RateLimit-Reset`（Unix 秒）、`X-RateLimit-Policy`（档位名）。
+- 每日配额（6.4）与限流（本节）是两套独立机制：前者按订阅套餐的 `dailyApiLimit` 计数，后者按档位的多窗口规则计算；任一触发都会返回 `42901`。
+- 限流存储默认在内存中；限流服务异常时同样 fail-closed 拒绝请求。
+
+### 6.6 traceId 与排障
+
+- 网关为每个请求生成或透传 `x-trace-id`：
+  - 请求头已带 `x-trace-id` 时沿用，否则生成 UUID。
+  - 响应头回写 `x-trace-id`。
+  - 转发到 Custody 时通过 `x-trace-id` 请求头传递。
+- 网关本地的错误响应（如参数校验失败、验签失败）会包含 `trace_id` 字段；上游透传的响应体不保证包含该字段，请以**响应头 `x-trace-id`** 为准。
+- 在开发者门户的 API 日志（`GET /api/v1/api-logs`）中可按 `traceId` 检索调用记录。
+- 提交工单或联调排障时，请提供：`x-trace-id`、`appId`、请求时间（含时区）、接口路径、业务码与完整响应体（请先脱敏 `appSecret`、`oauthToken`）。
+
+### 6.7 错误码速查
+
+| HTTP | `code` | 含义 | 典型场景 / 处理建议 |
+| --- | --- | --- | --- |
+| 400 | `40001` | 缺少必填参数 | `basic` 不完整、缺少 `appId`；补齐后重试 |
+| 400 | `40002` | 参数格式错误 | 格式不符合要求；按文档修正 |
+| 400 | `40003` | 违反业务规则 | 请求合法但当前状态不允许 |
+| 400 | `40004` | 重复请求 | 业务字段重复 |
+| 400 | `40005` | 状态无效 | 对象当前状态不允许该操作 |
+| 401 | `40101` | 缺少认证信息 / token 无效 | `basic` 缺失；`oauthToken` 无效或过期 |
+| 401 | `40102` | 签名验证失败 | 见 4.5 排查表 |
+| 401 | `40103` | 时间戳过期或无效 | 使用 Unix 秒并校准时钟 |
+| 401 | `40104` | nonce 重复（重放） | 每次请求生成新 nonce |
+| 401 | `40105` | 应用或开发者未激活 | 应用状态不是 `active`，或开发者账号被停用 |
+| 401 | `40110` | 登录凭证无效 | 开发者后台登录邮箱 / 密码错误 |
+| 403 | `40301` | 资源未授权 | `authorizeId` 无效、已撤销或不属于当前应用；重新授权 |
+| 403 | `40302` | 权限不足 | 当前凭据无权执行该操作 |
+| 403 | `40303` | 操作方不满足条件 | 常见于 KYB 未通过时创建应用 |
+| 403 | `40305` | 权限不足 | 应用 / 用户权限配置不满足 |
+| 404 | `40401` | 资源不存在 | 记录不存在，或网关未匹配到路由 |
+| 404 | `40402` | 接口不存在 | 检查路径是否使用 `/api/thirdparty/` 前缀 |
+| 409 | `40902` | 冲突 / 重复 | 邮箱已注册、授权记录冲突等 |
+| 400 | `400103` | 资源键不存在（上游 Custody） | `resourceKey` 未在 Custody 侧开通；使用 `merchant/register` 的 `resourceAccessKey` |
+| 400 | `120042` | 归集来源账户类型不允许（上游 Custody） | 仅允许从收款类账户归集；检查 `fromAccountId` |
+| 429 | `42901` | 超出配额或限流 | 退避后重试；检查 `Retry-After` 与订阅套餐 |
+| 500 | `50001` | 服务内部错误 | 记录 `x-trace-id` 并联系平台 |
+| 502 | `50201` | 上游网关错误 | 上游返回异常；稍后重试 |
+| 503 | `50301` | 服务不可用 | 上游不可达；稍后重试 |
+| 504 | `50401` | 网关超时 | 上游超时；确认业务是否已受理后再决定是否重试 |
+| 504 | `50402` | 上游超时 | 同上 |
+| 5xx | `500` / `502` / `503` / `504` | 转发层返回的原始 HTTP 风格错误 | 网关在无法连接上游或上游超时时直接返回；按对应语义处理 |
+
+说明：
+
+- 上游 Custody 返回的 `400xxx`、`401xxx`、`403xxx` 业务码会原样透传在响应体 `code` 中；网关日志按码段映射记录 HTTP 状态（`400xxx` → 400、`401xxx` → 401、`403xxx` → 403、`400103` → 404、`409xxx` → 409、`429xxx` → 429、`120xxx` → 400、5xx → 500）。
+- 判断请求是否成功请以响应体 `code` 为准（成功为 `0` 或 `200`），不要只看 HTTP 状态码。
+- 错误码的完整定义、各接口的业务码清单与处理建议见 **第 15 章「错误码与排查」**。
+
+<!-- 第 7–17 章（API 参考、回调、错误码详解、SDK 集成、附录）由后续任务补充 -->
