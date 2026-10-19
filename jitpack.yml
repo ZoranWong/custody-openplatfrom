@@ -1,4 +1,8 @@
 jdk:
   - openjdk21
-before_install:
-  - cd openplatform-sdk/java
+# Build only the core module from the java subdirectory.
+# Use the Maven shipped with the JitPack image instead of ./mvnw: the wrapper
+# re-downloads apache-maven from repo.maven.apache.org, which intermittently
+# returns a corrupted zip on JitPack and fails the build before Maven starts.
+install:
+  - cd openplatform-sdk/java && mvn -B -U clean install -DskipTests -pl cregis-sdk-core -am
