@@ -64,10 +64,10 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
         │◀──────────── authorizeUrl ──────│                                  │
         │                                 │                                  │
         │ 7. 前端打开授权页 → 用户登录 → 选择组织 → 确认授权                 │
-        │    授权页 --postMessage--> 你的前端 --> 你的后端                    │
+        │    授权页 --postMessage--> 你的前端（仅 authorizationId）            │
         │                                 │                                  │
         │ 8. POST /api/thirdparty/oauth/verify                               │
-        │    { resourceKey, oauthToken }                                     │
+        │    { resourceKey, oauthToken }（oauthToken = 后端保存的 appToken）  │
         │────────────────────────────────▶│ 校验 oauthToken，写入授权记录    │
         │◀────────── { authorizeId } ─────│ 异步推送 authorization.created   │
         │                                 │                                  │
@@ -89,7 +89,7 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 | 注册开发者账号并提交真实、完整的企业与 UBO 资料 | 审核 KYB，维护审核状态与审核记录 |
 | 妥善保管 `appSecret`，不写入前端代码或公开仓库 | 按 `appId` 校验签名、应用状态与开发者状态 |
 | 在服务端按规范计算 Basic / Resource 签名 | 校验时间戳容差、nonce 唯一性、签名与 `authorizationId` |
-| 创建应用、订阅套餐、选择业务模式 | 提供授权页、签发 `oauthToken`、维护授权关系 |
+| 创建应用、订阅套餐、选择业务模式 | 提供授权页、签发授权页 JWT（`appToken`，即 `oauthToken`）、维护授权关系 |
 | 在业务系统中维护 `authorizeId` 与自身用户的映射 | 生成并维护 `authorizeId`（授权记录 ID），校验授权有效性 |
 | 接收并验签回调，按业务语义处理幂等 | 推送授权与业务事件，失败时按策略重试 |
 | 控制调用量并处理 429 | 执行每日配额与限流，返回标准错误码 |
@@ -115,8 +115,10 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 | 地址与账户 | `POST /api/thirdparty/treasury/address`、`POST /api/thirdparty/treasury/address-by-account/{cusAccountId}`、`POST /api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number}`、`POST /api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number}`、`POST /api/thirdparty/treasury/list-unit-account/{unitId}` | Resource |
 | 出金 / 归集 / 审批 | `POST /api/thirdparty/treasury/payout`、`POST /api/thirdparty/treasury/pooling`、`POST /api/thirdparty/treasury/submit-task/{taskId}` | Resource |
 | 交易查询 | `POST /api/thirdparty/treasury/activities`、`POST /api/thirdparty/treasury/transfer-out-orders`、`POST /api/thirdparty/treasury/transfer-in-orders`、`POST /api/thirdparty/treasury/fund-records`、`POST /api/thirdparty/treasury/unit-fund-records` | Resource |
+| 币种 / 规则 / 白名单 | `POST /api/thirdparty/treasury/add-coins`、`POST /api/thirdparty/treasury/fund-control-update`、`POST /api/thirdparty/treasury/whitelist-update` | Resource |
 | 商户 / 用户 / Board | `POST /api/thirdparty/merchant/register`、`POST /api/thirdparty/user/add`、`POST /api/thirdparty/board/init` | `merchant/register` 用 Basic，其余用 Resource |
-| OAuth | `POST /api/thirdparty/oauth/authorizeUrl`、`POST /api/thirdparty/oauth/token`、`POST /api/thirdparty/oauth/verify` | Basic 签名；`verify` 无需签名 |
+| OAuth | `POST /api/thirdparty/oauth/authorizeUrl`、`POST /api/thirdparty/oauth/token`、`POST /api/thirdparty/oauth/verify` | 前两者用 Basic 签名；`verify` 无需签名 |
+| 内部回调 | `POST /api/thirdparty/custody/callback` | 由 Custody 服务调用，开发者无需调用（平台按 `resourceKey` 反查应用并推送事件） |
 
 上表为节选，各接口的完整参数、请求 / 响应示例与业务码见第 7–13 章。
 
@@ -262,6 +264,8 @@ KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATO
 
 `accessToken` 是访问开发者后台接口（`/api/v1/isv/*`）的 Bearer JWT，默认有效期 24 小时（可由平台通过 `ISV_JWT_EXPIRES_IN` 配置）。注销接口 `POST /api/v1/isv/auth/logout` 仅作客户端登出提示，请自行丢弃 token。该 JWT **不是**业务接口的凭证，业务接口使用第 4 章的签名机制。
 
+> 另有公开接口 `POST /api/v1/isv/auth/forgot-password` 与 `POST /api/v1/isv/auth/reset-password`。当前实现是演示桩：只做参数校验并返回成功，不会发送邮件，也不校验重置 token。请勿依赖它们找回密码（见 6.8）。
+
 ### 3.4 创建应用
 
 **POST** `/api/v1/isv/applications` · `Authorization: Bearer <accessToken>` · 仅 owner
@@ -309,7 +313,7 @@ KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATO
 关键说明：
 
 - 响应中的 `application.id` 就是后续签名使用的 **`appId`**（UUID 格式）。
-- `appSecret` 是敏感凭证，请立即保存到服务端密钥管理系统。创建应用、重置密钥的响应会返回它；应用列表接口不会返回；应用详情接口返回的是应用记录，请勿在浏览器或日志中暴露。
+- `appSecret` 是敏感凭证，请立即保存到服务端密钥管理系统。创建应用、重置密钥的响应会返回它；应用列表接口不会返回；应用详情接口**会返回完整记录（含 `appSecret`）**，只能在服务端调用。
 - 创建应用要求当前开发者 `kybStatus === approved`，且登录用户角色为 `owner`。
 - 应用默认状态为 `active`；状态非 `active` 时，OAuth 与业务接口都会被拒绝。
 
@@ -318,7 +322,7 @@ KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATO
 | 接口 | 说明 |
 | --- | --- |
 | `GET /api/v1/isv/applications` | 当前用户可访问的应用列表（不含 `appSecret`） |
-| `GET /api/v1/isv/applications/:id` | 应用详情 |
+| `GET /api/v1/isv/applications/:id` | 应用详情。**当前实现直接返回应用记录，包含 `appSecret`**；只能在服务端调用，切勿从浏览器或前端代码调用 |
 | `PUT /api/v1/isv/applications/:id` | 修改 `appName`、`appDescription`、`callbackUrl`（响应不含 `appSecret`） |
 
 ### 3.5 订阅套餐
@@ -351,7 +355,7 @@ KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATO
 | `GET /api/v1/isv/subscriptions` | 订阅历史（分页：`page`、`pageSize`） |
 | `GET /api/v1/isv/subscription/current` | 当前生效订阅，含当日用量 `dailyApiUsage` 与套餐信息 |
 
-套餐的 `dailyApiLimit` 字段通过 `GET /api/v1/isv/packages` 获取，它决定每日可调用的业务接口次数（见 6.4）；另有独立的限流档位（见 6.5）。未确认订阅前请勿发起生产调用。
+套餐的 `dailyApiLimit` 字段通过 `GET /api/v1/isv/packages` 获取，它决定每日可调用的业务接口次数（见 6.4）；另有独立的限流档位（见 6.5）。若套餐记录缺少 `dailyApiLimit`，配额按 **1000** 计算。未确认订阅前请勿发起生产调用。
 
 ### 3.6 凭证安全
 
@@ -393,10 +397,12 @@ KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATO
 
 | 签名类型 | 用途 | 使用接口 | 签名串（`MD5(...)` 内层） |
 | --- | --- | --- | --- |
-| **Basic 签名** | 不涉及授权资源的操作 | `oauth/authorizeUrl`、`oauth/verify`、`oauth/token`；`merchant/register`（无 `authorizationId`） | `appSecret + appId + timestamp + nonce + md5(business)` |
+| **Basic 签名** | 不涉及授权资源的操作 | `oauth/authorizeUrl`、`oauth/token`；`merchant/register`（无 `authorizationId`） | `appSecret + appId + timestamp + nonce + md5(business)` |
 | **Resource 签名** | 绑定授权资源的业务操作 | 除 `merchant/register` 外的全部 `/api/thirdparty/*` 转发接口 | `appSecret + appId + authorizationId + timestamp + nonce + md5(business)` |
 
 两者的唯一区别是 Resource 签名在 `appId` 之后插入了 `authorizationId`。`authorizationId` 即 OAuth 流程得到的 `authorizeId`。
+
+> `oauth/verify` **不属于**这两种签名：该路由只做请求体校验（`resourceKey`、`oauthToken` 必填），没有 Basic 签名中间件，见 5.4。
 
 推荐直接使用官方 SDK 的签名方法，避免自行实现产生偏差：
 
@@ -441,8 +447,8 @@ Basic 签名接口不传 `basic.authorizationId`。
 
 1. **对象 key 递归排序**：所有层级（包括嵌套对象）按 key 的字典序升序排列。
 2. **数组元素保序**：数组顺序有业务含义，不能排序；但**数组内的对象同样按 key 排序**。
-3. **`null` / `undefined` 不参与**：值为 `null` 或 `undefined` 的字段不应出现在签名内容中。官方 SDK 序列化时会丢弃这类字段；为避免网关与 SDK 行为差异，请在构造 `business` 时直接省略这些字段。
-4. **空对象序列化为 `{}`**：`business` 为空（`{}`、`null` 或 `undefined`）时，统一按字符串 `{}` 计算，`md5("{}") = 99914b932bd37a50b983c5e7c90ae93b`。
+3. **`null` 处理（重要）**：网关的 `sortObjectKeys` **不会丢弃 `null`**，`JSON.stringify` 会把 `null` 序列化为 `"key":null` 参与 MD5；只有 `undefined` 会在 `JSON.stringify` 时被丢弃。Node SDK 的 `sortKeys` 会同时丢弃 `null` 和 `undefined`，与网关不同。因此**不要在 `business` 中发送 `null` 值字段**（要么省略字段，要么传业务上的空值如 `""`、`0`），否则自行实现的服务端签名与网关可能不一致。
+4. **空对象序列化为 `{}`**：`business` 为空（`{}`、`null` 或 `undefined`）时，统一按字符串 `{}` 计算，`md5("{}") = 99914b932bd37a50b983c5e7c90ae93b`。注意只有**顶层** `business` 会被归一为空对象；嵌套的空对象按 `{}` 正常序列化。
 5. **值类型保持原样**：数字保持 JSON number（不要转成字符串），字符串保持原样，布尔值保持 `true` / `false`；不要对金额、ID 等做额外格式化。
 6. **UTF-8 编码**：MD5 输入按 UTF-8 字节计算。
 
@@ -506,7 +512,7 @@ function sortKeys(value) {
   if (value && typeof value === 'object') {
     return Object.fromEntries(
       Object.keys(value)
-        .filter((key) => value[key] !== null && value[key] !== undefined) // 丢弃 null/undefined
+        .filter((key) => value[key] !== null && value[key] !== undefined) // 示例按 Node SDK 丢弃 null/undefined；实际请求请勿传 null
         .sort()
         .map((key) => [key, sortKeys(value[key])]),
     );
@@ -554,7 +560,7 @@ import java.util.*;
 public class SignatureDemo {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /** 递归排序：对象按 key 升序；数组保序；数组内对象同样排序；丢弃 null。 */
+    /** 递归排序：对象按 key 升序；数组保序；数组内对象同样排序。示例按 Node SDK 丢弃 null；实际请求请勿传 null。 */
     private static Object sort(Object value) {
         if (value instanceof Map<?, ?> map) {
             TreeMap<String, Object> sorted = new TreeMap<>();
@@ -621,13 +627,15 @@ public class SignatureDemo {
 | `40103`（时间戳过期） | 使用了毫秒时间戳；服务器时钟漂移；请求重放 | 确认是 10 位 Unix 秒；开启 NTP 同步；每次请求重新取时间 |
 | `40104`（nonce 重放） | 固定 nonce；失败重试沿用同一 nonce；并发请求共享 nonce | 每次请求（含重试）生成新 nonce；nonce 在 1 小时内不可重复 |
 | `40102`（签名错误），含对象数组的请求 | 只排序了顶层 key，没有排序数组内的对象 | 使用 1.1.0+ Node SDK / 1.2.0+ Java SDK，或按 4.3 递归排序 |
-| `40102`，字段被改写 | 签名后修改了 `business`；序列化时增删字段、数字/字符串互转、`null` 处理不一致 | 先构造最终 `business` 再签名；请求体原样发送；省略值为 `null` 的字段 |
+| `40102`，字段被改写 | 签名后修改了 `business`；序列化时增删字段、数字/字符串互转、`null` 处理不一致（网关保留 `null`、SDK 丢弃 `null`） | 先构造最终 `business` 再签名；请求体原样发送；不要发送值为 `null` 的字段 |
 | `40102`，全部请求 | `appSecret` 错误；密钥已重置但环境变量未更新；复制时带入空格或换行 | 与开发者后台核对；重置后同步所有实例；对 secret 做 `trim` 检查 |
-| `40102`，仅 OAuth 接口 | 误用了 Resource 签名（签名串多了 `authorizationId`） | OAuth 接口使用 Basic 签名 |
+| `40102` / `40104`，应用被停用 | 应用状态非 `active` 时，签名中间件以 `AUTH_DUPLICATE_NONCE`（`40104`）返回 `Application is not active`（复用错误码，语义上并非 nonce 问题） | 确认应用状态；联系平台恢复 |
+| `40105`，开发者被停用 | 开发者账号状态非 `active` 时返回 `AUTH_APP_NOT_ACTIVE` | 联系平台恢复账号 |
+| `40102`，仅 `authorizeUrl` | 误用了 Resource 签名（签名串多了 `authorizationId`） | OAuth 接口使用 Basic 签名；`verify` 不需要签名 |
 | `40102`，仅业务接口 | 未传 `basic.authorizationId`，或传入了另一个环境的 `authorizeId` | 使用本环境 `oauth/verify` 返回的 `authorizeId` |
-| `40301`（资源未授权） | `authorizationId` 不存在、已撤销，或不属于当前 `appId` | 重新走 OAuth 流程；确认应用与授权记录一致 |
+| `40301`（资源未授权） | `authorizationId` 不存在或授权记录状态不是 `active`（当前实现按 ID 查询，不校验应用归属） | 重新走 OAuth 流程并调用 `verify` |
 | `400103`（资源键不存在） | `resourceKey` 未在 Custody 侧开通 | 使用 `merchant/register` 返回的 `resourceAccessKey`，或联系平台开通 |
-| `40001`（缺少参数） | 缺少 `basic` 或必填字段 | 检查 `basic` 五项（Resource 为六项）是否完整 |
+| `40001`（缺少参数） | 缺少 `basic` 或必填字段 | 检查 `basic` 是否完整：Basic 签名 4 个字段（`appId`、`timestamp`、`nonce`、`signature`），Resource 签名 5 个字段（额外 `authorizationId`） |
 
 ---
 
@@ -651,10 +659,10 @@ public class SignatureDemo {
    │                        │                        │ 6 postMessage       │
    │                        │                        │   authorization_succeed
    │                        │                        │────────────────────▶│
-   │◀── 7 前端回传授权结果（authorizationId / oauthToken） ────────────────│
+   │◀── 7 前端回传 authorizeId（authorizationId） ───────────────────────────│
    │                        │                        │                     │
    │ 8 POST oauth/verify    │                        │                     │
-   │   { resourceKey, oauthToken }                    │                     │
+   │   { resourceKey, oauthToken }（oauthToken = 后端保存的 appToken）    │
    │───────────────────────▶│                        │                     │
    │◀── { authorizeId } ────│                        │                     │
    │                        │── authorization.created（异步回调）─────────▶│
@@ -662,8 +670,10 @@ public class SignatureDemo {
 
 关键点：
 
-- 授权结果有两种落地方式：授权页 / Web SDK 直接返回 `authorizationId`（推荐，见第 16 章），或服务端用 `oauthToken` 调用 `oauth/verify` 换取 `authorizeId`。
-- 业务接口使用的是 `authorizeId`（即 `basic.authorizationId`），不是 `oauthToken`。
+- 授权页 / Web SDK 只返回 `authorizationId`（授权页内部调用 `/internal/third-party/authorize` 得到，见 5.3），**不会返回 `oauthToken`**。
+- `oauthToken` 是网关在 `authorizeUrl` 中签发的 `appToken`（JWT），只有你的后端能拿到它。
+- 无论用哪种方式拿到 `authorizationId`，业务接口能用的 `authorizeId` 都必须来自 `oauth/verify`（或签名保护的内部 `POST /api/v1/authorizations`）：业务请求会查询 `oauth_resources` 表，该表只在上述两个接口中被写入。因此 **`verify` 是必需的**，不能只依赖授权页返回的 `authorizationId`。
+- 授权页返回的 `authorizationId` 可用于展示或日志；若它与 `verify` 返回的 `authorizeId` 不一致，一律以 `verify` 的返回为准。
 - `oauthToken` 是 JWT，默认 2 小时有效；`authorizeId` 是持久化的授权记录 ID。
 
 ### 5.2 获取授权地址
@@ -681,7 +691,6 @@ public class SignatureDemo {
     "signature": "0123456789abcdef0123456789abcdef"
   },
   "business": {
-    "permissions": ["read", "write"],
     "state": "8f2c1d4e-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
     "callback": "https://api.example.com/cregis/oauth/callback",
     "token": "user-42-order-20261019"
@@ -693,12 +702,14 @@ public class SignatureDemo {
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `permissions` | string[] | 是 | 申请的权限列表；授权页支持 `read`、`write`、`admin`、`transfer`、`view` |
-| `state` | string | 是 | 防 CSRF 状态值，原样写入授权 URL，授权完成后由你的系统校验 |
-| `callback` | string | 否 | 授权完成后的回调地址；不传则使用应用配置的 `callbackUrl` |
-| `token` | string | 否 | 开发者自定义的不透明字符串，用于将授权结果映射到自身用户身份；会原样出现在授权回调载荷中 |
+| `permissions` | string[] | 否（见下方警告） | 申请的权限列表。控制器不校验该字段，缺省时不写入授权 URL，授权页默认为 `['read']` |
+| `state` | string | 否 | 防 CSRF 状态值，原样写入授权 URL 的 `state` 参数。**授权页不会回传 `state`**，请自行通过业务侧记录或 `token` 关联本次授权 |
+| `callback` | string | 否 | 授权结果的服务端回调地址；不传则使用应用配置的 `callbackUrl` |
+| `token` | string | 否 | 开发者自定义的不透明字符串，写入授权页 JWT，并在授权回调中以 `oauthToken` 字段原样返回（用于身份映射）；不传时回调载荷不含该字段 |
 
-> **没有 `redirectUri` 参数。** 网关只接受上表中的四个字段；需要授权后的服务端通知时请使用 `callback`。`redirectUri` 不是网关参数，它最多只是授权页自身的页面级参数（见 5.3）。
+> **`permissions` 序列化陷阱（重要）：** 网关用 `JSON.stringify(permissions)` 写入授权 URL，而授权页用 `permissions.split(',')` 解析。传入非空数组（如 `["read","write"]`）时，授权页实际收到的是 `["read"` 和 `"write"]` 两段，无法通过页面的权限白名单校验，授权页会直接显示失败。**当前可用的做法是省略 `permissions`**（授权页默认 `['read']`）。字符串数组的序列化修复属于平台侧改动。
+>
+> **没有 `redirectUri` 参数。** 网关只接受上表中的四个字段；需要授权后的服务端通知时请使用 `callback`。`redirectUri` 不是网关参数（见 5.3）。
 
 **响应**
 
@@ -707,7 +718,7 @@ public class SignatureDemo {
   "code": 0,
   "message": "Success",
   "data": {
-    "authorizeUrl": "https://custody.cregis.ae/openplatform/auth?appId=550e8400-e29b-41d4-a716-446655440000&appToken=eyJhbGciOi...&appName=Example+Treasury&appLogoUrl=https%3A%2F%2Fexample.com%2Flogo.png&permissions=%5B%22read%22%2C%22write%22%5D&state=8f2c1d4e-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+    "authorizeUrl": "https://custody.cregis.ae/openplatform/auth?appId=550e8400-e29b-41d4-a716-446655440000&appToken=eyJhbGciOi...&appName=Example+Treasury&appLogoUrl=https%3A%2F%2Fexample.com%2Flogo.png&state=8f2c1d4e-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
     "expiresIn": 7200
   }
 }
@@ -715,7 +726,8 @@ public class SignatureDemo {
 
 说明：
 
-- 应用必须存在且状态为 `active`；应用不存在或签约校验失败返回 `40102`，应用未激活返回 `40301`。
+- 若传入 `permissions`，URL 中会出现形如 `permissions=%5B%22read%22%2C%22write%22%5D` 的值，授权页会解析失败（见上方警告）；当前请省略该参数。
+- 应用必须存在且状态为 `active`；应用不存在返回 `40102`（`Invalid appId: application not found`），应用未激活返回 `40104`（中间件复用 `AUTH_DUPLICATE_NONCE`，消息为 `Application is not active`）；控制器内对非 `active` 状态的 `40301` 分支实际不可达。
 - `authorizeUrl` 的域名由平台配置（`OPENPLATFORM_AUTH_URL`），生产环境默认 `https://custody.cregis.ae/openplatform/auth`。
 - `appToken` 是网关签发的 JWT（内含 `appId`、`callback`、`token`，有效期 2 小时），不要把 `appSecret` 放进 URL。
 - 请把 `authorizeUrl` 原样交给前端打开，不要自行拼接或删改查询参数。
@@ -732,36 +744,31 @@ public class SignatureDemo {
 | `appToken` | 网关生成 | 授权 JWT，内含 `appId`、`callback`、`token` |
 | `appName` | 网关生成 | 应用名称，展示在授权页 |
 | `appLogoUrl` | 网关生成（应用配置了 Logo 时） | 应用 Logo |
-| `permissions` | 网关生成 | 权限列表的序列化结果，原样透传，不要修改 |
-| `state` | 网关生成 | 原样回传给你的前端，用于 CSRF 校验 |
-| `redirectUri` | 授权页页面级参数（可选） | **仅由授权页解析和校验，用于页面跳转，不是网关参数。** 网关生成的 `authorizeUrl` 不会包含它；需要服务端回调请使用 `callback`。 |
+| `permissions` | 网关生成（仅当请求传了非空 `permissions`） | `JSON.stringify` 后的权限数组；授权页按英文逗号拆分，非空数组会导致解析失败（见 5.2 警告） |
+| `state` | 网关生成（仅当请求传了 `state`） | 防 CSRF 状态值。页面会解析它，但**不会回传**给父窗口或回调 |
+| `redirectUri` | 授权页页面参数（可选） | 页面读取并校验协议（http 仅允许 localhost），但**当前没有实际跳转逻辑**，校验后即被忽略；网关也不会生成该参数 |
 | `sdkUuid` | Web SDK 自动追加 | 用于校验 postMessage 来源实例，避免多实例串话 |
 
-**iframe / 弹窗交互（postMessage）**
+**交互方式**
 
-授权页与父窗口的消息格式如下。父窗口通过 `init` 建立通道；授权页发出的所有事件都带有 `uuid`（即 `sdkUuid`）和 `timestamp`，并在收到父窗口消息后把目标 origin 固定为父窗口的 origin。
+授权页有两种初始化路径：
 
-父窗口发给授权页：
+1. **URL 参数模式（`authorizeUrl` 流程，本指南使用的方式）**：页面加载时从查询字符串读取 `appToken` 等参数并自行初始化，随后**直接返回，不注册父窗口消息监听**。因此父窗口发送的 `init` / `cancel` / `close` 消息在该模式下没有任何效果；取消操作只能通过页面内的关闭按钮完成。
+2. **postMessage 模式**：仅当 URL 中没有 `appToken` 时，页面才注册消息监听；父窗口发送 `init` 后，页面重新读取 URL 参数初始化。`cancel` / `close` 消息会回报 `authorization_failed`（`USER_CANCELLED`）。标准 `authorizeUrl` 流程不会走到这条路径。
 
-| `action` | 说明 |
-| --- | --- |
-| `init` | 建立通信通道（建议在 iframe `load` 后发送，可携带 `uuid`） |
-| `cancel` | 请求取消授权，授权页回报 `authorization_failed`（`USER_CANCELLED`） |
-| `close` | 关闭授权页；若正在等待结果，按取消处理 |
-
-授权页发给父窗口：
+授权页发给父窗口的事件（两种模式一致；所有事件带 `uuid` 与 `timestamp`）：
 
 | `type` | 触发时机 | `data` |
 | --- | --- | --- |
 | `ready` | 页面初始化完成（参数校验通过） | 无 |
 | `authorization_started` | 用户点击“授权”按钮 | 无 |
-| `authorization_succeed` | 授权成功 | `{ "authorizationId": "<authorizeId>" }` |
+| `authorization_succeed` | 授权成功 | `{ "authorizationId": "<authorizationId>" }` |
 | `authorization_failed` | 参数错误、登录失败、用户取消、授权失败 | `{ "code": "...", "message": "..." }`，同时带 `error: { code, message, details? }` |
 | `close` | 授权成功后倒计时结束（约 10 秒）自动关闭 | 无 |
 
-取消授权固定使用 `code = "USER_CANCELLED"`。授权页成功视图会显示成功信息并在倒计时后自动关闭；如果你的授权页不是通过 iframe / 弹窗打开（例如直接新标签页且没有 opener），postMessage 没有接收方，请改用服务端 `callback` 或轮询自身业务状态。
+取消授权（页面内关闭按钮）固定使用 `code = "USER_CANCELLED"`。授权页**只返回 `authorizationId`，不返回 `oauthToken`，也不回传 `state`**。该 `authorizationId` 由授权页在用户确认后调用 Custody 的内部授权接口（`POST /internal/third-party/authorize`）获得，不是网关的 `/api/thirdparty/oauth/verify`，因此不会写入平台的 `oauth_resources` 表；业务调用前仍需按 5.4 调用 `verify`。如果授权页没有可用的父窗口（例如直接在新标签页打开且没有 opener），postMessage 没有接收方，请改用服务端 `callback`。
 
-> Web SDK 1.0.5 已封装上述消息处理，推荐直接使用 `CregisWebSDK.openAuthorization(authorizeUrl)`，它会返回 `{ status, authorizeId }`（见第 16 章）。
+> Web SDK 1.0.5 已封装消息处理，推荐直接使用 `CregisWebSDK.openAuthorization(authorizeUrl)`，它返回 `{ status, authorizeId }`（见第 16 章）。它同样不会返回 `oauthToken`。
 
 ### 5.4 验证授权（换取 authorizeId）
 
@@ -779,7 +786,7 @@ public class SignatureDemo {
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `resourceKey` | string | 是 | 资源标识。可使用 `merchant/register` 返回的 `resourceAccessKey`，或平台为你的企业开通的资源键 |
-| `oauthToken` | string | 是 | 授权流程产生的 JWT（由授权页 / Web SDK 交给你的后端） |
+| `oauthToken` | string | 是 | 网关在 `authorizeUrl` 中签发的 `appToken`（JWT），由你的后端保存后传入；授权页不会返回它 |
 
 **响应**
 
@@ -799,10 +806,12 @@ public class SignatureDemo {
 - `appId` 取自 `oauthToken` 载荷，不接受调用方另行传入。
 - `oauthToken` 无效或过期返回 `40101`；应用不存在返回 `40401`。
 - **无需 Basic / Resource 签名**：本接口通过校验 JWT 本身完成认证，请求体是裸的 `{ resourceKey, oauthToken }`，不要再包一层 `basic` / `business`。
-- `resourceKey` 会绑定到授权记录，并决定后续业务请求转发到 Custody 的哪个资源；使用未开通的键会得到 `400103`。
+- **`resourceKey` 不做存在性校验**：本接口会为任意 `resourceKey` 写入（或复用）授权记录，因此不会返回 `400103`。若该键未在 Custody 侧开通，后续转发业务请求时才会由 Custody 返回 `400103`。请使用 `merchant/register` 返回的 `resourceAccessKey` 或平台开通的资源键。
+- `resourceKey` 会绑定到授权记录，并决定后续业务请求转发到 Custody 的哪个资源。
 - 校验成功后会异步推送 `authorization.created` 回调（见 5.6）。回调是异步的，`verify` 的响应不等待回调结果。
+- **业务调用的前提**：业务接口会校验 `basic.authorizationId` 对应的 `oauth_resources` 记录。该表只由本接口和签名保护的内部接口 `POST /api/v1/authorizations`（`/api/v1` 下，不对外推荐）写入；授权页直接返回的 `authorizationId` 不会自动落库。因此 **必须调用 `verify`**，否则业务请求会得到 `40301`。
 
-**关于 `oauthToken` 的来源：** `oauthToken` 是授权流程返回的 JWT（载荷中带 `appId`、`callback`、`token`，默认 2 小时有效），由你的前端在授权完成后交给后端。当前版本的 Web SDK 直接返回 `authorizationId`，此时可以跳过 `verify`；若你的架构需要在服务端换取授权记录、或需要平台推送 `authorization.created`，则用 `oauthToken` 调用本接口。两种方式得到的 `authorizeId` 都可用于业务接口。授权页的 `postMessage` 事件格式见 5.3，Web SDK 用法见第 16 章。
+**关于 `oauthToken`：** 它就是 `authorizeUrl` 响应中 `authorizeUrl` 查询参数里的 `appToken`（JWT，载荷含 `appId`、`callback`、`token`，默认 2 小时有效）。网关不会在授权页或 postMessage 事件中下发它；请在你的后端调用 `authorizeUrl` 时自行保存（或从返回的 URL 中解析），不要下发到浏览器。授权页的 `postMessage` 事件格式见 5.3，Web SDK 用法见第 16 章。
 
 ### 5.5 签发 OAuth Token（受限接口）
 
@@ -840,9 +849,10 @@ public class SignatureDemo {
 
 实现现状与使用建议：
 
-- 该接口当前挂载在 Basic 签名中间件下，但处理逻辑会从请求上下文读取 `req.authorizationId` 作为资源标识，并要求提供 `business.oauthUserId`；它属于平台内部 / 受限接口。
+- 该接口挂在 Basic 签名中间件下，要求提供 `business.oauthUserId`；**属于平台内部接口，开发者不应调用**。
+- 处理逻辑读取 `req.authorizationId`，但 Basic 中间件从不为该字段赋值，因此签发的 JWT 中 `resourceKey` 恒为空字符串 `''`。这属于实现限制，不要依赖该字段。
 - 返回的 `access_token` 是 2 小时有效的 JWT，**不能**直接用于 `/api/thirdparty/treasury/*` 等业务接口；业务接口仍要求第 4 章的 Resource 签名。
-- **第三方开发者一般不需要调用此接口。** 正常接入只需 `authorizeUrl` + 授权页 + `verify`（或 Web SDK 返回的 `authorizationId`）。
+- **第三方开发者不需要调用此接口。** 正常接入只需 `authorizeUrl` + 授权页 + `verify`。
 - 平台侧的 `/api/oauth/appToken/refresh`、`/api/oauth/revoke`、`/api/oauth/appToken/validate` 属于另一套内部令牌体系（`grant_type=client_credentials|refresh_token`），同样不用于本指南的业务调用链。
 
 ### 5.6 授权回调
@@ -853,10 +863,10 @@ public class SignatureDemo {
 
 | 请求头 | 说明 |
 | --- | --- |
-| `X-App-Id` | 应用的 `appId` |
-| `X-Event` | `authorization.created` |
+| `X-App-Id` | 应用的 `appId`，即请求中 `basic.appId` / `Application.id` |
+| `X-Event` | 仅在使用应用默认 `callbackUrl` 时存在，值为 `authorization.created`；使用 `authorizeUrl` 的 `callback` 时**不发送该头** |
 | `X-Timestamp` | 推送时的毫秒时间戳（每次重试重新生成） |
-| `X-Signature` | `sha256=<HMAC-SHA256>`，签名串为 `appId.event.timestamp.md5(sortedJSON(data))` |
+| `X-Signature` | `sha256=<HMAC-SHA256>`。签名串为 `appId[.event].timestamp.md5(sortedJSON(data))`：有事件时包含事件段，`authorizeUrl` 的 `callback` 路径下没有事件段，签名串为 `appId.timestamp.md5(...)` |
 
 **回调载荷**
 
@@ -867,11 +877,10 @@ public class SignatureDemo {
 }
 ```
 
-- `authorizeId`：本次授权的授权记录 ID，用作业务请求的 `basic.authorizationId`。
-- `oauthToken`：这里是 `authorizeUrl` 请求中传入的 `token` 值（身份映射标识），**不是** JWT。
+- `authorizeId`：授权记录 ID，用作业务请求的 `basic.authorizationId`。
+- `oauthToken`：`authorizeUrl` 请求中传入的 `token` 值（身份映射标识），**不是 JWT**；**未传 `token` 时载荷中没有该字段**。
 - 回调地址优先级：`authorizeUrl` 的 `callback` > 应用配置的 `callbackUrl`。两者都没有时不会推送。
-- 注意：通过 `authorizeUrl` 的 `callback` 指定地址时，当前实现的推送不携带 `X-Event` 头；通过应用默认 `callbackUrl` 推送时携带 `X-Event: authorization.created`。请以请求体内容为准判断事件类型。
-- 回调是异步的，失败会重试（初始 + 3 次，间隔 0s / 1s / 5s / 30s，仅对 429、5xx 和网络错误重试）。请务必对 `authorizeId` 做幂等处理。
+- 回调是异步的，失败会重试：初始 1 次 + 3 次重试，实际间隔为 0s / 1s / 5s（配置中的第 4 个 30s 值不可达），仅对 429、5xx 和网络错误重试。请务必对 `authorizeId` 做幂等处理。
 
 回调的 HMAC 验签、重试策略、事件列表与响应要求详见 **第 14 章「回调与 Webhook」**。
 
@@ -906,7 +915,16 @@ public class SignatureDemo {
 | `data` | 业务数据；可能为对象、数组、分页对象或 `null` |
 | `trace_id` | 请求追踪 ID；部分上游透传响应可能不含该字段，此时以响应头为准 |
 
-**重要：** 业务接口的 HTTP 状态码通常为 `200`，业务失败通过响应体 `code` 表达，请勿仅凭 HTTP 状态判断成败。网关自身产生的错误（路由不存在、缺少 `resourceKey`、配额超限、验签失败、上游不可用）会使用非 200 状态码，并返回同样结构的 envelope；参数校验失败还会附带 `errors` 数组。
+**错误响应形态（按来源区分）**
+
+| 来源 | 结构 | 说明 |
+| --- | --- | --- |
+| 转发层错误（`forward.controller.ts` 的 `fail()`） | `{ code, message }` | 路由不存在、缺少 `resourceKey`、配额超限、后端不可用 / 超时。**没有 `data`，也没有 `trace_id`** |
+| 验签 / 中间件校验错误 | `{ code, message, errors?, trace_id }` | 参数与签名校验失败附带 `errors` 数组；应用 / 开发者状态错误只带 `trace_id` |
+| 全局限流错误 | `{ code, message, trace_id, original_code }` | `original_code` 为映射前的原始业务码 |
+| 上游 Custody 响应 | 原样透传 | 结构由上游决定，可能不含 `trace_id` |
+
+**重要：** 业务接口的 HTTP 状态码通常为 `200`，业务失败通过响应体 `code` 表达，请勿仅凭 HTTP 状态判断成败。网关自身产生的错误会使用非 200 状态码（路由不存在 404、缺少 `resourceKey` 400、配额超限 429、后端不可用 503 / 超时 504），但响应体不一定含 `data` 或 `trace_id`，排查时请以响应头 `x-trace-id` 为准。
 
 ### 6.2 分页
 
@@ -947,7 +965,7 @@ public class SignatureDemo {
 | 页码从 1 开始 | `pageSize`、`pageNum`、`sortFields` | `treasury/list`、`treasury/address`、`treasury/address-by-account/{cusAccountId}` |
 | 页索引从 0 开始 | `pageIndex`、`pageSize`、`sortFields`、`queryList` | `treasury/activities`、`treasury/transfer-out-orders`、`treasury/transfer-in-orders`、`treasury/fund-records`、`treasury/unit-fund-records` |
 
-`sortFields` 格式为 `字段名_asc` / `字段名_desc`，例如 `createTime_d`。`queryList` 为条件数组，每项形如 `{ "key": "unitId", "value": 80, "oper": "=", "join": "and" }`。
+`sortFields` 使用 SDK 与测试中一致的简写形式：字段名 + `_a`（升序）/ `_d`（降序），例如 `createTime_d` 表示按创建时间降序；请统一使用该形式，不要混用 `_asc` / `_desc`。`queryList` 为条件数组，每项形如 `{ "key": "unitId", "value": 80, "oper": "=", "join": "and" }`。
 
 > `treasury/list` 虽然接受 `pageSize` / `pageNum`，但**响应仍是数组**，请勿按分页对象解析。
 
@@ -967,38 +985,43 @@ public class SignatureDemo {
 
 ### 6.4 每日配额
 
-- 配额按**开发者（ISV）**维度、按自然日统计，上限来自当前生效订阅套餐的 `dailyApiLimit`。
+- 配额按**开发者（ISV）**维度、按自然日统计，上限来自当前生效订阅套餐的 `dailyApiLimit`；套餐记录缺少该字段时按 **1000** 计算。
 - 仅统计通过网关转发的业务接口调用（`/api/thirdparty/*` 中除 `oauth/verify` 等本地接口外的转发请求）。
 - 超出配额返回 HTTP `429`，业务码 `42901`，消息形如 `Daily API quota exceeded (1000/1000)`。
 - 用量每日 0 点重置（平台定时任务将 `dailyApiUsage` 归零）。当前用量可通过 `GET /api/v1/isv/subscription/current` 的 `dailyApiUsage` 查看。
-- **fail-closed**：当配额服务异常、无法确认剩余额度时，请求会被拒绝（同样表现为 `42901`），而不是放行。这是银行级托管平台的默认安全策略，请在你的系统中把 `42901` 视为“可重试但需退避”的错误。
+- **fail-closed**：当配额服务异常（如数据库不可用）时，请求会被拒绝，返回 `42901`；此时消息中的计数为 `(0/0)`，不要据此判断真实额度。这是银行级托管平台的默认安全策略，请把 `42901` 视为“可重试但需退避”的错误。
 - 当前实现中，开发者若没有生效中的订阅，配额校验会直接放行；生产环境请始终保持有效订阅，不要依赖该行为。
 
 ### 6.5 限流档位
 
-除每日配额外，网关对 `/api` 下的请求执行多窗口限流（分钟 / 小时 / 天 + 突发桶）：
+除每日配额外，网关对 `/api` 下的请求执行多窗口限流（分钟 / 小时 / 天）：
 
-| 档位 | 每日 | 每小时 | 每分钟 | 突发（burst） |
-| --- | --- | --- | --- | --- |
-| `free` | 1,000 | 100 | 10 | 20 |
-| `basic` | 10,000 | 1,000 | 100 | 200 |
-| `pro` | 100,000 | 10,000 | 1,000 | 2,000 |
-| `enterprise` | 不限 | 100,000 | 10,000 | 20,000 |
+| 档位 | 每日 | 每小时 | 每分钟 |
+| --- | --- | --- | --- |
+| `free` | 1,000 | 100 | 10 |
+| `basic` | 10,000 | 1,000 | 100 |
+| `pro` | 100,000 | 10,000 | 1,000 |
+| `enterprise` | 不限 | 100,000 | 10,000 |
 
-- 档位由平台按应用 / 套餐配置；当前版本的默认实现统一使用 `basic` 档，平台侧可按应用调整。
+实现现状：
+
+- **档位当前固定为 `basic`。** 中间件按 `req.appid` 或 `req.body.appid` 识别应用（不是 `basic.appId`），且 `getTierForApp` 尚未查询订阅，始终返回默认档；第三方签名请求不带 `appid`，因此同样落在 `basic` 档。`TIER_APP_MAPPING` 未生效。
+- 配置中的 `burstSize`（突发桶）字段**未被任何限流逻辑使用**，实际只按分钟 / 小时 / 天三个窗口计数。
+- 回环地址 `127.0.0.1`、`::1` 在默认白名单中，使用这两个地址联调时不会触发限流。白名单按字符串精确匹配，配置里的 CIDR 网段字符串（`10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`）不会匹配普通内网 IP。
 - 超限返回 HTTP `429` 与业务码 `42901`，并带有 `Retry-After` 响应头。
 - 限流响应头：`X-RateLimit-Limit`、`X-RateLimit-Remaining`、`X-RateLimit-Reset`（Unix 秒）、`X-RateLimit-Policy`（档位名）。
-- 每日配额（6.4）与限流（本节）是两套独立机制：前者按订阅套餐的 `dailyApiLimit` 计数，后者按档位的多窗口规则计算；任一触发都会返回 `42901`。
-- 限流存储默认在内存中；限流服务异常时同样 fail-closed 拒绝请求。
+- 每日配额（6.4）与限流（本节）是两套独立机制：前者按订阅套餐的 `dailyApiLimit` 计数，后者按固定 `basic` 档的多窗口规则计算；任一触发都会返回 `42901`。
+- 限流存储在内存中（多实例不共享计数）；限流服务异常时同样 fail-closed 拒绝请求。
 
 ### 6.6 traceId 与排障
 
-- 网关为每个请求生成或透传 `x-trace-id`：
-  - 请求头已带 `x-trace-id` 时沿用，否则生成 UUID。
-  - 响应头回写 `x-trace-id`。
+- 网关为每个请求生成或透传追踪 ID，优先级为 **`traceparent`（W3C）> `x-trace-id`**：
+  - 请求带合法的 `traceparent` 时，取其 trace-id（32 位十六进制）作为追踪 ID（不使用其中的 span-id）。
+  - 否则沿用请求头 `x-trace-id`；两者都没有时生成 UUID v4。
+  - 响应同时回写 `x-trace-id` 与新的 `traceparent`（以及请求携带时的 `tracestate`）。
   - 转发到 Custody 时通过 `x-trace-id` 请求头传递。
-- 网关本地的错误响应（如参数校验失败、验签失败）会包含 `trace_id` 字段；上游透传的响应体不保证包含该字段，请以**响应头 `x-trace-id`** 为准。
-- 在开发者门户的 API 日志（`GET /api/v1/api-logs`）中可按 `traceId` 检索调用记录。
+- 错误响应的 `trace_id` 只出现在网关中间件生成的错误中；转发层 `fail()` 的错误只有 `{ code, message }`。请始终以**响应头 `x-trace-id`** 为准。
+- API 日志查询（`GET /api/v1/api-logs`）**不支持按 `traceId` 过滤**，列表也不返回 `traceId`；转发调用的日志把 `x-trace-id` 存在 `requestHeaders` 中，可通过日志详情（`GET /api/v1/api-logs/:id`）的 `requestHeaders['x-trace-id']` 查看。
 - 提交工单或联调排障时，请提供：`x-trace-id`、`appId`、请求时间（含时区）、接口路径、业务码与完整响应体（请先脱敏 `appSecret`、`oauthToken`）。
 
 ### 6.7 错误码速查
@@ -1013,30 +1036,44 @@ public class SignatureDemo {
 | 401 | `40101` | 缺少认证信息 / token 无效 | `basic` 缺失；`oauthToken` 无效或过期 |
 | 401 | `40102` | 签名验证失败 | 见 4.5 排查表 |
 | 401 | `40103` | 时间戳过期或无效 | 使用 Unix 秒并校准时钟 |
-| 401 | `40104` | nonce 重复（重放） | 每次请求生成新 nonce |
-| 401 | `40105` | 应用或开发者未激活 | 应用状态不是 `active`，或开发者账号被停用 |
+| 401 | `40104` | nonce 重复（重放）；**也被复用于“应用未激活”** | 每次请求生成新 nonce；若消息为 `Application is not active`，请检查应用状态 |
+| 401 | `40105` | 开发者账号未激活 | 开发者账号状态不是 `active` |
 | 401 | `40110` | 登录凭证无效 | 开发者后台登录邮箱 / 密码错误 |
-| 403 | `40301` | 资源未授权 | `authorizeId` 无效、已撤销或不属于当前应用；重新授权 |
+| 403 | `40301` | 资源未授权 | `authorizeId` 不存在或授权记录状态不是 `active`（当前实现不校验应用归属）；重新授权并调用 `oauth/verify` |
 | 403 | `40302` | 权限不足 | 当前凭据无权执行该操作 |
 | 403 | `40303` | 操作方不满足条件 | 常见于 KYB 未通过时创建应用 |
 | 403 | `40305` | 权限不足 | 应用 / 用户权限配置不满足 |
-| 404 | `40401` | 资源不存在 | 记录不存在，或网关未匹配到路由 |
-| 404 | `40402` | 接口不存在 | 检查路径是否使用 `/api/thirdparty/` 前缀 |
+| 404 | `40401` | 资源不存在 / 路由不存在 | 记录不存在；或网关未匹配到转发路由（转发层返回 `{ code: 40401, message: "Route not found: ..." }`） |
 | 409 | `40902` | 冲突 / 重复 | 邮箱已注册、授权记录冲突等 |
 | 400 | `400103` | 资源键不存在（上游 Custody） | `resourceKey` 未在 Custody 侧开通；使用 `merchant/register` 的 `resourceAccessKey` |
 | 400 | `120042` | 归集来源账户类型不允许（上游 Custody） | 仅允许从收款类账户归集；检查 `fromAccountId` |
 | 429 | `42901` | 超出配额或限流 | 退避后重试；检查 `Retry-After` 与订阅套餐 |
 | 500 | `50001` | 服务内部错误 | 记录 `x-trace-id` 并联系平台 |
-| 502 | `50201` | 上游网关错误 | 上游返回异常；稍后重试 |
-| 503 | `50301` | 服务不可用 | 上游不可达；稍后重试 |
-| 504 | `50401` | 网关超时 | 上游超时；确认业务是否已受理后再决定是否重试 |
-| 504 | `50402` | 上游超时 | 同上 |
-| 5xx | `500` / `502` / `503` / `504` | 转发层返回的原始 HTTP 风格错误 | 网关在无法连接上游或上游超时时直接返回；按对应语义处理 |
+| 503 / 504 / 500 | `503` / `504` / `500` | 转发层返回的原始 HTTP 状态码 | 网关连不上上游（`503`）、上游超时（`504`）或其他转发异常（`500`）时直接返回，响应体只有 `{ code, message }`；按对应语义处理 |
+| 5xx | 上游原始 `code` | 上游内部错误 | 透传上游响应体；记录 `x-trace-id` 后联系平台 |
 
 说明：
 
 - 上游 Custody 返回的 `400xxx`、`401xxx`、`403xxx` 业务码会原样透传在响应体 `code` 中；网关日志按码段映射记录 HTTP 状态（`400xxx` → 400、`401xxx` → 401、`403xxx` → 403、`400103` → 404、`409xxx` → 409、`429xxx` → 429、`120xxx` → 400、5xx → 500）。
+- `40402`、`50201`、`50301`、`50401`、`50402` 等枚举存在，但当前网关不会主动返回；网关自身的路由错误使用 `40401`，转发层失败使用原始 HTTP 状态码 `500` / `503` / `504`。响应体 `code` 为 `502` 只可能来自上游透传。
 - 判断请求是否成功请以响应体 `code` 为准（成功为 `0` 或 `200`），不要只看 HTTP 状态码。
 - 错误码的完整定义、各接口的业务码清单与处理建议见 **第 15 章「错误码与排查」**。
+
+### 6.8 已知限制与实现现状
+
+以下为当前代码实现的限制，文档按真实行为描述；如需修复请以平台后续版本为准：
+
+| 限制 | 影响 | 规避方式 |
+| --- | --- | --- |
+| `authorizeUrl` 的 `permissions` 用 `JSON.stringify` 写入 URL，授权页按逗号拆分 | 传非空权限数组会导致授权页初始化失败 | 省略 `permissions`，授权页默认 `['read']` |
+| 限流档位固定为 `basic`，`burstSize` 未生效 | 所有应用（含 enterprise）实际按 `basic` 档限流 | 按 100/分钟、1,000/小时、10,000/天规划调用量 |
+| `oauth/token` 读取从未赋值的 `req.authorizationId` | 签发 JWT 的 `resourceKey` 恒为 `''` | 不调用该内部接口 |
+| 授权页/Web SDK 只返回 `authorizationId`，不返回 `oauthToken` | `oauthToken` 只能由后端从 `authorizeUrl` 响应中保存 | 后端保存 `appToken`，授权完成后调用 `verify` |
+| 授权页不回传 `state` | 无法用 `state` 做前端 CSRF 校验 | 用 `token` 关联业务身份，或业务侧记录授权上下文 |
+| 授权记录按 ID 查询，不校验应用归属 | 理论上一个应用可使用另一应用创建的 `authorizeId` | 妥善保护 `authorizeId`，不要跨应用传递 |
+| `GET /api/v1/isv/applications/:id` 返回 `appSecret` | 泄露风险 | 仅在服务端调用，禁止浏览器调用 |
+| 授权回调 `callback` 路径不带 `X-Event`，签名串也无事件段 | 验签实现需区分两条回调路径 | 优先配置应用默认 `callbackUrl` |
+| `forgot-password` / `reset-password` 为演示桩 | 不会真正发信或校验 token | 通过平台运营人工重置 |
+| 无有效订阅时配额校验放行 | 可能绕过 `dailyApiLimit` | 保持有效订阅，不依赖该行为 |
 
 <!-- 第 7–17 章（API 参考、回调、错误码详解、SDK 集成、附录）由后续任务补充 -->
