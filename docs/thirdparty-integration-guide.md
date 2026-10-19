@@ -48,7 +48,7 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 
 - 开发者入驻：注册、KYB 审核、登录、创建应用、订阅套餐、凭证管理
 - 认证与签名：Basic 签名与 Resource 签名、`business` 规范化、Node.js / Java 计算示例
-- OAuth 授权：获取授权地址、授权页交互、换取 `authorizeId`、授权回调
+- OAuth 授权：获取授权地址、授权页交互、由授权页返回 `authorizeId`、授权回调
 - 通用约定：请求与响应结构、分页、幂等、每日配额、限流、`traceId`、错误码
 
 ---
@@ -74,22 +74,30 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
         │────────────────────────────────▶│                                  │
         │◀──────────── authorizeUrl ──────│                                  │
         │                                 │                                  │
-        │ 7. 前端打开授权页 → 用户登录 → 选择组织 → 确认授权                 │
-        │    授权页 --postMessage--> 你的前端（仅 authorizationId）            │
+        │ 7. 前端打开授权页 → 用户登录（captcha + MFA）→ 选择组织 → 确认授权 │
         │                                 │                                  │
-        │ 8. POST /api/thirdparty/oauth/verify                               │
-        │    { resourceKey, oauthToken }（oauthToken = 后端保存的 appToken）  │
-        │────────────────────────────────▶│ 校验 oauthToken，写入授权记录    │
-        │◀────────── { authorizeId } ─────│ 异步推送 authorization.created   │
+        │                                 │ 8. 授权页调用 Custody 内部授权   │
+        │                                 │    POST /internal/third-party/   │
+        │                                 │ authorize?appId=&ecode=&appToken=│
         │                                 │                                  │
-        │ 9. POST /api/thirdparty/treasury/...（Resource 签名）              │
-        │    basic{ authorizationId } + business                             │
+        │                                 │ 9. Custody 内部调用网关 verify   │
+        │                                 │ POST /api/thirdparty/oauth/verify│
+        │                                 │◀─────────────────────────────────│
+        │                                 │    { resourceKey, oauthToken }   │
+        │                                 │    写入 oauth_resources          │
+        │                                 │─── { authorizeId } ─────────────▶│
+        │                                 │                                  │
+        │ 10. 授权页 postMessage 返回 authorizeId                            │
+        │     你的后端保存该 authorizeId                                     │
+        │                                 │                                  │
+        │ 11. POST /api/thirdparty/treasury/...（Resource 签名）             │
+        │    basic{ authorizationId = 授权页返回的 authorizeId } + business  │
         │────────────────────────────────▶│ 验签 + 校验授权 + 每日配额       │
         │                                 │─────────────────────────────────▶│
         │                                 │◀──────────── 业务结果 ───────────│
         │◀─── 业务响应 + x-trace-id ──────│                                  │
         │                                 │                                  │
-        │ 10. 接收授权回调与业务回调（HMAC-SHA256 验签）                     │
+        │ 12. 接收授权回调与业务回调（HMAC-SHA256 验签）                     │
         │◀═══════════════════════════════════════════════════════════════════│
 ```
 
@@ -101,6 +109,7 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 | 妥善保管 `appSecret`，不写入前端代码或公开仓库 | 按 `appId` 校验签名、应用状态与开发者状态 |
 | 在服务端按规范计算 Basic / Resource 签名 | 校验时间戳容差、nonce 唯一性、签名与 `authorizationId` |
 | 创建应用、订阅套餐、选择业务模式 | 提供授权页、签发授权页 JWT（`appToken`，即 `oauthToken`）、维护授权关系 |
+| 在前端打开授权页，接收并保存授权页返回的 `authorizeId` | 授权页确认后由 Custody 内部调用网关 `POST /api/thirdparty/oauth/verify` 写入 `oauth_resources` 并生成 `authorizeId` |
 | 在业务系统中维护 `authorizeId` 与自身用户的映射 | 生成并维护 `authorizeId`（授权记录 ID），校验授权有效性 |
 | 接收并验签回调，按业务语义处理幂等 | 推送授权与业务事件，失败时按策略重试 |
 | 控制调用量并处理 429 | 执行每日配额与限流，返回标准错误码 |
@@ -128,7 +137,7 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 | 交易查询 | `POST /api/thirdparty/treasury/activities`、`POST /api/thirdparty/treasury/transfer-out-orders`、`POST /api/thirdparty/treasury/transfer-in-orders`、`POST /api/thirdparty/treasury/fund-records`、`POST /api/thirdparty/treasury/unit-fund-records` | Resource |
 | 币种 / 规则 / 白名单 | `POST /api/thirdparty/treasury/add-coins`、`POST /api/thirdparty/treasury/fund-control-update`、`POST /api/thirdparty/treasury/whitelist-update` | Resource |
 | 商户 / 用户 / Board | `POST /api/thirdparty/merchant/register`、`POST /api/thirdparty/user/add`、`POST /api/thirdparty/board/init` | `merchant/register` 用 Basic，其余用 Resource |
-| OAuth | `POST /api/thirdparty/oauth/authorizeUrl`、`POST /api/thirdparty/oauth/token`、`POST /api/thirdparty/oauth/verify` | 前两者用 Basic 签名；`verify` 无需签名 |
+| OAuth | `POST /api/thirdparty/oauth/authorizeUrl`、`POST /api/thirdparty/oauth/token`、`POST /api/thirdparty/oauth/verify` | `authorizeUrl` / `token` 用 Basic 签名；`verify` 是网关内部接口，由 Custody 调用，开发者不得直接调用 |
 | 内部回调 | `POST /api/thirdparty/custody/callback` | 由 Custody 服务调用，开发者无需调用（平台按 `resourceKey` 反查应用并推送事件） |
 
 上表为节选，各接口的完整参数、请求 / 响应示例与业务码见第 7–13 章。
@@ -404,7 +413,7 @@ KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATO
 
 ## 4. 认证与签名
 
-开放平台**不使用** Bearer Token 调用业务接口。除 `oauth/verify`（凭 `oauthToken` 自证）外，开发者调用的所有接口都要求在请求体 `basic` 中携带签名，签名覆盖 `business` 的规范化结果。平台提供两种签名：
+开放平台**不使用** Bearer Token 调用业务接口。开发者调用的所有接口都要求在请求体 `basic` 中携带签名，签名覆盖 `business` 的规范化结果。平台提供两种签名：
 
 | 签名类型 | 用途 | 使用接口 | 签名串（`MD5(...)` 内层） |
 | --- | --- | --- | --- |
@@ -413,7 +422,7 @@ KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATO
 
 两者的唯一区别是 Resource 签名在 `appId` 之后插入了 `authorizationId`。`authorizationId` 即 OAuth 流程得到的 `authorizeId`。
 
-> `oauth/verify` **不属于**这两种签名：该路由只做请求体校验（`resourceKey`、`oauthToken` 必填），没有 Basic 签名中间件，见 5.4。
+> `oauth/verify` 是 **Custody 内部调用网关**的接口，不属于上表两种签名，也不是开发者步骤：该路由只做请求体校验（`resourceKey`、`oauthToken` 必填），没有 Basic 签名中间件，见 5.4。
 
 推荐直接使用官方 SDK 的签名方法，避免自行实现产生偏差：
 
@@ -447,7 +456,7 @@ Basic 签名接口不传 `basic.authorizationId`。
 | `basic.timestamp` | number | 是 | **Unix 时间戳（秒）**，与服务器时间偏差不超过 **300 秒**（5 分钟）；使用毫秒时间戳会返回 `40103` |
 | `basic.nonce` | string | 是 | 每次请求唯一，不可为空。官方 SDK 生成 **32 位** `A-Za-z0-9` 随机串；服务端按 `appId + nonce` 去重，重复使用返回 `40104` |
 | `basic.signature` | string | 是 | 32 位**小写**十六进制 MD5；比较时区分大小写 |
-| `basic.authorizationId` | string | Resource 签名必填 | `oauth/verify` 返回的 `authorizeId`，必须是有效 UUID |
+| `basic.authorizationId` | string | Resource 签名必填 | 授权页返回的 `authorizeId`（由 Custody 内部调用 `oauth/verify` 生成），必须是有效 UUID |
 | `business` | object | 视接口而定 | 业务参数；参与签名时必须严格按 4.3 规范化 |
 
 服务端校验顺序：appId 存在且应用为 `active` → 开发者账号为 `active` → nonce 未使用 → 时间戳在容差内 → 签名匹配。任一失败均不执行业务逻辑。
@@ -642,9 +651,9 @@ public class SignatureDemo {
 | `40102`，全部请求 | `appSecret` 错误；密钥已重置但环境变量未更新；复制时带入空格或换行 | 与开发者后台核对；重置后同步所有实例；对 secret 做 `trim` 检查 |
 | `40102` / `40104`，应用被停用 | 应用状态非 `active` 时，签名中间件以 `AUTH_DUPLICATE_NONCE`（`40104`）返回 `Application is not active`（复用错误码，语义上并非 nonce 问题） | 确认应用状态；联系平台恢复 |
 | `40105`，开发者被停用 | 开发者账号状态非 `active` 时返回 `AUTH_APP_NOT_ACTIVE` | 联系平台恢复账号 |
-| `40102`，仅 `authorizeUrl` | 误用了 Resource 签名（签名串多了 `authorizationId`） | OAuth 接口使用 Basic 签名；`verify` 不需要签名 |
-| `40102`，仅业务接口 | 未传 `basic.authorizationId`，或传入了另一个环境的 `authorizeId` | 使用本环境 `oauth/verify` 返回的 `authorizeId` |
-| `40301`（资源未授权） | `authorizationId` 不存在或授权记录状态不是 `active`（当前实现按 ID 查询，不校验应用归属） | 重新走 OAuth 流程并调用 `verify` |
+| `40102`，仅 `authorizeUrl` | 误用了 Resource 签名（签名串多了 `authorizationId`） | OAuth 接口使用 Basic 签名；`verify` 由 Custody 内部调用，开发者无需签名 |
+| `40102`，仅业务接口 | 未传 `basic.authorizationId`，或传入了另一个环境的 `authorizeId` | 使用本环境授权页返回的 `authorizeId`（Custody 内部经 `oauth/verify` 创建） |
+| `40301`（资源未授权） | `authorizationId` 不存在或授权记录状态不是 `active`（当前实现按 ID 查询，不校验应用归属） | 重新走 OAuth 流程（授权页重新授权） |
 | `400103`（资源键不存在） | `resourceKey` 未在 Custody 侧开通 | 使用 `merchant/register` 返回的 `resourceAccessKey`，或联系平台开通 |
 | `40001`（缺少参数） | 缺少 `basic` 或必填字段 | 检查 `basic` 是否完整：Basic 签名 4 个字段（`appId`、`timestamp`、`nonce`、`signature`），Resource 签名 5 个字段（额外 `authorizationId`） |
 
@@ -654,37 +663,21 @@ public class SignatureDemo {
 
 ### 5.1 流程总览
 
-```
-你的后端                 Cregis 网关               授权页                你的前端
-   │                        │                        │                     │
-   │ 1 POST oauth/authorizeUrl（Basic 签名）           │                     │
-   │───────────────────────▶│                        │                     │
-   │◀── authorizeUrl ───────│                        │                     │
-   │                        │                        │                     │
-   │ 2 返回 authorizeUrl 给前端 ───────────────────────────────────────────▶│
-   │                        │                        │  3 打开授权页        │
-   │                        │                        │◀────────────────────│
-   │                        │                        │  4 用户登录/选择组织 │
-   │                        │                        │  5 确认授权          │
-   │                        │                        │                     │
-   │                        │                        │ 6 postMessage       │
-   │                        │                        │   authorization_succeed
-   │                        │                        │────────────────────▶│
-   │◀── 7 前端回传 authorizeId（authorizationId） ───────────────────────────│
-   │                        │                        │                     │
-   │ 8 POST oauth/verify    │                        │                     │
-   │   { resourceKey, oauthToken }（oauthToken = 后端保存的 appToken）    │
-   │───────────────────────▶│                        │                     │
-   │◀── { authorizeId } ────│                        │                     │
-   │                        │── authorization.created（异步回调）─────────▶│
-```
+完整链路如下；`oauth/verify` 是 **Custody → 网关**的内部步骤，不是开发者调用：
+
+1. **你的后端 → 网关**：`POST /api/thirdparty/oauth/authorizeUrl`（Basic 签名），返回 `authorizeUrl`。
+2. **你的前端 → 授权页**：前端打开 `authorizeUrl`，用户在授权页登录（captcha + MFA）、选择组织并确认授权。
+3. **授权页 → Custody（内部接口）**：授权页调用 Custody 的 `POST /internal/third-party/authorize?appId=&ecode=&appToken=`，提交应用、组织与授权页 JWT。
+4. **Custody → 网关（内部步骤）**：Custody 携带 `appToken`（即 `oauthToken`）调用网关 `POST /api/thirdparty/oauth/verify`，请求体 `{ resourceKey, oauthToken }`，写入 / 复用 `oauth_resources` 记录并得到 `authorizeId`。
+5. **授权页 → 你的前端**：授权页通过 postMessage 发送 `authorization_succeed`，`data.authorizationId` 即上一步的 `authorizeId`；Web SDK 将其暴露为 `{ status, authorizeId }`。
+6. **你的前端 → 你的后端**：把 `authorizeId` 交给后端保存，与自身用户 / 企业建立映射。
+7. **你的后端 → 网关**：后续业务接口使用 `basic.authorizationId = authorizeId`（Resource 签名）。
 
 关键点：
 
-- 授权页 / Web SDK 只返回 `authorizationId`（授权页内部调用 `/internal/third-party/authorize` 得到，见 5.3），**不会返回 `oauthToken`**。
-- `oauthToken` 是网关在 `authorizeUrl` 中签发的 `appToken`（JWT），只有你的后端能拿到它。
-- 无论用哪种方式拿到 `authorizationId`，业务接口能用的 `authorizeId` 都必须来自 `oauth/verify`（或签名保护的内部 `POST /api/v1/authorizations`）：业务请求会查询 `oauth_resources` 表，该表只在上述两个接口中被写入。因此 **`verify` 是必需的**，不能只依赖授权页返回的 `authorizationId`。
-- 授权页返回的 `authorizationId` 可用于展示或日志；若它与 `verify` 返回的 `authorizeId` 不一致，一律以 `verify` 的返回为准。
+- 授权页 / Web SDK 只返回 `authorizationId`（由 Custody 内部调用 `oauth/verify` 生成，见 5.3），**不会返回 `oauthToken`**。
+- `oauthToken` 是网关在 `authorizeUrl` 中签发的 `appToken`（JWT），由 Custody 在内部授权流程中消费；开发者后端无需保存它来换取 `authorizeId`。
+- 业务接口会查询 `basic.authorizationId` 对应的 `oauth_resources` 记录；该记录由 Custody 内部调用 `oauth/verify` 写入。因此**授权页返回的 `authorizationId` 就是可用的 `authorizeId`，开发者无需也不能调用 `verify`**。
 - `oauthToken` 是 JWT，默认 2 小时有效；`authorizeId` 是持久化的授权记录 ID。
 
 ### 5.2 获取授权地址
@@ -777,15 +770,19 @@ public class SignatureDemo {
 | `authorization_failed` | 参数错误、登录失败、用户取消、授权失败 | `{ "code": "...", "message": "..." }`，同时带 `error: { code, message, details? }` |
 | `close` | 授权成功后倒计时结束（约 10 秒）自动关闭 | 无 |
 
-取消授权（页面内关闭按钮）固定使用 `code = "USER_CANCELLED"`。授权页**只返回 `authorizationId`，不返回 `oauthToken`，也不回传 `state`**。该 `authorizationId` 由授权页在用户确认后调用 Custody 的内部授权接口（`POST /internal/third-party/authorize`）获得，不是网关的 `/api/thirdparty/oauth/verify`，因此不会写入平台的 `oauth_resources` 表；业务调用前仍需按 5.4 调用 `verify`。如果授权页没有可用的父窗口（例如直接在新标签页打开且没有 opener），postMessage 没有接收方，请改用服务端 `callback`。
+取消授权（页面内关闭按钮）固定使用 `code = "USER_CANCELLED"`。授权页**只返回 `authorizationId`，不返回 `oauthToken`，也不回传 `state`**。该 `authorizationId` 由授权页在用户确认后调用 Custody 的内部授权接口（`POST /internal/third-party/authorize`）获得；Custody 随即在内部调用网关 `POST /api/thirdparty/oauth/verify` 写入 `oauth_resources`（见 5.4），因此该 `authorizationId` 可直接作为业务请求的 `basic.authorizationId`，开发者无需再调用 `verify`。如果授权页没有可用的父窗口（例如直接在新标签页打开且没有 opener），postMessage 没有接收方，请改用服务端 `callback`。
 
 > Web SDK 1.0.5 已封装消息处理，推荐直接使用 `CregisWebSDK.openAuthorization(authorizeUrl)`，它返回 `{ status, authorizeId }`（见第 16 章）。它同样不会返回 `oauthToken`。
 
-### 5.4 验证授权（换取 authorizeId）
+### 5.4 网关内部接口 `oauth/verify`（由 Custody 调用）
+
+> **内部接口：由 Custody 调用，第三方不得直接调用。**
+
+Custody 收到授权页的 `POST /internal/third-party/authorize?appId=&ecode=&appToken=` 后，会携带该 JWT（`appToken`，即 `oauthToken`）调用网关的本接口，把授权关系写入 `oauth_resources` 并返回 `authorizeId`；授权页随后通过 postMessage 把这个 `authorizeId` 作为 `authorizationId` 返回给前端。**`authorizeId` 的创建发生在 Custody 内部，不需要开发者参与。**
 
 **POST** `/api/thirdparty/oauth/verify` · 无需签名
 
-**请求**
+**请求**（顶层字段，不是 `{ basic, business }` 结构）
 
 ```json
 {
@@ -796,8 +793,8 @@ public class SignatureDemo {
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `resourceKey` | string | 是 | 资源标识。可使用 `merchant/register` 返回的 `resourceAccessKey`，或平台为你的企业开通的资源键 |
-| `oauthToken` | string | 是 | 网关在 `authorizeUrl` 中签发的 `appToken`（JWT），由你的后端保存后传入；授权页不会返回它 |
+| `resourceKey` | string | 是 | 资源标识。Custody 使用企业的 `resourceAccessKey`（13.1 返回），或平台为该企业开通的资源键 |
+| `oauthToken` | string | 是 | 网关在 `authorizeUrl` 中签发的 `appToken`（JWT）；授权页从 URL 读取后随内部授权请求带给 Custody，不会通过 postMessage 事件下发 |
 
 **响应**
 
@@ -813,16 +810,18 @@ public class SignatureDemo {
 
 行为说明：
 
-- **幂等**：授权记录以 `(appId, resourceKey)` 唯一。同一应用用同一 `resourceKey` 重复调用 `verify` 不会创建新记录，返回同一个 `authorizeId`，并刷新 `authorizedAt`；不同 `resourceKey` 会得到不同的 `authorizeId`。
+- **幂等**：授权记录以 `(appId, resourceKey)` 唯一。同一应用用同一 `resourceKey` 重复调用不会创建新记录，返回同一个 `authorizeId`，并刷新 `authorizedAt`；不同 `resourceKey` 会得到不同的 `authorizeId`。
 - `appId` 取自 `oauthToken` 载荷，不接受调用方另行传入。
 - `oauthToken` 无效或过期返回 `40101`；应用不存在返回 `40401`。
-- **无需 Basic / Resource 签名**：本接口通过校验 JWT 本身完成认证，请求体是裸的 `{ resourceKey, oauthToken }`，不要再包一层 `basic` / `business`。
-- **`resourceKey` 不做存在性校验**：本接口会为任意 `resourceKey` 写入（或复用）授权记录，因此不会返回 `400103`。若该键未在 Custody 侧开通，后续转发业务请求时才会由 Custody 返回 `400103`。请使用 `merchant/register` 返回的 `resourceAccessKey` 或平台开通的资源键。
+- **无需 Basic / Resource 签名**：本接口通过校验 JWT 本身完成认证，请求体是裸的 `{ resourceKey, oauthToken }`，不要包一层 `basic` / `business`。
+- **`resourceKey` 不做存在性校验**：本接口会为任意 `resourceKey` 写入（或复用）授权记录，因此不会返回 `400103`。若该键未在 Custody 侧开通，后续转发业务请求时才会由 Custody 返回 `400103`。
 - `resourceKey` 会绑定到授权记录，并决定后续业务请求转发到 Custody 的哪个资源。
+- **结果落库**：授权记录写入 `oauth_resources`。业务接口会校验 `basic.authorizationId` 对应的记录；授权页返回的 `authorizationId` 可直接使用，正是因为 Custody 已内部调用本接口完成写入。开发者无需也不能调用本接口。
 - 校验成功后会异步推送 `authorization.created` 回调（见 5.6）。回调是异步的，`verify` 的响应不等待回调结果。
-- **业务调用的前提**：业务接口会校验 `basic.authorizationId` 对应的 `oauth_resources` 记录。该表只由本接口和签名保护的内部接口 `POST /api/v1/authorizations`（`/api/v1` 下，不对外推荐）写入；授权页直接返回的 `authorizationId` 不会自动落库。因此 **必须调用 `verify`**，否则业务请求会得到 `40301`。
 
-**关于 `oauthToken`：** 它就是 `authorizeUrl` 响应中 `authorizeUrl` 查询参数里的 `appToken`（JWT，载荷含 `appId`、`callback`、`token`，默认 2 小时有效）。网关不会在授权页或 postMessage 事件中下发它；请在你的后端调用 `authorizeUrl` 时自行保存（或从返回的 URL 中解析），不要下发到浏览器。授权页的 `postMessage` 事件格式见 5.3，Web SDK 用法见第 16 章。
+SDK 不提供该方法；Node 1.1.0 / Java 1.2.0 已移除 `verifyOAuthToken`。
+
+**关于 `oauthToken`：** 它就是 `authorizeUrl` 响应中 `authorizeUrl` 查询参数里的 `appToken`（JWT，载荷含 `appId`、`callback`、`token`，默认 2 小时有效）。网关不会在授权页或 postMessage 事件中下发它；它由授权页随内部授权请求交给 Custody，由 Custody 在调用本接口时消费。开发者不需要保存它来换取 `authorizeId`。
 
 ### 5.5 签发 OAuth Token（受限接口）
 
@@ -863,12 +862,12 @@ public class SignatureDemo {
 - 该接口挂在 Basic 签名中间件下，要求提供 `business.oauthUserId`；**属于平台内部接口，开发者不应调用**。
 - 处理逻辑读取 `req.authorizationId`，但 Basic 中间件从不为该字段赋值，因此签发的 JWT 中 `resourceKey` 恒为空字符串 `''`。这属于实现限制，不要依赖该字段。
 - 返回的 `access_token` 是 2 小时有效的 JWT，**不能**直接用于 `/api/thirdparty/treasury/*` 等业务接口；业务接口仍要求第 4 章的 Resource 签名。
-- **第三方开发者不需要调用此接口。** 正常接入只需 `authorizeUrl` + 授权页 + `verify`。
+- **第三方开发者不需要调用此接口。** 正常接入只需 `authorizeUrl` + 授权页（授权页内部完成 `verify` 并返回 `authorizeId`）。
 - 平台侧的 `/api/oauth/appToken/refresh`、`/api/oauth/revoke`、`/api/oauth/appToken/validate` 属于另一套内部令牌体系（`grant_type=client_credentials|refresh_token`），同样不用于本指南的业务调用链。
 
 ### 5.6 授权回调
 
-`oauth/verify` 成功后，平台会向回调地址推送 `authorization.created` 事件。
+Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `authorization.created` 事件。
 
 **回调请求头**
 
@@ -904,7 +903,7 @@ public class SignatureDemo {
 **请求**
 
 - 业务与 OAuth 接口均为 `POST`，`Content-Type: application/json`。
-- 除 `oauth/verify` 外，请求体统一为 `{ "basic": {...}, "business": {...} }`；`verify` 直接使用 `{ "resourceKey", "oauthToken" }`。
+- 开发者调用的接口请求体统一为 `{ "basic": {...}, "business": {...} }`。网关内部的 `oauth/verify` 例外，直接使用 `{ "resourceKey", "oauthToken" }`（该接口由 Custody 调用，见 5.4）。
 - 业务接口不使用 `Authorization: Bearer`；认证信息全部在 `basic` 中。
 - URL 路径参数（如 `unitId`、`taskId`、`cusAccountId`）不参与签名；参与签名的只有 `business` 和 `basic` 中的签名字段。
 
@@ -989,7 +988,7 @@ public class SignatureDemo {
 | 出金 `treasury/payout` | `business.orderId`（你的业务订单号） | 建议始终复用同一 `orderId` 以便对账。**Custody 是否按 `orderId` 去重尚未验证**（YAML/SDK 均未声明），重试可能导致重复出金，联调时需确认 |
 | 商户注册 `merchant/register` | `business.legalName` | 同一企业重复注册不会重复创建，返回 `alreadyExists: true` 及相同的 `ecode`、`resourceAccessKey` |
 | 添加用户 `user/add` | `business.email` | 同一企业下同一邮箱不会重复创建用户 |
-| 授权 `oauth/verify` | `(appId, resourceKey)` | 重复验证返回同一个 `authorizeId`，并刷新授权时间 |
+| 授权 `oauth/verify`（Custody 内部调用） | `(appId, resourceKey)` | 重复验证返回同一个 `authorizeId`，并刷新授权时间 |
 | 授权回调 `authorization.created` | `authorizeId` | 可能重试推送，接收方必须按 `authorizeId` 去重 |
 
 建议：所有写操作在调用方生成稳定的业务单号，重试时复用；收到回调时先按事件主键去重再执行业务。
@@ -997,7 +996,7 @@ public class SignatureDemo {
 ### 6.4 每日配额
 
 - 配额按**开发者（ISV）**维度、按自然日统计，上限来自当前生效订阅套餐的 `dailyApiLimit`；套餐记录缺少该字段时按 **1000** 计算。
-- 仅统计通过网关转发的业务接口调用（`/api/thirdparty/*` 中除 `oauth/verify` 等本地接口外的转发请求）。
+- 仅统计通过网关转发的业务接口调用（`/api/thirdparty/*` 中除 `oauth/verify` 等网关本地接口外的转发请求）。
 - 超出配额返回 HTTP `429`，业务码 `42901`，消息形如 `Daily API quota exceeded (1000/1000)`。
 - 用量每日 0 点重置（平台定时任务将 `dailyApiUsage` 归零）。当前用量可通过 `GET /api/v1/isv/subscription/current` 的 `dailyApiUsage` 查看。
 - **fail-closed**：当配额服务异常（如数据库不可用）时，请求会被拒绝，返回 `42901`；此时消息中的计数为 `(0/0)`，不要据此判断真实额度。这是银行级托管平台的默认安全策略，请把 `42901` 视为“可重试但需退避”的错误。
@@ -1050,7 +1049,7 @@ public class SignatureDemo {
 | 401 | `40104` | nonce 重复（重放）；**也被复用于“应用未激活”** | 每次请求生成新 nonce；若消息为 `Application is not active`，请检查应用状态 |
 | 401 | `40105` | 开发者账号未激活 | 开发者账号状态不是 `active` |
 | 401 | `40110` | 登录凭证无效 | 开发者后台登录邮箱 / 密码错误 |
-| 403 | `40301` | 资源未授权 | `authorizeId` 不存在或授权记录状态不是 `active`（当前实现不校验应用归属）；重新授权并调用 `oauth/verify` |
+| 403 | `40301` | 资源未授权 | `authorizeId` 不存在或授权记录状态不是 `active`（当前实现不校验应用归属）；重新走 OAuth 流程（授权页重新授权） |
 | 403 | `40302` | 权限不足 | 当前凭据无权执行该操作 |
 | 403 | `40303` | 操作方不满足条件 | 常见于 KYB 未通过时创建应用 |
 | 403 | `40305` | 权限不足 | 应用 / 用户权限配置不满足 |
@@ -1079,7 +1078,7 @@ public class SignatureDemo {
 | `authorizeUrl` 的 `permissions` 用 `JSON.stringify` 写入 URL，授权页按逗号拆分 | 传非空权限数组会导致授权页初始化失败 | 省略 `permissions`，授权页默认 `['read']` |
 | 限流档位固定为 `basic`，`burstSize` 未生效 | 所有应用（含 enterprise）实际按 `basic` 档限流 | 按 100/分钟、1,000/小时、10,000/天规划调用量 |
 | `oauth/token` 读取从未赋值的 `req.authorizationId` | 签发 JWT 的 `resourceKey` 恒为 `''` | 不调用该内部接口 |
-| 授权页/Web SDK 只返回 `authorizationId`，不返回 `oauthToken` | `oauthToken` 只能由后端从 `authorizeUrl` 响应中保存 | 后端保存 `appToken`，授权完成后调用 `verify` |
+| 授权页/Web SDK 只返回 `authorizationId`，不返回 `oauthToken` | 无法从前端拿到 `oauthToken` | 无需处理：`authorizationId` 已由 Custody 内部调用 `verify` 生成，直接作为 `basic.authorizationId` 使用 |
 | 授权页不回传 `state` | 无法用 `state` 做前端 CSRF 校验 | 用 `token` 关联业务身份，或业务侧记录授权上下文 |
 | 授权记录按 ID 查询，不校验应用归属 | 理论上一个应用可使用另一应用创建的 `authorizeId` | 妥善保护 `authorizeId`，不要跨应用传递 |
 | `GET /api/v1/isv/applications/:id` 返回 `appSecret` | 泄露风险 | 仅在服务端调用，禁止浏览器调用 |
@@ -2183,7 +2182,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 关键说明：
 
-- **`resourceAccessKey` 是企业级资源键**，也是后续调用 `oauth/verify`（5.4）时传入的 `resourceKey`；平台按该键反查授权记录与应用，再推送第 14 章的回调。请在首次注册成功时持久化保存。
+- **`resourceAccessKey` 是企业级资源键**，也是 Custody → 网关 `oauth/verify`（5.4）使用的 `resourceKey`，以及 `custody/callback` 反查应用的键；平台按该键维护授权记录与应用映射，再推送第 14 章的回调。**该值由 Custody 在内部调用 `verify` 时传入，开发者不需要在 `verify` 请求中传递它。** 请在首次注册成功时持久化保存。
 - 重复注册命中幂等时 `alreadyExists: true`；按上游 schema，此时 **`resourceAccessKey` 为 `null`**（避免同名注册换出他人凭据）。不要把重复注册当作重新获取 key 的手段。
 - 该接口走 Basic 签名，`basic` 只需要 `appId`、`timestamp`、`nonce`、`signature`；**不要传 `authorizationId`**。
 - `owner` 中的用户仍需在 custody 完成二次验证绑定后才能登录 custody；仅作为签名人使用时按 13.2 绑定 `publicKey`。
@@ -2193,7 +2192,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 **POST** `/api/thirdparty/user/add` · 鉴权：Resource 签名
 > 网关转发至 custody：`/api/third-party/user/add/{resourceKey}`，`business` 原样作为上游请求体
 
-`{resourceKey}` 取自 `basic.authorizationId` 对应的授权记录（即 `oauth/verify` 时绑定的 `resourceKey`，通常是 13.1 返回的 `resourceAccessKey`）。**同一邮箱重复调用幂等**，不会重复创建用户。
+`{resourceKey}` 取自 `basic.authorizationId` 对应的授权记录（即 Custody 内部调用 `oauth/verify` 时绑定的 `resourceKey`，通常是 13.1 返回的 `resourceAccessKey`）。**同一邮箱重复调用幂等**，不会重复创建用户。
 
 **请求参数（business）**
 
@@ -2306,7 +2305,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 | 事件 | 本仓库中的推送方 | 说明 |
 |------|------------------|------|
-| `authorization.created` | `oauth/verify`（`thirdparty.controller.ts`） | 授权验证成功后推送。载荷 `{ authorizeId, oauthToken? }`；`oauthToken` 是 `authorizeUrl` 请求传入的 `token` 值（不是 JWT），未传 `token` 时没有该字段 |
+| `authorization.created` | 由 Custody 在内部调用 `oauth/verify`（`thirdparty.controller.ts`）后触发 | 授权验证成功后推送。载荷 `{ authorizeId, oauthToken? }`；`oauthToken` 是 `authorizeUrl` 请求传入的 `token` 值（不是 JWT），未传 `token` 时没有该字段 |
 | `authorization.revoked` | 无 | 枚举已定义，当前仓库没有代码推送 |
 | `authorization.expired` | 无 | 同上 |
 | `transaction.submitted` | 无 | 同上 |
@@ -2319,7 +2318,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 说明：
 
 - 除 `authorization.created` 与 custody 回调转发的两个交易事件外，其余事件名当前**没有生产者**。它们是为 custody 侧事件预留的枚举；是否实际下发取决于 custody 部署，接入方应按事件名做通用处理，不要假设“一定会收到”。
-- 另有签名保护的内部接口 `POST /api/v1/authorizations` 也会推送 `authorization.created`，但其载荷为 `{ authorizationId, resourceKey, expiresAt }`，与本指南使用的 `oauth/verify` 路径（`authorizeId`）字段名不同。
+- 另有签名保护的内部接口 `POST /api/v1/authorizations` 也会推送 `authorization.created`，但其载荷为 `{ authorizationId, resourceKey, expiresAt }`，与本指南使用的 `oauth/verify` 内部路径（`authorizeId`）字段名不同。
 - `POST /api/thirdparty/custody/callback` 由 Custody 服务调用（开发者不调用）。它按 `resourceKey` 反查 `oauth_resources` 与应用，要求应用配置了 `callbackUrl`；事件名优先取请求体 `eventType`，否则按 `status === 'SUCCEED'` 映射为 `transaction.completed`，**其余任何状态都映射为 `transaction.failed`**。请求体含 `payload` 字段时，仅转发 `payload`；否则转发整个请求体但去掉 `status`、`resourceKey`、`ecode`。该路由始终以 HTTP 200 返回，业务失败通过响应体 `code` 表达（如缺少 `resourceKey` 返回 `40001`）。
 
 ### 14.2 请求头与请求体
@@ -2329,7 +2328,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 | `X-App-Id` | 应用 `appId`（`Application.id`，即 `basic.appId`） | 始终存在 |
 | `X-Timestamp` | 毫秒时间戳字符串（`Date.now().toString()`） | 每次重试重新生成 |
 | `X-Signature` | `sha256=<hex>` | 小写十六进制 HMAC-SHA256 |
-| `X-Event` | 事件名，如 `authorization.created` | **仅当事件已设置时存在**；`oauth/verify` 的 `callback` 参数路径没有事件，因此没有该头 |
+| `X-Event` | 事件名，如 `authorization.created` | **仅当事件已设置时存在**；Custody 调用 `oauth/verify` 且使用 `callback` 参数路径时没有事件，因此没有该头 |
 | `Content-Type` | `application/json` | — |
 
 请求体是纯业务数据（例如 `{ "authorizeId": "...", "oauthToken": "..." }` 或交易字段），不含 `appId`、事件名、时间戳等元数据。
@@ -2343,7 +2342,7 @@ X-Signature = "sha256=" + lowerHex(HMAC-SHA256(appSecret, signData))
 
 - `sortedJSON(data)`：对象 key 递归排序；数组元素保序，数组内对象同样排序；`null` 保留并参与序列化。
 - **有事件**：签名串包含事件段，例如 `appId.event.timestamp.md5`。
-- **无事件**：`oauth/verify` 使用 `callback` 参数时走这条路径，签名串为 `appId.timestamp.md5`，同时 `X-Event` 头不存在。验签实现必须按 `X-Event` 是否存在选择对应拼接方式。
+- **无事件**：Custody 调用 `oauth/verify` 且 `authorizeUrl` 使用 `callback` 参数时走这条路径，签名串为 `appId.timestamp.md5`，同时 `X-Event` 头不存在。验签实现必须按 `X-Event` 是否存在选择对应拼接方式。
 - `appSecret` 是 HMAC 的密钥，不参与字符串拼接。
 
 **计算示例**（固定输入，已实际计算）
@@ -2475,7 +2474,7 @@ app.post('/cregis/callback', async (req, res) => {
 
 | `code` | 枚举名 | 含义 / 触发场景 |
 |--------|--------|----------------|
-| `40001` | `PARAM_REQUIRED` | 缺少必填参数（如 `basic` 不完整、缺少 `resourceKey`、`oauth/verify` 缺字段） |
+| `40001` | `PARAM_REQUIRED` | 缺少必填参数（如 `basic` 不完整、缺少 `resourceKey`、内部接口 `oauth/verify` 缺字段） |
 | `40002` | `PARAM_INVALID_FORMAT` | 参数格式错误 |
 | `40003` | `PARAM_BUSINESS_RULE` | 违反业务规则 |
 | `40004` | `PARAM_DUPLICATE` | 重复请求 |
@@ -2545,8 +2544,8 @@ app.post('/cregis/callback', async (req, res) => {
 | `40103` | 使用毫秒时间戳；服务器时钟漂移 | 使用 10 位 Unix 秒；开启 NTP |
 | `40104`，消息为 `Duplicate nonce detected` | 固定 nonce；重试沿用同一 nonce；并发共享 nonce | 每次请求（含重试）生成新 nonce |
 | `40104`，消息为 `Application is not active` | 应用被停用；错误码被复用，并非 nonce 问题 | 检查应用状态并联系平台 |
-| `40301` | `authorizeId` 不存在、授权记录非 `active`，或使用了另一环境的 `authorizeId` | 重新走 OAuth 流程并调用 `oauth/verify` |
-| `400103` | `resourceKey` 拼写错误、跨环境使用、未在 custody 开通 | 使用 13.1 返回的 `resourceAccessKey`，或联系平台开通；`oauth/verify` 不会提前发现该问题（5.4） |
+| `40301` | `authorizeId` 不存在、授权记录非 `active`，或使用了另一环境的 `authorizeId` | 重新走 OAuth 流程（授权页重新授权） |
+| `400103` | `resourceKey` 拼写错误、跨环境使用、未在 custody 开通 | 使用 13.1 返回的 `resourceAccessKey`，或联系平台开通；`oauth/verify`（Custody 内部调用）不会提前发现该问题（5.4） |
 | 地址查询返回空分页 | 缺少 `coinId` / `network`；`accountType` 与账户不匹配；地址尚未创建 | 从 `list-unit-account`（7.4）取 `coinId` / `network`，四个字段一起传（第 8 章） |
 | `42901` | 超出订阅套餐 `dailyApiLimit`，或触发限流；配额服务异常时 fail-closed 也会返回 `42901` | 查看 `Retry-After` 与 `GET /api/v1/isv/subscription/current` 的 `dailyApiUsage`；退避重试（6.4、6.5） |
 | HTTP `500` / `503` / `504`，响应体只有 `{code,message}` | Custody 返回非 2xx、连接失败或超时；上游响应体被丢弃 | 记录 `x-trace-id` 与请求时间，联系平台；写操作先确认是否已生效再重试 |
@@ -2566,8 +2565,7 @@ app.post('/cregis/callback', async (req, res) => {
 | `custody/callback` 始终返回 HTTP 200 | 缺少 `resourceKey`、资源不存在等错误只体现在响应体 `code`，Custody 侧不会因 HTTP 状态重试 |
 | 回调载荷上限按 `JSON.stringify(data).length`（字符数）判断 | 多字节字符可能使实际字节数超过 64KB；请预留余量 |
 | 转发客户端对上游 5xx / 超时递归重试 | 实际请求次数可能远超配置的 3 次；非幂等写操作存在重复执行风险 |
-| Node 1.1.0 / Java 1.2.0 的 `verifyOAuthToken` 请求体与网关路由不一致 | 网关 `oauth/verify` 要求顶层 `resourceKey` / `oauthToken`，SDK 发送 `{ basic, business }`；当前会被校验中间件以 `40001` 拒绝（见 16.1） |
-| `oauth/verify` 不校验 `resourceKey` 是否存在 | 任意键都会写入授权记录；未开通的键在后续业务请求才由 custody 返回 `400103`（5.4） |
+| `oauth/verify` 不校验 `resourceKey` 是否存在 | 任意键都会写入授权记录；未开通的键在后续业务请求才由 custody 返回 `400103`（5.4）。该接口由 Custody 内部调用 |
 
 ---
 
@@ -2602,12 +2600,11 @@ const { authorizeUrl } = await sdk.getAuthorizationUrl({
   state: 'random-state-string',
   callback: 'https://your-app.com/oauth/callback',
 });
-// 后端同时保存 authorizeUrl 中的 appToken，作为后续 oauthToken
 
-// 2. 用 oauthToken 换取 authorizeId。网关要求顶层 { resourceKey, oauthToken }，
-//    而 1.1.0 的 verifyOAuthToken 发送 { basic, business }，会被 40001 拒绝；
-//    修复前请按 5.4 直接 POST /api/thirdparty/oauth/verify。
-const { authorizeId } = await sdk.verifyOAuthToken(appToken, 'access-key-d21396...');
+// 2. 前端打开 authorizeUrl，用户在授权页确认后拿到 authorizeId
+//    （Web SDK 的 openAuthorization 返回 { status, authorizeId }，见 16.3）
+//    该 authorizeId 由 Custody 内部调用 oauth/verify 生成，SDK 不提供 verify 方法。
+const authorizeId = await receiveAuthorizeIdFromFrontend(); // 你的前端把 Web SDK 返回的 authorizeId 回传后端
 
 // 3. 后续业务接口使用 authorizeId（Resource 签名）
 const accounts = await sdk.listUnitAccount(authorizeId, 80);
@@ -2626,12 +2623,11 @@ const task = await sdk.createPayout(authorizeId, {
 await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 ```
 
-**完整方法表（24 个业务方法）**
+**完整方法表（23 个业务方法）**
 
 | 领域 | 方法 | 签名 | 返回类型 |
 |------|------|------|----------|
 | OAuth | `getAuthorizationUrl(params)` | Basic | `{ authorizeUrl, expiresIn }` |
-| OAuth | `verifyOAuthToken(oauthToken, resourceKey?)` | 无（凭 JWT） | `{ authorizeId }` |
 | 商户 / 用户 / Board | `registerMerchant(request)` | Basic | `MerchantRegisterResult` |
 | 商户 / 用户 / Board | `addUser(authorizationId, request)` | Resource | `Record<string, unknown>`（如 `{ userId }`） |
 | 商户 / 用户 / Board | `initBoard(authorizationId, request)` | Resource | `MerchantBoard` |
@@ -2676,7 +2672,7 @@ try {
 
 `error.details.apiCode` 是网关响应体中的业务码（例如 `400103`）；`traceId` 仅在响应体含该字段时存在（转发响应通常没有，请以响应头 `x-trace-id` 为准）。SDK 对 `code !== 0 && code !== 200` 的响应抛 `SDKError`，不会静默返回。
 
-> **注意（SDK 与网关不一致）：** Node SDK 1.1.0 的 `verifyOAuthToken` 通过 `http.post` 发送 `{ basic, business }`，而网关 `/api/thirdparty/oauth/verify` 的校验规则要求请求体顶层为 `{ resourceKey, oauthToken }`，因此当前会被拒绝为 `40001 Validation failed`。在 SDK 修复前，请按 5.4 直接调用该接口（或对 `oauthToken` 使用未签名请求）。`registerMerchant` / `addUser` / `initBoard` 其余字段与网关一致。
+> **OAuth 说明：** Node SDK 只封装 `getAuthorizationUrl`。`authorizeId` 由授权页在 Custody 内部完成 `verify` 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。`registerMerchant` / `addUser` / `initBoard` 其余字段与网关一致。
 
 ### 16.2 Java SDK 1.2.0（JitPack）
 
@@ -2707,7 +2703,7 @@ try {
 
 | 入口 | 覆盖 |
 |------|------|
-| `oauth()` | `getAuthorizationUrl`、`verifyOAuthToken` |
+| `oauth()` | `getAuthorizationUrl` |
 | `treasury()` | 创建 / 自定义创建 / 列表 / 账户列表 |
 | `payout()` | 出金、出金订单、归集 |
 | `transaction()` | 入金订单、活动 / 流水、`submitTask` |
@@ -2751,6 +2747,8 @@ AuthorizationResponse auth = client.oauth().getAuthorizationUrl(
                 .callback("https://your-app.com/oauth/callback")
                 .build());
 
+// authorizeId 来自前端授权页（Web SDK 的 openAuthorization 返回 { status, authorizeId }），
+// 由你的后端保存；Custody 已在内部调用 oauth/verify 完成授权记录写入。
 List<UnitAccountResponse> accounts = client.treasury().listUnitAccount(authorizeId, 80L);
 ```
 
@@ -2767,7 +2765,7 @@ try {
 }
 ```
 
-> **与 Node SDK 相同的注意：** Java 1.2.0 的 `verifyOAuthToken` 同样发送 `{ basic, business }`，与网关 `oauth/verify` 的顶层 `{ resourceKey, oauthToken }` 校验不一致；在修复前请按 5.4 直接调用该接口。
+> **OAuth 说明：** Java SDK 的 `oauth()` 只提供 `getAuthorizationUrl`。`authorizeId` 由授权页在 Custody 内部完成 `verify` 后返回（见 5.3），SDK 不提供 verify 方法。
 
 ### 16.3 Web SDK 1.0.5
 
@@ -2777,7 +2775,7 @@ try {
 npm install @cregis-kit/openplatform-webkit@1.0.5
 ```
 
-**职责边界**：Web SDK 只负责在浏览器中嵌入授权页并接收 `postMessage`。它**只返回 `authorizationId`**，不返回 `oauthToken`，也不回传 `state`；`oauthToken`（即后端 `authorizeUrl` 中的 `appToken`）必须由你的后端保存，并在用户授权后调用 `oauth/verify`（5.4）换取业务接口可用的 `authorizeId`。
+**职责边界**：Web SDK 只负责在浏览器中嵌入授权页并接收 `postMessage`。它**只返回 `authorizationId`**（即业务接口可用的 `authorizeId`，由 Custody 内部调用 `oauth/verify` 生成），不返回 `oauthToken`，也不回传 `state`。你的后端只需保存这个 `authorizeId` 并在业务请求的 `basic.authorizationId` 中使用；不需要也不能调用 `oauth/verify`。
 
 **嵌入示例**
 
@@ -2797,7 +2795,8 @@ const sdk = new CregisWebSDK({
 
 const result = await sdk.openAuthorization(authorizeUrlFromBackend);
 if (result.status === 'success') {
-  // 把 result.authorizeId 与你的用户关联；真正的业务 authorizeId 仍需后端 verify 后得到
+  // result.authorizeId 即业务接口可用的 authorizeId（Custody 内部已调用 verify）
+  // 把它交给你的后端保存，与自身用户关联，作为 basic.authorizationId
 }
 ```
 
@@ -2830,9 +2829,9 @@ if (result.status === 'success') {
 
 | SDK | 版本 | 坐标 / 安装 | 适用场景 | 与网关的已核对结论 |
 |-----|------|-------------|----------|--------------------|
-| Node.js | **1.1.0** | `npm install @cregis-kit/openplatform-node@1.1.0` | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致；`verifyOAuthToken` 请求体与网关不一致（见 16.1） |
+| Node.js | **1.1.0** | `npm install @cregis-kit/openplatform-node@1.1.0` | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致 |
 | Java | **1.2.0** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.0`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
-| Web | **1.0.5** | `npm install @cregis-kit/openplatform-webkit@1.0.5` | 浏览器嵌入授权页 | 只返回 `authorizationId`，必须以 `oauth/verify` 为准 |
+| Web | **1.0.5** | `npm install @cregis-kit/openplatform-webkit@1.0.5` | 浏览器嵌入授权页 | 只返回 `authorizationId`（即 Custody 内部 `verify` 生成的 `authorizeId`） |
 
 - 更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 `coinIds` / `primaryManager` / `payTo` 的请求会返回 `40102`，不要使用。
 - 三个 SDK 版本必须与网关的接口路径前缀 `/api/thirdparty/` 配套；`baseUrl` 不要包含该前缀，也不要带尾斜杠。
@@ -3056,7 +3055,7 @@ interface UnitAddress {
 
 **Q：如何获得 `resourceAccessKey`？**
 
-调用 13.1 `merchant/register` 获取。首次注册返回非空 `resourceAccessKey`，它同时是 `oauth/verify` 的 `resourceKey` 与后续业务请求转发到 Custody 的资源键；重复注册时该字段可能为 `null`。若企业由平台侧开通，请向平台索取资源键。
+调用 13.1 `merchant/register` 获取。首次注册返回非空 `resourceAccessKey`，它同时是 Custody 内部调用 `oauth/verify` 时使用的 `resourceKey` 与后续业务请求转发到 Custody 的资源键；开发者不需要在 `verify` 请求中传递它。重复注册时该字段可能为 `null`。若企业由平台侧开通，请向平台索取资源键。
 
 **Q：应该使用哪个环境地址？**
 
@@ -3064,8 +3063,8 @@ interface UnitAddress {
 
 **Q：回调验签失败，但签名算法看起来一致？**
 
-先确认走的是哪条回调路径：`oauth/verify` 的 `callback` 参数路径**没有** `X-Event`，签名串也**没有**事件段；应用默认 `callbackUrl` 路径带事件段。其次确认 `md5(sortedJSON(data))` 使用的是解析后的请求体且递归排序、数组保内对象也排序；最后确认 `X-Signature` 前缀 `sha256=` 已去掉后再比较。
+先确认走的是哪条回调路径：Custody 内部调用 `oauth/verify` 且使用 `callback` 参数时，回调**没有** `X-Event`，签名串也**没有**事件段；应用默认 `callbackUrl` 路径带事件段。其次确认 `md5(sortedJSON(data))` 使用的是解析后的请求体且递归排序、数组保内对象也排序；最后确认 `X-Signature` 前缀 `sha256=` 已去掉后再比较。
 
 **Q：`oauth/verify` 明明返回了 `authorizeId`，业务接口仍返回 `40301`？**
 
-业务接口按 `basic.authorizationId` 查询 `oauth_resources` 表；只有 `oauth/verify` 与内部接口 `POST /api/v1/authorizations` 会写入该表。授权页直接返回的 `authorizationId` 不会自动落库；请确认业务请求使用的是 `verify` 返回的 `authorizeId`，且授权记录状态为 `active`。
+`oauth/verify` 是 Custody 内部调用的接口，开发者不直接参与。业务接口按 `basic.authorizationId` 查询 `oauth_resources` 表；授权页返回的 `authorizeId` 就是 Custody 内部调用 `verify` 写入的记录 ID。请确认业务请求使用的是授权页返回的 `authorizeId`（而非其他环境或旧值），且该授权记录状态为 `active`；若仍失败，请重新走 OAuth 流程（授权页重新授权）。
