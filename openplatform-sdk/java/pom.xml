@@ -202,26 +202,11 @@
                 </executions>
             </plugin>
             <!--
-                Javadoc JAR. Central requires it, but the JitPack build image ships
-                an old Maven that cannot run javadoc-plugin 3.7.0; `-DskipJavadoc`
-                (used by jitpack.yml) skips it there.
+                Javadoc JAR is attached by the `release` profile (see below).
+                Maven Central requires it; JitPack's image ships a Maven older than
+                3.6.3 and javadoc-plugin 3.7.0 refuses to load there, which would
+                fail every JitPack snapshot/tag build if it lived here.
             -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.7.0</version>
-                <configuration>
-                    <doclint>none</doclint>
-                    <failOnError>false</failOnError>
-                    <skip>${skipJavadoc}</skip>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals><goal>jar</goal></goals>
-                    </execution>
-                </executions>
-            </plugin>
             <!--
                 Maven Central publishing (Sonatype Central Portal).
                 Activated only when the `release` profile is requested, e.g.:
@@ -275,6 +260,22 @@
                                 <id>sign-artifacts</id>
                                 <phase>verify</phase>
                                 <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Central requires a javadoc jar; only built for releases. -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.7.0</version>
+                        <configuration>
+                            <doclint>none</doclint>
+                            <failOnError>false</failOnError>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals><goal>jar</goal></goals>
                             </execution>
                         </executions>
                     </plugin>
