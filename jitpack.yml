@@ -2,12 +2,31 @@ jdk:
   - openjdk21
 # Build only the core module from the java subdirectory.
 #
-# Notes for this monorepo:
-#  * `mvn` from the JitPack image is too old for javadoc-plugin 3.7.0. The
-#    javadoc jar is bound to the `release` profile only (Maven Central needs
-#    it), so the default build on JitPack does not touch that plugin.
-#  * Prefer the image Maven over ./mvnw: the wrapper re-downloads apache-maven
-#    from repo.maven.apache.org, which intermittently yields a corrupt zip on
-#    JitPack and fails before the build starts.
+# Why a pinned Maven is downloaded explicitly:
+#  * The JitPack image's own `mvn` is older than 3.6.3 on some images, and
+#    maven-compiler-plugin 3.13.0 refuses to load there ("requires Maven 3.6.3").
+#  * ./mvnw downloads from repo.maven.apache.org, which intermittently returns a
+#    truncated zip on JitPack ("End-of-central-directory signature not found").
+# Pinning a known-good distribution (with an Apache archive fallback) makes the
+# build independent of whichever image JitPack picks.
 install:
-  - cd openplatform-sdk/java && mvn -B clean install -DskipTests -pl cregis-sdk-core -am
+  - |
+    set -e
+    cd openplatform-sdk/java
+    MVN_VERSION=3.9.9
+    MVN_DIR=/tmp/apache-maven-$MVN_VERSION
+    if [ ! -x "$MVN_DIR/bin/mvn" ]; then
+      for url in \
+        "https://repo1.maven.org/maven2/org/apache/maven/apache-maven/$MVN_VERSION/apache-maven-$MVN_VERSION-bin.zip" \
+        "https://archive.apache.org/dist/maven/maven-3/$MVN_VERSION/binaries/apache-maven-$MVN_VERSION-bin.zip"; do
+        echo "Downloading Maven from $url"
+        if curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o /tmp/maven.zip "$url" \
+           && unzip -tq /tmp/maven.zip >/dev/null 2>&1; then
+          unzip -q -o /tmp/maven.zip -d /tmp && break
+        fi
+        echo "Download from $url failed or was corrupt, trying next mirror"
+      done
+    fi
+    [ -x "$MVN_DIR/bin/mvn" ] || { echo "Could not obtain Maven $MVN_VERSION"; exit 1; }
+    "$MVN_DIR/bin/mvn" -v
+    "$MVN_DIR/bin/mvn" -B clean install -DskipTests -pl cregis-sdk-core -am
