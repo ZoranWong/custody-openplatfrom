@@ -2,14 +2,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { CregisSDK } from '../core';
 import { HttpClient } from '../core/http';
 import type { SDKConfig } from '../types';
+import { makeConfig, TEST_AUTHORIZATION_ID } from './fixtures';
 
-const config: SDKConfig = {
-  baseUrl: 'https://api.test.com',
-  appId: '550e8400-e29b-41d4-a716-446655440000',
-  appSecret: 'test-secret-key',
-};
+const config: SDKConfig = makeConfig();
 
-const RAK = '123e4567-e89b-12d3-a456-426614174000';
+const RAK = TEST_AUTHORIZATION_ID;
 
 function createSDK(): CregisSDK {
   return new CregisSDK(config);
@@ -234,5 +231,21 @@ describe('CregisSDK oauth endpoints', () => {
     const [url, body] = lastPost(spy as any);
     expect(url).toBe('/api/thirdparty/oauth/verify');
     expect(body.business).toEqual({ oauthToken: 'tok' });
+  });
+
+  it('verifyOAuthToken forwards resourceKey when provided', async () => {
+    const sdk = createSDK();
+    const spy = vi.spyOn(HttpClient.prototype, 'post').mockResolvedValue({ authorizeId: 'a1' } as never);
+    await sdk.verifyOAuthToken('tok', 'access-key-1');
+    const [, body] = lastPost(spy as any);
+    expect(body.business).toEqual({ oauthToken: 'tok', resourceKey: 'access-key-1' });
+  });
+
+  it('getAuthorizationUrl does not send the deprecated redirectUri', async () => {
+    const sdk = createSDK();
+    const spy = vi.spyOn(HttpClient.prototype, 'post').mockResolvedValue({ authorizeUrl: 'x', expiresIn: 1 } as never);
+    await sdk.getAuthorizationUrl({ permissions: ['read'], state: 's', redirectUri: 'https://example.com/cb' } as any);
+    const [, body] = lastPost(spy as any);
+    expect(body.business).toEqual({ permissions: ['read'], state: 's' });
   });
 });

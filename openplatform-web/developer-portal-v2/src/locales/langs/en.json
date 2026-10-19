@@ -624,6 +624,25 @@
     },
     "billing": {
       "loading": "Loading...",
+      "apiLogDetail": {
+        "title": "Call Details",
+        "basicInfo": "Basic Info",
+        "traceId": "Trace ID",
+        "endpoint": "Endpoint",
+        "method": "Method",
+        "status": "Result",
+        "responseTime": "Response Time",
+        "ipAddress": "Client IP",
+        "userAgent": "User-Agent",
+        "createdAt": "Called At",
+        "requestBody": "Request Body",
+        "responseBody": "Response",
+        "requestHeaders": "Request Headers",
+        "copy": "Copy",
+        "copied": "Copied",
+        "close": "Close",
+        "empty": "No data"
+      },
       "endpointBreakdown": {
         "calls": "Calls",
         "method": "Method",

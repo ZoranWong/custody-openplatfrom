@@ -124,6 +124,33 @@ This project uses **BMAD** (Build-Measure-Analyze-Document) workflow management.
 - Reference PRD: `docs/prd-cregis-custody-2026-02-02-cn.md` for detailed requirements
 - Compliance: KYB (Know Your Business) required for all institutional clients; no KYC for end users
 
+### Test Environment
+
+**Node SDK** (`openplatform-sdk/node`):
+```bash
+npm run test:unit                          # unit tests only
+npm test -- --run tests/integration/       # integration tests, needs a running API gateway
+TEST_ENV=testing npm test -- --run tests/integration/   # against SIT
+```
+
+Integration tests read these env vars (defaults suit the local SIT account):
+`CREGIS_APP_ID`, `CREGIS_APP_SECRET`, `CREGIS_AUTHORIZATION_ID`, `CREGIS_RESOURCE_KEY`,
+`CREGIS_UNIT_ID`, `CREGIS_HEALTH_PATH`.
+
+**API gateway** (`openplatform-api-service`): start with `./dev.sh start api` (port 1000),
+logs at `.dev-logs/api.log`, stop with `./dev.sh stop api`. `npm run typecheck` to typecheck.
+
+**Java SDK** (`openplatform-sdk/java`): no Java on PATH and `JAVA_HOME` is unset. Use the Temurin JDK
+bundled with the VS Code Java extension (JDK 25):
+```bash
+export JAVA_HOME=/Users/wang/.vscode/extensions/redhat.java-1.57.0-darwin-x64/jre/25.0.4.1-macosx-x86_64
+export PATH="$JAVA_HOME/bin:$PATH"
+cd openplatform-sdk/java && ./mvnw -pl cregis-sdk-core -am test
+```
+Note: `/Users/wang/jdk/jdk-21.0.12+8` is an incomplete install — it is missing `lib/modules`,
+so `java` fails with "Failed setting boot class path". Do not use it. If the VS Code extension
+updates, re-check the version directory name, or run `find ~/.vscode/extensions -path "*redhat.java*/jre/*/bin/java"`.
+
 ## API Authentication
 
 ### Basic Auth (Client Credentials)

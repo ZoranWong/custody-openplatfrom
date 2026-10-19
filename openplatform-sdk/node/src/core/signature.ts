@@ -8,27 +8,35 @@
 import * as crypto from 'crypto';
 
 /**
- * Sort object keys alphabetically
+ * Sort object keys alphabetically, recursing into nested objects and arrays.
+ *
+ * Array elements keep their order (array order is meaningful), but objects
+ * inside arrays must be key-sorted too: the gateway re-serializes `business`
+ * the same way before verifying, so signature mismatches occur otherwise for
+ * any payload containing object arrays (coinIds, primaryManager, payTo, ...).
+ * This matches the Java SDK's Signer.sortKeys and the backend implementation.
  */
-function sortKeys<T extends Record<string, unknown>>(obj: T | null | undefined): T {
-    // Normalize null/undefined to empty object for consistent signing
+function sortKeys<T>(obj: T | null | undefined): T {
+  // Normalize null/undefined to empty object for consistent signing
   if (obj === null || obj === undefined) {
-      return {} as T;
+    return {} as T;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => sortKeys(item)) as unknown as T;
+  }
+
+  if (typeof obj !== 'object') {
+    return obj;
   }
 
   const sorted: Record<string, unknown> = {};
-  const keys = Object.keys(obj).sort();
+  const keys = Object.keys(obj as Record<string, unknown>).sort();
 
   for (const key of keys) {
-    const value = obj[key];
+    const value = (obj as Record<string, unknown>)[key];
     if (value !== null && value !== undefined) {
-      if (typeof value === 'object' && !Array.isArray(value)) {
-        sorted[key] = sortKeys(value as Record<string, unknown>);
-      } else if (Array.isArray(value)) {
-        sorted[key] = value;
-      } else {
-        sorted[key] = value;
-      }
+      sorted[key] = sortKeys(value);
     }
   }
 

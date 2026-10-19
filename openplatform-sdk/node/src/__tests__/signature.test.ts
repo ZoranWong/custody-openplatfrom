@@ -11,10 +11,11 @@ import {
   isTimestampValid,
   SignatureType,
 } from '../core/signature';
+import { TEST_APP_ID, TEST_APP_SECRET, TEST_AUTHORIZATION_ID } from './fixtures';
 
-const appId = '550e8400-e29b-41d4-a716-446655440000';
-const appSecret = 'test-secret-key';
-const authorizationId = '123e4567-e89b-12d3-a456-426614174000';
+const appId = TEST_APP_ID;
+const appSecret = TEST_APP_SECRET;
+const authorizationId = TEST_AUTHORIZATION_ID;
 const timestamp = 1742947200;
 const nonce = 'abc123def456';
 
@@ -56,7 +57,7 @@ describe('isValidUUID', () => {
 describe('calculateBasicSignature', () => {
   it('matches golden value', () => {
     const sig = calculateBasicSignature({ appId, appSecret, timestamp, nonce, business: { key: 'value' } });
-    expect(sig).toBe('41efb76d9da6762a71fa4e74b9b19065');
+    expect(sig).toBe('c759c23224f23373433392ded184c7ce');
   });
   it('is stable for identical inputs', () => {
     const p = { appId, appSecret, timestamp, nonce, business: { key: 'value' } };
@@ -67,12 +68,28 @@ describe('calculateBasicSignature', () => {
     const b = calculateBasicSignature({ appId, appSecret, timestamp, nonce, business: { b: 2, a: 1 } });
     expect(a).toBe(b);
   });
+  it('sorts keys inside objects nested in arrays (gateway re-serializes the same way)', () => {
+    const a = calculateBasicSignature({
+      appId, appSecret, timestamp, nonce,
+      business: { coinIds: [{ coinId: 'CLCC', network: 'ethereum-sepolia' }], primaryManager: [{ unitId: 1, coinId: 'CLCC' }] },
+    });
+    const b = calculateBasicSignature({
+      appId, appSecret, timestamp, nonce,
+      business: { primaryManager: [{ coinId: 'CLCC', unitId: 1 }], coinIds: [{ network: 'ethereum-sepolia', coinId: 'CLCC' }] },
+    });
+    expect(a).toBe(b);
+  });
+  it('preserves array element order', () => {
+    const a = calculateBasicSignature({ appId, appSecret, timestamp, nonce, business: { items: [{ i: 1 }, { i: 2 }] } });
+    const b = calculateBasicSignature({ appId, appSecret, timestamp, nonce, business: { items: [{ i: 2 }, { i: 1 }] } });
+    expect(a).not.toBe(b);
+  });
 });
 
 describe('calculateResourceSignature', () => {
   it('matches golden value and differs from basic', () => {
     const sig = calculateResourceSignature({ appId, appSecret, authorizationId, timestamp, nonce, business: { key: 'value' } });
-    expect(sig).toBe('6d9a8bf996f20f28c870f76c1394fdb6');
+    expect(sig).toBe('d0be2bff93761728575c9ea2583dc6a3');
     expect(sig).not.toBe(calculateBasicSignature({ appId, appSecret, timestamp, nonce, business: { key: 'value' } }));
   });
 });

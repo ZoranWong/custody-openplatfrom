@@ -53,7 +53,8 @@ import {
   refreshHealthData
 } from '../../controllers/admin/health.controller'
 import {
-  getApiLogs
+  getApiLogs,
+  getApiLogDetail
 } from '../../controllers/admin/api-log.controller'
 import { adminAuthMiddleware } from '../../middleware/admin-auth.middleware'
 import { requirePermission } from '../../middleware/admin-permission.middleware'
@@ -206,5 +207,6 @@ router.post('/health/refresh', adminAuthMiddleware, requirePermission(Resource.A
 
 // Get paginated API call logs
 router.get('/api-logs', adminAuthMiddleware, requirePermission(Resource.ANALYTICS_VIEW), getApiLogs)
+router.get('/api-logs/:id', adminAuthMiddleware, requirePermission(Resource.ANALYTICS_VIEW), getApiLogDetail)
 
 export default router

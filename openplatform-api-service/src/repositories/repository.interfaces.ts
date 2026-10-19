@@ -192,6 +192,8 @@ export interface ApiLogRepository {
   cleanup(retentionDays?: number): Promise<{ count: number }>
   /** Paginated API log query */
   findByDeveloper(developerId: string, page: number, pageSize: number, filters?: { isError?: boolean; apiName?: string; startDate?: Date; endDate?: Date }): Promise<{ list: ApiLog[]; total: number; page: number; pageSize: number }>
+  /** Single API log by id */
+  findById(id: string): Promise<ApiLog | null>
 }
 
 // ---------------------------------------------------------------------------

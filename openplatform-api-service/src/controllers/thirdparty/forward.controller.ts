@@ -55,6 +55,74 @@ function logApiCall(ctx: LogContext, req: Request, status: number, elapsed: numb
   }).catch(() => {});
 }
 
+/**
+ * Sentinel returned by the custody backend for "resource not found" style errors.
+ */
+const CUSTODY_RESOURCE_NOT_FOUND = 400103;
+
+/**
+ * Whether a custody business code represents success (0 or 200).
+ */
+function isSuccessCode(code: unknown): boolean {
+  return code === 0 || code === 200;
+}
+
+/**
+ * Map a custody business error code to the HTTP status recorded in the API log.
+ *
+ * The gateway always replies HTTP 200 to forwardable requests (the business code
+ * carries the outcome), so this value is log/analytics-only: the developer portal
+ * tags `responseStatus >= 400` as an error and the dashboard/error-rate queries
+ * filter on `isError`. Recording every failure as 502 conflates client-side
+ * validation errors with genuine upstream failures.
+ *
+ * Custody code families:
+ *   400xxx  request/parameter errors        → 400
+ *   401xxx  authentication errors           → 401
+ *   403xxx  authorization errors            → 403
+ *   400103 resource not found               → 404
+ *   409xxx  conflicts                        → 409
+ *   429xxx  rate limiting                    → 429
+ *   120xxx  business-rule rejections         → 400 (the request was well-formed
+ *                                                  but not permitted in state)
+ *   <500 or 5    upstream internal failure   → 500
+ */
+export function custodyCodeToHttpStatus(code: unknown): number {
+  if (typeof code !== 'number' || !Number.isFinite(code)) return HttpCodes.INTERNAL_SERVER_ERROR;
+  if (isSuccessCode(code)) return HttpCodes.OK;
+  if (code === CUSTODY_RESOURCE_NOT_FOUND) return HttpCodes.NOT_FOUND;
+  if (code === 502) return HttpCodes.BAD_GATEWAY;
+  if (code === 503) return HttpCodes.SERVICE_UNAVAILABLE;
+  if (code === 504) return HttpCodes.GATEWAY_TIMEOUT;
+  // Bare HTTP-style codes (e.g. 500).
+  if (code >= 400 && code < 1000) return code;
+
+  // 4-digit codes (120xxx) use a 3-digit family; 5-digit codes (40102) a 3-digit
+  // prefix too: 120042 / 1000 = 120, 40102 / 100 = 401.
+  const family = code >= 100000 ? Math.floor(code / 1000) : Math.floor(code / 100);
+  switch (family) {
+    case 400:
+    case 120:
+      return HttpCodes.BAD_REQUEST;
+    case 401:
+      return HttpCodes.UNAUTHORIZED;
+    case 403:
+      return HttpCodes.FORBIDDEN;
+    case 404:
+      return HttpCodes.NOT_FOUND;
+    case 409:
+      return HttpCodes.CONFLICT;
+    case 429:
+      return HttpCodes.TOO_MANY_REQUESTS;
+    case 500:
+      return HttpCodes.INTERNAL_SERVER_ERROR;
+    default:
+      // Unknown business codes are client-side rejections; only the 5xx family
+      // above denotes an upstream failure.
+      return HttpCodes.BAD_REQUEST;
+  }
+}
+
 /** Send error response + log, then return */
 function fail(ctx: LogContext, req: Request, res: Response, status: number, code: number, message: string, startTime: number) {
   const elapsed = Date.now() - startTime;
@@ -121,11 +189,14 @@ export async function forwardRequest(req: Request, res: Response): Promise<void>
       headers: { 'x-trace-id': traceId },
     });
 
-    const isSuccess = (response?.code ?? 0) === 0;
+    // The custody backend reports success as code 0 or 200; failures carry their
+    // own code, which we map to the HTTP status recorded for this call.
+    const isSuccess = isSuccessCode(response?.code);
     if (typeof response === 'object' && response !== null) res.json(response);
     else res.send(response);
 
-    logApiCall(ctx, req, isSuccess ? 200 : 502, Date.now() - startTime, response, !isSuccess);
+    const logStatus = isSuccess ? HttpCodes.OK : custodyCodeToHttpStatus(response?.code);
+    logApiCall(ctx, req, logStatus, Date.now() - startTime, response, !isSuccess);
   } catch (error: any) {
     console.error('[Forward] Error:', error.message || error);
 

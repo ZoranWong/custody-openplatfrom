@@ -123,3 +123,10 @@ export function fetchApiLogs(params?: {
 }) {
   return request.get<any>({ url: '/api-logs', params })
 }
+
+/**
+ * 获取 API 调用日志详情（含请求体/响应体）
+ */
+export function fetchApiLogDetail(id: string) {
+  return request.get<any>({ url: `/api-logs/${id}` })
+}

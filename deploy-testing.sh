@@ -56,13 +56,32 @@ deploy_api() {
   echo "API Service deployed."
 }
 
+# Upload a portal's dist/ into a staging directory, then swap it into place in one
+# step. Uploading straight over the live directory exposes a window where index.html
+# already references chunks that have not been uploaded yet (users then get the SPA
+# fallback HTML in place of JS, which CDNs happily cache).
+deploy_portal_dist() {
+  local local_dist="$1"
+  local remote_dir="$2"
+  local label="$3"
+
+  ssh "$DEPLOY_HOST" "mkdir -p $remote_dir && rm -rf $remote_dir/dist.new $remote_dir/dist.old && mkdir -p $remote_dir/dist.new"
+  scp -r "$local_dist/." "$DEPLOY_HOST:$remote_dir/dist.new/"
+  ssh "$DEPLOY_HOST" "cd $remote_dir && \
+    if [ -d dist ]; then mv dist dist.old; fi && \
+    mv dist.new dist && \
+    rm -rf dist.old && echo '[$label] switched'"
+}
+
 deploy_developer() {
   build_developer
   echo "=========================================="
   echo "Deploying Developer Portal..."
   echo "=========================================="
-  ssh "$DEPLOY_HOST" "mkdir -p $DEPLOY_PATH/developer-portal"
-  scp -r "$PROJECT_ROOT/openplatform-web/developer-portal-v2/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/developer-portal/"
+  deploy_portal_dist \
+    "$PROJECT_ROOT/openplatform-web/developer-portal-v2/dist" \
+    "$DEPLOY_PATH/developer-portal" \
+    "developer-portal"
   scp "$PROJECT_ROOT/openplatform-web/developer-portal-v2/.env" "$DEPLOY_HOST:$DEPLOY_PATH/developer-portal/"
   echo "Developer Portal deployed."
 }
@@ -72,8 +91,10 @@ deploy_admin() {
   echo "=========================================="
   echo "Deploying Admin Portal..."
   echo "=========================================="
-  ssh "$DEPLOY_HOST" "mkdir -p $DEPLOY_PATH/admin-portal"
-  scp -r "$PROJECT_ROOT/openplatform-web/admin-portal-v2/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/admin-portal/"
+  deploy_portal_dist \
+    "$PROJECT_ROOT/openplatform-web/admin-portal-v2/dist" \
+    "$DEPLOY_PATH/admin-portal" \
+    "admin-portal"
   scp "$PROJECT_ROOT/openplatform-web/admin-portal-v2/.env" "$DEPLOY_HOST:$DEPLOY_PATH/admin-portal/"
   echo "Admin Portal deployed."
 }

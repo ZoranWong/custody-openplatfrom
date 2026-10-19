@@ -56,3 +56,58 @@ export async function getApiLogs(req: Request, res: Response): Promise<void> {
     });
   }
 }
+
+/**
+ * GET /admin/api-logs/:id
+ * Get a single API call log with request/response payloads.
+ */
+export async function getApiLogDetail(req: Request, res: Response): Promise<void> {
+  const traceId = (req.headers['x-trace-id'] as string) || '';
+  try {
+    const repo = getApiLogRepository();
+    const log: any = await repo.findById(req.params.id);
+
+    if (!log) {
+      res.status(HttpCodes.NOT_FOUND).json({
+        code: BusinessCodes.NOT_FOUND_RESOURCE,
+        message: 'API log not found',
+        data: null,
+        trace_id: traceId,
+      });
+      return;
+    }
+
+    res.json({
+      code: 0,
+      message: 'Success',
+      data: {
+        id: log.id,
+        traceId: log.traceId,
+        appId: log.appId,
+        developerId: log.developerId,
+        subscriptionId: log.subscriptionId,
+        apiName: log.apiName || log.endpoint,
+        endpoint: log.endpoint,
+        method: log.method,
+        requestHeaders: log.requestHeaders,
+        requestBody: log.requestBody,
+        responseStatus: log.responseStatus,
+        responseBody: log.responseBody,
+        responseTime: log.responseTime,
+        ipAddress: log.ipAddress,
+        userAgent: log.userAgent,
+        isError: log.isError,
+        createdAt: log.createdAt?.toISOString?.() || log.createdAt,
+      },
+      trace_id: traceId,
+    });
+  } catch (error) {
+    console.error('Get API log detail error:', error);
+    res.status(HttpCodes.INTERNAL_SERVER_ERROR).json({
+      code: BusinessCodes.SERVER_INTERNAL,
+      message: 'Failed to get API log detail',
+      data: null,
+      trace_id: traceId,
+    });
+  }
+}

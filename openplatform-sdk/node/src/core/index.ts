@@ -53,6 +53,8 @@ export class CregisSDK {
   /** Get authorization URL for OAuth flow. POST /api/thirdparty/oauth/authorizeUrl */
   async getAuthorizationUrl(params: GetAuthorizationUrlRequest): Promise<GetAuthorizationUrlResult> {
     const timestamp = getTimestamp(); const nonce = generateNonce();
+    // The gateway only accepts permissions/state/callback/token; the callback URL
+    // travels in `callback`, not `redirectUri`.
     const business: Record<string, unknown> = { permissions: params.permissions, state: params.state };
     if (params.callback !== undefined) business.callback = params.callback;
     if (params.token !== undefined) business.token = params.token;
@@ -60,10 +62,18 @@ export class CregisSDK {
     return this.http.post<GetAuthorizationUrlResult>('/api/thirdparty/oauth/authorizeUrl', { basic, business });
   }
 
-  /** Verify OAuth token. POST /api/thirdparty/oauth/verify */
-  async verifyOAuthToken(oauthToken: string): Promise<VerifyOAuthTokenResult> {
+  /**
+   * Verify OAuth token. POST /api/thirdparty/oauth/verify
+   *
+   * @param oauthToken Token issued by the authorization page
+   * @param resourceKey Optional; when omitted the gateway verifies without binding
+   *   a resource key. Pass the key returned by `registerMerchant` (or the key
+   *   provisioned on the custody side) when the token should be bound to it.
+   */
+  async verifyOAuthToken(oauthToken: string, resourceKey?: string): Promise<VerifyOAuthTokenResult> {
     const timestamp = getTimestamp(); const nonce = generateNonce();
-    const business = { oauthToken };
+    const business: Record<string, unknown> = { oauthToken };
+    if (resourceKey !== undefined) business.resourceKey = resourceKey;
     const basic = buildBasicInfo({ appId: this.config.appId, appSecret: this.config.appSecret, timestamp, nonce, business });
     return this.http.post<VerifyOAuthTokenResult>('/api/thirdparty/oauth/verify', { basic, business });
   }
@@ -93,15 +103,15 @@ export class CregisSDK {
   }
 
   /** Get treasury unit addresses. POST /api/thirdparty/treasury/address */
-  async getTreasuryUnitAddress(authorizationId: string, request: GetUnitAddressRequest): Promise<UnitAddress[]> {
+  async getTreasuryUnitAddress(authorizationId: string, request: GetUnitAddressRequest): Promise<PaginatedResponse<UnitAddress>> {
     const { basic, business } = this.buildResourceRequest(authorizationId, request);
-    return this.http.post<UnitAddress[]>('/api/thirdparty/treasury/address', { basic, business });
+    return this.http.post<PaginatedResponse<UnitAddress>>('/api/thirdparty/treasury/address', { basic, business });
   }
 
   /** Get unit addresses by account id. POST /api/thirdparty/treasury/address-by-account/{cusAccountId} */
-  async getUnitAddressByAccount(authorizationId: string, cusAccountId: number, request: GetUnitAddressRequest = {}): Promise<UnitAddress[]> {
+  async getUnitAddressByAccount(authorizationId: string, cusAccountId: number, request: GetUnitAddressRequest = {}): Promise<PaginatedResponse<UnitAddress>> {
     const { basic, business } = this.buildResourceRequest(authorizationId, request);
-    return this.http.post<UnitAddress[]>(`/api/thirdparty/treasury/address-by-account/${cusAccountId}`, { basic, business });
+    return this.http.post<PaginatedResponse<UnitAddress>>(`/api/thirdparty/treasury/address-by-account/${cusAccountId}`, { basic, business });
   }
 
   /** Pooling request - sweep funds to primary account. POST /api/thirdparty/treasury/pooling */
@@ -125,9 +135,9 @@ export class CregisSDK {
   }
 
   /** Create unit address by account id. POST /api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number} */
-  async createUnitAddressByAccount(authorizationId: string, cusAccountId: number, number: number): Promise<void> {
+  async createUnitAddressByAccount(authorizationId: string, cusAccountId: number, number: number): Promise<UnitAddress[]> {
     const { basic } = this.buildResourceRequest(authorizationId, {});
-    await this.http.post<void>(`/api/thirdparty/treasury/create-unit-address-by-account/${cusAccountId}/${number}`, { basic, business: {} });
+    return this.http.post<UnitAddress[]>(`/api/thirdparty/treasury/create-unit-address-by-account/${cusAccountId}/${number}`, { basic, business: {} });
   }
 
   // ============ Merchant / User / Board ============

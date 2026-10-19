@@ -15,6 +15,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import {
   BASE_URL,
   AUTHORIZATION_ID,
+  TREASURY_UNIT_ID,
   createSDK,
   healthCheck,
   printDiagnostic,
@@ -47,12 +48,24 @@ describe('Treasury', () => {
     }
   });
 
-  it('getTreasuryUnitAddress — 查询财务单元地址 (unitId=1)', async () => {
+  it('getTreasuryUnitAddress — 查询财务单元地址', async () => {
     try {
-      const addresses = await sdk.getTreasuryUnitAddress(AUTHORIZATION_ID, { unitId: 1 });
-      expect(addresses).toBeDefined();
-      expect(Array.isArray(addresses)).toBe(true);
-      console.log(`[Treasury] Addresses count: ${addresses.length}`);
+      // accountType / coinId / network are all required by the custody backend: without
+      // coin+network it returns an empty page, without accountType it returns code 500.
+      // Derive them from the unit's account list rather than hard-coding.
+      const accounts = await sdk.listUnitAccount(AUTHORIZATION_ID, TREASURY_UNIT_ID);
+      const account = accounts.find(a => a.type === 'PRIMARY') ?? accounts[0];
+      expect(account).toBeDefined();
+
+      const result = await sdk.getTreasuryUnitAddress(AUTHORIZATION_ID, {
+        unitId: TREASURY_UNIT_ID,
+        accountType: account.type,
+        coinId: account.coinId,
+        network: account.network,
+      });
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.records)).toBe(true);
+      console.log(`[Treasury] Addresses count: ${result.records.length}`);
     } catch (error) {
       printDiagnostic(error, 'getTreasuryUnitAddress');
       throw error;

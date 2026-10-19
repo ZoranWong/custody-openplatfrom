@@ -624,6 +624,25 @@
     },
     "billing": {
       "loading": "加载中...",
+      "apiLogDetail": {
+        "title": "调用详情",
+        "basicInfo": "基本信息",
+        "traceId": "Trace ID",
+        "endpoint": "Endpoint",
+        "method": "请求方法",
+        "status": "调用结果",
+        "responseTime": "响应时间",
+        "ipAddress": "客户端 IP",
+        "userAgent": "User-Agent",
+        "createdAt": "调用时间",
+        "requestBody": "请求参数",
+        "responseBody": "响应结果",
+        "requestHeaders": "请求头",
+        "copy": "复制",
+        "copied": "已复制",
+        "close": "关闭",
+        "empty": "无数据"
+      },
       "endpointBreakdown": {
         "calls": "调用次数",
         "method": "方法",

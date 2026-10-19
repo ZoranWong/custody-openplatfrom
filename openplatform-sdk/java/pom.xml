@@ -6,7 +6,7 @@
 
     <groupId>com.cregis</groupId>
     <artifactId>cregis-sdk</artifactId>
-    <version>1.0.0</version>
+    <version>1.2.0</version>
     <packaging>pom</packaging>
 
     <name>Cregis OpenPlatform SDK</name>
@@ -216,6 +216,64 @@
                     </execution>
                 </executions>
             </plugin>
+            <!--
+                Maven Central publishing (Sonatype Central Portal).
+                Activated only when the `release` profile is requested, e.g.:
+
+                    mvn -Prelease deploy
+
+                Requirements (all supplied by .github/workflows/release-java-sdk.yml):
+                  * GPG signing key + passphrase (central requires signed artifacts)
+                  * Central Portal user token (Settings > Generate User Token)
+                When the profile is inactive (default `mvn package`/`mvn test`),
+                no signing or upload happens.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.2.8</version>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.12.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <!-- server id must match <server><id> in settings.xml -->
+                    <publishingServerId>central</publishingServerId>
+                    <autoPublish>${central.autoPublish}</autoPublish>
+                    <waitUntil>${central.waitUntil}</waitUntil>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <properties>
+                <!--
+                    autoPublish=false uploads the bundle to Central Portal and leaves it
+                    in "Validated" state so a human can review and click Publish.
+                -->
+                <central.autoPublish>false</central.autoPublish>
+                <central.waitUntil>validated</central.waitUntil>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

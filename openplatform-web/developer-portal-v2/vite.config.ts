@@ -19,6 +19,11 @@ export default ({ mode }: { mode: string }) => {
   console.log(`🚀 BASE = ${VITE_BASE}`)
   console.log(`🚀 API_URL = ${VITE_API_URL}`)
 
+  // Unique per build. Embedding it in every emitted file name guarantees that
+  // URLs change on each release, so neither the browser nor an intermediary CDN
+  // can keep serving a stale (or half-deployed) chunk after a redeploy.
+  const buildId = Date.now().toString(36)
+
   return defineConfig({
     define: {
       __APP_VERSION__: JSON.stringify(VITE_VERSION)
@@ -50,6 +55,14 @@ export default ({ mode }: { mode: string }) => {
       outDir: 'dist',
       chunkSizeWarningLimit: 2000,
       minify: 'terser',
+      // `-<buildId>` in every name makes each release cold-start cached URLs.
+      rollupOptions: {
+        output: {
+          entryFileNames: `assets/[name]-[hash]-${buildId}.js`,
+          chunkFileNames: `assets/[name]-[hash]-${buildId}.js`,
+          assetFileNames: `assets/[name]-[hash]-${buildId}[extname]`
+        }
+      },
       terserOptions: {
         compress: {
           drop_console: true,

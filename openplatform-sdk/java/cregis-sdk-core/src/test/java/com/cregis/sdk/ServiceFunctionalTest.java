@@ -87,13 +87,15 @@ class ServiceFunctionalTest {
     }
 
     @Test
-    @DisplayName("createUnitAddressByAccount hits the cusAccountId path")
+    @DisplayName("createUnitAddressByAccount hits the cusAccountId path and returns created addresses")
     void createUnitAddressByAccountPath() throws Exception {
-        enqueueSuccess("null");
+        enqueueSuccess("[{\"address\":\"0xabc\",\"accountType\":\"PAYIN\",\"cusAccountId\":5}]");
         TreasuryService svc = new TreasuryService(config, http);
 
-        svc.createUnitAddressByAccount(RAK, 5L, 2);
+        List<UnitAddressResponse> result = svc.createUnitAddressByAccount(RAK, 5L, 2);
 
+        assertEquals(1, result.size());
+        assertEquals("0xabc", result.get(0).getAddress());
         RecordedRequest req = server.takeRequest();
         assertEquals("/api/thirdparty/treasury/create-unit-address-by-account/5/2", req.getPath());
     }
@@ -101,12 +103,12 @@ class ServiceFunctionalTest {
     @Test
     @DisplayName("getUnitAddressByAccount hits the address-by-account path")
     void getUnitAddressByAccountPath() throws Exception {
-        enqueueSuccess("[{\"address\":\"0xabc\",\"accountType\":\"PAYOUT\"}]");
+        enqueueSuccess("{\"records\":[{\"address\":\"0xabc\",\"accountType\":\"PAYOUT\"}],\"total\":1,\"current\":1,\"size\":10,\"pages\":1}");
         TreasuryService svc = new TreasuryService(config, http);
 
-        List<UnitAddressResponse> result = svc.getUnitAddressByAccount(RAK, 42L, GetUnitAddressRequest.builder().accountType("PAYOUT").build());
+        PageResponse<UnitAddressResponse> result = svc.getUnitAddressByAccount(RAK, 42L, GetUnitAddressRequest.builder().accountType("PAYOUT").build());
 
-        assertEquals(1, result.size());
+        assertEquals(1, result.getRecords().size());
         RecordedRequest req = server.takeRequest();
         assertEquals("/api/thirdparty/treasury/address-by-account/42", req.getPath());
     }

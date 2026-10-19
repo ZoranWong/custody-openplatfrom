@@ -315,12 +315,13 @@ class CregisClientIT {
                     .unitId(1L)
                     .build();
 
-            List<UnitAddressResponse> result =
+            PageResponse<UnitAddressResponse> result =
                     client.treasury().getUnitAddress(AUTHORIZATION_ID, request);
 
             assertNotNull(result);
-            System.out.println("[Treasury] Address result count: " + result.size());
-            result.forEach(addr ->
+            List<UnitAddressResponse> records = result.getRecords();
+            System.out.println("[Treasury] Address result count: " + records.size());
+            records.forEach(addr ->
                     System.out.println("  Address: " + addr));
         }
     }

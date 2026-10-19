@@ -4,6 +4,7 @@ import { CallbackService } from '../core/callback.service';
 import type { VerifySignatureParams } from '../core/callback.service';
 import { CregisSDK, SDKError, SDKErrorCode } from '..';
 import type { CallbackRequest } from '..';
+import { makeConfig, TEST_APP_ID, TEST_APP_SECRET } from './fixtures';
 
 function sortObjectKeys(obj: unknown): unknown {
   if (obj === null || typeof obj !== 'object') return obj;
@@ -31,8 +32,8 @@ function buildSignature(
   return crypto.createHmac('sha256', appSecret).update(signData).digest('hex');
 }
 
-const appSecret = 'test-secret-key';
-const appId = '550e8400-e29b-41d4-a716-446655440000';
+const appSecret = TEST_APP_SECRET;
+const appId = TEST_APP_ID;
 const timestamp = '1713600000000';
 const event = 'transaction.completed';
 
@@ -102,11 +103,7 @@ describe('CallbackService.buildSignature', () => {
 
 describe('CregisSDK.onCallback', () => {
   function createSDK(): CregisSDK {
-    return new CregisSDK({
-      baseUrl: 'https://api.test.com',
-      appId,
-      appSecret,
-    });
+    return new CregisSDK(makeConfig({ appId, appSecret }));
   }
 
   it('calls callback on valid signature (metadata in headers, data in body)', async () => {

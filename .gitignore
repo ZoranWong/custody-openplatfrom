@@ -54,3 +54,6 @@ logs/
 
 # Git worktrees
 .worktrees/
+
+# Editor local history
+.history/

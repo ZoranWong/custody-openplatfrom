@@ -65,8 +65,15 @@ export interface AuthorizationResult {
 export interface GetAuthorizationUrlRequest {
   permissions: string[];
   state: string;
+  /** Callback URL notified after the user authorizes. */
   callback?: string;
+  /** Developer-generated token echoed back in the callback for identity mapping. */
   token?: string;
+  /**
+   * @deprecated Use `callback`. Never sent to the gateway; kept for backward
+   * compatibility with 1.0.x callers.
+   */
+  redirectUri?: string;
 }
 
 export interface GetAuthorizationUrlResult {
@@ -228,8 +235,20 @@ export interface CreateUnitAddressRequest {
 }
 
 export interface UnitAddress {
+  id: number;
   address: string;
+  addressIndex: number;
   accountType: AccountType;
+  coinId: string;
+  network: string;
+  cusAccountId: number;
+  treasuryUnitId: number;
+  available: number;
+  holdAmount: number;
+  holdFrozen: number;
+  status: number;
+  createTime: string;
+  updateTime: string;
 }
 
 export interface UnitAccount {

@@ -58,4 +58,46 @@ router.get('/', isvAuth, async (req: any, res: any) => {
   }
 });
 
+/**
+ * GET /api/v1/api-logs/:id
+ * Get a single API call log (only if it belongs to the current developer)
+ */
+router.get('/:id', isvAuth, async (req: any, res: any) => {
+  try {
+    const isvUser = req.isvUser;
+    const repo = getApiLogRepository();
+    const log: any = await repo.findById(req.params.id);
+
+    if (!log || log.developerId !== isvUser.isvId) {
+      res.status(404).json({ code: 40401, message: 'API log not found' });
+      return;
+    }
+
+    res.json({
+      code: 0,
+      message: 'Success',
+      data: {
+        id: log.id,
+        traceId: log.traceId,
+        appId: log.appId,
+        apiName: log.apiName || log.endpoint,
+        endpoint: log.endpoint,
+        method: log.method,
+        requestHeaders: log.requestHeaders,
+        requestBody: log.requestBody,
+        responseStatus: log.responseStatus,
+        responseBody: log.responseBody,
+        responseTime: log.responseTime,
+        ipAddress: log.ipAddress,
+        userAgent: log.userAgent,
+        isError: log.isError,
+        createdAt: log.createdAt?.toISOString?.() || log.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error('Get API log detail error:', error);
+    res.status(500).json({ code: 50001, message: 'Internal server error' });
+  }
+});
+
 export default router;
