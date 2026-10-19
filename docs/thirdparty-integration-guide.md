@@ -973,7 +973,7 @@ public class SignatureDemo {
 
 `sortFields` 使用 SDK 与测试中一致的简写形式：字段名 + `_a`（升序）/ `_d`（降序），例如 `createTime_d` 表示按创建时间降序；请统一使用该形式，不要混用 `_asc` / `_desc`。`queryList` 为条件数组，每项形如 `{ "key": "unitId", "value": 80, "oper": "=", "join": "and" }`。
 
-> `treasury/list` 虽然接受 `pageSize` / `pageNum`，但**响应仍是数组**，请勿按分页对象解析。
+> `treasury/list` 的响应**始终是数组**。网关会转发 `pageSize` / `pageNum`，但上游 YAML 未声明该接口的请求体，是否真正分页**未经验证**，请勿按分页对象解析。
 
 ### 6.3 幂等
 
@@ -981,7 +981,7 @@ public class SignatureDemo {
 
 | 场景 | 幂等键 | 行为 |
 | --- | --- | --- |
-| 出金 `treasury/payout` | `business.orderId`（你的业务订单号） | 同一 `orderId` 重复提交时，Custody 侧按同一笔业务识别，避免重复出金；请在重试时复用原 `orderId` |
+| 出金 `treasury/payout` | `business.orderId`（你的业务订单号） | 建议始终复用同一 `orderId` 以便对账。**Custody 是否按 `orderId` 去重尚未验证**（YAML/SDK 均未声明），重试可能导致重复出金，联调时需确认 |
 | 商户注册 `merchant/register` | `business.legalName` | 同一企业重复注册不会重复创建，返回 `alreadyExists: true` 及相同的 `ecode`、`resourceAccessKey` |
 | 添加用户 `user/add` | `business.email` | 同一企业下同一邮箱不会重复创建用户 |
 | 授权 `oauth/verify` | `(appId, resourceKey)` | 重复验证返回同一个 `authorizeId`，并刷新授权时间 |
@@ -1056,7 +1056,7 @@ public class SignatureDemo {
 | 429 | `42901` | 超出配额或限流 | 退避后重试；检查 `Retry-After` 与订阅套餐 |
 | 500 | `50001` | 服务内部错误 | 记录 `x-trace-id` 并联系平台 |
 | 503 / 504 / 500 | `503` / `504` / `500` | 转发层返回的原始 HTTP 状态码 | 网关连不上上游（`503`）、上游超时（`504`）或其他转发异常（`500`）时直接返回，响应体只有 `{ code, message }`；按对应语义处理 |
-| 5xx | 上游原始 `code` | 上游内部错误 | 透传上游响应体；记录 `x-trace-id` 后联系平台 |
+| 5xx | `500` | 网关返回 `{ code: 500, message }`（**上游响应体被丢弃**） | 记录 `x-trace-id` 后联系平台 |
 
 说明：
 
@@ -1086,7 +1086,7 @@ public class SignatureDemo {
 
 本章至第 12 章描述网关转发到 Custody 的业务接口。所有接口均为 `POST`，请求体为 `{ "basic": {...}, "business": {...} }`，使用 **Resource 签名**（`basic.authorizationId` 必填，见第 4 章）。路径中以 `{...}` 表示的参数（如 `unitId`、`taskId`）不参与签名，其值必须匹配 `^[a-zA-Z0-9_-]{1,64}$`，否则网关在转发前返回 `40001`。
 
-转发行为统一为：网关把 `business` **原样**作为上游请求体发送给 Custody（不增删字段）。**仅当上游返回 HTTP 2xx 时原样返回；上游非 2xx 时网关丢弃上游响应体并返回 `{ code, message }`（上游 4xx 也会被记为 500），且 5xx/超时会在网关内部重试最多 3 次——写操作（创建地址、出金、归集、提交审批）需注意重复提交风险。** 因此：
+转发行为统一为：网关把 `business` **原样**作为上游请求体发送给 Custody（不增删字段）。**仅当上游返回 HTTP 2xx 时原样返回；上游非 2xx 时网关丢弃上游响应体并返回 `{ code, message }`（上游 4xx 也会被记为 500），且 5xx/超时会被网关自动重试（`maxRetries` 名义为 3，但当前实现存在递归重试，实际调用次数可能远超 3 次，实测在持续 5xx 下会长时间反复请求）——写操作（创建地址、出金、归集、提交审批）存在**重复提交**风险，务必使用业务幂等键并确认上游去重。** 因此：
 
 - 上游返回 2xx 时，HTTP 状态通常为 `200`；成功以响应体 `code` 为 `0` 或 `200` 判断。
 - 上游以 2xx 返回参数校验、业务规则等错误时，网关透传 `code` 与 `message`；`400xxx`（参数）、`401xxx`（认证）、`403xxx`（授权）、`400103`（资源键不存在）、`120xxx`（业务规则）均属此类。
@@ -1462,7 +1462,7 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 
 无业务字段；发送空对象 `{}` 即可。
 
-> 本接口是非幂等写操作：网关对上游 5xx / 超时会内部重试最多 3 次（见本章开头的转发说明），重试可能重复生成地址。
+> 本接口是非幂等写操作：网关对上游 5xx / 超时会自动重试（实际次数可能远超 3 次，见本章开头的转发说明），重试可能重复生成地址。
 
 **请求示例**
 
@@ -1499,7 +1499,7 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 
 无业务字段；发送空对象 `{}` 即可。
 
-> 本接口是非幂等写操作：网关对上游 5xx / 超时会内部重试最多 3 次，重试可能重复生成地址。
+> 本接口是非幂等写操作：网关对上游 5xx / 超时会自动重试（实际次数可能远超 3 次），重试可能重复生成地址。
 
 **请求示例**
 
@@ -1696,7 +1696,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 `TravelRulePayload` 字段：`beneficiaryType`（`NATURAL` / `LEGAL`）、`beneficiaryName`、`beneficiaryDob`、`beneficiaryIdNumber`、`beneficiaryIdType`、`beneficiaryNationality`（以上适用于 `NATURAL`）、`beneficiaryLegalName`、`beneficiaryLegalRegistrationNo`、`beneficiaryLegalCountry`（以上适用于 `LEGAL`）。
 
-> 本接口是非幂等写操作：网关对上游 5xx / 超时会内部重试最多 3 次（见第 7 章开头的转发说明），而 `orderId` 去重尚未验证，重试可能导致重复出金。
+> 本接口是非幂等写操作：网关对上游 5xx / 超时会自动重试（实际次数可能远超 3 次，见第 7 章开头的转发说明），而 `orderId` 去重尚未验证，重试可能导致重复出金。
 
 **请求示例**
 
@@ -1767,7 +1767,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 > **来源账户限制：** custody 只允许从 platform 创建的 acquiring（收款类）账户归集。其他账户返回 `120042 ONLY_ACQUIRING_ACCOUNT_ALLOWED`。
 >
-> 本接口是非幂等写操作：网关对上游 5xx / 超时会内部重试最多 3 次（见第 7 章开头的转发说明），注意重复归集风险。
+> 本接口是非幂等写操作：网关对上游 5xx / 超时会自动重试（实际次数可能远超 3 次，见第 7 章开头的转发说明），注意重复归集风险。
 
 **请求示例**
 
@@ -1859,7 +1859,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 任务不存在或 `taskId` 无效时由 custody 返回错误（网关透传；`taskId` 还会先经过网关路径参数校验，非法字符返回 `40001`）。
 
-> 本接口是非幂等写操作：网关对上游 5xx / 超时会内部重试最多 3 次（见第 7 章开头的转发说明），注意重复提交风险。
+> 本接口是非幂等写操作：网关对上游 5xx / 超时会自动重试（实际次数可能远超 3 次，见第 7 章开头的转发说明），注意重复提交风险。
 
 **常见业务码**：`400xxx`（参数）、`120xxx`（业务规则，如任务状态不允许提交）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
