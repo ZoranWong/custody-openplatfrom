@@ -16,6 +16,12 @@
 4. [认证与签名](#4-认证与签名)
 5. [OAuth 授权流程](#5-oauth-授权流程)
 6. [通用约定](#6-通用约定)
+7. [财务单元](#7-财务单元)
+8. [地址](#8-地址)
+9. [币种、资金控制与白名单](#9-币种资金控制与白名单)
+10. [出金与归集](#10-出金与归集)
+11. [任务审批](#11-任务审批)
+12. [交易查询](#12-交易查询)
 
 ---
 
@@ -1076,4 +1082,994 @@ public class SignatureDemo {
 | `forgot-password` / `reset-password` 为演示桩 | 不会真正发信或校验 token | 通过平台运营人工重置 |
 | 无有效订阅时配额校验放行 | 可能绕过 `dailyApiLimit` | 保持有效订阅，不依赖该行为 |
 
-<!-- 第 7–17 章（API 参考、回调、错误码详解、SDK 集成、附录）由后续任务补充 -->
+## 7. 财务单元
+
+本章至第 12 章描述网关转发到 Custody 的业务接口。所有接口均为 `POST`，请求体为 `{ "basic": {...}, "business": {...} }`，使用 **Resource 签名**（`basic.authorizationId` 必填，见第 4 章）。路径中以 `{...}` 表示的参数（如 `unitId`、`taskId`）不参与签名，其值必须匹配 `^[a-zA-Z0-9_-]{1,64}$`，否则网关在转发前返回 `40001`。
+
+转发行为统一为：网关把 `business` **原样**作为上游请求体发送给 Custody（不增删字段），再把 Custody 的响应体原样返回。因此：
+
+- HTTP 状态通常为 `200`；成功以响应体 `code` 为 `0` 或 `200` 判断。
+- 参数校验、业务规则等错误由 Custody 返回，网关透传 `code` 与 `message`；`400xxx`（参数）、`401xxx`（认证）、`403xxx`（授权）、`400103`（资源键不存在）、`120xxx`（业务规则）均属此类。
+- 网关自身错误（缺少 `resourceKey`、路由不存在、配额超限、上游不可用）的结构见 6.1。
+
+### 7.1 创建财务单元
+
+**POST** `/api/thirdparty/treasury/create` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/create/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `unitName` | string | 是 | 财务单元名称 |
+| `businessScope` | string | 是 | 业务类型：`DEDICATED_ACCOUNT` / `OMNIBUS_ACCOUNT` / `OPEN_API_PROXY` |
+| `topology` | string | 是 | 账本拓扑：`ORBIT` / `SINGLE_GENERAL` / `QUAD_SMART_ISOLATION` |
+| `coinIds` | CoinInfo[] | 是 | 币种与网络，每项 `{ coinId, network }` |
+| `primaryManager` | FundControl[] | 是 | 主账户资金管理员，每项 `{ coinId, fundControlRules }` |
+| `payoutManager` | FundControl[] | 是 | 出金账户资金管理员，结构同上 |
+| `businessPurpose` | string | 否 | 业务用途 |
+| `autoSignUrl` | string | 否 | 自动签入地址 |
+| `primaryWhiteList` | WhiteListCreateRequest[] | 否 | 主账户出金白名单，每项 `{ network, address, alias? }` |
+| `primaryAnycallRules` | AnyCallRule[] | 否 | 主账户通用调用控制，每项 `{ guardians, threshold, allowedCommands }` |
+| `payinAnycallRules` | AnyCallRule[] | 否 | 收款账户通用调用控制 |
+| `payoutAnycallRules` | AnyCallRule[] | 否 | 付款账户通用调用控制 |
+| `thirdPartyEcode` | string | 否 | 三方平台 ecode |
+| `remark` | string | 否 | 备注 |
+
+`FundControl` 中的 `fundControlRules` 每项为 `{ guardians: string[], threshold: string, perTransferLimit: string, dailyTransferLimit: string }`，四个字段均必填。`threshold` 与限额均为字符串类型。
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": {
+    "unitName": "Demo Treasury",
+    "businessScope": "DEDICATED_ACCOUNT",
+    "topology": "SINGLE_GENERAL",
+    "coinIds": [{ "coinId": "USDT", "network": "TRC20" }],
+    "primaryManager": [
+      { "coinId": "USDT", "fundControlRules": [{ "guardians": ["guardian-1"], "threshold": "1", "perTransferLimit": "100000", "dailyTransferLimit": "1000000" }] }
+    ],
+    "payoutManager": [
+      { "coinId": "USDT", "fundControlRules": [{ "guardians": ["guardian-1"], "threshold": "1", "perTransferLimit": "100000", "dailyTransferLimit": "1000000" }] }
+    ],
+    "businessPurpose": "payment processing",
+    "remark": "created by integration guide"
+  }
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "id": 80,
+    "ecode": "EC0000000001",
+    "projectId": 10,
+    "name": "Demo Treasury",
+    "topology": "SINGLE_GENERAL",
+    "coinIds": [{ "coinId": "USDT", "network": "TRC20" }],
+    "accounts": [{ "account_name": "primary", "account_type": "PRIMARY" }],
+    "status": "ACTIVATED",
+    "creationType": "THIRD_PARTY",
+    "createTime": "2026-10-19 10:00:00",
+    "updateTime": "2026-10-19 10:00:00"
+  }
+}
+```
+
+`data.id` 即后续接口使用的 `unitId`。SDK 将该响应映射为 `CreateTreasuryUnitResponse`。
+
+**常见业务码**：`400 请求参数格式错误`（由 custody 返回，网关透传）。**已知问题：** 即使 `business` 结构完整，SIT 环境当前仍会从 custody 收到该错误；原因未在代码中确认，请以 custody 后续版本为准。另有 `400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`（签名与授权问题）。
+
+### 7.2 创建自定义结构财务单元
+
+**POST** `/api/thirdparty/treasury/create-custom` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/create-custom/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `unitName` | string | 是 | 财务单元名称 |
+| `coinIds` | CoinInfo[] | 是 | 币种与网络，每项 `{ coinId, network }` |
+| `fundControls` | FundControl[][] | 是 | 资金管理员，每个账户一组 `FundControl`（二维数组） |
+| `topology` | string | 否 | 账本拓扑：`ORBIT` / `SINGLE_GENERAL` / `CUSTOM` / `QUAD_SMART_ISOLATION` |
+| `businessScope` | string | 否 | 业务类型：`DEDICATED_ACCOUNT` / `OMNIBUS_ACCOUNT` / `OPEN_API_PROXY` |
+| `isSmart` | boolean | 否 | 是否合约账户（custody 描述为“默认是合约账户”） |
+| `businessPurpose` | string | 否 | 业务用途 |
+| `customUnitDTOs` | CustomUnitDTO[] | 否 | 自定义账户：每项 `{ accountName, accountType }`，`accountType` 取值 `GENERAL_ACQUIRING` / `SMART_ACQUIRING` / `SMART` / `GENERAL` / `GMA`（SDK 类型另含 `TMA`） |
+| `whitelistRules` | WhitelistRule[] | 否 | 白名单规则：每项 `{ accounts: string[], addresses: { network, address }[] }` |
+| `thirdPartyEcode` | string | 否 | 三方平台 ecode |
+| `remark` | string | 否 | 备注 |
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": {
+    "unitName": "Custom Unit",
+    "topology": "CUSTOM",
+    "coinIds": [{ "coinId": "USDT", "network": "TRC20" }],
+    "customUnitDTOs": [
+      { "accountName": "collection", "accountType": "SMART_ACQUIRING" },
+      { "accountName": "settlement", "accountType": "SMART" }
+    ],
+    "fundControls": [
+      [{ "coinId": "USDT", "fundControlRules": [{ "guardians": ["guardian-1"], "threshold": "1", "perTransferLimit": "100000", "dailyTransferLimit": "1000000" }] }],
+      [{ "coinId": "USDT", "fundControlRules": [{ "guardians": ["guardian-1"], "threshold": "1", "perTransferLimit": "100000", "dailyTransferLimit": "1000000" }] }]
+    ]
+  }
+}
+```
+
+**响应示例**
+
+```json
+{ "code": 200, "message": "SUCCESS", "data": { "id": 81, "ecode": "EC0000000001", "name": "Custom Unit", "topology": "CUSTOM", "status": "ACTIVATED" } }
+```
+
+SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声明为 `null`，实际字段以 custody 返回为准。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`（签名与授权）——均由 custody 返回，网关透传。
+
+### 7.3 查询财务单元列表
+
+**POST** `/api/thirdparty/treasury/list` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/list/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `pageSize` | number | 否 | 每页数量 |
+| `pageNum` | number | 否 | 页码（从 1 开始） |
+| `sortFields` | string | 否 | 排序，格式 `字段_类型`：`_d` 降序 / `_a` 升序，如 `createTime_d` |
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": { "pageSize": 10, "pageNum": 1, "sortFields": "createTime_d" }
+}
+```
+
+**响应示例**（`data` 为数组，**不分页包装**）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": [
+    { "id": 80, "ecode": "EC0000000001", "name": "Demo Treasury", "topology": "SINGLE_GENERAL", "status": "ACTIVATED", "creationType": "THIRD_PARTY", "coinIds": [{ "coinId": "USDT", "network": "TRC20" }], "accounts": [{ "account_name": "primary", "account_type": "PRIMARY" }], "createTime": "2026-10-19 10:00:00", "updateTime": "2026-10-19 10:00:00" }
+  ]
+}
+```
+
+> 虽然接受 `pageSize` / `pageNum`，响应仍是数组；请勿按 `{ records, total, ... }` 解析（见 6.2）。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+### 7.4 查询财务单元账户列表
+
+**POST** `/api/thirdparty/treasury/list-unit-account/{unitId}` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/list-unit-account/{resourceKey}/{unitId}`，`business` 原样作为上游请求体
+
+**路径参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `unitId` | number | 是 | 财务单元 ID |
+
+**请求参数（business）**
+
+无业务字段；发送空对象 `{}` 即可。
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": {}
+}
+```
+
+**响应示例**（`data` 为数组）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": [
+    {
+      "id": 101,
+      "ecode": "EC0000000001",
+      "vaultCode": "VAULT001",
+      "vaultAccountId": "va-001",
+      "projectId": 10,
+      "treasuryUnitId": 80,
+      "accountName": "primary",
+      "balance": 1000000,
+      "freezeBalance": 0,
+      "holdBalance": 0,
+      "coinId": "USDT",
+      "network": "TRC20",
+      "type": "PRIMARY",
+      "accountType": "GENERAL",
+      "status": 1,
+      "income": 0,
+      "outcome": 0,
+      "isSmart": false,
+      "createTime": "2026-10-19 10:00:00",
+      "updateTime": "2026-10-19 10:00:00"
+    }
+  ]
+}
+```
+
+`id` 即其他接口使用的 `cusAccountId`；`type` 为账户类型（`PRIMARY` / `PAYIN` / `PAYOUT` / `QUARANTINE` 等），`accountType` 为金库账户类型。后续地址、出金、归集接口的 `coinId` / `network` 建议取自本接口。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+---
+
+## 8. 地址
+
+地址接口用于查询和批量生成财务单元的收款 / 出金地址。账户类型 `accountType` 的完整取值为：`FREEZE` / `DEPOSIT` / `PRIMARY` / `RECEIVABLE` / `PAYOUT` / `PAYIN` / `GENERAL_GAS` / `QUARANTINE` / `DIRTY`（见 `AccountType`）；上游 YAML 在部分请求中只列出 `FREEZE` / `PRIMARY` / `PAYOUT` / `PAYIN` / `GENERAL_GAS` / `QUARANTINE`，其余取值请以 custody 实际返回为准。
+
+### 8.1 查询财务单元地址（按单元 + 账户类型）
+
+**POST** `/api/thirdparty/treasury/address` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/get-unit-address/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `unitId` | number | 是 | 财务单元 ID |
+| `accountType` | string | 是 | 账户类型，取值见本章开头 |
+| `coinId` | string | 是 | 币种 ID |
+| `network` | string | 是 | 网络 |
+| `pageSize` | number | 否 | 每页数量 |
+| `pageNum` | number | 否 | 页码（从 1 开始） |
+
+> **四个字段必须一起传。** 缺少 `coinId` 或 `network` 时 custody 返回**空分页**（不是错误）；缺少 `accountType` 时 custody 返回 **HTTP 500**。请从 7.4 的账户列表取值。
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": { "unitId": 80, "accountType": "PAYIN", "coinId": "USDT", "network": "TRC20", "pageNum": 1, "pageSize": 20 }
+}
+```
+
+**响应示例**（分页对象）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "records": [
+      {
+        "id": 9001,
+        "address": "TXYZ...",
+        "addressIndex": 1,
+        "accountType": "PAYIN",
+        "coinId": "USDT",
+        "network": "TRC20",
+        "cusAccountId": 101,
+        "treasuryUnitId": 80,
+        "available": 1,
+        "holdAmount": 0,
+        "holdFrozen": 0,
+        "status": 1,
+        "createTime": "2026-10-19 10:00:00",
+        "updateTime": "2026-10-19 10:00:00"
+      }
+    ],
+    "total": 1,
+    "current": 1,
+    "size": 20,
+    "pages": 1
+  }
+}
+```
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`；缺少 `accountType` 时 custody 返回 `500`（上游内部错误，原样透传）——均由 custody 返回，网关透传。
+
+### 8.2 查询财务单元地址（按账户 ID）
+
+**POST** `/api/thirdparty/treasury/address-by-account/{cusAccountId}` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/get-unit-address/{resourceKey}/{cusAccountId}`，`business` 原样作为上游请求体
+
+**路径参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `cusAccountId` | number | 是 | 账户 ID，来自 7.4 账户列表的 `id` |
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `unitId` | number | 是 | 财务单元 ID |
+| `coinId` | string | 是 | 币种 ID |
+| `network` | string | 是 | 网络 |
+| `pageSize` | number | 否 | 每页数量 |
+| `pageNum` | number | 否 | 页码（从 1 开始） |
+
+> 本接口按账户定位，`accountType` 不需要传。`unitId + coinId + network` 必须一起传：缺少 `coinId` / `network` 时返回**空分页**。
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": { "unitId": 80, "coinId": "USDT", "network": "TRC20", "pageNum": 1, "pageSize": 20 }
+}
+```
+
+**响应示例**（分页对象，结构同 8.1）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "records": [
+      { "id": 9001, "address": "TXYZ...", "addressIndex": 1, "accountType": "PAYIN", "coinId": "USDT", "network": "TRC20", "cusAccountId": 101, "treasuryUnitId": 80, "status": 1, "createTime": "2026-10-19 10:00:00", "updateTime": "2026-10-19 10:00:00" }
+    ],
+    "total": 1,
+    "current": 1,
+    "size": 20,
+    "pages": 1
+  }
+}
+```
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+### 8.3 按账户类型批量创建地址
+
+**POST** `/api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number}` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/create-unit-address/{resourceKey}/{unitId}/{accountType}/{network}/{coinId}/{number}`，`business` 原样作为上游请求体
+
+**路径参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `unitId` | number | 是 | 财务单元 ID |
+| `accountType` | string | 是 | 账户类型，取值见本章开头 |
+| `network` | string | 是 | 网络 |
+| `coinId` | string | 是 | 币种 ID |
+| `number` | number | 是 | 生成数量 |
+
+**请求参数（business）**
+
+无业务字段；发送空对象 `{}` 即可。
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": {}
+}
+```
+
+**响应示例**
+
+```json
+{ "code": 200, "message": "SUCCESS", "data": null }
+```
+
+该接口不返回新建的地址；需要地址时请调用 8.1 查询。`coinId` / `network` 必须是该财务单元已配置的币种与网络。
+
+**常见业务码**：`400xxx`（参数；币种 / 网络未在单元下配置时由 custody 拒绝）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+### 8.4 按账户 ID 批量创建地址
+
+**POST** `/api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number}` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/create-unit-address/{resourceKey}/{cusAccountId}/{number}`，`business` 原样作为上游请求体
+
+**路径参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `cusAccountId` | number | 是 | 账户 ID，来自 7.4 账户列表的 `id` |
+| `number` | number | 是 | 生成数量 |
+
+**请求参数（business）**
+
+无业务字段；发送空对象 `{}` 即可。
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": {}
+}
+```
+
+**响应示例**（`data` 为本次新建的地址数组）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": [
+    { "id": 9002, "address": "TABC...", "addressIndex": 2, "accountType": "PAYIN", "coinId": "USDT", "network": "TRC20", "cusAccountId": 101, "treasuryUnitId": 80, "status": 1, "createTime": "2026-10-19 10:05:00", "updateTime": "2026-10-19 10:05:00" }
+  ]
+}
+```
+
+Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java SDK 自 1.2.0 起返回 `List<UnitAddressResponse>`（此前为 `void`）。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+---
+
+## 9. 币种、资金控制与白名单
+
+### 9.1 为财务单元添加币种 / 网络
+
+**POST** `/api/thirdparty/treasury/add-coins` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/add-coins/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `treasuryUnitId` | number | 是 | 财务单元 ID |
+| `coinIds` | CoinInfo[] | 是 | 新增的币种与网络，每项 `{ coinId, network }` |
+| `accountFundControls` | AccountFundControl[] | 否 | 按账户下发的资金流规则：每项 `{ accountId, fundControls }`；不传则只加币种、不改资金流 |
+| `note` | string | 否 | 备注 |
+
+`accountFundControls[].accountId` 为本地账户 ID（即 7.4 返回的 `id`），`fundControls` 结构同 `FundControl[]`。
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": {
+    "treasuryUnitId": 80,
+    "coinIds": [{ "coinId": "BTC", "network": "BTC" }],
+    "accountFundControls": [
+      { "accountId": 101, "fundControls": [{ "coinId": "BTC", "fundControlRules": [{ "guardians": ["guardian-1"], "threshold": "1", "perTransferLimit": "10", "dailyTransferLimit": "100" }] }] }
+    ],
+    "note": "add BTC"
+  }
+}
+```
+
+**响应示例**（`data` 为审批任务数组）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": [
+    { "id": 5001, "taskId": "task-20261019-001", "taskOperation": "FUND_FLOW", "state": "AUDITING", "threshold": 1, "total": 1, "signers": ["guardian-1"], "createTime": "2026-10-19 10:10:00", "updateTime": "2026-10-19 10:10:00" }
+  ]
+}
+```
+
+返回的 `taskId` 可用于 11.1 提交审批。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+### 9.2 更新资金流控制规则
+
+**POST** `/api/thirdparty/treasury/fund-control-update` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/fundControl/update/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `treasuryUnitId` | number | 是 | 财务单元 ID（SDK 类型必填） |
+| `fundControls` | FundControl[] | 是 | 资金管理员规则，每项 `{ coinId, fundControlRules }` |
+| `cusAccountId` | number | 否 | 指定账户 ID；传入时按该账户更新 |
+| `note` | string | 否 | 备注 |
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": {
+    "treasuryUnitId": 80,
+    "cusAccountId": 101,
+    "fundControls": [
+      { "coinId": "USDT", "fundControlRules": [{ "guardians": ["guardian-1", "guardian-2"], "threshold": "2", "perTransferLimit": "50000", "dailyTransferLimit": "500000" }] }
+    ],
+    "note": "raise threshold"
+  }
+}
+```
+
+**响应示例**
+
+```json
+{ "code": 200, "message": "SUCCESS", "data": null }
+```
+
+该变更需要 Board 审批，custody 可能异步生成审批任务；本接口不返回任务详情（SDK 返回 `void`）。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+### 9.3 更新白名单
+
+**POST** `/api/thirdparty/treasury/whitelist-update` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/whiltlist/update/{resourceKey}`，`business` 原样作为上游请求体
+>
+> 注意：上游路径中的拼写是 `whiltlist`（custody 侧拼写），网关对开发者暴露的路径是正确的 `whitelist-update`。
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `treasuryUnitId` | number | 是 | 财务单元 ID |
+| `addItems` | WhiteListCreateRequest[] | 否 | 新增白名单项，每项 `{ network, address, alias? }` |
+| `removeItems` | WhiteListCreateRequest[] | 否 | 移除白名单项，结构同上 |
+| `cusAccountId` | number | 否 | 指定账户 ID |
+| `allowListEnabled` | string | 否 | 是否启用白名单（字段为字符串，取值说明以后端为准（当前文档未能从代码确认）） |
+| `lang` | string | 否 | 语言，如 `zh_CN` / `en_US` |
+| `note` | string | 否 | 备注 |
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": {
+    "treasuryUnitId": 80,
+    "addItems": [{ "network": "TRC20", "address": "TXYZ...", "alias": "supplier-a" }],
+    "removeItems": [{ "network": "TRC20", "address": "TABC..." }],
+    "note": "update whitelist"
+  }
+}
+```
+
+**响应示例**（审批任务）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": { "id": 5002, "taskId": "task-20261019-002", "taskOperation": "SET_WHITE_LIST", "state": "AUDITING", "threshold": 1, "total": 1, "signers": ["guardian-1"], "createTime": "2026-10-19 10:15:00", "updateTime": "2026-10-19 10:15:00" }
+}
+```
+
+返回的 `taskId` 可用于 11.1 提交审批。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+---
+
+## 10. 出金与归集
+
+### 10.1 发起出金
+
+**POST** `/api/thirdparty/treasury/payout` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/payout/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `payTo` | PayTo[] | 是 | 收款地址及金额，每项 `{ to, amount, kyaRiskScore?, ruleNames? }` |
+| `unitId` | number | 是 | 出金财务单元 ID |
+| `coinId` | string | 是 | 币种 ID |
+| `network` | string | 是 | 网络 |
+| `merchantType` | string | 是 | 业务类型：`NON_FINANCIAL_CORPORATE` / `REGULATED_VASP` / `INTERNAL_SYSTEM`（上游 YAML 将 `merchantType` 列为唯一必填字段） |
+| `fromAccountId` | number | 否 | 出金账户 ID |
+| `fromAddress` | string | 否 | 出金账户地址 |
+| `operation` | string | 否 | 操作类型：`withdraw` / `allocate` / `payout` |
+| `toCusAccountId` | number | 否 | 内部转账目标账户 ID；`allocate` 时必填 |
+| `username` / `userId` | string | 否 | 三方用户标识 |
+| `orderId` | string | 否 | 客户业务订单号；幂等与对账使用（见 6.3） |
+| `note` | string | 否 | 备注 |
+| `lang` | string | 否 | 语言，如 `zh_CN` / `en_US` |
+| `initiator` | string | 否 | 任务发起人（邮箱 / 名称） |
+| `travelRule` | TravelRuleRequest | 否 | Travel Rule：`{ referenceId?, payload? }` |
+
+`TravelRulePayload` 字段：`beneficiaryType`（`NATURAL` / `LEGAL`）、`beneficiaryName`、`beneficiaryDob`、`beneficiaryIdNumber`、`beneficiaryIdType`、`beneficiaryNationality`（以上适用于 `NATURAL`）、`beneficiaryLegalName`、`beneficiaryLegalRegistrationNo`、`beneficiaryLegalCountry`（以上适用于 `LEGAL`）。
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": {
+    "payTo": [{ "to": "0x1234...abcd", "amount": 100 }],
+    "unitId": 80,
+    "fromAccountId": 101,
+    "coinId": "USDT",
+    "network": "TRC20",
+    "operation": "payout",
+    "merchantType": "NON_FINANCIAL_CORPORATE",
+    "orderId": "ORDER-20261019-001",
+    "note": "supplier payment"
+  }
+}
+```
+
+**响应示例**（审核任务）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "id": 5003,
+    "taskId": "task-20261019-003",
+    "taskOperation": "PAYOUT",
+    "businessId": "ORDER-20261019-001",
+    "state": "AUDITING",
+    "signContent": "...",
+    "threshold": 2,
+    "total": 3,
+    "signers": ["guardian-1", "guardian-2", "guardian-3"],
+    "algoType": "ECDSA",
+    "coinId": "USDT",
+    "createTime": "2026-10-19 10:20:00",
+    "updateTime": "2026-10-19 10:20:00"
+  }
+}
+```
+
+返回的是审核任务（`WCCIPCmdAuditTask`）。`data.taskId` 用于 11.1 提交审批；`state`、`signContent`、`signers` 等字段用于后续签名流程。
+
+**常见业务码**：`400xxx`（参数）、`120xxx`（业务规则，如余额或政策不允许）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+### 10.2 发起归集
+
+**POST** `/api/thirdparty/treasury/pooling` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/pooling/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `unitId` | number | 是 | 财务单元 ID |
+| `fromAccountId` | number | 是 | 归集来源账户 ID |
+| `address` | string | 是 | 归集目标地址 |
+| `amount` | number | 是 | 归集门限金额 |
+| `coinId` | string | 是 | 币种 ID |
+| `network` | string | 是 | 网络 |
+| `lang` | string | 否 | 语言，如 `zh_CN` / `en_US` |
+| `note` | string | 否 | 备注 |
+| `includes` | string[] | 否 | 包含地址列表 |
+| `excludes` | string[] | 否 | 排除地址列表 |
+
+> **来源账户限制：** custody 只允许从 platform 创建的 acquiring（收款类）账户归集。其他账户返回 `120042 ONLY_ACQUIRING_ACCOUNT_ALLOWED`。
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": {
+    "unitId": 80,
+    "fromAccountId": 101,
+    "address": "TXYZ...",
+    "amount": 100,
+    "coinId": "USDT",
+    "network": "TRC20",
+    "note": "daily sweep"
+  }
+}
+```
+
+**响应示例**（出金订单）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "id": 7001,
+    "ecode": "EC0000000001",
+    "treasuryUnitId": 80,
+    "cusAccountId": 101,
+    "address": "TXYZ...",
+    "coinId": "USDT",
+    "network": "TRC20",
+    "orderId": "POOL-20261019-001",
+    "taskId": "task-20261019-004",
+    "txId": "",
+    "fee": "0",
+    "inputAmount": "100",
+    "totalAmount": 100,
+    "orderState": "AUDITING",
+    "createTime": "2026-10-19 10:25:00",
+    "updateTime": "2026-10-19 10:25:00"
+  }
+}
+```
+
+**常见业务码**：`120042 ONLY_ACQUIRING_ACCOUNT_ALLOWED`（来源账户不是 platform 创建的收款类账户）、`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+---
+
+## 11. 任务审批
+
+### 11.1 提交审批任务
+
+**POST** `/api/thirdparty/treasury/submit-task/{taskId}` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/submit/task/{resourceKey}/{taskId}`，`business` 原样作为上游请求体
+
+**路径参数**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `taskId` | string | 是 | 任务 ID，来自出金 / 归集 / 添加币种 / 白名单等接口返回的 `taskId` |
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `confirmed` | boolean | 是 | `true` 同意，`false` 拒绝 |
+| `signatures` | Record<string, string[]> | 否 | 多签签名结果：key 为签名人标识（上游描述为 taskId），value 为签名字符串列表 |
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": {
+    "confirmed": true,
+    "signatures": { "guardian-1": ["0xsignature..."] }
+  }
+}
+```
+
+**响应示例**
+
+```json
+{ "code": 200, "message": "SUCCESS", "data": null }
+```
+
+任务不存在或 `taskId` 无效时由 custody 返回错误（网关透传；`taskId` 还会先经过网关路径参数校验，非法字符返回 `40001`）。
+
+**常见业务码**：`400xxx`（参数）、`120xxx`（业务规则，如任务状态不允许提交）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+---
+
+## 12. 交易查询
+
+本章 5 个查询接口共用一个查询参数结构。分页对象为 `{ records, total, current, size, pages }`（见 6.2）。
+
+### 查询参数（PaginationQuery / QueryCondition）
+
+**POST** 以下接口的 `business` 均使用该结构：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `pageIndex` | number | 否 | 页索引（**从 0 开始**） |
+| `pageSize` | number | 否 | 每页数量 |
+| `sortFields` | string | 否 | 排序，格式 `字段_类型`：`_d` 降序 / `_a` 升序，如 `createTime_d` |
+| `queryList` | QueryCondition[] | 否 | 查询条件数组 |
+
+`QueryCondition`：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `key` | string | 是 | 查询字段名，如 `unitId`、`status` |
+| `value` | string \| number \| object | 是 | 查询值 |
+| `oper` | string | 否 | 操作符：`=` / `!=` / `>` / `<` / `like`（上游默认等于，并支持冒号表示模糊匹配） |
+| `join` | string | 否 | 条件连接方式：`and` / `or` |
+
+**请求片段**
+
+```json
+{
+  "pageIndex": 0,
+  "pageSize": 20,
+  "sortFields": "createTime_d",
+  "queryList": [{ "key": "unitId", "value": 80, "oper": "=", "join": "and" }]
+}
+```
+
+### 12.1 查询活动记录
+
+**POST** `/api/thirdparty/treasury/activities` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/activities/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**：`PaginationQuery`（见本章开头的查询参数定义）
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": { "pageIndex": 0, "pageSize": 20, "sortFields": "createTime_d" }
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "records": [
+      { "id": 3001, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "cusAccountId": 101, "accountType": "PAYIN", "coinId": "USDT", "network": "TRC20", "type": "TRANSFER_IN", "amount": 100, "direction": "IN", "orderId": "ORDER-20261019-001", "businessId": "BIZ-001", "status": "COMPLETED", "travelRuleStatus": "NOT_REQUIRED", "kytStatus": "PASSED", "createTime": "2026-10-19 10:30:00", "updateTime": "2026-10-19 10:31:00" }
+    ],
+    "total": 1,
+    "current": 1,
+    "size": 20,
+    "pages": 1
+  }
+}
+```
+
+关键字段：`direction`（`IN` / `OUT`）、`status`（`SUBMITTING` / `APPROVED` / `REJECTED` / `FAILED` / `CONFIRMING` / `COMPLETED` / `EXPIRED` / `PENDING_COMPLIANCE` / `PENDING_CONFIRMATION` / `PENDING_REVIEW` / `REVIEW_ACCEPTED` / `REVIEW_REJECTED`）、`travelRuleStatus`（`NOT_REQUIRED` / `PENDING` / `PASSED` / `FAILED` / `REVIEW`）、`kytStatus` / `kyaStatus`（风险相关，取值以后端为准）。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+### 12.2 查询出金订单
+
+**POST** `/api/thirdparty/treasury/transfer-out-orders` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/transfer-out-orders/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**：`PaginationQuery`（见本章开头的查询参数定义）
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": { "pageIndex": 0, "pageSize": 20, "queryList": [{ "key": "treasuryUnitId", "value": 80, "oper": "=", "join": "and" }] }
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "records": [
+      { "id": 7001, "ecode": "EC0000000001", "vaultCode": "VAULT001", "projectId": 10, "treasuryUnitId": 80, "cusAccountId": 101, "address": "TXYZ...", "coinId": "USDT", "network": "TRC20", "orderId": "ORDER-20261019-001", "txId": "0xabc...", "fee": "1", "inputAmount": "100", "totalAmount": 100, "orderState": "SUCCEED", "callbackStatus": "SUCCEED", "taskId": "task-20261019-003", "payToList": [{ "to": "0x1234...abcd", "amount": 100 }], "createTime": "2026-10-19 10:20:00", "updateTime": "2026-10-19 10:35:00" }
+    ],
+    "total": 1,
+    "current": 1,
+    "size": 20,
+    "pages": 1
+  }
+}
+```
+
+关键字段：`orderState`（`AUDITING` / `SIGNING` / `SIGN_FAILED` / `SIGNING_REJECTED` / `TRANSITING` / `SUCCEED` / `FAILED` / `EXPIRED` / `SUBMIT_FAILED` / `CONFIRMING` / `COMPLIANCE_PENDING` / `TRAVEL_RULE_PENDING` / `MANUAL_REVIEW_PENDING` / `REJECTED` / `CANCELLED`）、`callbackStatus`（`TRANSITING` / `SUCCEED` / `FAILED`）、`taskId`、`txId`、`fee`、`payToList`；`travelRuleStatus` / `travelRuleCheckStatus` / `kytStatus` / `kyaRiskScore` 为合规与风险字段。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+### 12.3 查询入金订单
+
+**POST** `/api/thirdparty/treasury/transfer-in-orders` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/transfer-in-orders/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**：`PaginationQuery`（见本章开头的查询参数定义）
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": { "pageIndex": 0, "pageSize": 20, "sortFields": "createTime_d" }
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "records": [
+      { "id": 6001, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "cusAccountId": 101, "address": "TXYZ...", "cpAddress": "TABC...", "coinId": "USDT", "network": "TRC20", "amount": 100, "orderId": "ORDER-20261019-001", "txId": "0xdef...", "fee": "1", "orderState": "SUCCEED", "callbackStatus": "SUCCEED", "type": 1, "note": "deposit", "createTime": "2026-10-19 10:30:00", "updateTime": "2026-10-19 10:31:00" }
+    ],
+    "total": 1,
+    "current": 1,
+    "size": 20,
+    "pages": 1
+  }
+}
+```
+
+关键字段：`orderState`（`PROCESSING` / `CONFIRMING` / `SUCCEED` / `FAILED` / `MISMATCH` / `EXPIRED` / `COMPLIANCE_HOLD` / `PENDING_REVIEW` / `REVIEW_ACCEPTED` / `REVIEW_REJECTED`）、`type`（`1` 充值、`2` 收款）、`initiator`（`1` 商户、`2` 商户的用户）、`cpAddress`、`amount`、`txId`。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+### 12.4 查询账户资金流水
+
+**POST** `/api/thirdparty/treasury/fund-records` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/fund-records/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**：`PaginationQuery`（见本章开头的查询参数定义）
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": { "pageIndex": 0, "pageSize": 20, "queryList": [{ "key": "cusAccountId", "value": 101, "oper": "=", "join": "and" }] }
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "records": [
+      { "id": 4001, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "cusAccountId": 101, "txId": "0xdef...", "orderId": "ORDER-20261019-001", "coinId": "USDT", "network": "TRC20", "amount": 100, "preBalance": 900, "postBalance": 1000, "fee": "1", "txType": "TRANSFER_IN", "createTime": "2026-10-19 10:30:00" }
+    ],
+    "total": 1,
+    "current": 1,
+    "size": 20,
+    "pages": 1
+  }
+}
+```
+
+`txType` 取值：`TRANSFER_IN` / `TRANSFER_OUT` / `WITHDRAW` / `ALLOCATE_IN` / `ALLOCATE_OUT` / `POOL_IN` / `POOL_OUT` / `GAS_OUT` / `FEE_OUT` / `DEPLOY`。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+### 12.5 查询财务单元级资金流水
+
+**POST** `/api/thirdparty/treasury/unit-fund-records` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/unit-fund-records/{resourceKey}`，`business` 原样作为上游请求体
+
+**请求参数（business）**：`PaginationQuery`（见本章开头的查询参数定义）
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": { "pageIndex": 0, "pageSize": 20, "queryList": [{ "key": "treasuryUnitId", "value": 80, "oper": "=", "join": "and" }] }
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "records": [
+      { "id": 4101, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "ledgerId": 20, "txId": "0xdef...", "orderId": "ORDER-20261019-001", "coinId": "USDT", "network": "TRC20", "amount": 100, "preBalance": 900, "postBalance": 1000, "fee": "1", "txType": "TRANSFER_IN", "createTime": "2026-10-19 10:30:00" }
+    ],
+    "total": 1,
+    "current": 1,
+    "size": 20,
+    "pages": 1
+  }
+}
+```
+
+与 12.4 的区别：本接口按财务单元（`ledgerId`）聚合流水，不返回 `cusAccountId`。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+<!-- 第 13–17 章（商户/用户/Board、回调、错误码、SDK、附录）由后续任务补充 -->
