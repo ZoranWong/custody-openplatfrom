@@ -93,16 +93,7 @@
         hr { border: none; border-top: 1px solid #e1e4e8; margin: 32px 0; }
         ul, ol { padding-left: 24px; margin: 8px 0; }
         li { margin: 4px 0; }
-        
-        .mermaid { 
-            background: #f6f8fa; 
-            padding: 20px; 
-            border-radius: 8px; 
-            margin: 16px 0; 
-            text-align: center;
-            overflow-x: auto;
-        }
-        
+
         /* ===== Mobile ===== */
         @media (max-width: 768px) {
             .sidebar { display: none; }
@@ -115,16 +106,7 @@
             background: #313244;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
-        mermaid.initialize({
-            startOnLoad: true,
-            theme: 'default',
-            securityLevel: 'loose',
-            flowchart: { useMaxWidth: true, htmlLabels: true },
-            sequence: { useMaxWidth: true, diagramMarginX: 50, diagramMarginY: 10 }
-        });
-        
         // Highlight active nav item on scroll
         document.addEventListener('DOMContentLoaded', () => {
             const navLinks = document.querySelectorAll('.sidebar a');
