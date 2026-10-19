@@ -20,7 +20,7 @@ install:
         "https://repo1.maven.org/maven2/org/apache/maven/apache-maven/$MVN_VERSION/apache-maven-$MVN_VERSION-bin.zip" \
         "https://archive.apache.org/dist/maven/maven-3/$MVN_VERSION/binaries/apache-maven-$MVN_VERSION-bin.zip"; do
         echo "Downloading Maven from $url"
-        if curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o /tmp/maven.zip "$url" \
+        if curl -fsSL --retry 5 --retry-delay 2 -o /tmp/maven.zip "$url" \
            && unzip -tq /tmp/maven.zip >/dev/null 2>&1; then
           unzip -q -o /tmp/maven.zip -d /tmp && break
         fi
