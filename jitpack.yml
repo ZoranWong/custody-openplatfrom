@@ -1,8 +1,13 @@
 jdk:
   - openjdk21
 # Build only the core module from the java subdirectory.
-# Use the Maven shipped with the JitPack image instead of ./mvnw: the wrapper
-# re-downloads apache-maven from repo.maven.apache.org, which intermittently
-# returns a corrupted zip on JitPack and fails the build before Maven starts.
+#
+# Notes for this monorepo:
+#  * `mvn` from the JitPack image is too old for javadoc-plugin 3.7.0, so the
+#    javadoc jar is skipped here (JitPack does not need it; Maven Central does,
+#    and the release profile still produces it locally/CI).
+#  * Prefer the image Maven over ./mvnw: the wrapper re-downloads apache-maven
+#    from repo.maven.apache.org, which intermittently yields a corrupt zip on
+#    JitPack and fails before the build starts.
 install:
-  - cd openplatform-sdk/java && mvn -B -U clean install -DskipTests -pl cregis-sdk-core -am
+  - cd openplatform-sdk/java && mvn -B clean install -DskipTests -DskipJavadoc=true -pl cregis-sdk-core -am

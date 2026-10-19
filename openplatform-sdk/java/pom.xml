@@ -44,6 +44,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <skipJavadoc>false</skipJavadoc>
 
         <!-- Dependency versions -->
         <okhttp.version>4.12.0</okhttp.version>
@@ -200,7 +201,11 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- Javadoc JAR -->
+            <!--
+                Javadoc JAR. Central requires it, but the JitPack build image ships
+                an old Maven that cannot run javadoc-plugin 3.7.0; `-DskipJavadoc`
+                (used by jitpack.yml) skips it there.
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -208,6 +213,7 @@
                 <configuration>
                     <doclint>none</doclint>
                     <failOnError>false</failOnError>
+                    <skip>${skipJavadoc}</skip>
                 </configuration>
                 <executions>
                     <execution>
