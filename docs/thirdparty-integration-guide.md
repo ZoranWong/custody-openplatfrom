@@ -2408,26 +2408,22 @@ app.post('/cregis/callback', async (req, res) => {
   try {
     await sdk.onCallback(req, async (payload) => {
       const event = req.headers['x-event'] as string | undefined;
-      // 先做幂等检查再执行副作用（见 14.6）
-      if (event === 'authorization.created') {
-        const authorizeId = payload.authorizeId as string;
-        // 保存 authorizeId 与自身用户的映射
-      } else if (event === 'transaction.completed' || event === 'transaction.failed') {
-        const orderId = payload.orderId as string | undefined;
-        // 按 orderId 更新本地订单
-      } else {
-        // 无 X-Event 的 callback 参数路径：按载荷自行判断
-      }
+      // 原子抢占幂等键（SET NX，见 14.6）
+      // 先持久化 / 入队，返回 2xx 后再异步消费；平台不会重投已返回 2xx 的事件
+      const primaryKey = payload.authorizeId || payload.orderId || payload.taskId;
+      if (!primaryKey) throw new Error('callback payload has no primary key');
+      await eventStore.saveOnce(`${event ?? 'no-event'}:${primaryKey}`, { event, payload });
     });
 
+    // 已持久化：返回 2xx，由本地队列 / worker 异步处理
     res.status(200).json({ code: 0 });
   } catch (error) {
     if (error instanceof SDKError && error.code === 'SIGNATURE_INVALID') {
       res.status(401).json({ code: 40101, message: 'invalid signature' });
       return;
     }
-    // 注意：返回 5xx 不会触发平台重试（见 14.5 的 D14 说明）；
-    // 请先把事件持久化 / 幂等落库，再返回 2xx，业务处理异步进行。
+    // 只有持久化前失败（解析、写库异常）才会到这里。
+    // 平台不会重投（D14），请记录日志并通过本地队列 / 对账补偿。
     res.status(500).json({ code: 50001, message: 'internal error' });
   }
 });
@@ -2556,7 +2552,7 @@ app.post('/cregis/callback', async (req, res) => {
 | HTTP `500` / `503` / `504`，响应体只有 `{code,message}` | Custody 返回非 2xx、连接失败或超时；上游响应体被丢弃 | 记录 `x-trace-id` 与请求时间，联系平台；写操作先确认是否已生效再重试 |
 | 同一笔出金 / 创建地址重复执行 | 网关对上游 5xx / 超时自动重试，且重试次数可能被放大；Custody 是否按 `orderId` 去重未验证 | 复用稳定业务单号；重试前先查询订单 / 地址；非幂等接口避免盲目重试（第 7、10 章） |
 | `400070`（`board/init`） | 护卫队公钥没有对应用户，或 `threshold` 超过有效签名人数 | 先用 13.2 建用户并绑定 `publicKey`，再初始化 board（13.3） |
-| 收不到回调 | 应用未配置 `callbackUrl`；生产使用 HTTP；载荷超过 64KB；接收方返回非 2xx 且已耗尽重试 | 检查应用回调配置；生产使用 HTTPS；控制载荷大小；记录每次回调的 `X-Timestamp` 与响应状态（14.5） |
+| 收不到回调 | 应用未配置 `callbackUrl`；生产使用 HTTP；载荷超过 64KB；接收方返回非 2xx（不会重试，见 D14） | 检查应用回调配置；生产使用 HTTPS；控制载荷大小；先持久化再返回 2xx，并通过对账 / 查询接口补偿（14.5） |
 
 ### 15.4 已知实现限制
 

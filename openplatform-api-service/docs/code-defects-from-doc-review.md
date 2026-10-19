@@ -23,6 +23,7 @@
 | D10 | 网关 `fail()` 响应结构不统一 | 低 | `forward.controller.ts:128-131` |
 | D11 | IP 白名单用 `includes` 比对 CIDR 字符串，私网段永不命中 | 低 | `rate-limit.middleware.ts:86-89` / `rate-limit-rules.ts:167-173` |
 | D12 | 授权页解析 `state` 但从不回传；`redirectUri` 只校验不跳转 | 低 | `App.vue:242`、`:177-192` |
+| D13 | 已废弃（编号保留，避免后续引用错位） | — | — |
 | D14 | 回调 HTTP 429 / 5xx 不会重试（`validateStatus` 未配置） | **高**（回调丢失） | `application-callback.service.ts:68-75,253-263,296-303` |
 
 ---
