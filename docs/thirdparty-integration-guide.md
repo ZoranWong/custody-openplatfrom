@@ -4,7 +4,7 @@
 >
 > **接口基数：** 网关对外 22 条业务接口 + 7 条本地接口
 
-本指南面向接入 Cregis 托管能力的第三方平台开发者。第 1–6 章覆盖平台概述、端到端接入流程、开发者入驻、认证与签名、OAuth 授权和通用约定；业务接口参考、回调、错误码详解、SDK 集成与附录见后续章节。
+本指南面向接入 Cregis 托管能力的第三方平台开发者。第 1–6 章覆盖平台概述、端到端接入流程、开发者入驻、认证与签名、OAuth 授权和通用约定；第 7–12 章为业务接口参考；第 13–17 章覆盖商户 / 用户 / Board、回调、错误码与排查、SDK 集成和附录。
 
 ---
 
@@ -22,6 +22,11 @@
 10. [出金与归集](#10-出金与归集)
 11. [任务审批](#11-任务审批)
 12. [交易查询](#12-交易查询)
+13. [商户、用户与 Board](#13-商户用户与-board)
+14. [回调](#14-回调)
+15. [错误码与排查](#15-错误码与排查)
+16. [SDK 集成](#16-sdk-集成)
+17. [附录](#17-附录)
 
 ---
 
@@ -2090,4 +2095,977 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
-<!-- 第 13–17 章（商户/用户/Board、回调、错误码、SDK、附录）由后续任务补充 -->
+## 13. 商户、用户与 Board
+
+本章 3 个接口用于把三方平台上的企业、企业用户和签名人（Board）登记到 Custody 侧。它们与其他业务接口一样由网关原样转发 `business`，约束均来自 Custody；其中 `merchant/register` 是唯一使用 **Basic 签名**的转发接口。
+
+### 13.1 注册商户企业
+
+**POST** `/api/thirdparty/merchant/register` · 鉴权：**Basic 签名**（不传 `basic.authorizationId`）
+> 网关转发至 custody：`/api/third-party/merchant/register`（无 `{resourceKey}`），`business` 原样作为上游请求体
+
+该接口以 **`legalName` + 企业来源（`source`，本接口固定为 `THIRD_PARTY`）** 幂等：同一企业重复注册不会重复创建金库，返回 `alreadyExists: true` 与相同的 `ecode`。
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `legalName` | string | 是 | 企业法定名称，与企业来源共同唯一（幂等键） |
+| `appId` | string | 是 | 开发者应用 ID；custody 用它签发企业级访问 key。**必须与 `basic.appId` 一致**（当前网关不校验两者是否相同，见 15.4） |
+| `alias` | string | 否 | 三方平台侧的企业外部标识 |
+| `email` | string | 否 | 企业联系邮箱 |
+| `dbaName` | string | 否 | DBA / 商号 |
+| `jurisdiction` | string | 否 | 注册司法辖区，ISO3166-1 |
+| `registrationNumber` | string | 否 | 注册号 |
+| `dateOfIncorporation` | string | 否 | 注册日期 |
+| `taxId` | string | 否 | 税号（TIN / EIN） |
+| `entityType` | string | 否 | 实体类型 |
+| `networks` | string[] | 否 | 初始化金库的网络列表；不传则使用平台支持的全部网络 |
+| `owner` | object | 否 | 内联创建企业负责人；`email`、`password` 必填，可选 `publicKey`。custody 会先建用户再建金库，保证金库签名人可用 |
+
+**请求示例**
+
+```json
+{
+  "basic": {
+    "appId": "550e8400-e29b-41d4-a716-446655440000",
+    "timestamp": 1742947200,
+    "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6",
+    "signature": "<Basic 签名，按第 4 章对上述 business 计算>"
+  },
+  "business": {
+    "legalName": "Example Trading Co.",
+    "appId": "550e8400-e29b-41d4-a716-446655440000",
+    "alias": "example-trading",
+    "email": "ops@example.com",
+    "jurisdiction": "AE",
+    "registrationNumber": "123456789",
+    "taxId": "100000000000003",
+    "entityType": "NON_FINANCIAL_CORPORATE",
+    "networks": ["ethereum", "tron"],
+    "owner": { "email": "owner@example.com", "password": "Str0ng!Passw0rd" }
+  }
+}
+```
+
+**响应示例**（字段结构来自 SDK `MerchantRegisterResult` 与上游 `ThirdMerchantRegisterResult`；值仅作示意）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "ecode": "EC0000000001",
+    "vaultCode": "VAULT001",
+    "resourceAccessKey": "access-key-d21396c169754470b3cdae0af9b2b8a6",
+    "alreadyExists": false,
+    "merchant": {
+      "id": 1542,
+      "code": "M0000001542",
+      "merchantName": "Example Trading Co.",
+      "source": "THIRD_PARTY",
+      "alias": "example-trading",
+      "status": "ACTIVE",
+      "email": "ops@example.com",
+      "jurisdiction": "AE",
+      "registrationNumber": "123456789",
+      "dateOfIncorporation": "2020-01-15",
+      "taxId": "100000000000003",
+      "entityType": "NON_FINANCIAL_CORPORATE",
+      "dbaName": "Example Trading",
+      "creatorId": 0,
+      "createTime": "2026-10-19 10:00:00",
+      "updateTime": "2026-10-19 10:00:00"
+    }
+  }
+}
+```
+
+关键说明：
+
+- **`resourceAccessKey` 是企业级资源键**，也是后续调用 `oauth/verify`（5.4）时传入的 `resourceKey`；平台按该键反查授权记录与应用，再推送第 14 章的回调。请在首次注册成功时持久化保存。
+- 重复注册命中幂等时 `alreadyExists: true`；按上游 schema，此时 **`resourceAccessKey` 为 `null`**（避免同名注册换出他人凭据）。不要把重复注册当作重新获取 key 的手段。
+- 该接口走 Basic 签名，`basic` 只需要 `appId`、`timestamp`、`nonce`、`signature`；**不要传 `authorizationId`**。
+- `owner` 中的用户仍需在 custody 完成二次验证绑定后才能登录 custody；仅作为签名人使用时按 13.2 绑定 `publicKey`。
+
+### 13.2 添加企业用户
+
+**POST** `/api/thirdparty/user/add` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/user/add/{resourceKey}`，`business` 原样作为上游请求体
+
+`{resourceKey}` 取自 `basic.authorizationId` 对应的授权记录（即 `oauth/verify` 时绑定的 `resourceKey`，通常是 13.1 返回的 `resourceAccessKey`）。**同一邮箱重复调用幂等**，不会重复创建用户。
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `email` | string | 是 | 登录邮箱 |
+| `password` | string | 是 | 密码，需满足 custody 的密码强度规则 |
+| `publicKey` | string | 否 | 公钥；绑定后才能作为金库签名人参与审批签名 |
+| `ecode` | string | 否 | 企业 code；不传表示只建用户、不挂企业。传了必须与当前 `resourceKey` 所属企业一致 |
+| `role` | string | 否 | 企业角色：`MERCHANT_STAFF` / `MERCHANT_OWNER` / `MERCHANT_ADMIN` / `MERCHANT_FUND_OPERATOR` / `MERCHANT_ANYCALL_OPERATOR`（当前 5 个取值，见 17.1）。传了角色即视为要挂到当前 key 所属企业下 |
+
+**请求示例**
+
+```json
+{
+  "basic": {
+    "appId": "550e8400-e29b-41d4-a716-446655440000",
+    "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
+    "timestamp": 1742947200,
+    "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6",
+    "signature": "<Resource 签名，按第 4 章计算>"
+  },
+  "business": {
+    "email": "staff@example.com",
+    "password": "Str0ng!Passw0rd",
+    "publicKey": "0x04...",
+    "ecode": "EC0000000001",
+    "role": "MERCHANT_ADMIN"
+  }
+}
+```
+
+**响应示例**（`MapObject`，字段名以 custody 实际返回为准）
+
+```json
+{ "code": 200, "message": "SUCCESS", "data": { "userId": 99 } }
+```
+
+> 新用户若需要登录 custody，仍需在 custody 侧绑定二次验证；仅作为 API 用户 / 签名人时无需登录。
+
+### 13.3 初始化 Board（护卫队）
+
+**POST** `/api/thirdparty/board/init` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/board/init/{resourceKey}`，`business` 原样作为上游请求体
+
+为企业初始化金库护卫队（board）。后续资金流规则、白名单变更依赖可用的 board（上游描述）。
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `guardians` | string[] | 是 | 护卫队成员。上游 schema 描述为**公钥**；SDK README 同时提到邮箱，邮箱形式**未经验证**，请优先传已绑定用户的公钥 |
+| `threshold` | number | 是 | 操作门限，需满足 `0 < threshold <= guardians.length` |
+| `lang` | string | 否 | 签名语言，如 `zh_CN` / `en_US` |
+| `note` | string | 否 | 备注 |
+
+**请求示例**
+
+```json
+{
+  "basic": {
+    "appId": "550e8400-e29b-41d4-a716-446655440000",
+    "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
+    "timestamp": 1742947200,
+    "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6",
+    "signature": "<Resource 签名，按第 4 章计算>"
+  },
+  "business": {
+    "guardians": ["0x04...owner-public-key", "0x04...staff-public-key"],
+    "threshold": 2,
+    "note": "initial board"
+  }
+}
+```
+
+**响应示例**（`MerchantBoard`，值仅作示意）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "id": 12,
+    "ecode": "EC0000000001",
+    "projectId": 10,
+    "userInfos": [
+      { "userId": 98, "userName": "Owner", "userEmail": "owner@example.com", "publicKey": "0x04...owner-public-key" },
+      { "userId": 99, "userName": "Staff", "userEmail": "staff@example.com", "publicKey": "0x04...staff-public-key" }
+    ],
+    "threshold": 2,
+    "status": "ACTIVE",
+    "creatorUserId": 98,
+    "createTime": "2026-10-19 10:05:00",
+    "updateTime": "2026-10-19 10:05:00"
+  }
+}
+```
+
+> **已观测错误 `400070`：** 联调中，当 `guardians` 中的公钥在 custody 侧没有对应用户，或 `threshold` 大于有效签名人数量时，custody 返回业务码 `400070`（随 HTTP 2xx 响应体透传）。该码的精确语义由 custody 定义；请先通过 13.2 建好用户并绑定公钥，再初始化 board。
+
+---
+
+## 14. 回调
+
+平台通过 HTTP POST 把授权与业务事件推送到开发者配置的回调地址。回调体**只有业务数据**，事件元数据全部放在请求头。
+
+### 14.1 事件清单
+
+`application-callback.service.ts` 定义的事件枚举如下：
+
+| 事件 | 本仓库中的推送方 | 说明 |
+|------|------------------|------|
+| `authorization.created` | `oauth/verify`（`thirdparty.controller.ts`） | 授权验证成功后推送。载荷 `{ authorizeId, oauthToken? }`；`oauthToken` 是 `authorizeUrl` 请求传入的 `token` 值（不是 JWT），未传 `token` 时没有该字段 |
+| `authorization.revoked` | 无 | 枚举已定义，当前仓库没有代码推送 |
+| `authorization.expired` | 无 | 同上 |
+| `transaction.submitted` | 无 | 同上 |
+| `transaction.confirming` | 无 | 同上 |
+| `transaction.completed` | `custody/callback` 路由（`thirdparty.routes.ts`） | 由本仓库转发给应用 `callbackUrl`，见下方说明 |
+| `transaction.failed` | `custody/callback` 路由（`thirdparty.routes.ts`） | 由本仓库转发给应用 `callbackUrl`，见下方说明 |
+| `task.approved` | 无 | 枚举已定义，当前仓库没有代码推送 |
+| `task.rejected` | 无 | 同上 |
+
+说明：
+
+- 除 `authorization.created` 与 custody 回调转发的两个交易事件外，其余事件名当前**没有生产者**。它们是为 custody 侧事件预留的枚举；是否实际下发取决于 custody 部署，接入方应按事件名做通用处理，不要假设“一定会收到”。
+- 另有签名保护的内部接口 `POST /api/v1/authorizations` 也会推送 `authorization.created`，但其载荷为 `{ authorizationId, resourceKey, expiresAt }`，与本指南使用的 `oauth/verify` 路径（`authorizeId`）字段名不同。
+- `POST /api/thirdparty/custody/callback` 由 Custody 服务调用（开发者不调用）。它按 `resourceKey` 反查 `oauth_resources` 与应用，要求应用配置了 `callbackUrl`；事件名优先取请求体 `eventType`，否则按 `status === 'SUCCEED'` 映射为 `transaction.completed`，**其余任何状态都映射为 `transaction.failed`**。请求体含 `payload` 字段时，仅转发 `payload`；否则转发整个请求体但去掉 `status`、`resourceKey`、`ecode`。该路由始终以 HTTP 200 返回，业务失败通过响应体 `code` 表达（如缺少 `resourceKey` 返回 `40001`）。
+
+### 14.2 请求头与请求体
+
+| 请求头 | 值 | 说明 |
+|--------|----|------|
+| `X-App-Id` | 应用 `appId`（`Application.id`，即 `basic.appId`） | 始终存在 |
+| `X-Timestamp` | 毫秒时间戳字符串（`Date.now().toString()`） | 每次重试重新生成 |
+| `X-Signature` | `sha256=<hex>` | 小写十六进制 HMAC-SHA256 |
+| `X-Event` | 事件名，如 `authorization.created` | **仅当事件已设置时存在**；`oauth/verify` 的 `callback` 参数路径没有事件，因此没有该头 |
+| `Content-Type` | `application/json` | — |
+
+请求体是纯业务数据（例如 `{ "authorizeId": "...", "oauthToken": "..." }` 或交易字段），不含 `appId`、事件名、时间戳等元数据。
+
+### 14.3 签名算法
+
+```
+signData = appId + "." + [event + "."] + timestamp + "." + md5(sortedJSON(data))
+X-Signature = "sha256=" + lowerHex(HMAC-SHA256(appSecret, signData))
+```
+
+- `sortedJSON(data)`：对象 key 递归排序；数组元素保序，数组内对象同样排序；`null` 保留并参与序列化。
+- **有事件**：签名串包含事件段，例如 `appId.event.timestamp.md5`。
+- **无事件**：`oauth/verify` 使用 `callback` 参数时走这条路径，签名串为 `appId.timestamp.md5`，同时 `X-Event` 头不存在。验签实现必须按 `X-Event` 是否存在选择对应拼接方式。
+- `appSecret` 是 HMAC 的密钥，不参与字符串拼接。
+
+**计算示例**（固定输入，已实际计算）
+
+请求头：
+
+```
+X-App-Id: 550e8400-e29b-41d4-a716-446655440000
+X-Event: transaction.completed
+X-Timestamp: 1792404000000
+X-Signature: sha256=a5579ed42e4dd08de06b58be599b534b1141f70f353affdf292330501acd3ea4
+```
+
+请求体（`data`）：
+
+```json
+{
+  "orderId": "ORDER-20261019-001",
+  "unitId": 80,
+  "amount": 100,
+  "coinId": "USDT",
+  "network": "TRC20",
+  "status": "SUCCEED",
+  "taskId": "task-20261019-003",
+  "txId": "0xabc123"
+}
+```
+
+中间值（`appSecret = sk_demo_secret_9f8e7d6c`）：
+
+```
+sortedJSON(data) = {"amount":100,"coinId":"USDT","network":"TRC20","orderId":"ORDER-20261019-001","status":"SUCCEED","taskId":"task-20261019-003","txId":"0xabc123","unitId":80}
+md5(sortedJSON(data)) = bafebc702c519d75e2e3682b72ec2c13
+signData = 550e8400-e29b-41d4-a716-446655440000.transaction.completed.1792404000000.bafebc702c519d75e2e3682b72ec2c13
+HMAC-SHA256 = a5579ed42e4dd08de06b58be599b534b1141f70f353affdf292330501acd3ea4
+```
+
+同一份 `data` 与时间戳、但不带事件时（`callback` 参数路径）：
+
+```
+signData = 550e8400-e29b-41d4-a716-446655440000.1792404000000.bafebc702c519d75e2e3682b72ec2c13
+HMAC-SHA256 = 27cb791bd95c41922058729f9801eea94de2753ef66662321db8cbd930e30885
+```
+
+### 14.4 可运行的 Node.js 验签处理
+
+使用 `@cregis-kit/openplatform-node@1.1.0` 的 `sdk.onCallback(req, handler)`。它会读取 `x-app-id`、`x-timestamp`、`x-signature`（以及可选的 `x-event`），用构造 SDK 时的 `appSecret` 验签；成功后才调用 `handler(payload)`，`payload` 即请求体业务数据。
+
+```ts
+import express from 'express';
+import { CregisSDK, SDKError } from '@cregis-kit/openplatform-node';
+
+const sdk = new CregisSDK({
+  baseUrl: 'https://custody-sit.cregis.ae/openplatform',
+  appId: process.env.APP_ID!,
+  appSecret: process.env.APP_SECRET!,
+});
+
+const app = express();
+app.use(express.json());
+
+app.post('/cregis/callback', async (req, res) => {
+  try {
+    await sdk.onCallback(req, async (payload) => {
+      const event = req.headers['x-event'] as string | undefined;
+      // 先做幂等检查再执行副作用（见 14.6）
+      if (event === 'authorization.created') {
+        const authorizeId = payload.authorizeId as string;
+        // 保存 authorizeId 与自身用户的映射
+      } else if (event === 'transaction.completed' || event === 'transaction.failed') {
+        const orderId = payload.orderId as string | undefined;
+        // 按 orderId 更新本地订单
+      } else {
+        // 无 X-Event 的 callback 参数路径：按载荷自行判断
+      }
+    });
+
+    res.status(200).json({ code: 0 });
+  } catch (error) {
+    if (error instanceof SDKError && error.code === 'SIGNATURE_INVALID') {
+      res.status(401).json({ code: 40101, message: 'invalid signature' });
+      return;
+    }
+    // 5xx 会让平台重试；返回前请确保业务处理可重入
+    res.status(500).json({ code: 50001, message: 'internal error' });
+  }
+});
+```
+
+注意：
+
+- `handler` 只接收业务数据，事件名要从 `req.headers['x-event']` 读取；无事件时该头为 `undefined`。
+- SDK 验签只校验签名，不校验时间戳新鲜度，也不比对 `X-App-Id` 与构造配置中的 `appId`。请自行做重放防护（例如按 `X-App-Id + X-Timestamp + 事件主键` 去重）。
+- 验签使用解析后的 `req.body` 重新排序序列化，因此不需要保留原始请求字节；但不要在验签前修改 `req.body`。
+
+### 14.5 重试策略
+
+| 项 | 行为 |
+|----|------|
+| 总尝试次数 | 初始 1 次 + 最多 3 次重试（共 4 次） |
+| 重试间隔 | 第 2 次尝试前 0 ms、第 3 次前 1,000 ms、第 4 次前 5,000 ms |
+| 30 秒档位 | 配置中 `retryDelays` 含 `30000`，但循环最多执行 4 次，该档位**不可达** |
+| 触发重试 | HTTP `429`、HTTP `5xx`、网络错误（`ECONNABORTED` / `ETIMEDOUT` / 无响应） |
+| 不重试 | 其余非 2xx（如 4xx）立即失败 |
+| 成功判定 | 任意 `2xx` |
+| 单次超时 | 30 秒 |
+| 载荷上限 | `JSON.stringify(data).length > 64 * 1024` 时直接放弃，不发送（按字符数计算，不是 UTF-8 字节数） |
+| 未配置回调地址 | 直接跳过，返回 `success: true, error: 'no_callback_url'` |
+| URL 校验 | 生产环境必须 HTTPS；非生产环境 HTTP 仅允许 `localhost` / `127.0.0.1` |
+
+每次重试都会重新生成 `X-Timestamp` 并重新计算签名，因此接收方不能用第一次的时间戳校验后续尝试。
+
+> 这里的重试只属于**回调推送器**（`ApplicationCallbackService`）。第 7 章描述的网关转发客户端重试放大（上游 5xx / 超时被反复重试）发生在业务请求链路上，**不适用于回调推送**。
+
+### 14.6 幂等与响应要求
+
+- **尽快返回 2xx**：单次回调超时为 30 秒，超时会触发重试并可能造成重复处理。建议先把事件写入队列 / 幂等表并立即返回，业务处理异步进行。
+- **按事件主键去重**：授权事件用 `authorizeId`；交易事件用 `orderId`（或 `taskId` / `txId`，取决于载荷）；没有主键时用 `X-App-Id + X-Timestamp + 事件名` 做兜底。同一事件可能被重复推送。
+- 希望平台重试时返回 `429` 或 `5xx`；返回其他 `4xx` 会立即终止重试。不要用 `4xx` 表示临时故障。
+- 无论处理结果如何，都不要在响应体里依赖平台读取业务字段；平台只判断 HTTP 状态码。
+
+---
+
+## 15. 错误码与排查
+
+### 15.1 平台业务码
+
+下表来自 `openplatform-api-service/src/enums/business-codes.enum.ts`（仅列出该枚举中存在的值）。转发接口的最终响应形态见 15.2：上游 Custody 的业务码通常透传在 HTTP 2xx 的响应体中，网关自身的错误才使用下表中的码与非 200 状态。
+
+| `code` | 枚举名 | 含义 / 触发场景 |
+|--------|--------|----------------|
+| `40001` | `PARAM_REQUIRED` | 缺少必填参数（如 `basic` 不完整、缺少 `resourceKey`、`oauth/verify` 缺字段） |
+| `40002` | `PARAM_INVALID_FORMAT` | 参数格式错误 |
+| `40003` | `PARAM_BUSINESS_RULE` | 违反业务规则 |
+| `40004` | `PARAM_DUPLICATE` | 重复请求 |
+| `40005` | `PARAM_INVALID_STATE` | 对象状态不允许该操作 |
+| `40101` | `AUTH_MISSING_HEADERS` | 缺少认证信息；`oauthToken` 无效或过期 |
+| `40102` | `AUTH_INVALID_SIGNATURE` | 签名验证失败；也用于 `appId` 对应的应用不存在 |
+| `40103` | `AUTH_TIMESTAMP_EXPIRED_OR_INVALID_TOKEN` | 时间戳过期或无效（毫秒时间戳、时钟漂移） |
+| `40104` | `AUTH_DUPLICATE_NONCE` | nonce 重复（重放）；**也被复用于“应用未激活”**（消息 `Application is not active`） |
+| `40105` | `AUTH_APP_NOT_ACTIVE` | 开发者账号未激活（消息 `Developer account is not active`） |
+| `40107` | `AUTH_INVALID_REFRESH_TOKEN` | refresh token 无效 |
+| `40110` | `AUTH_INVALID_CREDENTIALS` | 登录凭证无效（开发者后台登录） |
+| `40301` | `AUTHZ_ACCESS_DENIED` | 资源未授权：`authorizationId` 不存在或授权记录非 `active` |
+| `40302` | `AUTHZ_PERMISSION_DENIED` | 权限不足 |
+| `40303` | `AUTHZ_OPERATOR_DENIED` | 操作方不满足条件（如 KYB 未通过时创建应用） |
+| `40304` | `AUTHZ_SUPER_ADMIN_REQUIRED` | 需要超级管理员 |
+| `40305` | `AUTHZ_INSUFFICIENT_PERMISSIONS` | 权限不足 |
+| `40306` | `AUTHZ_PERMISSION_CONFIG_NOT_FOUND` | 权限配置不存在 |
+| `40401` | `NOT_FOUND_RESOURCE` / `AUTH_TOKEN_NOT_FOUND` | 资源不存在；网关未匹配到转发路由也使用该码 |
+| `40402` | `NOT_FOUND_ENDPOINT` | 端点不存在 |
+| `40501` | `METHOD_NOT_ALLOWED` | 方法不允许（签名中间件只接受 POST） |
+| `40902` | `CONFLICT_DUPLICATE` | 资源冲突 / 重复 |
+| `42901` | `RATE_LIMIT_EXCEEDED` | 超出每日配额或限流 |
+| `42902` | `RATE_LIMIT_STRICT` | 严格限流档位（枚举定义） |
+| `42903` | `RATE_LIMIT_LENIENT` | 宽松限流档位（枚举定义） |
+| `50001` | `SERVER_INTERNAL` | 服务内部错误 |
+| `50002` | `SERVER_UNAVAILABLE` | 服务暂不可用 |
+| `50003` | `SERVER_DATABASE` | 数据库错误 |
+| `50004` | `SERVER_CACHE` | 缓存错误 |
+| `50201` | `BAD_GATEWAY` | 上游网关错误（枚举定义） |
+| `50301` | `SERVICE_UNAVAILABLE` | 服务不可用（枚举定义） |
+| `50401` | `GATEWAY_TIMEOUT` | 网关超时 |
+| `50402` | `UPSTREAM_TIMEOUT` | 上游超时 |
+| `50403` | `API_RATE_LIMITED` | API 限流 |
+
+说明：
+
+- `error-mapper.service.ts` 的码映射只在全局限流中间件与账单等本地接口使用；**转发接口不经过该映射**。该映射表的部分默认消息与码义不一致（例如 `40102` 的默认消息是 `Token expired`，`40103` 是 `Invalid signature`），不要根据这些默认消息判断原因。
+- 枚举中存在但当前没有主动返回路径的码（如 `40402`、`42902`、`42903`、`50201`、`50301`、`50402`、`50403`）不应当作稳定的接口契约；转发层失败使用的是原始 HTTP 状态码（见 15.2）。
+- 判断业务成败以响应体 `code` 为准（成功为 `0` 或 `200`），不要只看 HTTP 状态码。
+
+### 15.2 Custody 透传码
+
+以下码由 Custody 产生，不在平台枚举中。它们出现的方式取决于上游的 HTTP 状态：
+
+| 上游业务码 | 出现方式 | 含义 |
+|------------|----------|------|
+| `400` | 上游 HTTP 2xx，网关原样透传响应体，HTTP 200 | Custody 参数 / 请求格式错误（常见于 `treasury/create`） |
+| `400001` | 同上 | 参数或业务校验失败（具体语义由 custody 定义） |
+| `400006` | 同上 | 参数或业务校验失败（具体语义由 custody 定义） |
+| `400042` | 同上 | 参数或业务校验失败（具体语义由 custody 定义） |
+| `400070` | 同上 | 参数或业务校验失败；已观测到 `board/init` 护卫队签名人不足时返回（见 13.3） |
+| `400103` | 同上 | `THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS`：`resourceKey` 在 custody 侧不存在 |
+| `120042` | 同上 | `ONLY_ACQUIRING_ACCOUNT_ALLOWED`：归集来源账户不是 platform 创建的 acquiring 账户 |
+
+当 Custody 返回**非 2xx**（包括 4xx）时，网关丢弃上游响应体，返回 HTTP `500` 与 `{ "code": 500, "message": "..." }`；连接失败返回 `503`，超时返回 `504`（响应体同样只有 `code` 与 `message`）。因此：
+
+- 看到 HTTP 200 + 业务码 ≠ 成功，需要判断响应体 `code`。
+- 看到 `500` 且响应体没有上游业务码时，真正原因在上游，网关侧看不到；请记录 `x-trace-id`。
+- 网关对上游 5xx / 超时会自动重试（且当前实现存在递归重试，实际次数可能远超 3 次），写操作重试可能导致重复提交（见 15.3、15.4）。
+
+### 15.3 按现象排查
+
+| 现象 | 常见原因 | 排查 / 处理 |
+|------|----------|-------------|
+| `40102`，含对象数组的请求（`coinIds`、`primaryManager`、`payTo` 等） | 只排序了顶层 key，没有递归排序数组内对象 | 使用 Node SDK 1.1.0+ / Java SDK 1.2.0+，或按 4.3 递归排序 |
+| `40102`，所有请求 | `appSecret` 错误；重置密钥后环境变量未更新；空格 / 换行；Basic 与 Resource 签名串混用 | 核对密钥并 `trim`；确认接口对应的签名类型（第 4 章） |
+| `40103` | 使用毫秒时间戳；服务器时钟漂移 | 使用 10 位 Unix 秒；开启 NTP |
+| `40104`，消息为 `Duplicate nonce detected` | 固定 nonce；重试沿用同一 nonce；并发共享 nonce | 每次请求（含重试）生成新 nonce |
+| `40104`，消息为 `Application is not active` | 应用被停用；错误码被复用，并非 nonce 问题 | 检查应用状态并联系平台 |
+| `40301` | `authorizeId` 不存在、授权记录非 `active`，或使用了另一环境的 `authorizeId` | 重新走 OAuth 流程并调用 `oauth/verify` |
+| `400103` | `resourceKey` 拼写错误、跨环境使用、未在 custody 开通 | 使用 13.1 返回的 `resourceAccessKey`，或联系平台开通；`oauth/verify` 不会提前发现该问题（5.4） |
+| 地址查询返回空分页 | 缺少 `coinId` / `network`；`accountType` 与账户不匹配；地址尚未创建 | 从 `list-unit-account`（7.4）取 `coinId` / `network`，四个字段一起传（第 8 章） |
+| `42901` | 超出订阅套餐 `dailyApiLimit`，或触发限流；配额服务异常时 fail-closed 也会返回 `42901` | 查看 `Retry-After` 与 `GET /api/v1/isv/subscription/current` 的 `dailyApiUsage`；退避重试（6.4、6.5） |
+| HTTP `500` / `503` / `504`，响应体只有 `{code,message}` | Custody 返回非 2xx、连接失败或超时；上游响应体被丢弃 | 记录 `x-trace-id` 与请求时间，联系平台；写操作先确认是否已生效再重试 |
+| 同一笔出金 / 创建地址重复执行 | 网关对上游 5xx / 超时自动重试，且重试次数可能被放大；Custody 是否按 `orderId` 去重未验证 | 复用稳定业务单号；重试前先查询订单 / 地址；非幂等接口避免盲目重试（第 7、10 章） |
+| `400070`（`board/init`） | 护卫队公钥没有对应用户，或 `threshold` 超过有效签名人数 | 先用 13.2 建用户并绑定 `publicKey`，再初始化 board（13.3） |
+| 收不到回调 | 应用未配置 `callbackUrl`；生产使用 HTTP；载荷超过 64KB；接收方返回非 2xx 且已耗尽重试 | 检查应用回调配置；生产使用 HTTPS；控制载荷大小；记录每次回调的 `X-Timestamp` 与响应状态（14.5） |
+
+### 15.4 已知实现限制
+
+| 限制 | 影响 |
+|------|------|
+| `authorizationId` 只按 ID 查询，**不校验应用归属**（D2） | 理论上一个应用可以使用另一应用创建的 `authorizeId`；请妥善保护 `authorizeId`，不要跨应用传递 |
+| 应用未激活时返回 `40104`（复用 `AUTH_DUPLICATE_NONCE`），消息为 `Application is not active` | 不要仅凭 `40104` 判断 nonce 问题 |
+| 每日配额在转发前扣减 | 被 Custody 拒绝的请求同样消耗配额；`merchant/register` 也走转发链路 |
+| API 日志不落 `trace_id` | `createApiLog` 的入参没有 `traceId` 字段（模型有该列但未写入）；转发日志可在 `requestHeaders['x-trace-id']` 中找回 |
+| `merchant/register` 不校验 `business.appId` 与 `basic.appId` 是否一致 | custody 使用 `business.appId` 签发 key；请确保两者一致，否则 key 可能签发给错误的应用 |
+| `custody/callback` 始终返回 HTTP 200 | 缺少 `resourceKey`、资源不存在等错误只体现在响应体 `code`，Custody 侧不会因 HTTP 状态重试 |
+| 回调载荷上限按 `JSON.stringify(data).length`（字符数）判断 | 多字节字符可能使实际字节数超过 64KB；请预留余量 |
+| 转发客户端对上游 5xx / 超时递归重试 | 实际请求次数可能远超配置的 3 次；非幂等写操作存在重复执行风险 |
+| Node 1.1.0 / Java 1.2.0 的 `verifyOAuthToken` 请求体与网关路由不一致 | 网关 `oauth/verify` 要求顶层 `resourceKey` / `oauthToken`，SDK 发送 `{ basic, business }`；当前会被校验中间件以 `40001` 拒绝（见 16.1） |
+| `oauth/verify` 不校验 `resourceKey` 是否存在 | 任意键都会写入授权记录；未开通的键在后续业务请求才由 custody 返回 `400103`（5.4） |
+
+---
+
+## 16. SDK 集成
+
+官方 SDK 封装了签名、请求与错误处理，推荐在服务端直接使用。三端版本与本指南的对应关系见 16.4。
+
+### 16.1 Node.js SDK 1.1.0
+
+**安装**（要求 Node.js >= 18）
+
+```bash
+npm install @cregis-kit/openplatform-node@1.1.0
+```
+
+**构造与最小端到端示例**
+
+```ts
+import { CregisSDK } from '@cregis-kit/openplatform-node';
+
+const sdk = new CregisSDK({
+  baseUrl: 'https://custody-sit.cregis.ae/openplatform', // 不要带尾斜杠
+  appId: process.env.APP_ID!,
+  appSecret: process.env.APP_SECRET!,
+  timeout: 30000, // 可选，默认 30000 ms
+  debug: false,   // 可选
+});
+
+// 1. 获取授权地址（Basic 签名），交给前端打开
+const { authorizeUrl } = await sdk.getAuthorizationUrl({
+  permissions: [],                // 见 5.2：当前请留空数组或省略
+  state: 'random-state-string',
+  callback: 'https://your-app.com/oauth/callback',
+});
+// 后端同时保存 authorizeUrl 中的 appToken，作为后续 oauthToken
+
+// 2. 用 oauthToken 换取 authorizeId。网关要求顶层 { resourceKey, oauthToken }，
+//    而 1.1.0 的 verifyOAuthToken 发送 { basic, business }，会被 40001 拒绝；
+//    修复前请按 5.4 直接 POST /api/thirdparty/oauth/verify。
+const { authorizeId } = await sdk.verifyOAuthToken(appToken, 'access-key-d21396...');
+
+// 3. 后续业务接口使用 authorizeId（Resource 签名）
+const accounts = await sdk.listUnitAccount(authorizeId, 80);
+const payin = accounts.find((a) => a.type === 'PAYIN')!;
+
+const task = await sdk.createPayout(authorizeId, {
+  unitId: 80,
+  fromAccountId: payin.id,
+  payTo: [{ to: '0x0000000000000000000000000000000000000000', amount: 100 }],
+  coinId: payin.coinId,
+  network: payin.network,
+  merchantType: 'NON_FINANCIAL_CORPORATE',
+  orderId: 'ORDER-20261019-001',
+});
+
+await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
+```
+
+**完整方法表（24 个业务方法）**
+
+| 领域 | 方法 | 签名 | 返回类型 |
+|------|------|------|----------|
+| OAuth | `getAuthorizationUrl(params)` | Basic | `{ authorizeUrl, expiresIn }` |
+| OAuth | `verifyOAuthToken(oauthToken, resourceKey?)` | 无（凭 JWT） | `{ authorizeId }` |
+| 商户 / 用户 / Board | `registerMerchant(request)` | Basic | `MerchantRegisterResult` |
+| 商户 / 用户 / Board | `addUser(authorizationId, request)` | Resource | `Record<string, unknown>`（如 `{ userId }`） |
+| 商户 / 用户 / Board | `initBoard(authorizationId, request)` | Resource | `MerchantBoard` |
+| 财务单元 | `createTreasuryUnit(authorizationId, request)` | Resource | `CreateTreasuryUnitResponse` |
+| 财务单元 | `createCustomUnit(authorizationId, request)` | Resource | `TreasuryUnit` |
+| 财务单元 | `listTreasuryUnits(authorizationId, options?)` | Resource | `TreasuryUnit[]` |
+| 财务单元 | `listUnitAccount(authorizationId, unitId)` | Resource | `UnitAccount[]` |
+| 地址 | `getTreasuryUnitAddress(authorizationId, request)` | Resource | `PaginatedResponse<UnitAddress>` |
+| 地址 | `getUnitAddressByAccount(authorizationId, cusAccountId, request?)` | Resource | `PaginatedResponse<UnitAddress>` |
+| 地址 | `createUnitAddress(authorizationId, request)` | Resource | `void` |
+| 地址 | `createUnitAddressByAccount(authorizationId, cusAccountId, number)` | Resource | `UnitAddress[]` |
+| 币种 / 规则 / 白名单 | `addCoins(authorizationId, request)` | Resource | `WCCIPCmdAuditTask[]` |
+| 币种 / 规则 / 白名单 | `updateFundControl(authorizationId, request)` | Resource | `void` |
+| 币种 / 规则 / 白名单 | `updateWhitelist(authorizationId, request)` | Resource | `WCCIPCmdAuditTask` |
+| 出金 / 归集 | `createPayout(authorizationId, request)` | Resource | `WCCIPCmdAuditTask` |
+| 出金 / 归集 | `pooling(authorizationId, request)` | Resource | `ProjectUnitTransferOutOrder` |
+| 审批 | `submitTask(authorizationId, taskId, request)` | Resource | `void` |
+| 交易查询 | `listTransferOutOrders(authorizationId, options?)` | Resource | `PaginatedResponse<ProjectUnitTransferOutOrder>` |
+| 交易查询 | `listTransferInOrders(authorizationId, options?)` | Resource | `PaginatedResponse<ProjectUnitTransferInOrder>` |
+| 交易查询 | `listActivities(authorizationId, options?)` | Resource | `PaginatedResponse<ProjectUnitActivity>` |
+| 交易查询 | `listFundRecords(authorizationId, options?)` | Resource | `PaginatedResponse<ProjectUnitFundRecord>` |
+| 交易查询 | `listUnitFundRecords(authorizationId, options?)` | Resource | `PaginatedResponse<ProjectUnitLedgerFundRecord>` |
+
+另有 `onCallback(req, handler)` 用于回调验签（14.4），以及 `getConfig()` 工具方法。
+
+**错误处理**
+
+```ts
+import { CregisSDK, SDKError } from '@cregis-kit/openplatform-node';
+
+try {
+  await sdk.listUnitAccount(authorizeId, 80);
+} catch (error) {
+  if (error instanceof SDKError) {
+    console.error(error.code);                 // SDKErrorCode 或 HTTP 状态
+    console.error(error.httpStatus);           // HTTP 状态
+    console.error(error.details);              // { apiCode, traceId }
+    console.error(error.isRetryable);          // 5xx / 网络错误 / 429 为 true
+  }
+}
+```
+
+`error.details.apiCode` 是网关响应体中的业务码（例如 `400103`）；`traceId` 仅在响应体含该字段时存在（转发响应通常没有，请以响应头 `x-trace-id` 为准）。SDK 对 `code !== 0 && code !== 200` 的响应抛 `SDKError`，不会静默返回。
+
+> **注意（SDK 与网关不一致）：** Node SDK 1.1.0 的 `verifyOAuthToken` 通过 `http.post` 发送 `{ basic, business }`，而网关 `/api/thirdparty/oauth/verify` 的校验规则要求请求体顶层为 `{ resourceKey, oauthToken }`，因此当前会被拒绝为 `40001 Validation failed`。在 SDK 修复前，请按 5.4 直接调用该接口（或对 `oauthToken` 使用未签名请求）。`registerMerchant` / `addUser` / `initBoard` 其余字段与网关一致。
+
+### 16.2 Java SDK 1.2.0（JitPack）
+
+**环境要求**：JDK 17+、Maven 3.8+。
+
+**仓库配置**
+
+```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+```
+
+**依赖坐标**
+
+```xml
+<dependency>
+    <groupId>com.github.ZoranWong.custody-openplatfrom</groupId>
+    <artifactId>cregis-sdk-core</artifactId>
+    <version>java-sdk-v1.2.0</version>
+</dependency>
+```
+
+`java-sdk-v1.2.0` 是仓库中的 Git tag；JitPack 按该 tag 构建。`CregisClient` 的服务入口：
+
+| 入口 | 覆盖 |
+|------|------|
+| `oauth()` | `getAuthorizationUrl`、`verifyOAuthToken` |
+| `treasury()` | 创建 / 自定义创建 / 列表 / 账户列表 |
+| `payout()` | 出金、出金订单、归集 |
+| `transaction()` | 入金订单、活动 / 流水、`submitTask` |
+| `merchant()` | `registerMerchant` |
+| `user()` | `addUser` |
+| `board()` | `initBoard` |
+| `fundControl()` | `updateFundControl` |
+| `whitelist()` | `updateWhitelist` |
+| `callback()` | 回调验签 |
+
+**同步 / 异步对照**：每个方法都有同名 + `Async` 的版本，返回 `CompletableFuture<T>`，例如：
+
+| 同步 | 异步 |
+|------|------|
+| `client.treasury().listUnitAccount(authorizationId, 80L)` | `client.treasury().listUnitAccountAsync(authorizationId, 80L)` |
+| `client.oauth().getAuthorizationUrl(request)` | `client.oauth().getAuthorizationUrlAsync(request)` |
+| `client.merchant().registerMerchant(request)` | `client.merchant().registerMerchantAsync(request)` |
+| `client.user().addUser(authorizationId, request)` | `client.user().addUserAsync(authorizationId, request)` |
+| `client.board().initBoard(authorizationId, request)` | `client.board().initBoardAsync(authorizationId, request)` |
+
+**最小示例**
+
+```java
+import com.cregis.sdk.CregisClient;
+import com.cregis.sdk.core.config.SdkConfig;
+import com.cregis.sdk.dto.request.*;
+import com.cregis.sdk.dto.response.*;
+
+SdkConfig config = SdkConfig.builder()
+        .appId("your-app-id")
+        .appSecret("your-app-secret")
+        .baseUrl("https://custody-sit.cregis.ae/openplatform")
+        .build();
+
+CregisClient client = new CregisClient(config);
+
+AuthorizationResponse auth = client.oauth().getAuthorizationUrl(
+        GetAuthorizationUrlRequest.builder()
+                .permissions(List.of())
+                .state("random-state")
+                .callback("https://your-app.com/oauth/callback")
+                .build());
+
+List<UnitAccountResponse> accounts = client.treasury().listUnitAccount(authorizeId, 80L);
+```
+
+**异常字段**：业务码非成功时抛 `CregisSdkException`。
+
+```java
+try {
+    client.treasury().listUnitAccount(authorizationId, 80L);
+} catch (CregisSdkException e) {
+    System.out.println(e.getErrorCode());       // SdkErrorCode
+    System.out.println(e.getServerErrorCode()); // 网关业务码，如 400103
+    System.out.println(e.getRequestId());       // traceId（若响应提供）
+    System.out.println(e.getHttpStatusCode());
+}
+```
+
+> **与 Node SDK 相同的注意：** Java 1.2.0 的 `verifyOAuthToken` 同样发送 `{ basic, business }`，与网关 `oauth/verify` 的顶层 `{ resourceKey, oauthToken }` 校验不一致；在修复前请按 5.4 直接调用该接口。
+
+### 16.3 Web SDK 1.0.5
+
+**安装**
+
+```bash
+npm install @cregis-kit/openplatform-webkit@1.0.5
+```
+
+**职责边界**：Web SDK 只负责在浏览器中嵌入授权页并接收 `postMessage`。它**只返回 `authorizationId`**，不返回 `oauthToken`，也不回传 `state`；`oauthToken`（即后端 `authorizeUrl` 中的 `appToken`）必须由你的后端保存，并在用户授权后调用 `oauth/verify`（5.4）换取业务接口可用的 `authorizeId`。
+
+**嵌入示例**
+
+```ts
+import { CregisWebSDK } from '@cregis-kit/openplatform-webkit';
+
+const sdk = new CregisWebSDK({
+  container: '#auth-container',   // 必填；popup 模式下作为挂载点（实际弹层挂到 document.body）
+  mode: 'popup',                  // 'popup' | 'tab' | 'window'，默认 popup
+  allowedOrigins: ['https://custody.cregis.ae'], // 建议配置，用于校验消息来源
+  onReady: ({ uuid }) => console.log('ready', uuid),
+  onAuthorizationStarted: () => console.log('user clicked authorize'),
+  onAuthorizationComplete: ({ authorizeId }) => console.log('authorizeId', authorizeId),
+  onAuthorizationError: ({ code, message }) => console.error(code, message),
+  onAuthorizationCancelled: () => console.log('cancelled'),
+});
+
+const result = await sdk.openAuthorization(authorizeUrlFromBackend);
+if (result.status === 'success') {
+  // 把 result.authorizeId 与你的用户关联；真正的业务 authorizeId 仍需后端 verify 后得到
+}
+```
+
+**打开模式**
+
+| `mode` | 行为 |
+|--------|------|
+| `popup`（默认） | 在 `document.body` 上创建遮罩层，内嵌 iframe 打开授权页；点击遮罩上的关闭按钮会以 `authorization_failed` 结束（`User cancelled authorization`） |
+| `tab` | `window.open(url, '_blank')`，依赖授权页 `postMessage` 回传；适合新标签页 |
+| `window` | 打开 600×700 弹窗，依赖 `postMessage`；弹窗被拦截时返回 `authorization_failed` |
+
+**postMessage 事件**
+
+| `type` | 触发时机 | `data` | SDK 回调 |
+|--------|----------|--------|----------|
+| `ready` | 授权页初始化完成 | 无 | `onReady({ uuid })` |
+| `authorization_started` | 用户点击授权按钮 | 无 | `onAuthorizationStarted()` |
+| `authorization_succeed` | 授权成功 | `{ authorizationId }` | `onAuthorizationComplete({ authorizeId })` |
+| `authorization_failed` | 参数错误、登录失败、授权失败、用户取消 | `{ code, message }`（另带 `error`） | `onAuthorizationError({ code, message })` |
+| `close` | 授权页关闭（授权成功后约 10 秒自动关闭） | 无 | `onAuthorizationCancelled()`，`openAuthorization` 返回 `{ status: 'cancelled' }` |
+
+补充说明：
+
+- 所有消息都带 `uuid`（即 `sdkUuid`）与 `timestamp`，SDK 会丢弃 UUID 不匹配的消息。
+- `allowedOrigins` 未配置时 SDK 接受任意来源的合法消息（向后兼容）；生产环境务必配置。
+- 授权页在无父窗口（例如用户直接在新标签页打开且没有 opener）时无法 `postMessage`，请改用服务端 `callback`（5.2）。
+- 除授权 SDK 外，包内还导出 `TransferTaskDetailDialog` / `openTransferTaskDetailDialog`，用于展示转账审批任务详情（与本指南的业务接口无直接耦合）。
+
+### 16.4 版本兼容表
+
+| SDK | 版本 | 坐标 / 安装 | 适用场景 | 与网关的已核对结论 |
+|-----|------|-------------|----------|--------------------|
+| Node.js | **1.1.0** | `npm install @cregis-kit/openplatform-node@1.1.0` | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致；`verifyOAuthToken` 请求体与网关不一致（见 16.1） |
+| Java | **1.2.0** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.0`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
+| Web | **1.0.5** | `npm install @cregis-kit/openplatform-webkit@1.0.5` | 浏览器嵌入授权页 | 只返回 `authorizationId`，必须以 `oauth/verify` 为准 |
+
+- 更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 `coinIds` / `primaryManager` / `payTo` 的请求会返回 `40102`，不要使用。
+- 三个 SDK 版本必须与网关的接口路径前缀 `/api/thirdparty/` 配套；`baseUrl` 不要包含该前缀，也不要带尾斜杠。
+- 环境地址见 2.3：本地 `http://127.0.0.1:1000`、SIT `https://custody-sit.cregis.ae/openplatform`、生产 `https://custody.cregis.ae/openplatform`。
+
+---
+
+## 17. 附录
+
+### 17.1 枚举
+
+以下类型逐字取自 `openplatform-sdk/node/src/types.ts`。
+
+**BusinessScope**（业务类型）
+
+```ts
+type BusinessScope = 'DEDICATED_ACCOUNT' | 'OMNIBUS_ACCOUNT' | 'OPEN_API_PROXY';
+```
+
+**Topology**（账本拓扑）
+
+```ts
+type Topology = 'ORBIT' | 'SINGLE_GENERAL' | 'QUAD_SMART_ISOLATION';
+```
+
+> `CUSTOM` 是上游 custody 接受的取值（7.1、7.2），但**不在 Node SDK 的 `Topology` 类型中**；TypeScript 调用需类型断言，或等待 SDK 更新。
+
+**AccountType**（账户类型）
+
+```ts
+type AccountType = 'FREEZE' | 'DEPOSIT' | 'PRIMARY' | 'RECEIVABLE' | 'PAYOUT'
+                 | 'PAYIN' | 'GENERAL_GAS' | 'QUARANTINE' | 'DIRTY';
+```
+
+**VaultAccountType**（金库账户类型）
+
+```ts
+type VaultAccountType = 'GENERAL_ACQUIRING' | 'SMART_ACQUIRING' | 'SMART'
+                      | 'GENERAL' | 'GMA' | 'TMA';
+```
+
+**MerchantType**
+
+```ts
+type MerchantType = 'NON_FINANCIAL_CORPORATE' | 'REGULATED_VASP' | 'INTERNAL_SYSTEM';
+```
+
+**PayoutOperation**
+
+```ts
+type PayoutOperation = 'withdraw' | 'allocate' | 'payout';
+```
+
+**CreationType**
+
+```ts
+type CreationType = 'PLATFORM' | 'THIRD_PARTY';
+```
+
+**TreasuryUnitStatus**
+
+```ts
+type TreasuryUnitStatus = 'ACTIVATED' | 'FROZEN' | 'CLOSED' | 'PENDING';
+```
+
+**AuditTaskStatus**
+
+```ts
+type AuditTaskStatus =
+  | 'AUDITING' | 'REJECTED' | 'AUDIT_REJECTED' | 'AUDIT_PASSED'
+  | 'SIGNING' | 'SIGN_FAILED' | 'SIGN_SUCCEED' | 'FAILED' | 'WAITING'
+  | 'SIGN_REJECTED' | 'ALL_BROADCAST_SUCCEED' | 'PARTIALLY_BROADCAST_SUCCEED'
+  | 'ALL_BROADCAST_FAILED' | 'BROADCAST_FAILED' | 'BROADCAST_EXCEPTION' | 'EXPIRED';
+```
+
+**AlgoType**
+
+```ts
+type AlgoType = 'ECDSA' | 'EC_SCHNORR' | 'ED_DSA' | 'UNASSIGNED' | 'ED25519';
+```
+
+补充：`UserRole` 在 `types.ts` 中为 `'MERCHANT_STAFF' | 'MERCHANT_OWNER' | 'MERCHANT_ADMIN' | 'MERCHANT_FUND_OPERATOR' | 'MERCHANT_ANYCALL_OPERATOR'`（13.2 的 `role` 字段）。
+
+### 17.2 常用结构
+
+以下同取自 `openplatform-sdk/node/src/types.ts`。
+
+**PaginatedResponse**
+
+```ts
+interface PaginatedResponse<T = unknown> {
+  records: T[];
+  total: number;
+  current: number;
+  size: number;
+  pages?: number;
+  orders?: OrderItem[];
+}
+
+interface OrderItem {
+  column: string;
+  asc: boolean;
+}
+```
+
+**CoinInfo**
+
+```ts
+interface CoinInfo {
+  coinId: string;
+  network: string;
+}
+```
+
+**FundControl / FundControlRule**
+
+```ts
+interface FundControlRule {
+  guardians: string[];
+  threshold: string;          // 注意：字符串
+  perTransferLimit: string;   // 注意：字符串
+  dailyTransferLimit: string; // 注意：字符串
+}
+
+interface FundControl {
+  coinId: string;
+  fundControlRules: FundControlRule[];
+}
+```
+
+**AnyCallRule**
+
+```ts
+interface AnyCallRule {
+  guardians: string[];
+  threshold: string;
+  allowedCommands: string[];
+}
+```
+
+**WhiteListCreateRequest**
+
+```ts
+interface WhiteListCreateRequest {
+  network: string;
+  address: string;
+  alias?: string;
+}
+```
+
+**AccountFundControl**
+
+```ts
+interface AccountFundControl {
+  accountId: number;
+  fundControls: FundControl[];
+}
+```
+
+**UnitAccount**
+
+```ts
+interface UnitAccount {
+  id: number;                // cusAccountId
+  ecode: string;
+  vaultCode: string;
+  vaultAccountId: string;
+  projectId: number;
+  treasuryUnitId: number;
+  accountName: string;
+  fundFlowCode: string;
+  anycallCode: string;
+  autoSignUrl: string;
+  balance: number;
+  freezeBalance: number;
+  holdBalance: number;
+  coinId: string;
+  network: string;
+  type: AccountType;
+  accountType?: VaultAccountType;
+  status: number;
+  income: number;
+  outcome: number;
+  isSmart: boolean;
+  remark: string;
+  createTime: string;
+  updateTime: string;
+}
+```
+
+**UnitAddress**
+
+```ts
+interface UnitAddress {
+  id: number;
+  address: string;
+  addressIndex: number;
+  accountType: AccountType;
+  coinId: string;
+  network: string;
+  cusAccountId: number;
+  treasuryUnitId: number;
+  available: number;
+  holdAmount: number;
+  holdFrozen: number;
+  status: number;
+  createTime: string;
+  updateTime: string;
+}
+```
+
+### 17.3 FAQ
+
+**Q：`coinId` / `network` 从哪里获取？**
+
+从 `POST /api/thirdparty/treasury/list-unit-account/{unitId}`（7.4）的账户列表取 `coinId` 与 `network`。地址查询、出金、归集都应使用与该账户一致的值；不要从币种名称或链名自行拼接。
+
+**Q：地址列表为什么是空的？**
+
+最常见原因是缺少 `coinId` 或 `network`——缺少时 Custody 返回空分页而不是错误。请确认 `unitId + accountType + coinId + network` 四个字段一起传入，且 `accountType` 与目标账户类型一致；地址尚未生成时同样为空，可用 8.3 / 8.4 创建。
+
+**Q：如何获得 `resourceAccessKey`？**
+
+调用 13.1 `merchant/register` 获取。首次注册返回非空 `resourceAccessKey`，它同时是 `oauth/verify` 的 `resourceKey` 与后续业务请求转发到 Custody 的资源键；重复注册时该字段可能为 `null`。若企业由平台侧开通，请向平台索取资源键。
+
+**Q：应该使用哪个环境地址？**
+
+本地 `http://127.0.0.1:1000`、SIT `https://custody-sit.cregis.ae/openplatform`、生产 `https://custody.cregis.ae/openplatform`（见 2.3）。`authorizeUrl` 的域名由平台配置（`OPENPLATFORM_AUTH_URL`），不要自行替换；跨环境混用 `authorizeId` / `appSecret` / `resourceAccessKey` 会得到 `40102`、`40301` 或 `400103`。
+
+**Q：回调验签失败，但签名算法看起来一致？**
+
+先确认走的是哪条回调路径：`oauth/verify` 的 `callback` 参数路径**没有** `X-Event`，签名串也**没有**事件段；应用默认 `callbackUrl` 路径带事件段。其次确认 `md5(sortedJSON(data))` 使用的是解析后的请求体且递归排序、数组保内对象也排序；最后确认 `X-Signature` 前缀 `sha256=` 已去掉后再比较。
+
+**Q：`oauth/verify` 明明返回了 `authorizeId`，业务接口仍返回 `40301`？**
+
+业务接口按 `basic.authorizationId` 查询 `oauth_resources` 表；只有 `oauth/verify` 与内部接口 `POST /api/v1/authorizations` 会写入该表。授权页直接返回的 `authorizationId` 不会自动落库；请确认业务请求使用的是 `verify` 返回的 `authorizeId`，且授权记录状态为 `active`。
