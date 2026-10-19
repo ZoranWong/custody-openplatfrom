@@ -890,7 +890,7 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 - `authorizeId`：授权记录 ID，用作业务请求的 `basic.authorizationId`。
 - `oauthToken`：`authorizeUrl` 请求中传入的 `token` 值（身份映射标识），**不是 JWT**；**未传 `token` 时载荷中没有该字段**。
 - 回调地址优先级：`authorizeUrl` 的 `callback` > 应用配置的 `callbackUrl`。两者都没有时不会推送。
-- 回调是异步的，失败会重试：初始 1 次 + 3 次重试，实际间隔为 0s / 1s / 5s（配置中的第 4 个 30s 值不可达），仅对 429、5xx 和网络错误重试。请务必对 `authorizeId` 做幂等处理。
+- 回调是异步的，失败会重试：初始 1 次 + 3 次重试，实际间隔为 0s / 1s / 5s（配置中的第 4 个 30s 值不可达）。注意：**当前实现只对网络 / 超时错误重试，HTTP 429 / 5xx 不会重试**（缺陷 D14，见 14.5）。请务必对 `authorizeId` 做幂等处理，并通过查询接口对账。
 
 回调的 HMAC 验签、重试策略、事件列表与响应要求详见 **第 14 章「回调与 Webhook」**。
 
@@ -2426,7 +2426,8 @@ app.post('/cregis/callback', async (req, res) => {
       res.status(401).json({ code: 40101, message: 'invalid signature' });
       return;
     }
-    // 5xx 会让平台重试；返回前请确保业务处理可重入
+    // 注意：返回 5xx 不会触发平台重试（见 14.5 的 D14 说明）；
+    // 请先把事件持久化 / 幂等落库，再返回 2xx，业务处理异步进行。
     res.status(500).json({ code: 50001, message: 'internal error' });
   }
 });
@@ -2435,8 +2436,8 @@ app.post('/cregis/callback', async (req, res) => {
 注意：
 
 - `handler` 只接收业务数据，事件名要从 `req.headers['x-event']` 读取；无事件时该头为 `undefined`。
-- SDK 验签只校验签名，不校验时间戳新鲜度，也不比对 `X-App-Id` 与构造配置中的 `appId`。请自行做重放防护（例如按 `X-App-Id + X-Timestamp + 事件主键` 去重）。
-- 验签使用解析后的 `req.body` 重新排序序列化，因此不需要保留原始请求字节；但不要在验签前修改 `req.body`。
+- SDK 验签只校验签名，不校验时间戳新鲜度，也不比对 `X-App-Id` 与构造配置中的 `appId`。请自行做重放防护：签名不含 nonce，请校验 `X-Timestamp`（毫秒）与服务端时间的偏差在可接受窗口内（例如 ±5 分钟），并用事件主键去重（见 14.6）。
+- 验签使用解析后的 `req.body` 重新排序序列化，因此不需要保留原始请求字节；但不要在验签前修改 `req.body`（增删字段、类型转换等都会改变 `md5(sortedJSON(data))`）。
 
 ### 14.5 重试策略
 
@@ -2444,25 +2445,29 @@ app.post('/cregis/callback', async (req, res) => {
 |----|------|
 | 总尝试次数 | 初始 1 次 + 最多 3 次重试（共 4 次） |
 | 重试间隔 | 第 2 次尝试前 0 ms、第 3 次前 1,000 ms、第 4 次前 5,000 ms |
-| 30 秒档位 | 配置中 `retryDelays` 含 `30000`，但循环最多执行 4 次，该档位**不可达** |
-| 触发重试 | HTTP `429`、HTTP `5xx`、网络错误（`ECONNABORTED` / `ETIMEDOUT` / 无响应） |
-| 不重试 | 其余非 2xx（如 4xx）立即失败 |
+| 30 秒档位 | 配置中 `retryDelays` 含 `30000`，但循环最多执行 4 次，该档位**不可达**（缺陷 D8） |
+| 触发重试 | **仅网络 / 传输错误**：`ECONNABORTED` / `ETIMEDOUT` / 未收到任何 HTTP 响应（`error.response === undefined`） |
+| 不重试 | HTTP `429`、`5xx`、`3xx`、其余 `4xx` —— 见下方 D14 |
 | 成功判定 | 任意 `2xx` |
 | 单次超时 | 30 秒 |
 | 载荷上限 | `JSON.stringify(data).length > 64 * 1024` 时直接放弃，不发送（按字符数计算，不是 UTF-8 字节数） |
 | 未配置回调地址 | 直接跳过，返回 `success: true, error: 'no_callback_url'` |
 | URL 校验 | 生产环境必须 HTTPS；非生产环境 HTTP 仅允许 `localhost` / `127.0.0.1` |
+| 投递保证 | 尽力而为：无队列 / 持久化 / 死信，耗尽 4 次尝试后不保证送达 |
 
-每次重试都会重新生成 `X-Timestamp` 并重新计算签名，因此接收方不能用第一次的时间戳校验后续尝试。
+> **缺陷 D14 — HTTP 429 / 5xx 实际不会重试。** 回调 HTTP 客户端（`application-callback.service.ts:68-75`）未配置 `validateStatus`，axios 默认拒绝所有非 2xx 并抛异常，因此 `response.status === 429 || response.status >= 500` 的分支（`:253-263`）不可达；`catch` 中的 `isRetryableNetworkError()`（`:296-303`）只识别超时 / 无响应错误，HTTP 错误的 `error.response` 已设置，直接失败。**净效果：只有网络 / 超时错误会重试；接收方返回 429 或 5xx 时事件立即丢失。** 修复前请先把事件持久化后返回 2xx，不要依赖返回 5xx 让平台重投；最终状态由对账 / 查询接口补偿。同一缺陷也影响 `custody/callback`：该路由对 Custody 始终返回 HTTP 200，推送失败只记录日志，Custody 不会重投。
+
+每次重试都会重新生成 `X-Timestamp` 并重新计算签名，因此接收方不能用第一次的时间戳校验后续尝试，也不能用 `X-Timestamp` 作为幂等键。
 
 > 这里的重试只属于**回调推送器**（`ApplicationCallbackService`）。第 7 章描述的网关转发客户端重试放大（上游 5xx / 超时被反复重试）发生在业务请求链路上，**不适用于回调推送**。
 
 ### 14.6 幂等与响应要求
 
-- **尽快返回 2xx**：单次回调超时为 30 秒，超时会触发重试并可能造成重复处理。建议先把事件写入队列 / 幂等表并立即返回，业务处理异步进行。
-- **按事件主键去重**：授权事件用 `authorizeId`；交易事件用 `orderId`（或 `taskId` / `txId`，取决于载荷）；没有主键时用 `X-App-Id + X-Timestamp + 事件名` 做兜底。同一事件可能被重复推送。
-- 希望平台重试时返回 `429` 或 `5xx`；返回其他 `4xx` 会立即终止重试。不要用 `4xx` 表示临时故障。
+- **尽快返回 2xx**：单次回调超时为 30 秒，超时会触发重试并可能造成重复处理。建议先把事件写入队列 / 幂等表并立即返回，业务处理异步进行。由于 429 / 5xx 不会重试（D14），先持久化再返回 2xx 是避免丢事件的唯一可靠方式。
+- **按事件主键去重**：授权事件用 `authorizeId`；交易事件用 `orderId`（或 `taskId` / `txId`，取决于载荷）。没有业务主键时用稳定的请求体哈希（`sha256(rawBody)`）兜底；**不要用 `X-App-Id + X-Timestamp`**——时间戳每次重试都会重新生成，无法去重同一事件。同一事件可能被重复推送。
+- **原子抢占**：用 Redis `SET NX`（或数据库唯一键）在产生副作用前抢占幂等键，并区分 `processing` / `done` 状态与 TTL，避免「先查后写」的竞态；处理失败时释放键。
 - 无论处理结果如何，都不要在响应体里依赖平台读取业务字段；平台只判断 HTTP 状态码。
+- 回放防护：签名不含 nonce，请校验 `X-Timestamp` 的时间窗口并配合幂等键去重。
 
 ---
 
