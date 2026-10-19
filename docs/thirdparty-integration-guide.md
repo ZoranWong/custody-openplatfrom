@@ -928,7 +928,7 @@ public class SignatureDemo {
 | 转发层错误（`forward.controller.ts` 的 `fail()`） | `{ code, message }` | 路由不存在、缺少 `resourceKey`、配额超限、后端不可用 / 超时。**没有 `data`，也没有 `trace_id`** |
 | 验签 / 中间件校验错误 | `{ code, message, errors?, trace_id }` | 参数与签名校验失败附带 `errors` 数组；应用 / 开发者状态错误只带 `trace_id` |
 | 全局限流错误 | `{ code, message, trace_id, original_code }` | `original_code` 为映射前的原始业务码 |
-| 上游 Custody 响应 | 原样透传 | 结构由上游决定，可能不含 `trace_id` |
+| 上游 Custody 响应（HTTP 2xx） | 原样透传 | 结构由上游决定，可能不含 `trace_id`；上游非 2xx 时网关丢弃响应体并返回 `{ code, message }`（见第 7 章） |
 
 **重要：** 业务接口的 HTTP 状态码通常为 `200`，业务失败通过响应体 `code` 表达，请勿仅凭 HTTP 状态判断成败。网关自身产生的错误会使用非 200 状态码（路由不存在 404、缺少 `resourceKey` 400、配额超限 429、后端不可用 503 / 超时 504），但响应体不一定含 `data` 或 `trace_id`，排查时请以响应头 `x-trace-id` 为准。
 
@@ -1060,7 +1060,7 @@ public class SignatureDemo {
 
 说明：
 
-- 上游 Custody 返回的 `400xxx`、`401xxx`、`403xxx` 业务码会原样透传在响应体 `code` 中；网关日志按码段映射记录 HTTP 状态（`400xxx` → 400、`401xxx` → 401、`403xxx` → 403、`400103` → 404、`409xxx` → 409、`429xxx` → 429、`120xxx` → 400、5xx → 500）。
+- 上游 Custody 以 HTTP 2xx 返回时，`400xxx`、`401xxx`、`403xxx` 业务码会原样透传在响应体 `code` 中；上游非 2xx 时网关丢弃上游响应体，统一返回 `{ code, message }`（见第 7 章）。网关日志按码段映射记录 HTTP 状态（`400xxx` → 400、`401xxx` → 401、`403xxx` → 403、`400103` → 404、`409xxx` → 409、`429xxx` → 429、`120xxx` → 400、5xx → 500）。
 - `40402`、`50201`、`50301`、`50401`、`50402` 等枚举存在，但当前网关不会主动返回；网关自身的路由错误使用 `40401`，转发层失败使用原始 HTTP 状态码 `500` / `503` / `504`。响应体 `code` 为 `502` 只可能来自上游透传。
 - 判断请求是否成功请以响应体 `code` 为准（成功为 `0` 或 `200`），不要只看 HTTP 状态码。
 - 错误码的完整定义、各接口的业务码清单与处理建议见 **第 15 章「错误码与排查」**。
@@ -1086,11 +1086,13 @@ public class SignatureDemo {
 
 本章至第 12 章描述网关转发到 Custody 的业务接口。所有接口均为 `POST`，请求体为 `{ "basic": {...}, "business": {...} }`，使用 **Resource 签名**（`basic.authorizationId` 必填，见第 4 章）。路径中以 `{...}` 表示的参数（如 `unitId`、`taskId`）不参与签名，其值必须匹配 `^[a-zA-Z0-9_-]{1,64}$`，否则网关在转发前返回 `40001`。
 
-转发行为统一为：网关把 `business` **原样**作为上游请求体发送给 Custody（不增删字段），再把 Custody 的响应体原样返回。因此：
+转发行为统一为：网关把 `business` **原样**作为上游请求体发送给 Custody（不增删字段）。**仅当上游返回 HTTP 2xx 时原样返回；上游非 2xx 时网关丢弃上游响应体并返回 `{ code, message }`（上游 4xx 也会被记为 500），且 5xx/超时会在网关内部重试最多 3 次——写操作（创建地址、出金、归集、提交审批）需注意重复提交风险。** 因此：
 
-- HTTP 状态通常为 `200`；成功以响应体 `code` 为 `0` 或 `200` 判断。
-- 参数校验、业务规则等错误由 Custody 返回，网关透传 `code` 与 `message`；`400xxx`（参数）、`401xxx`（认证）、`403xxx`（授权）、`400103`（资源键不存在）、`120xxx`（业务规则）均属此类。
+- 上游返回 2xx 时，HTTP 状态通常为 `200`；成功以响应体 `code` 为 `0` 或 `200` 判断。
+- 上游以 2xx 返回参数校验、业务规则等错误时，网关透传 `code` 与 `message`；`400xxx`（参数）、`401xxx`（认证）、`403xxx`（授权）、`400103`（资源键不存在）、`120xxx`（业务规则）均属此类。
+- 上游返回非 2xx 时，网关返回 `{ code, message }`（无 `data`、无 `trace_id`），`code` 为网关记录的 HTTP 状态（默认 500；上游 4xx 同样按 500 返回）；连接失败返回 503，超时返回 504（见 6.7）。
 - 网关自身错误（缺少 `resourceKey`、路由不存在、配额超限、上游不可用）的结构见 6.1。
+- **每日配额在转发前扣减**（`forward.controller.ts` 先校验配额再调用 Custody），被 Custody 拒绝的请求同样消耗配额（见 6.4）。
 
 ### 7.1 创建财务单元
 
@@ -1103,7 +1105,7 @@ public class SignatureDemo {
 |------|------|------|------|
 | `unitName` | string | 是 | 财务单元名称 |
 | `businessScope` | string | 是 | 业务类型：`DEDICATED_ACCOUNT` / `OMNIBUS_ACCOUNT` / `OPEN_API_PROXY` |
-| `topology` | string | 是 | 账本拓扑：`ORBIT` / `SINGLE_GENERAL` / `QUAD_SMART_ISOLATION` |
+| `topology` | string | 是 | 账本拓扑：`ORBIT` / `SINGLE_GENERAL` / `CUSTOM` / `QUAD_SMART_ISOLATION`（`CUSTOM` 上游接受，但 Node SDK 的 `Topology` 类型暂未包含，TS 调用需断言 / 等待 SDK 更新） |
 | `coinIds` | CoinInfo[] | 是 | 币种与网络，每项 `{ coinId, network }` |
 | `primaryManager` | FundControl[] | 是 | 主账户资金管理员，每项 `{ coinId, fundControlRules }` |
 | `payoutManager` | FundControl[] | 是 | 出金账户资金管理员，结构同上 |
@@ -1164,7 +1166,7 @@ public class SignatureDemo {
 
 `data.id` 即后续接口使用的 `unitId`。SDK 将该响应映射为 `CreateTreasuryUnitResponse`。
 
-**常见业务码**：`400 请求参数格式错误`（由 custody 返回，网关透传）。**已知问题：** 即使 `business` 结构完整，SIT 环境当前仍会从 custody 收到该错误；原因未在代码中确认，请以 custody 后续版本为准。另有 `400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`（签名与授权问题）。
+**常见业务码**：`400 请求参数格式错误`（作为上游 2xx 响应体内的业务码由 custody 返回，网关透传）。**已知问题：** 即使 `business` 结构完整，SIT 环境当前仍会从 custody 收到该错误；原因未在代码中确认，请以 custody 后续版本为准。另有 `400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`（签名与授权问题）。
 
 ### 7.2 创建自定义结构财务单元
 
@@ -1178,7 +1180,7 @@ public class SignatureDemo {
 | `unitName` | string | 是 | 财务单元名称 |
 | `coinIds` | CoinInfo[] | 是 | 币种与网络，每项 `{ coinId, network }` |
 | `fundControls` | FundControl[][] | 是 | 资金管理员，每个账户一组 `FundControl`（二维数组） |
-| `topology` | string | 否 | 账本拓扑：`ORBIT` / `SINGLE_GENERAL` / `CUSTOM` / `QUAD_SMART_ISOLATION` |
+| `topology` | string | 否 | 账本拓扑：`ORBIT` / `SINGLE_GENERAL` / `CUSTOM` / `QUAD_SMART_ISOLATION`（`CUSTOM` 上游接受，但 Node SDK 的 `Topology` 类型暂未包含，TS 调用需断言 / 等待 SDK 更新） |
 | `businessScope` | string | 否 | 业务类型：`DEDICATED_ACCOUNT` / `OMNIBUS_ACCOUNT` / `OPEN_API_PROXY` |
 | `isSmart` | boolean | 否 | 是否合约账户（custody 描述为“默认是合约账户”） |
 | `businessPurpose` | string | 否 | 业务用途 |
@@ -1252,7 +1254,7 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 }
 ```
 
-> 虽然接受 `pageSize` / `pageNum`，响应仍是数组；请勿按 `{ records, total, ... }` 解析（见 6.2）。
+> 虽然网关会把 `pageSize` / `pageNum` 原样转发，但上游 YAML 未为该接口声明请求体，custody 是否真正分页**未经验证**；响应始终是数组，请勿按 `{ records, total, ... }` 解析（见 6.2）。
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1339,7 +1341,9 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 | `pageSize` | number | 否 | 每页数量 |
 | `pageNum` | number | 否 | 页码（从 1 开始） |
 
-> **四个字段必须一起传。** 缺少 `coinId` 或 `network` 时 custody 返回**空分页**（不是错误）；缺少 `accountType` 时 custody 返回 **HTTP 500**。请从 7.4 的账户列表取值。
+> **四个字段必须一起传。** 缺少 `coinId` 或 `network` 时返回**空分页**（不是错误）。缺少 `accountType` 时观测到的是网关生成的 `500` 响应体 `{ "code": 500, "message": "..." }`：上游返回非 2xx，网关丢弃了上游响应体——具体原因在上游（custody），网关侧看不到。请从 7.4 的账户列表取值。
+>
+> 若 `unitId` 属于另一个 `resourceKey`，custody 的行为**未经验证**；当前只确认 `resourceKey` 不存在时返回 `400103`。
 
 **请求示例**
 
@@ -1383,7 +1387,7 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 }
 ```
 
-**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`；缺少 `accountType` 时 custody 返回 `500`（上游内部错误，原样透传）——均由 custody 返回，网关透传。
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`。以 2xx 返回时由 custody 产生、网关透传；缺少 `accountType` 时返回的是**网关生成的** `500` `{ code, message }` 响应体（上游非 2xx，网关丢弃上游响应体），原因在上游。
 
 ### 8.2 查询财务单元地址（按账户 ID）
 
@@ -1407,6 +1411,8 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 | `pageNum` | number | 否 | 页码（从 1 开始） |
 
 > 本接口按账户定位，`accountType` 不需要传。`unitId + coinId + network` 必须一起传：缺少 `coinId` / `network` 时返回**空分页**。
+>
+> 若 `cusAccountId`（或 `unitId`）属于另一个 `resourceKey`，custody 的行为**未经验证**；当前只确认 `resourceKey` 不存在时返回 `400103`。
 
 **请求示例**
 
@@ -1450,11 +1456,13 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 | `accountType` | string | 是 | 账户类型，取值见本章开头 |
 | `network` | string | 是 | 网络 |
 | `coinId` | string | 是 | 币种 ID |
-| `number` | number | 是 | 生成数量 |
+| `number` | number | 是 | 生成数量；单次上限由后端定义，文档未给出 |
 
 **请求参数（business）**
 
 无业务字段；发送空对象 `{}` 即可。
+
+> 本接口是非幂等写操作：网关对上游 5xx / 超时会内部重试最多 3 次（见本章开头的转发说明），重试可能重复生成地址。
 
 **请求示例**
 
@@ -1485,11 +1493,13 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `cusAccountId` | number | 是 | 账户 ID，来自 7.4 账户列表的 `id` |
-| `number` | number | 是 | 生成数量 |
+| `number` | number | 是 | 生成数量；单次上限由后端定义，文档未给出 |
 
 **请求参数（business）**
 
 无业务字段；发送空对象 `{}` 即可。
+
+> 本接口是非幂等写操作：网关对上游 5xx / 超时会内部重试最多 3 次，重试可能重复生成地址。
 
 **请求示例**
 
@@ -1604,7 +1614,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 { "code": 200, "message": "SUCCESS", "data": null }
 ```
 
-该变更需要 Board 审批，custody 可能异步生成审批任务；本接口不返回任务详情（SDK 返回 `void`）。
+该变更的具体效果（是否需要 Board 审批、是否异步生成审批任务）**未经验证**：SDK 返回 `void`，上游 YAML 的响应为 `MessageResult?`，均未描述审批流程。
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1673,18 +1683,20 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 | `coinId` | string | 是 | 币种 ID |
 | `network` | string | 是 | 网络 |
 | `merchantType` | string | 是 | 业务类型：`NON_FINANCIAL_CORPORATE` / `REGULATED_VASP` / `INTERNAL_SYSTEM`（上游 YAML 将 `merchantType` 列为唯一必填字段） |
-| `fromAccountId` | number | 否 | 出金账户 ID |
-| `fromAddress` | string | 否 | 出金账户地址 |
-| `operation` | string | 否 | 操作类型：`withdraw` / `allocate` / `payout` |
+| `fromAccountId` | number | 否 | 出金账户 ID；实际扣款账户的选择规则由后端定义（上游 YAML 与 SDK 均未将其标记为必填） |
+| `fromAddress` | string | 否 | 出金账户地址；上游 YAML 与 SDK 均未将其标记为必填 |
+| `operation` | string | 否 | 操作类型：`withdraw` / `allocate` / `payout`；默认值由后端定义，文档未给出 |
 | `toCusAccountId` | number | 否 | 内部转账目标账户 ID；`allocate` 时必填 |
 | `username` / `userId` | string | 否 | 三方用户标识 |
-| `orderId` | string | 否 | 客户业务订单号；幂等与对账使用（见 6.3） |
+| `orderId` | string | 否 | 客户业务订单号；按 `orderId` 去重属**期望由 custody 保障**的行为，需联调确认（见 6.3） |
 | `note` | string | 否 | 备注 |
 | `lang` | string | 否 | 语言，如 `zh_CN` / `en_US` |
 | `initiator` | string | 否 | 任务发起人（邮箱 / 名称） |
 | `travelRule` | TravelRuleRequest | 否 | Travel Rule：`{ referenceId?, payload? }` |
 
 `TravelRulePayload` 字段：`beneficiaryType`（`NATURAL` / `LEGAL`）、`beneficiaryName`、`beneficiaryDob`、`beneficiaryIdNumber`、`beneficiaryIdType`、`beneficiaryNationality`（以上适用于 `NATURAL`）、`beneficiaryLegalName`、`beneficiaryLegalRegistrationNo`、`beneficiaryLegalCountry`（以上适用于 `LEGAL`）。
+
+> 本接口是非幂等写操作：网关对上游 5xx / 超时会内部重试最多 3 次（见第 7 章开头的转发说明），而 `orderId` 去重尚未验证，重试可能导致重复出金。
 
 **请求示例**
 
@@ -1754,6 +1766,8 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 | `excludes` | string[] | 否 | 排除地址列表 |
 
 > **来源账户限制：** custody 只允许从 platform 创建的 acquiring（收款类）账户归集。其他账户返回 `120042 ONLY_ACQUIRING_ACCOUNT_ALLOWED`。
+>
+> 本接口是非幂等写操作：网关对上游 5xx / 超时会内部重试最多 3 次（见第 7 章开头的转发说明），注意重复归集风险。
 
 **请求示例**
 
@@ -1821,7 +1835,9 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `confirmed` | boolean | 是 | `true` 同意，`false` 拒绝 |
-| `signatures` | Record<string, string[]> | 否 | 多签签名结果：key 为签名人标识（上游描述为 taskId），value 为签名字符串列表 |
+| `signatures` | Record<string, string[]> | 否 | 多签签名结果，value 为签名字符串列表。key 的含义两个来源互相矛盾：上游 YAML 描述为 **taskId**，SDK README 描述为**签名人标识**；**当前未经验证**。 |
+
+> 存在 taskId 的请求示例（按上游 YAML 的形式）；若以签名人标识为 key，请同时调整 `signatures` 的 key。
 
 **请求示例**
 
@@ -1830,7 +1846,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
   "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
   "business": {
     "confirmed": true,
-    "signatures": { "guardian-1": ["0xsignature..."] }
+    "signatures": { "task-20261019-003": ["0xsignature..."] }
   }
 }
 ```
@@ -1843,13 +1859,15 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 任务不存在或 `taskId` 无效时由 custody 返回错误（网关透传；`taskId` 还会先经过网关路径参数校验，非法字符返回 `40001`）。
 
+> 本接口是非幂等写操作：网关对上游 5xx / 超时会内部重试最多 3 次（见第 7 章开头的转发说明），注意重复提交风险。
+
 **常见业务码**：`400xxx`（参数）、`120xxx`（业务规则，如任务状态不允许提交）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
 ---
 
 ## 12. 交易查询
 
-本章 5 个查询接口共用一个查询参数结构。分页对象为 `{ records, total, current, size, pages }`（见 6.2）。
+本章 5 个查询接口共用一个查询参数结构。分页对象为 `{ records, total, current, size, pages }`（见 6.2）。`pages` 由 SDK 类型声明（Java 中为必填），上游 YAML 未声明，以实际响应为准。
 
 ### 查询参数（PaginationQuery / QueryCondition）
 
