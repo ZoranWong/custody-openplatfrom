@@ -6,6 +6,8 @@
 #   ./deploy-testing.sh api-service      # Build & deploy api-service only
 #   ./deploy-testing.sh developer-portal # Build & deploy developer-portal only
 #   ./deploy-testing.sh admin-portal     # Build & deploy admin-portal only
+#   SKIP_BUILD=1 ./deploy-testing.sh ... # Deploy existing dist/ (used when
+#                                        # deploy-beta.sh is running in parallel)
 
 set -e
 
@@ -13,6 +15,7 @@ DEPLOY_HOST="root@8.217.54.115"
 DEPLOY_PATH="/web/custody-openplatform"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 TARGET="${1:-all}"
+SKIP_BUILD="${SKIP_BUILD:-0}"
 
 cd "$PROJECT_ROOT"
 
@@ -20,6 +23,7 @@ build_api() {
   echo "=========================================="
   echo "Building API Service..."
   echo "=========================================="
+  if [ "$SKIP_BUILD" = "1" ]; then echo "SKIP_BUILD=1, using existing dist/"; return; fi
   cd "$PROJECT_ROOT/openplatform-api-service"
   npm run build
 }
@@ -28,6 +32,7 @@ build_developer() {
   echo "=========================================="
   echo "Building Developer Portal..."
   echo "=========================================="
+  if [ "$SKIP_BUILD" = "1" ]; then echo "SKIP_BUILD=1, using existing dist/"; return; fi
   cd "$PROJECT_ROOT/openplatform-web/developer-portal-v2"
   npm run build
 }
@@ -36,6 +41,7 @@ build_admin() {
   echo "=========================================="
   echo "Building Admin Portal..."
   echo "=========================================="
+  if [ "$SKIP_BUILD" = "1" ]; then echo "SKIP_BUILD=1, using existing dist/"; return; fi
   cd "$PROJECT_ROOT/openplatform-web/admin-portal-v2"
   npm run build
 }

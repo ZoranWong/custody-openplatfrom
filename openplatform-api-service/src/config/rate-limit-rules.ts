@@ -163,13 +163,11 @@ export const ENDPOINT_CONFIGS: EndpointRateLimitConfig[] = [
 
 /**
  * Whitelisted IPs (no rate limiting)
+ * Exact match only. CIDR ranges removed — add individual IPs as needed.
  */
 export const WHITELIST_IPS: string[] = [
   '127.0.0.1',
   '::1',
-  '10.0.0.0/8',
-  '172.16.0.0/12',
-  '192.168.0.0/16',
 ];
 
 /**

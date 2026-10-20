@@ -157,10 +157,11 @@ router.get('/applications/:id', isvAuth, async (req, res) => {
       return
     }
 
+    const { appSecret: _, ...safeApp } = app
     res.json({
       code: 0,
       message: 'Success',
-      data: { application: app }
+      data: { application: safeApp }
     })
   } catch (error) {
     console.error('Get application error:', error)
@@ -294,10 +295,11 @@ router.post('/applications', isvAuth, requireOwner, validateCreateApplication, a
       callbackUrl
     })
 
+    const { appSecret: _, ...safeApp } = app
     res.status(201).json({
       code: 0,
       message: 'Application created successfully',
-      data: { application: app }
+      data: { application: safeApp }
     })
   } catch (error) {
     console.error('Create application error:', error)

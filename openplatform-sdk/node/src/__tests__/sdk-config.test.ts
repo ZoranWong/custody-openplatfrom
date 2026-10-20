@@ -109,7 +109,7 @@ describe('CregisSDK request shape', () => {
     const sdk = new CregisSDK(validConfig);
     const spy = spyPost();
 
-    await sdk.getAuthorizationUrl({ permissions: ['read'], state: 's' });
+    await sdk.getAuthorizationUrl({ permissions: ['read'], state: 's', token: 't' });
 
     const [, body] = spy.mock.calls[0] as [
       string,

@@ -8,6 +8,7 @@ import { AuthenticatedRequest } from '../../src/types/jwt.types';
 import {
   createRateLimitMiddleware,
   createTierRateLimitMiddleware,
+  resetTierCache,
   getRateLimitInfo,
   isRateLimited,
 } from '../../src/middleware/rate-limit.middleware';
@@ -18,6 +19,7 @@ describe('RateLimitMiddleware', () => {
   let mockNext: NextFunction;
 
   beforeEach(() => {
+    resetTierCache();
     mockReq = {
       body: {},
       query: {},
@@ -427,6 +429,7 @@ describe('Rate Limit Integration', () => {
   let mockNext: NextFunction;
 
   beforeEach(() => {
+    resetTierCache();
     mockReq = {
       body: { appid: 'app_integration_test' },
       query: {},

@@ -45,6 +45,7 @@ async function verifyOAuthorization(): Promise<string> {
     permissions: ['read', 'write'],
     callback: 'https://example.com/callback',
     state: 'test-state-' + Date.now(),
+    token: 'integration-test-user-' + Date.now(),
   });
   const token = new URL(authUrlResult.authorizeUrl).searchParams.get('appToken')!;
 
@@ -84,6 +85,7 @@ describe('OAuth Flow', () => {
       permissions: ['read', 'write'],
       callback: 'https://example.com/callback',
       state: 'test-state-' + Date.now(),
+      token: 'integration-test-user-' + Date.now(),
     });
 
     expect(result).toBeDefined();

@@ -37,9 +37,7 @@ public class OAuthService {
         if (request.getCallback() != null) {
             business.put("callback", request.getCallback());
         }
-        if (request.getToken() != null) {
-            business.put("token", request.getToken());
-        }
+        business.put("token", request.getToken());
 
         Map<String, Object> basic = Signer.buildBasicInfo(config.getAppId(), config.getAppSecret(), business);
         String jsonBody = Signer.buildSignatureBody(basic, business);
@@ -61,9 +59,7 @@ public class OAuthService {
         if (request.getCallback() != null) {
             business.put("callback", request.getCallback());
         }
-        if (request.getToken() != null) {
-            business.put("token", request.getToken());
-        }
+        business.put("token", request.getToken());
 
         Map<String, Object> basic = Signer.buildBasicInfo(config.getAppId(), config.getAppSecret(), business);
         String jsonBody = Signer.buildSignatureBody(basic, business);

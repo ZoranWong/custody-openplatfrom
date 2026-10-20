@@ -48,7 +48,7 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 
 **本指南覆盖范围：**
 
-- 开发者入驻：注册、KYB 审核、登录、创建应用、订阅套餐、凭证管理
+- 开发者入驻：通过开发者门户完成注册、KYB 审核、创建应用、订阅套餐
 - 认证与签名：Basic 签名与 Resource 签名、`business` 规范化、Node.js / Java 计算示例
 - OAuth 授权：获取授权地址、授权页交互、由授权页返回 `authorizeId`、授权回调
 - 通用约定：请求与响应结构、分页、幂等、每日配额、限流、`traceId`、错误码
@@ -64,42 +64,40 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 │   开发者系统   │          │    Cregis 开放平台网关     │          │  Custody 托管服务 │
 └───────┬────────┘          └─────────────┬──────────────┘          └────────┬─────────┘
         │                                 │                                  │
-        │ 1. 注册（/api/v1/isv/auth/register）                               │
+        │ 1. 注册开发者账号（通过开发者门户或运营协助）                       │
         │ 2. KYB 审核（运营侧处理，开发者等待或补件）                        │
-        │ 3. 登录（/api/v1/isv/auth/login）→ Bearer JWT                      │
-        │ 4. 创建应用（/api/v1/isv/applications）→ appId + appSecret         │
-        │ 5. 订阅套餐（/api/v1/isv/packages、/api/v1/isv/orders）            │
-        │    → dailyApiLimit                                                │
+        │ 3. 登录开发者门户 → 创建应用 → 获取 appId + appSecret              │
+        │ 4. 订阅套餐 → dailyApiLimit                                        │
         │────────────────────────────────▶│                                  │
         │                                 │                                  │
-        │ 6. POST /api/thirdparty/oauth/authorizeUrl（Basic 签名）           │
+        │ 5. POST /api/thirdparty/oauth/authorizeUrl（Basic 签名）           │
         │────────────────────────────────▶│                                  │
         │◀──────────── authorizeUrl ──────│                                  │
         │                                 │                                  │
-        │ 7. 前端打开授权页 → 用户登录（captcha + MFA）→ 选择组织 → 确认授权 │
+        │ 6. 前端打开授权页 → 用户登录（captcha + MFA）→ 选择组织 → 确认授权 │
         │                                 │                                  │
-        │                                 │ 8. 授权页调用 Custody 内部授权   │
+        │                                 │ 7. 授权页调用 Custody 内部授权   │
         │                                 │    POST /internal/third-party/   │
         │                                 │ authorize?appId=&ecode=&appToken=│
         │                                 │                                  │
-        │                                 │ 9. Custody 内部调用网关 verify   │
+        │                                 │ 8. Custody 内部调用网关 verify   │
         │                                 │ POST /api/thirdparty/oauth/verify│
         │                                 │◀─────────────────────────────────│
         │                                 │    { resourceKey, oauthToken }   │
         │                                 │    写入 oauth_resources          │
         │                                 │─── { authorizeId } ─────────────▶│
         │                                 │                                  │
-        │ 10. 授权页 postMessage 返回 authorizeId                            │
+        │ 9. 授权页 postMessage 返回 authorizeId                             │
         │     你的后端保存该 authorizeId                                     │
         │                                 │                                  │
-        │ 11. POST /api/thirdparty/treasury/...（Resource 签名）             │
+        │ 10. POST /api/thirdparty/treasury/...（Resource 签名）             │
         │    basic{ authorizationId = 授权页返回的 authorizeId } + business  │
         │────────────────────────────────▶│ 验签 + 校验授权 + 每日配额       │
         │                                 │─────────────────────────────────▶│
         │                                 │◀──────────── 业务结果 ───────────│
         │◀─── 业务响应 + x-trace-id ──────│                                  │
         │                                 │                                  │
-        │ 12. 接收授权回调与业务回调（HMAC-SHA256 验签）                     │
+        │ 11. 接收授权回调与业务回调（HMAC-SHA256 验签）                     │
         │◀═══════════════════════════════════════════════════════════════════│
 ```
 
@@ -107,10 +105,10 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 
 | 你负责 | 平台负责 |
 | --- | --- |
-| 注册开发者账号并提交真实、完整的企业与 UBO 资料 | 审核 KYB，维护审核状态与审核记录 |
+| 通过开发者门户完成注册并提交真实、完整的企业与 UBO 资料 | 审核 KYB，维护审核状态与审核记录 |
 | 妥善保管 `appSecret`，不写入前端代码或公开仓库 | 按 `appId` 校验签名、应用状态与开发者状态 |
 | 在服务端按规范计算 Basic / Resource 签名 | 校验时间戳容差、nonce 唯一性、签名与 `authorizationId` |
-| 创建应用、订阅套餐、选择业务模式 | 提供授权页、签发授权页 JWT（`appToken`，即 `oauthToken`）、维护授权关系 |
+| 在门户创建应用、选择业务模式、订阅套餐 | 提供授权页、签发授权页 JWT（`appToken`，即 `oauthToken`）、维护授权关系 |
 | 在前端打开授权页，接收并保存授权页返回的 `authorizeId` | 授权页确认后由 Custody 内部调用网关 `POST /api/thirdparty/oauth/verify` 写入 `oauth_resources` 并生成 `authorizeId` |
 | 在业务系统中维护 `authorizeId` 与自身用户的映射 | 生成并维护 `authorizeId`（授权记录 ID），校验授权有效性 |
 | 接收并验签回调，按业务语义处理幂等 | 推送授权与业务事件，失败时按策略重试 |
@@ -148,7 +146,7 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 
 ## 3. 开发者入驻
 
-入驻流程全部通过开发者门户或 `/api/v1/isv/*` 接口完成。除注册和登录外，`/api/v1/isv/*` 接口都需要在请求头携带登录返回的 Bearer JWT：
+入驻流程通过开发者门户完成。除注册和登录外，入驻各环节的操作都需要在请求头携带登录返回的 Bearer JWT（仅用于开发者门户，非业务接口凭证）：
 
 ```
 Authorization: Bearer <accessToken>
@@ -156,68 +154,12 @@ Authorization: Bearer <accessToken>
 
 ### 3.1 注册
 
-**POST** `/api/v1/isv/auth/register` · 无需认证
-
-**请求体**
-
-```json
-{
-  "email": "dev@example.com",
-  "password": "Str0ngPassw0rd",
-  "legalName": "Example Trading Ltd.",
-  "registrationNumber": "91310000XXXXXXXXXX",
-  "jurisdiction": "CN",
-  "dateOfIncorporation": "2020-01-15",
-  "registeredAddress": "Shanghai, China",
-  "website": "https://example.com",
-  "uboInfo": [
-    {
-      "name": "Zhang San",
-      "nationality": "CN",
-      "ownershipPercentage": 60,
-      "position": "Director",
-      "documentUrl": "https://example.com/ubo-id.pdf"
-    }
-  ]
-}
-```
-
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `email` | string | 是 | 登录邮箱，全局唯一 |
-| `password` | string | 是 | 至少 6 位 |
-| `legalName` | string | 是 | 企业法定名称 |
-| `registrationNumber` | string | 否 | 统一社会信用代码或注册号 |
-| `jurisdiction` | string | 否 | 注册地国家 / 地区 |
-| `dateOfIncorporation` | string | 否 | 成立日期（`YYYY-MM-DD`） |
-| `registeredAddress` | string | 否 | 注册地址 |
-| `website` | string | 否 | 企业官网 |
-| `uboInfo` | array | 是 | 至少一位受益所有人（UBO）；每项含 `name`、`nationality`、`ownershipPercentage`、`position`，可选 `documentUrl` |
-
-**响应**
-
-```json
-{
-  "code": 0,
-  "message": "Registration successful",
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-    "user": {
-      "id": "0f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f",
-      "isvDeveloperId": "9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d",
-      "email": "dev@example.com",
-      "name": "Example Trading Ltd.",
-      "role": "owner",
-      "status": "active"
-    }
-  }
-}
-```
+注册时需要提交企业与受益所有人（UBO）信息，包括：法定名称（`legalName`）、统一社会信用代码或注册号、注册地、成立日期、注册地址、企业官网，以及至少一位 UBO 的姓名、国籍、持股比例、职位和证件文档链接。密码至少 6 位。
 
 注册成功后：
 
-- 开发者记录的 `kybStatus` 初始为 `pending`，需要等待平台审核。
-- 注册响应已包含 `accessToken`，可立即登录开发者后台查看资料，但** KYB 未通过前不能创建应用**。
+- `kybStatus` 初始为 `pending`，需要等待平台审核。
+- 注册响应包含 `accessToken`，可立即登录开发者门户查看资料，但 **KYB 未通过前不能创建应用**。
 - 邮箱重复注册返回 `40902`（Conflict）。
 
 ### 3.2 KYB 审核
@@ -231,77 +173,23 @@ KYB（Know Your Business）是平台侧的合规审核，**由平台运营管理
 | `approved` | 审核通过 | 可创建应用并正式接入 |
 | `rejected` | 审核拒绝 | 查看拒绝原因，必要时重新提交入驻申请 |
 
-运营侧使用的接口（仅列出以便理解流程，开发者无权限调用）：
-
-| 接口 | 说明 |
-| --- | --- |
-| `POST /api/v1/admin/kyb/:id/approve` | 审核通过 |
-| `POST /api/v1/admin/kyb/:id/reject` | 审核拒绝，请求体必须包含 `comment`（拒绝原因） |
-| `POST /api/v1/admin/kyb/:id/request-info` | 要求补充材料，状态变为 `pending_info` |
-
-KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATOR_DENIED`，`KYB approval required before creating applications`）。
+KYB 未通过时创建应用会返回 `40303`（`AUTHZ_OPERATOR_DENIED`，`KYB approval required before creating applications`）。
 
 ### 3.3 登录
 
-登录需要先完成滑块验证码，流程如下：
+登录需要先完成滑块验证码：
 
-1. `GET /api/v1/captcha/generate` 获取 `captchaId`（验证码挑战 5 分钟内有效）。
-2. 用户在页面上完成滑块，前端调用 `POST /api/v1/captcha/verify`，请求体 `{ "captchaId": "...", "x": 123 }`，返回 `captchaToken`。
+1. 获取 `captchaId`（验证码挑战 5 分钟内有效）。
+2. 用户在页面上完成滑块验证，获取 `captchaToken`。
 3. 调用登录接口时携带 `captchaToken`。
 
-**POST** `/api/v1/isv/auth/login`
+登录成功后返回 `accessToken`，用于访问开发者门户相关操作，默认有效期 24 小时。该 JWT **不是**业务接口的凭证，业务接口使用第 4 章的签名机制。
 
-```json
-{
-  "email": "dev@example.com",
-  "password": "Str0ngPassw0rd",
-  "captchaToken": "<captcha verify 返回的 token>"
-}
-```
-
-**响应**
-
-```json
-{
-  "code": 0,
-  "message": "Login successful",
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-    "user": {
-      "id": "0f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f",
-      "isvDeveloperId": "9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d",
-      "email": "dev@example.com",
-      "role": "owner",
-      "status": "active"
-    }
-  }
-}
-```
-
-| 错误码 | 场景 |
-| --- | --- |
-| `40002` | 未携带 `captchaToken`（`Captcha verification required`） |
-| `40003` | `captchaToken` 无效或已过期 |
-| `40110` | 邮箱或密码错误、账号被停用 |
-
-`accessToken` 是访问开发者后台接口（`/api/v1/isv/*`）的 Bearer JWT，默认有效期 24 小时（可由平台通过 `ISV_JWT_EXPIRES_IN` 配置）。注销接口 `POST /api/v1/isv/auth/logout` 仅作客户端登出提示，请自行丢弃 token。该 JWT **不是**业务接口的凭证，业务接口使用第 4 章的签名机制。
-
-> 另有公开接口 `POST /api/v1/isv/auth/forgot-password` 与 `POST /api/v1/isv/auth/reset-password`。当前实现是演示桩：只做参数校验并返回成功，不会发送邮件，也不校验重置 token。请勿依赖它们找回密码（见 6.8）。
+> 另有忘记密码与重置密码功能。当前实现是演示桩：只做参数校验并返回成功，不会发送邮件，也不校验重置 token。请勿依赖它们找回密码（见 6.8）。
 
 ### 3.4 创建应用
 
-**POST** `/api/v1/isv/applications` · `Authorization: Bearer <accessToken>` · 仅 owner
-
-**请求体**
-
-```json
-{
-  "appName": "Example Treasury",
-  "appDescription": "Enterprise treasury integration",
-  "appType": "corporate",
-  "callbackUrl": "https://api.example.com/cregis/callback"
-}
-```
+KYB 审核通过后，可在开发者门户创建应用。需要指定：
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
@@ -310,74 +198,22 @@ KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATO
 | `appType` | string | 是 | `corporate`（企业资金管理）/ `payment`（加密支付）/ `custody`（个人托管） |
 | `callbackUrl` | string | 否 | 默认回调地址，接收授权与业务事件；生产环境必须为 HTTPS |
 
-**响应**（HTTP 201）
-
-```json
-{
-  "code": 0,
-  "message": "Application created successfully",
-  "data": {
-    "application": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "isvDeveloperId": "9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d",
-      "appName": "Example Treasury",
-      "appDescription": "Enterprise treasury integration",
-      "appType": "corporate",
-      "callbackUrl": "https://api.example.com/cregis/callback",
-      "appSecret": "sk_1f2e3d4c5b6a79880a1b2c3d4e5f6789",
-      "status": "active",
-      "createdAt": "2026-10-19T08:00:00.000Z"
-    }
-  }
-}
-```
+创建成功后返回应用信息，其中的 `id` 就是后续签名使用的 **`appId`**（UUID 格式），以及敏感的 `appSecret`。
 
 关键说明：
 
-- 响应中的 `application.id` 就是后续签名使用的 **`appId`**（UUID 格式）。
 - `appSecret` 是敏感凭证，请立即保存到服务端密钥管理系统。创建应用、重置密钥的响应会返回它；应用列表接口不会返回；应用详情接口**会返回完整记录（含 `appSecret`）**，只能在服务端调用。
-- 创建应用要求当前开发者 `kybStatus === approved`，且登录用户角色为 `owner`。
 - 应用默认状态为 `active`；状态非 `active` 时，OAuth 与业务接口都会被拒绝。
 
-应用创建后可通过以下接口查看：
-
-| 接口 | 说明 |
-| --- | --- |
-| `GET /api/v1/isv/applications` | 当前用户可访问的应用列表（不含 `appSecret`） |
-| `GET /api/v1/isv/applications/:id` | 应用详情。**当前实现直接返回应用记录，包含 `appSecret`**；只能在服务端调用，切勿从浏览器或前端代码调用 |
-| `PUT /api/v1/isv/applications/:id` | 修改 `appName`、`appDescription`、`callbackUrl`（响应不含 `appSecret`） |
+应用创建后可在开发者门户查看和管理应用信息（查看列表、修改名称 / 描述 / 回调地址、重置密钥等）。
 
 ### 3.5 订阅套餐
 
 业务接口的每日调用配额来自订阅套餐的 `dailyApiLimit`。
 
-**GET** `/api/v1/isv/packages` · 返回当前可售套餐数组
+可在开发者门户查看可售套餐、创建订阅订单（指定套餐、计费周期和付款方式），并查询订单详情与订阅历史。当前生效订阅可通过查询接口获取当日用量 `dailyApiUsage` 与套餐信息。
 
-**POST** `/api/v1/isv/orders` · 创建订阅订单
-
-```json
-{
-  "packageId": "b6f1c2d3-e4a5-4b6c-8d7e-9f0a1b2c3d4e",
-  "period": "monthly",
-  "paymentMethod": "bank_transfer"
-}
-```
-
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `packageId` | string | 是 | 套餐 ID，来自 `GET /api/v1/isv/packages` |
-| `period` | string | 是 | `monthly` 或 `yearly` |
-| `paymentMethod` | string | 否 | 默认 `bank_transfer` |
-
-订单创建后状态为 `pending`，平台确认付款后开通订阅。可通过以下接口确认订阅状态：
-
-| 接口 | 说明 |
-| --- | --- |
-| `GET /api/v1/isv/orders/:id` | 订单详情（`status`、`paidAt`、`confirmedAt`） |
-| `GET /api/v1/isv/subscriptions` | 订阅历史（分页：`page`、`pageSize`） |
-| `GET /api/v1/isv/subscription/current` | 当前生效订阅，含当日用量 `dailyApiUsage` 与套餐信息 |
-
-套餐的 `dailyApiLimit` 字段通过 `GET /api/v1/isv/packages` 获取，它决定每日可调用的业务接口次数（见 6.4）；另有独立的限流档位（见 6.5）。若套餐记录缺少 `dailyApiLimit`，配额按 **1000** 计算。未确认订阅前请勿发起生产调用。
+若套餐记录缺少 `dailyApiLimit`，配额按 **1000** 计算。未确认订阅前请勿发起生产调用。
 
 ### 3.6 凭证安全
 
@@ -385,29 +221,17 @@ KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATO
 | --- | --- | --- |
 | `appId` | 公开标识，放在 `basic.appId` | 可出现在前端授权 URL 中 |
 | `appSecret` | 计算签名，等价于密钥 | **只能存放在服务端**，不得下发到浏览器、移动端或公开仓库 |
-| 登录 `accessToken` | 访问开发者后台接口 | 服务端会话或安全存储，默认 24 小时有效 |
+| 登录 `accessToken` | 访问开发者门户接口 | 服务端会话或安全存储，默认 24 小时有效 |
 | `authorizeId` | 业务接口的授权标识 | 服务端保存，与自身用户 / 企业映射 |
 
 **重置密钥**
 
-**POST** `/api/v1/isv/applications/:id/regenerate-secret` · `Authorization: Bearer <accessToken>` · 仅 owner
-
-```json
-{
-  "code": 0,
-  "message": "Secret regenerated successfully",
-  "data": {
-    "applicationSecret": "sk_9f8e7d6c5b4a39281706f5e4d3c2b1a0"
-  }
-}
-```
-
-重置后旧 `appSecret` 立即失效，所有使用旧密钥的签名请求都会返回 `40102`。请在低峰期操作，并同步更新所有服务实例的环境变量。
+可在开发者门户重置应用的 `appSecret`。重置后旧密钥立即失效，所有使用旧签名的请求返回 `40102`。请在低峰期操作，并同步更新所有服务实例的环境变量。
 
 **泄露处置建议**
 
-1. 立即调用 `regenerate-secret` 吊销旧密钥。
-2. 检查 API 日志（`GET /api/v1/api-logs`）中是否存在异常调用、异常 IP 或异常 `apiName`。
+1. 立即重置密钥吊销旧密钥。
+2. 检查 API 日志中是否存在异常调用、异常 IP 或异常 `apiName`。
 3. 若出现未授权操作，暂停应用（平台侧可将应用置为 `suspended`）并联系平台安全团队。
 4. 排查泄露渠道（前端打包、日志打印、仓库提交记录），补齐密钥管理流程。
 
@@ -711,7 +535,7 @@ public class SignatureDemo {
 | `permissions` | string[] | 否（见下方警告） | 申请的权限列表。控制器不校验该字段，缺省时不写入授权 URL，授权页默认为 `['read']` |
 | `state` | string | 否 | 防 CSRF 状态值，原样写入授权 URL 的 `state` 参数。**授权页不会回传 `state`**，请自行通过业务侧记录或 `token` 关联本次授权 |
 | `callback` | string | 否 | 授权结果的服务端回调地址；不传则使用应用配置的 `callbackUrl` |
-| `token` | string | 否 | 开发者自定义的不透明字符串，写入授权页 JWT，并在授权回调中以 `oauthToken` 字段原样返回（用于身份映射）；不传时回调载荷不含该字段 |
+| `token` | string | 是 | 开发者自定义的不透明字符串，写入授权页 JWT，并在授权回调中以 `oauthToken` 字段原样返回（用于身份映射） |
 
 > **`permissions` 序列化陷阱（重要）：** 网关用 `JSON.stringify(permissions)` 写入授权 URL，而授权页用 `permissions.split(',')` 解析。传入非空数组（如 `["read","write"]`）时，授权页实际收到的是 `["read"` 和 `"write"]` 两段，无法通过页面的权限白名单校验，授权页会直接显示失败。**当前可用的做法是省略 `permissions`**（授权页默认 `['read']`）。字符串数组的序列化修复属于平台侧改动。
 >
@@ -964,7 +788,7 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 - 配额按**开发者（ISV）**维度、按自然日统计，上限来自当前生效订阅套餐的 `dailyApiLimit`；套餐记录缺少该字段时按 **1000** 计算。
 - 仅统计通过网关转发的业务接口调用（`/api/thirdparty/*` 中除 `oauth/verify` 等网关本地接口外的转发请求）。
 - 超出配额返回 HTTP `429`，业务码 `42901`，消息形如 `Daily API quota exceeded (1000/1000)`。
-- 用量每日 0 点重置（平台定时任务将 `dailyApiUsage` 归零）。当前用量可通过 `GET /api/v1/isv/subscription/current` 的 `dailyApiUsage` 查看。
+- 用量每日 0 点重置（平台定时任务将 `dailyApiUsage` 归零）。当前用量可通过开发者门户的订阅查询获取 `dailyApiUsage`。
 - **fail-closed**：当配额服务异常（如数据库不可用）时，请求会被拒绝，返回 `42901`；此时消息中的计数为 `(0/0)`，不要据此判断真实额度。这是银行级托管平台的默认安全策略，请把 `42901` 视为“可重试但需退避”的错误。
 - 当前实现中，开发者若没有生效中的订阅，配额校验会直接放行；生产环境请始终保持有效订阅，不要依赖该行为。
 
@@ -1046,7 +870,7 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 | 授权页/Web SDK 只返回 `authorizationId`，不返回 `oauthToken` | 无法从前端拿到 `oauthToken` | 无需处理：`authorizationId` 已由 Custody 内部调用 `verify` 生成，直接作为 `basic.authorizationId` 使用 |
 | 授权页不回传 `state` | 无法用 `state` 做前端 CSRF 校验 | 用 `token` 关联业务身份，或业务侧记录授权上下文 |
 | 授权记录按 ID 查询，不校验应用归属 | 理论上一个应用可使用另一应用创建的 `authorizeId` | 妥善保护 `authorizeId`，不要跨应用传递 |
-| `GET /api/v1/isv/applications/:id` 返回 `appSecret` | 泄露风险 | 仅在服务端调用，禁止浏览器调用 |
+| 应用详情接口返回 `appSecret` | 泄露风险 | 仅在服务端调用，禁止浏览器调用 |
 | 授权回调 `callback` 路径不带 `X-Event`，签名串也无事件段 | 验签实现需区分两条回调路径 | 优先配置应用默认 `callbackUrl` |
 | `forgot-password` / `reset-password` 为演示桩 | 不会真正发信或校验 token | 通过平台运营人工重置 |
 | 无有效订阅时配额校验放行 | 可能绕过 `dailyApiLimit` | 保持有效订阅，不依赖该行为 |
@@ -2513,7 +2337,7 @@ app.post('/cregis/callback', async (req, res) => {
 | `40301` | `authorizeId` 不存在、授权记录非 `active`，或使用了另一环境的 `authorizeId` | 重新走 OAuth 流程（授权页重新授权） |
 | `400103` | `resourceKey` 拼写错误、跨环境使用、未在 custody 开通 | 使用 13.1 返回的 `resourceAccessKey`，或联系平台开通；`oauth/verify`（Custody 内部调用）不会提前发现该问题（5.4） |
 | 地址查询返回空分页 | 缺少 `coinId` / `network`；`accountType` 与账户不匹配；地址尚未创建 | 从 `list-unit-account`（7.4）取 `coinId` / `network`，四个字段一起传（第 8 章） |
-| `42901` | 超出订阅套餐 `dailyApiLimit`，或触发限流；配额服务异常时 fail-closed 也会返回 `42901` | 查看 `Retry-After` 与 `GET /api/v1/isv/subscription/current` 的 `dailyApiUsage`；退避重试（6.4、6.5） |
+| `42901` | 超出订阅套餐 `dailyApiLimit`，或触发限流；配额服务异常时 fail-closed 也会返回 `42901` | 查看 `Retry-After` 与开发者门户订阅查询的 `dailyApiUsage`；退避重试（6.4、6.5） |
 | HTTP `500` / `503` / `504`，响应体只有 `{code,message}` | Custody 返回非 2xx、连接失败或超时；上游响应体被丢弃 | 记录 `x-trace-id` 与请求时间，联系平台；写操作先确认是否已生效再重试 |
 | 同一笔出金 / 创建地址重复执行 | 网关对上游 5xx / 超时自动重试，且重试次数可能被放大；Custody 是否按 `orderId` 去重未验证 | 复用稳定业务单号；重试前先查询订单 / 地址；非幂等接口避免盲目重试（第 7、10 章） |
 | `400070`（`board/init`） | 护卫队公钥没有对应用户，或 `threshold` 超过有效签名人数 | 先用 13.2 建用户并绑定 `publicKey`，再初始化 board（13.3） |

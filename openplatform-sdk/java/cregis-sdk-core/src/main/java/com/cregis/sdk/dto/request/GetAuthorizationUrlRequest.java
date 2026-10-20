@@ -17,6 +17,6 @@ public class GetAuthorizationUrlRequest {
     private String state;
     /** 授权成功后的回调通知地址 */
     private String callback;
-    /** 开发者生成的 token，用于回调时身份映射 */
+    /** 开发者生成的 token，用于回调时身份映射（必填） */
     private String token;
 }

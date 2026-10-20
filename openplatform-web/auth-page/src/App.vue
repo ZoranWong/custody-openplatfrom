@@ -228,6 +228,22 @@ function validateAuthData(data: AuthInitData): { valid: boolean; error?: string 
 
 // ---------- URL Parsing ----------
 
+/**
+ * Parse permissions from URL param.
+ * Supports both comma-separated (new) and JSON array (legacy) formats.
+ */
+function parsePermissions(raw: string | null): string[] | undefined {
+  if (!raw) return undefined;
+  if (raw.startsWith('[')) {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw.split(',').filter(Boolean);
+    }
+  }
+  return raw.split(',').filter(Boolean);
+}
+
 function getTokenFromUrl(): AuthInitData | null {
   const urlParams = new URLSearchParams(window.location.search);
   const appToken = urlParams.get('appToken');
@@ -238,7 +254,7 @@ function getTokenFromUrl(): AuthInitData | null {
     appToken,
     appName: urlParams.get('appName') || undefined,
     appLogoUrl: urlParams.get('appLogoUrl') || undefined,
-    permissions: urlParams.get('permissions')?.split(',') || ['read'],
+    permissions: parsePermissions(urlParams.get('permissions')) || ['read'],
     redirectUri: urlParams.get('redirectUri') || undefined,
     state: urlParams.get('state') || undefined,
   };

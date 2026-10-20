@@ -59,8 +59,11 @@ export class ResourceAuthorizationService {
     try {
         const oauthResource = await repo.findById(authorizationId)
 
-      if (!oauthResource) {
-          logAuthorizationFailure(appId, authorizationId, 'resource_not_authorized')
+      if (!oauthResource || oauthResource.appId !== appId) {
+          logAuthorizationFailure(appId, authorizationId, 'resource_owner_mismatch', {
+            expectedAppId: appId,
+            actualAppId: oauthResource?.appId,
+          })
         return {
           authorized: false,
           errorCode: 'RESOURCE_NOT_AUTHORIZED',

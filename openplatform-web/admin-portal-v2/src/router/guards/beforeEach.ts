@@ -218,9 +218,19 @@ function handleLoginStatus(
 
   // 未登录（或会话失效）且访问需要权限的页面，跳转到登录页并携带 redirect 参数
   userStore.logOut()
+
+  // 去除已有 redirect 参数，避免嵌套
+  const redirectPath = to.path + (to.hash || '')
+  const cleanQuery = { ...to.query }
+  delete cleanQuery.redirect
+
   next({
     name: 'Login',
-    query: { redirect: to.fullPath }
+    query: {
+      redirect: Object.keys(cleanQuery).length > 0
+        ? redirectPath + '?' + new URLSearchParams(cleanQuery as Record<string, string>).toString()
+        : redirectPath
+    }
   })
   return false
 }

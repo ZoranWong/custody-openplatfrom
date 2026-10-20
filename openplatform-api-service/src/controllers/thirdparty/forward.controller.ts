@@ -30,6 +30,7 @@ interface LogContext {
   subscriptionId?: string;
   apiName: string;
   endpoint: string;
+  traceId?: string;
 }
 
 function extractAppId(req: Request): string {
@@ -43,8 +44,9 @@ function extractDeveloperId(req: Request): string | undefined {
 function logApiCall(ctx: LogContext, req: Request, status: number, elapsed: number, responseBody?: any, isError?: boolean) {
   createApiLog({
     ...ctx,
+    traceId: ctx.traceId,
     method: req.method,
-    requestHeaders: { 'x-trace-id': req.headers['x-trace-id'] as string },
+    requestHeaders: { 'x-trace-id': ctx.traceId || req.headers['x-trace-id'] as string },
     requestBody: req.body?.business,
     responseStatus: status,
     responseBody: responseBody && typeof responseBody === 'object' ? responseBody : { data: responseBody },
@@ -126,7 +128,8 @@ export function custodyCodeToHttpStatus(code: unknown): number {
 /** Send error response + log, then return */
 function fail(ctx: LogContext, req: Request, res: Response, status: number, code: number, message: string, startTime: number) {
   const elapsed = Date.now() - startTime;
-  res.status(status).json({ code, message });
+  const traceId = ctx.traceId || (req.headers['x-trace-id'] as string) || '';
+  res.status(status).json({ code, message, data: null, trace_id: traceId });
   logApiCall(ctx, req, status, elapsed, { code, message }, true);
 }
 
@@ -146,7 +149,8 @@ export async function forwardRequest(req: Request, res: Response): Promise<void>
   const startTime = Date.now();
   const endpoint = normalizePath(req.baseUrl + req.path);
   const matched = findForwardRoute(endpoint);
-  const ctx: LogContext = { appId: extractAppId(req), apiName: matched?.config?.name || endpoint, endpoint };
+  const traceId = (req.headers['x-trace-id'] as string) || uuidv4();
+  const ctx: LogContext = { appId: extractAppId(req), apiName: matched?.config?.name || endpoint, endpoint, traceId };
 
   if (!matched) return fail(ctx, req, res, HttpCodes.NOT_FOUND, BusinessCodes.NOT_FOUND_RESOURCE, `Route not found: ${req.method} ${req.path}`, startTime);
 
@@ -157,8 +161,6 @@ export async function forwardRequest(req: Request, res: Response): Promise<void>
   if (!client) return fail(ctx, req, res, HttpCodes.SERVICE_UNAVAILABLE, BusinessCodes.SERVICE_UNAVAILABLE, `Backend service not available: ${config.clientName}`, startTime);
 
   try {
-    const traceId = (req.headers['x-trace-id'] as string) || uuidv4();
-
     const resourceKey = validateResourceKey(req, config.route);
     // Routes without a {resourceKey} placeholder (e.g. merchant/register) do not require a key.
     if (!config.route.includes('{resourceKey}')) {

@@ -68,7 +68,7 @@ export interface GetAuthorizationUrlRequest {
   /** Callback URL notified after the user authorizes. */
   callback?: string;
   /** Developer-generated token echoed back in the callback for identity mapping. */
-  token?: string;
+  token: string;
   /**
    * @deprecated Use `callback`. Never sent to the gateway; kept for backward
    * compatibility with 1.0.x callers.

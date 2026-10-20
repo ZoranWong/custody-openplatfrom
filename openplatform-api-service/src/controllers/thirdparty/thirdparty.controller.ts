@@ -41,7 +41,7 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
           permissions?: string[];
           callback?: string;
           state?: string;
-          token?: string; // Developer-generated token for user identity mapping
+          token: string; // Developer-generated token: identifies the authorizing user (required)
         }
       | undefined;
     const appId = req.context?.application?.id;
@@ -75,6 +75,13 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
     // Note: oauthUserId will be determined when user actually authenticates in the auth page
     const expiresIn = 7200; // 2 hours
     const developerToken = businessData?.token;
+    if (!developerToken) {
+        res.status(HttpCodes.UNAUTHORIZED).json({
+            code: BusinessCodes.PARAM_REQUIRED,
+            message: 'Invalid request: missing token (required for user identity mapping)',
+        });
+        return;
+    }
     const callback = businessData?.callback
     const signed = signJWT(
         {
@@ -105,7 +112,7 @@ export async function buildAuthorizeUrl(req: ResourceValidationRequest, res: Res
         params.set('appLogoUrl', application.appLogoUrl);
     }
     if (businessData?.permissions && businessData.permissions.length > 0) {
-        params.set('permissions', JSON.stringify(businessData.permissions));
+        params.set('permissions', businessData.permissions.join(','));
     }
     if (businessData?.state) {
         params.set('state', businessData.state);
@@ -209,14 +216,22 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
         // 1. Authorization-specific callback (from payload) - with HMAC-SHA256 signature
         try {
             if (payload.callback) {
-                callbackService.pushEvent({
+                callbackService
+                  .pushEvent({
                     application: {
-                        id: application.id,
-                        appSecret: application.appSecret,
-                        callbackUrl: payload.callback,
+                      id: application.id,
+                      appSecret: application.appSecret,
+                      callbackUrl: payload.callback,
                     },
+                    event: 'authorization.created',
                     data: eventData,
-                }).catch((err) => logger.error('Authorization callback (payload) failed:', err))
+                  })
+                  .catch((err) =>
+                    logger.error(
+                      'Authorization callback (payload) failed:',
+                      err,
+                    ),
+                  );
             } else
                 if (application.callbackUrl) {
                     callbackService.pushEvent({

@@ -10,13 +10,18 @@
 #   ./deploy-beta.sh api-service      # Build & deploy api-service only
 #   ./deploy-beta.sh developer-portal # Build & deploy developer-portal only
 #   ./deploy-beta.sh admin-portal     # Build & deploy admin-portal only
+#   SKIP_BUILD=1 ./deploy-beta.sh ... # Deploy existing dist/ (used when
+#                                     # deploy-testing.sh is running in parallel)
 
 set -e
 
 DEPLOY_HOST="root@8.210.46.143"
 DEPLOY_PATH="/web/custody-openplatform"
+# Beta host default node is v22.7.0; Prisma 7 requires ≥v22.12.
+REMOTE_NODE="export PATH=/root/.nvm/versions/node/v22.12.0/bin:\$PATH"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 TARGET="${1:-all}"
+SKIP_BUILD="${SKIP_BUILD:-0}"
 
 cd "$PROJECT_ROOT"
 
@@ -24,6 +29,7 @@ build_api() {
   echo "=========================================="
   echo "Building API Service..."
   echo "=========================================="
+  if [ "$SKIP_BUILD" = "1" ]; then echo "SKIP_BUILD=1, using existing dist/"; return; fi
   cd "$PROJECT_ROOT/openplatform-api-service"
   npm run build
 }
@@ -32,6 +38,7 @@ build_developer() {
   echo "=========================================="
   echo "Building Developer Portal..."
   echo "=========================================="
+  if [ "$SKIP_BUILD" = "1" ]; then echo "SKIP_BUILD=1, using existing dist/"; return; fi
   cd "$PROJECT_ROOT/openplatform-web/developer-portal-v2"
   npm run build
 }
@@ -40,6 +47,7 @@ build_admin() {
   echo "=========================================="
   echo "Building Admin Portal..."
   echo "=========================================="
+  if [ "$SKIP_BUILD" = "1" ]; then echo "SKIP_BUILD=1, using existing dist/"; return; fi
   cd "$PROJECT_ROOT/openplatform-web/admin-portal-v2"
   npm run build
 }
@@ -49,14 +57,14 @@ deploy_api() {
   echo "=========================================="
   echo "Deploying API Service..."
   echo "=========================================="
-  ssh "$DEPLOY_HOST" "mkdir -p $DEPLOY_PATH/api-service"
+  ssh "$DEPLOY_HOST" "$REMOTE_NODE && mkdir -p $DEPLOY_PATH/api-service"
   scp -r "$PROJECT_ROOT/openplatform-api-service/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp "$PROJECT_ROOT/openplatform-api-service/package.json" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp "$PROJECT_ROOT/openplatform-api-service/package-lock.json" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp "$PROJECT_ROOT/openplatform-api-service/.env.beta" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/.env"
   scp -r "$PROJECT_ROOT/openplatform-api-service/prisma/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp "$PROJECT_ROOT/openplatform-api-service/prisma.config.ts" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
-  ssh "$DEPLOY_HOST" "cd $DEPLOY_PATH/api-service && npm install --production && npx prisma migrate deploy && npx prisma generate"
+  ssh "$DEPLOY_HOST" "$REMOTE_NODE && cd $DEPLOY_PATH/api-service && npm install --production && npx prisma migrate deploy && npx prisma generate"
   echo "API Service deployed."
 }
 

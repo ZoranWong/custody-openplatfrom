@@ -174,6 +174,7 @@ export interface ApiLogRepository {
     apiName?: string
     endpoint: string
     method: string
+    traceId?: string
     requestHeaders?: any
     requestBody?: any
     responseStatus?: number

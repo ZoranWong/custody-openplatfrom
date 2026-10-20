@@ -12,6 +12,7 @@ export interface ApiLogEntry {
   apiName?: string;
   endpoint: string;
   method: string;
+  traceId?: string;
   requestHeaders?: Record<string, unknown>;
   requestBody?: Record<string, unknown>;
   responseStatus?: number;
@@ -35,6 +36,7 @@ export async function createApiLog(entry: ApiLogEntry): Promise<void> {
         apiName: entry.apiName,
         endpoint: entry.endpoint,
         method: entry.method,
+        traceId: entry.traceId,
         requestHeaders: entry.requestHeaders as any,
         requestBody: entry.requestBody as any,
         responseStatus: entry.responseStatus,

@@ -40,6 +40,7 @@ beforeAll(async () => {
     permissions: ['read', 'write'],
     callback: 'https://example.com/callback',
     state: 'coverage-' + Date.now(),
+    token: 'integration-test-user-' + Date.now(),
   });
   const token = new URL(authUrl.authorizeUrl).searchParams.get('appToken')!;
   const res = await fetch(`${BASE_URL}/api/thirdparty/oauth/verify`, {

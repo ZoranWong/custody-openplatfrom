@@ -58,15 +58,18 @@ export interface PushResult {
 
 // Configuration
 const CALLBACK_CONFIG = {
-    maxRetries: 3, // 4 attempts total (initial + 3 retries)
-    retryDelays: [0, 1000, 5000, 30000] as const, // 0s, 1s, 5s, 30s
+    maxRetries: 4, // 5 attempts total (initial + 4 retries)
+    retryDelays: [0, 1000, 5000, 30000, 60000] as const, // 0s, 1s, 5s, 30s, 60s
     timeout: 30000, // 30 seconds
     maxPayloadSize: 64 * 1024, // 64KB max payload
 }
 
 // Shared axios instance for connection pooling
+// validateStatus: () => true lets all HTTP responses enter the normal branch
+// so 429/5xx can be retried instead of immediately rejected.
 const httpClient = axios.create({
     timeout: CALLBACK_CONFIG.timeout,
+    validateStatus: () => true,
     headers: {
         'Content-Type': 'application/json',
     },

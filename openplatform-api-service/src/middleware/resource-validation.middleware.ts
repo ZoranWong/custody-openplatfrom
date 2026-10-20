@@ -194,7 +194,7 @@ export function createRequestValidatorMiddleware(
             // Verify application status
             if (application.status !== 'active') {
                 res.status(HttpCodes.UNAUTHORIZED).json({
-                    code: BusinessCodes.AUTH_DUPLICATE_NONCE,
+                    code: BusinessCodes.AUTH_APP_NOT_ACTIVE,
                     message: 'Application is not active',
                     trace_id: traceId,
                 });
