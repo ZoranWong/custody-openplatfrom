@@ -49,7 +49,7 @@ deploy_api() {
   scp -r "$PROJECT_ROOT/openplatform-api-service/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp "$PROJECT_ROOT/openplatform-api-service/package.json" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp "$PROJECT_ROOT/openplatform-api-service/package-lock.json" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
-  scp "$PROJECT_ROOT/openplatform-api-service/.env" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
+  scp "$PROJECT_ROOT/openplatform-api-service/.env.testing" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/.env"
   scp -r "$PROJECT_ROOT/openplatform-api-service/prisma/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp "$PROJECT_ROOT/openplatform-api-service/prisma.config.ts" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   ssh "$DEPLOY_HOST" "cd $DEPLOY_PATH/api-service && npm install --production && npx prisma migrate deploy && npx prisma generate"

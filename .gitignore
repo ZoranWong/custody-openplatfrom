@@ -19,6 +19,9 @@ build/
 .env.*.local
 .env.development
 .env.production
+# Per-environment deploys (contain live credentials): only kept locally
+.env.beta
+.env.testing
 # Allow example templates to be committed
 !**/.env.example
 
