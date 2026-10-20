@@ -1,6 +1,8 @@
 # Cregis 开放平台 - 第三方开发者接入指南
 
-> **适用 SDK 版本：** Node SDK 1.1.0 / Java SDK 1.2.0 / Web SDK 1.0.5
+> **适用 SDK 版本：** Node SDK 1.1.0 / Java SDK 1.2.0（1.3.0 未发布）/ Web SDK 1.0.5
+>
+> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.0`。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
 >
 > **接口基数：** 网关对外 22 条转发接口 + 6 条本地接口，共 28 条
 
@@ -137,7 +139,7 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 | 交易查询 | `POST /api/thirdparty/treasury/activities`、`POST /api/thirdparty/treasury/transfer-out-orders`、`POST /api/thirdparty/treasury/transfer-in-orders`、`POST /api/thirdparty/treasury/fund-records`、`POST /api/thirdparty/treasury/unit-fund-records` | Resource |
 | 币种 / 规则 / 白名单 | `POST /api/thirdparty/treasury/add-coins`、`POST /api/thirdparty/treasury/fund-control-update`、`POST /api/thirdparty/treasury/whitelist-update` | Resource |
 | 商户 / 用户 / Board | `POST /api/thirdparty/merchant/register`、`POST /api/thirdparty/user/add`、`POST /api/thirdparty/board/init` | `merchant/register` 用 Basic，其余用 Resource |
-| OAuth | `POST /api/thirdparty/oauth/authorizeUrl`、`POST /api/thirdparty/oauth/token`、`POST /api/thirdparty/oauth/verify` | `authorizeUrl` / `token` 用 Basic 签名；`verify` 是网关内部接口，由 Custody 调用，开发者不得直接调用 |
+| OAuth | `POST /api/thirdparty/oauth/authorizeUrl`、`POST /api/thirdparty/oauth/verify` | `authorizeUrl` 用 Basic 签名；`verify` 是网关内部接口，由 Custody 调用，开发者不得直接调用 |
 | 内部回调 | `POST /api/thirdparty/custody/callback` | 由 Custody 服务调用，开发者无需调用（平台按 `resourceKey` 反查应用并推送事件） |
 
 上表为节选，各接口的完整参数、请求 / 响应示例与业务码见第 7–13 章。
@@ -417,7 +419,7 @@ KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATO
 
 | 签名类型 | 用途 | 使用接口 | 签名串（`MD5(...)` 内层） |
 | --- | --- | --- | --- |
-| **Basic 签名** | 不涉及授权资源的操作 | `oauth/authorizeUrl`、`oauth/token`；`merchant/register`（无 `authorizationId`） | `appSecret + appId + timestamp + nonce + md5(business)` |
+| **Basic 签名** | 不涉及授权资源的操作 | `oauth/authorizeUrl`；`merchant/register`（无 `authorizationId`） | `appSecret + appId + timestamp + nonce + md5(business)` |
 | **Resource 签名** | 绑定授权资源的业务操作 | 除 `merchant/register` 外的全部 `/api/thirdparty/*` 转发接口 | `appSecret + appId + authorizationId + timestamp + nonce + md5(business)` |
 
 两者的唯一区别是 Resource 签名在 `appId` 之后插入了 `authorizationId`。`authorizationId` 即 OAuth 流程得到的 `authorizeId`。
@@ -426,8 +428,8 @@ KYB 状态未通过时调用创建应用接口会返回 `40303`（`AUTHZ_OPERATO
 
 推荐直接使用官方 SDK 的签名方法，避免自行实现产生偏差：
 
-- Node SDK：`calculateBasicSignature` / `calculateResourceSignature` / `buildBasicInfoWithAuthorization`（`@cregis-kit/openplatform-node`）
-- Java SDK：`Signer.calculateBasicSignature` / `Signer.calculateResourceSignature` / `Signer.buildBasicInfoWithAuthorization`（`com.cregis:cregis-sdk-core`）
+- Node SDK：`calculateBasicSignature` / `calculateResourceSignature` / `buildBasicInfoWithAuthorization`（`@cregis-kit/openplatform-node` 的 `core/signature` 子模块；**未从包根导出**，需要时请直接按 4.3 的规则自行实现或从源码引入）
+- Java SDK：`Signer.calculateBasicSignature` / `Signer.calculateResourceSignature` / `Signer.buildBasicInfoWithAuthorization`（`com.cregis:cregis-sdk-core`，`com.cregis.sdk.core.sign.Signer`，均为 public static）
 
 ### 4.1 请求结构
 
@@ -770,9 +772,9 @@ public class SignatureDemo {
 | `authorization_failed` | 参数错误、登录失败、用户取消、授权失败 | `{ "code": "...", "message": "..." }`，同时带 `error: { code, message, details? }` |
 | `close` | 授权成功后倒计时结束（约 10 秒）自动关闭 | 无 |
 
-取消授权（页面内关闭按钮）固定使用 `code = "USER_CANCELLED"`。授权页**只返回 `authorizationId`，不返回 `oauthToken`，也不回传 `state`**。该 `authorizationId` 由授权页在用户确认后调用 Custody 的内部授权接口（`POST /internal/third-party/authorize`）获得；Custody 随即在内部调用网关 `POST /api/thirdparty/oauth/verify` 写入 `oauth_resources`（见 5.4），因此该 `authorizationId` 可直接作为业务请求的 `basic.authorizationId`，开发者无需再调用 `verify`。如果授权页没有可用的父窗口（例如直接在新标签页打开且没有 opener），postMessage 没有接收方，请改用服务端 `callback`。
+取消授权（页面内关闭按钮）固定使用 `code = "USER_CANCELLED"`。授权页**只返回 `authorizationId`，不返回 `oauthToken`，也不回传 `state`**。该 `authorizationId` 由授权页在用户确认后调用 Custody 的内部授权接口（`POST /internal/third-party/authorize`）获得；网关的授权记录由 Custody 在内部调用 `POST /api/thirdparty/oauth/verify` 写入 `oauth_resources`（见 5.4），`authorizeId` 即该记录的主键。正常情况下授权页返回时记录已就绪，可直接作为业务请求的 `basic.authorizationId`；若业务接口返回 `40301`，说明记录尚未落库或已失效，请重走授权流程，不要自行调用 `verify`。如果授权页没有可用的父窗口（例如直接在新标签页打开且没有 opener），postMessage 没有接收方，请改用服务端 `callback`。
 
-> Web SDK 1.0.5 已封装消息处理，推荐直接使用 `CregisWebSDK.openAuthorization(authorizeUrl)`，它返回 `{ status, authorizeId }`（见第 16 章）。它同样不会返回 `oauthToken`。
+> Web SDK 1.0.5（仓库版本）已封装消息处理，推荐直接使用 `CregisWebSDK.openAuthorization(authorizeUrl)`，它返回 `{ status, authorizeId }`（见第 16 章）。它同样不会返回 `oauthToken`。npm 上当前可安装的 Web SDK 最新为 `1.1.3`，接口一致。
 
 ### 5.4 网关内部接口 `oauth/verify`（由 Custody 调用）
 
@@ -819,51 +821,15 @@ Custody 收到授权页的 `POST /internal/third-party/authorize?appId=&ecode=&a
 - **结果落库**：授权记录写入 `oauth_resources`。业务接口会校验 `basic.authorizationId` 对应的记录；授权页返回的 `authorizationId` 可直接使用，正是因为 Custody 已内部调用本接口完成写入。开发者无需也不能调用本接口。
 - 校验成功后会异步推送 `authorization.created` 回调（见 5.6）。回调是异步的，`verify` 的响应不等待回调结果。
 
-SDK 不提供该方法；Node 1.1.0 / Java 1.2.0 已移除 `verifyOAuthToken`。
+SDK 不提供该方法：`oauth/verify` 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 `verifyOAuthToken`；Java SDK 1.2.0（已发布 tag）中仍保留该方法，但请勿使用。
 
 **关于 `oauthToken`：** 它就是 `authorizeUrl` 响应中 `authorizeUrl` 查询参数里的 `appToken`（JWT，载荷含 `appId`、`callback`、`token`，默认 2 小时有效）。网关不会在授权页或 postMessage 事件中下发它；它由授权页随内部授权请求交给 Custody，由 Custody 在调用本接口时消费。开发者不需要保存它来换取 `authorizeId`。
 
-### 5.5 签发 OAuth Token（受限接口）
+### 5.5 已移除的 `oauth/token` 接口
 
-**POST** `/api/thirdparty/oauth/token` · Basic 签名
+`/api/thirdparty/oauth/token` 原有的实现只是按 `business.oauthUserId` 现场签发一个无消费方的 JWT（`resourceKey` 恒为 `''`），既不能换取 `authorizationId`，也不能用于业务接口。该路由已从网关移除，请求会落入兜底转发：Basic 签名的旧调用方因缺少 `basic.authorizationId` 被 Resource 校验器拒绝，返回 `40001`（HTTP 400）；携带有效 Resource 签名时才会继续匹配并得到 `40401`（HTTP 404）。请勿在对接代码或旧版文档中引用。
 
-**请求**
-
-```json
-{
-  "basic": {
-    "appId": "550e8400-e29b-41d4-a716-446655440000",
-    "timestamp": 1742947200,
-    "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6",
-    "signature": "0123456789abcdef0123456789abcdef"
-  },
-  "business": {
-    "oauthUserId": "user-42"
-  }
-}
-```
-
-**响应**
-
-```json
-{
-  "code": 0,
-  "message": "Success",
-  "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiIs...",
-    "expires_in": 7200,
-    "token_type": "Bearer"
-  }
-}
-```
-
-实现现状与使用建议：
-
-- 该接口挂在 Basic 签名中间件下，要求提供 `business.oauthUserId`；**属于平台内部接口，开发者不应调用**。
-- 处理逻辑读取 `req.authorizationId`，但 Basic 中间件从不为该字段赋值，因此签发的 JWT 中 `resourceKey` 恒为空字符串 `''`。这属于实现限制，不要依赖该字段。
-- 返回的 `access_token` 是 2 小时有效的 JWT，**不能**直接用于 `/api/thirdparty/treasury/*` 等业务接口；业务接口仍要求第 4 章的 Resource 签名。
-- **第三方开发者不需要调用此接口。** 正常接入只需 `authorizeUrl` + 授权页（授权页内部完成 `verify` 并返回 `authorizeId`）。
-- 平台侧的 `/api/oauth/appToken/refresh`、`/api/oauth/revoke`、`/api/oauth/appToken/validate` 属于另一套内部令牌体系（`grant_type=client_credentials|refresh_token`），同样不用于本指南的业务调用链。
+平台另外暴露的 `/api/oauth/appToken/refresh`、`/api/oauth/revoke`、`/api/oauth/appToken/validate` 属于另一套内部令牌体系（`grant_type=client_credentials|refresh_token`），同样不用于本指南的业务调用链。
 
 ### 5.6 授权回调
 
@@ -1077,7 +1043,6 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 | --- | --- | --- |
 | `authorizeUrl` 的 `permissions` 用 `JSON.stringify` 写入 URL，授权页按逗号拆分 | 传非空权限数组会导致授权页初始化失败 | 省略 `permissions`，授权页默认 `['read']` |
 | 限流档位固定为 `basic`，`burstSize` 未生效 | 所有应用（含 enterprise）实际按 `basic` 档限流 | 按 100/分钟、1,000/小时、10,000/天规划调用量 |
-| `oauth/token` 读取从未赋值的 `req.authorizationId` | 签发 JWT 的 `resourceKey` 恒为 `''` | 不调用该内部接口 |
 | 授权页/Web SDK 只返回 `authorizationId`，不返回 `oauthToken` | 无法从前端拿到 `oauthToken` | 无需处理：`authorizationId` 已由 Custody 内部调用 `verify` 生成，直接作为 `basic.authorizationId` 使用 |
 | 授权页不回传 `state` | 无法用 `state` 做前端 CSRF 校验 | 用 `token` 关联业务身份，或业务侧记录授权上下文 |
 | 授权记录按 ID 查询，不校验应用归属 | 理论上一个应用可使用另一应用创建的 `authorizeId` | 妥善保护 `authorizeId`，不要跨应用传递 |
@@ -2835,6 +2800,7 @@ if (result.status === 'success') {
 | Web | **1.0.5** | `npm install @cregis-kit/openplatform-webkit@1.0.5` | 浏览器嵌入授权页 | 只返回 `authorizationId`（即 Custody 内部 `verify` 生成的 `authorizeId`） |
 
 - 更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 `coinIds` / `primaryManager` / `payTo` 的请求会返回 `40102`，不要使用。
+- **发布状态提醒**：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java SDK 最新可用的 JitPack tag 为 `java-sdk-v1.2.0`。若 `npm install` 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
 - 三个 SDK 版本必须与网关的接口路径前缀 `/api/thirdparty/` 配套；`baseUrl` 不要包含该前缀，也不要带尾斜杠。
 - 环境地址见 2.3：本地 `http://127.0.0.1:1000`、SIT `https://custody-sit.cregis.ae/openplatform`、生产 `https://custody.cregis.ae/openplatform`。
 

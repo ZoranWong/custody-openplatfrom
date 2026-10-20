@@ -27,7 +27,6 @@ const EXPECTED_FORWARDED_ROUTES = 22;
 const LOCAL_ROUTES = [
   '/api/thirdparty/oauth/authorizeUrl',
   '/api/thirdparty/oauth/verify',
-  '/api/thirdparty/oauth/token',
   '/api/thirdparty/custody/callback',
   '/api/oauth/appToken/refresh',
   '/api/oauth/revoke',

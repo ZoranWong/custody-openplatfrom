@@ -223,7 +223,8 @@
         <h1>Cregis 开放平台 - 第三方开发者接入指南</h1>
 <p><strong>Last Updated:</strong> 2026-10-19</p>
 <blockquote>
-<p><strong>适用 SDK 版本：</strong> Node SDK 1.1.0 / Java SDK 1.2.0 / Web SDK 1.0.5</p>
+<p><strong>适用 SDK 版本：</strong> Node SDK 1.1.0 / Java SDK 1.2.0（1.3.0 未发布）/ Web SDK 1.0.5</p>
+<p><strong>发布状态：</strong> 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.0</code>。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。</p>
 <p><strong>接口基数：</strong> 网关对外 22 条转发接口 + 6 条本地接口，共 28 条</p>
 </blockquote>
 <p>本指南面向接入 Cregis 托管能力的第三方平台开发者。第 1–6 章覆盖平台概述、端到端接入流程、开发者入驻、认证与签名、OAuth 授权和通用约定；第 7–12 章为业务接口参考；第 13–17 章覆盖商户 / 用户 / Board、回调、错误码与排查、SDK 集成和附录。</p>
@@ -937,9 +938,9 @@
 </blockquote>
 <p>推荐直接使用官方 SDK 的签名方法，避免自行实现产生偏差：</p>
 <ul>
-<li>Node SDK：<code>calculateBasicSignature</code> / <code>calculateResourceSignature</code> / <code>buildBasicInfoWithAuthorization</code>（<code>@cregis-kit/openplatform-node</code>）
+<li>Node SDK：<code>calculateBasicSignature</code> / <code>calculateResourceSignature</code> / <code>buildBasicInfoWithAuthorization</code>（<code>@cregis-kit/openplatform-node</code> 的 <code>core/signature</code> 子模块；<strong>未从包根导出</strong>，需要时请直接按 4.3 的规则自行实现或从源码引入）
 </li>
-<li>Java SDK：<code>Signer.calculateBasicSignature</code> / <code>Signer.calculateResourceSignature</code> / <code>Signer.buildBasicInfoWithAuthorization</code>（<code>com.cregis:cregis-sdk-core</code>）
+<li>Java SDK：<code>Signer.calculateBasicSignature</code> / <code>Signer.calculateResourceSignature</code> / <code>Signer.buildBasicInfoWithAuthorization</code>（<code>com.cregis:cregis-sdk-core</code>，<code>com.cregis.sdk.core.sign.Signer</code>，均为 public static）
 </li>
 </ul>
 <h3 id="s-4-1">4.1 请求结构</h3>
@@ -1514,7 +1515,7 @@ public class SignatureDemo {
 </tr>
 </tbody>
 </table>
-<p>取消授权（页面内关闭按钮）固定使用 <code>code = "USER_CANCELLED"</code>。授权页<strong>只返回 <code>authorizationId</code>，不返回 <code>oauthToken</code>，也不回传 <code>state</code></strong>。该 <code>authorizationId</code> 由授权页在用户确认后调用 Custody 的内部授权接口（<code>POST /internal/third-party/authorize</code>）获得；Custody 随即在内部调用网关 <code>POST /api/thirdparty/oauth/verify</code> 写入 <code>oauth_resources</code>（见 5.4），因此该 <code>authorizationId</code> 可直接作为业务请求的 <code>basic.authorizationId</code>，开发者无需再调用 <code>verify</code>。如果授权页没有可用的父窗口（例如直接在新标签页打开且没有 opener），postMessage 没有接收方，请改用服务端 <code>callback</code>。</p>
+<p>取消授权（页面内关闭按钮）固定使用 <code>code = "USER_CANCELLED"</code>。授权页<strong>只返回 <code>authorizationId</code>，不返回 <code>oauthToken</code>，也不回传 <code>state</code></strong>。该 <code>authorizationId</code> 由授权页在用户确认后调用 Custody 的内部授权接口（<code>POST /internal/third-party/authorize</code>）获得；网关的授权记录由 Custody 在内部调用 <code>POST /api/thirdparty/oauth/verify</code> 写入 <code>oauth_resources</code>（见 5.4），<code>authorizeId</code> 即该记录的主键。正常情况下授权页返回时记录已就绪，可直接作为业务请求的 <code>basic.authorizationId</code>；若业务接口返回 <code>40301</code>，说明记录尚未落库或已失效，请重走授权流程，不要自行调用 <code>verify</code>。如果授权页没有可用的父窗口（例如直接在新标签页打开且没有 opener），postMessage 没有接收方，请改用服务端 <code>callback</code>。</p>
 <blockquote>
 <p>Web SDK 1.0.5 已封装消息处理，推荐直接使用 <code>CregisWebSDK.openAuthorization(authorizeUrl)</code>，它返回 <code>{ status, authorizeId }</code>（见第 16 章）。它同样不会返回 <code>oauthToken</code>。</p>
 </blockquote>
@@ -1584,10 +1585,10 @@ public class SignatureDemo {
 <li>校验成功后会异步推送 <code>authorization.created</code> 回调（见 5.6）。回调是异步的，<code>verify</code> 的响应不等待回调结果。
 </li>
 </ul>
-<p>SDK 不提供该方法；Node 1.1.0 / Java 1.2.0 已移除 <code>verifyOAuthToken</code>。</p>
+<p>SDK 不提供该方法：<code>oauth/verify</code> 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 <code>verifyOAuthToken</code>；Java SDK 1.2.0（已发布 tag）中仍保留该方法，但请勿使用。</p>
 <p><strong>关于 <code>oauthToken</code>：</strong> 它就是 <code>authorizeUrl</code> 响应中 <code>authorizeUrl</code> 查询参数里的 <code>appToken</code>（JWT，载荷含 <code>appId</code>、<code>callback</code>、<code>token</code>，默认 2 小时有效）。网关不会在授权页或 postMessage 事件中下发它；它由授权页随内部授权请求交给 Custody，由 Custody 在调用本接口时消费。开发者不需要保存它来换取 <code>authorizeId</code>。</p>
 <h3 id="s-5-5">5.5 已移除的 <code>oauth/token</code> 接口</h3>
-<p><code>/api/thirdparty/oauth/token</code> 原有的实现只是按 <code>business.oauthUserId</code> 现场签发一个无消费方的 JWT（<code>resourceKey</code> 恒为 <code>''</code>），既不能换取 <code>authorizationId</code>，也不能用于业务接口。该接口已从网关移除，调用将返回 404。请勿在对接代码或旧版文档中引用。</p>
+<p><code>/api/thirdparty/oauth/token</code> 原有的实现只是按 <code>business.oauthUserId</code> 现场签发一个无消费方的 JWT（<code>resourceKey</code> 恒为 <code>''</code>），既不能换取 <code>authorizationId</code>，也不能用于业务接口。该路由已从网关移除，请求会落入兜底转发：Basic 签名的旧调用方因缺少 <code>basic.authorizationId</code> 被 Resource 校验器拒绝，返回 <code>40001</code>（HTTP 400）；携带有效 Resource 签名时才会继续匹配并得到 <code>40401</code>（HTTP 404）。请勿在对接代码或旧版文档中引用。</p>
 <p>平台另外暴露的 <code>/api/oauth/appToken/refresh</code>、<code>/api/oauth/revoke</code>、<code>/api/oauth/appToken/validate</code> 属于另一套内部令牌体系（<code>grant_type=client_credentials|refresh_token</code>），同样不用于本指南的业务调用链。</p>
 <h3 id="s-5-6">5.6 授权回调</h3>
 <p>Custody 内部调用 <code>oauth/verify</code> 成功后，平台会向回调地址推送 <code>authorization.created</code> 事件。</p>
@@ -5142,6 +5143,8 @@ if (result.status === 'success') {
 </table>
 <ul>
 <li>更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 <code>coinIds</code> / <code>primaryManager</code> / <code>payTo</code> 的请求会返回 <code>40102</code>，不要使用。
+</li>
+<li><strong>发布状态提醒</strong>：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java SDK 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.0</code>。若 <code>npm install</code> 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
 </li>
 <li>三个 SDK 版本必须与网关的接口路径前缀 <code>/api/thirdparty/</code> 配套；<code>baseUrl</code> 不要包含该前缀，也不要带尾斜杠。
 </li>

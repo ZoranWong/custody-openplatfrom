@@ -4,7 +4,7 @@
 
 | 文档 | 面向 | 说明 |
 | --- | --- | --- |
-| [thirdparty-integration-guide.md](./thirdparty-integration-guide.md)（源文件）/ [.html](./thirdparty-integration-guide.html)（分发包） | 第三方开发者 | 对外接入指南（17 章：入驻、签名、OAuth、业务接口、回调、错误码、SDK、附录）。以 md 为准，修改后同步生成 html。 |
+| [thirdparty-integration-guide.md](./thirdparty-integration-guide.md)（源文件）/ [.html](./thirdparty-integration-guide.html)（分发包） | 第三方开发者 | 对外接入指南（17 章：入驻、签名、OAuth、业务接口、回调、错误码、SDK、附录）。以 md 为准，修改后手工同步更新 html。 |
 | [signature-spec.md](./signature-spec.md) | 第三方开发者 + 实现维护者 | 通用消息签名规范：Basic / Resource 两种认证结构及签名算法。 |
 | [callback-webhook-spec.md](./callback-webhook-spec.md) | 第三方开发者 + 实现维护者 | 回调推送规范：事件类型、请求头、验签、重试、幂等与最佳实践。 |
 | [custody-openplatform-api.yaml](./custody-openplatform-api.yaml) | 平台内部 | **Custody 后端上游** OpenAPI，不是网关对外接口。开发者调用的是 `/api/thirdparty/*`（见接入指南）。 |
