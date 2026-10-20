@@ -81,14 +81,6 @@ export interface GetAuthorizationUrlResult {
   expiresIn: number;
 }
 
-export interface VerifyOAuthTokenRequest {
-  oauthToken: string;
-}
-
-export interface VerifyOAuthTokenResult {
-  authorizeId: string;
-}
-
 // ============ Treasury Unit Types ============
 
 export type BusinessScope = 'DEDICATED_ACCOUNT' | 'OMNIBUS_ACCOUNT' | 'OPEN_API_PROXY';

@@ -2,7 +2,7 @@
 
 Cregis 托管开放平台官方 Java SDK，覆盖 **OAuth 授权、财务单元、地址、币种/资金控制/白名单、出金/归集、审批、商户与企业用户、Board、交易记录、回调验签** 全部业务接口。所有接口均提供同步与异步（`CompletableFuture`）两种调用方式。
 
-**当前版本：1.2.0**
+**当前版本：1.2.0（最新已发布 tag）；源码已包含 1.3.0 待发布改动**
 
 ---
 
@@ -74,17 +74,17 @@ SdkConfig config = SdkConfig.builder()
 CregisClient client = new CregisClient(config);
 
 // 1. 获取授权地址
+//    注意：当前网关把 permissions 序列化为 JSON，授权页却按逗号拆分，
+//    传入非空列表会导致授权页初始化失败，因此这里不设置 permissions（默认 ['read']）。
 AuthorizationResponse auth = client.oauth().getAuthorizationUrl(
         GetAuthorizationUrlRequest.builder()
-                .permissions(List.of("read", "write"))
                 .state("random-state")
                 .callback("https://your-app.com/oauth/callback")
                 .build());
 
-// 2. 用户授权后换取 authorizeId
-AuthorizationResponse verified = client.oauth().verifyOAuthToken(
-        VerifyOAuthTokenRequest.builder().oauthToken(oauthToken).build());
-String authorizationId = verified.getAuthorizeId();
+// 2. 前端打开 authorizeUrl 完成授权；Custody 后台会回调网关创建授权记录
+//    授权页 / Web SDK 把 authorizeId 返回给前端，再由你的后端保存
+String authorizationId = authorizeIdFromFrontend;
 
 // 3. 查询账户并出金
 List<UnitAccountResponse> accounts = client.treasury().listUnitAccount(authorizationId, 80L);
@@ -148,9 +148,10 @@ client.transaction().submitTask(authorizationId, task.getTaskId(),
 | 方法 | 说明 |
 |------|------|
 | `AuthorizationResponse getAuthorizationUrl(GetAuthorizationUrlRequest)` | 获取授权 URL，返回 `authorizeUrl` + `expiresIn` |
-| `AuthorizationResponse verifyOAuthToken(VerifyOAuthTokenRequest)` | 用 `oauthToken` 换取 `authorizeId` |
 
-`GetAuthorizationUrlRequest`：`permissions: List<String>`（必填）、`state`（必填）、`callback`、`token`。
+`GetAuthorizationUrlRequest`：`permissions: List<String>`、`state`、`callback`、`token`（均为可选；当前请勿设置 `permissions`，见上方注意事项）。
+
+> `POST /api/thirdparty/oauth/verify` 由 Custody 后台在用户授权成功后回调网关，**不是开发者接口**，SDK 不提供对应方法。
 
 ### 商户 / 用户 / Board
 
@@ -288,6 +289,10 @@ try {
 CI 发布：GitHub Actions → **Release Java SDK** → 输入版本号（需先配置仓库 Secrets，见 `RELEASE.md`）。
 
 ## 版本与变更
+
+### 1.3.0（待发布）
+
+- **移除 `verifyOAuthToken` / `verifyOAuthTokenAsync`**：`oauth/verify` 是 Custody 后台回调网关的内部接口，不属于开发者 SDK 能力。授权页 / Web SDK 返回的 `authorizeId` 可直接作为 `authorizationId` 使用。**1.2.0 已发布 tag 中该方法仍然存在，请勿使用。**
 
 ### 1.2.0
 

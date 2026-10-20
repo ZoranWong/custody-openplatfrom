@@ -1,6 +1,6 @@
 /**
  * BasicInfo 基础验证器
- * 用于 OAuth 接口：/oauth/token, /oauth/authorizeUrl, /oauth/verify
+ * 用于 OAuth 接口：/oauth/authorizeUrl, /oauth/verify
  *
  * 验证字段：appId, timestamp, nonce, signature
  */
@@ -73,7 +73,6 @@ export function extractBasicInfo(req: BasicValidationRequest): BasicInfo | null 
  * 签名验证：需要 request.context 中包含 application
  *
  * 使用场景：
- * - /oauth/token
  * - /oauth/authorizeUrl
  * - /oauth/verify
  *

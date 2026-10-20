@@ -23,9 +23,8 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { describe, it, expect, beforeAll } from 'vitest';
 import {
-  BASE_URL, APP_ID, APP_SECRET, RESOURCE_KEY, TREASURY_UNIT_ID,
+  BASE_URL, APP_ID, RESOURCE_KEY, TREASURY_UNIT_ID,
   createSDK, healthCheck, printDiagnostic,
 } from './helpers';
 import { CregisSDK, SDKError } from '../../src';
@@ -34,8 +33,12 @@ let sdk: CregisSDK;
 let authorizeId: string;
 
 /**
- * Exchange an oauthToken for an authorizeId via POST /oauth/verify.
- * Exposed as a helper so later tests don't depend on test 2's execution order.
+ * TEST-ONLY provisioning step.
+ *
+ * POST /oauth/verify is NOT a developer-facing API: it is called by the Custody
+ * backend after the user authorizes on the auth page. The SDK deliberately does
+ * not expose it. Integration tests call it directly only to create an
+ * `oauth_resources` row so the business endpoints have an authorizeId to use.
  */
 async function verifyOAuthorization(): Promise<string> {
   const authUrlResult = await sdk.getAuthorizationUrl({

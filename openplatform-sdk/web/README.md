@@ -239,13 +239,13 @@ const result = await sdk.openAuthorization(authorizeUrl);
 
 // 4. 处理结果
 if (result.status === 'success') {
-  // 将 authorizeId 发送到你的后端进行后续操作
-  await fetch('/api/thirdparty/oauth/verify', {
+  // authorizeId 由 Custody 内部调用网关 oauth/verify 生成，直接作为
+  // 后续业务接口的 authorizationId 使用。把 result.authorizeId 发给你的后端保存即可，
+  // 不要再去调用 /api/thirdparty/oauth/verify（那是 Custody 的内部接口）。
+  await fetch('/api/your-backend/oauth/authorize', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      oauthToken: result.authorizeId,  // 这里可能需要根据实际返回调整
-    })
+    body: JSON.stringify({ authorizeId: result.authorizeId })
   });
 }
 ```
@@ -594,7 +594,7 @@ app.post('/api/submit-task', async (req, res) => {
 
 ### Q: 授权成功后如何获取授权信息？
 
-授权成功后，授权页面会返回 `authorizeId`。你可以通过调用 `/api/thirdparty/oauth/verify` 接口验证并获取完整的授权信息。
+授权成功后，授权页面会返回 `authorizeId`。它由 Custody 内部调用网关 `/api/thirdparty/oauth/verify` 生成，直接作为后续业务接口的 `authorizationId` 使用，**不需要**（也不能）由开发者调用 `oauth/verify`。
 
 ### Q: 如何选择打开模式？
 

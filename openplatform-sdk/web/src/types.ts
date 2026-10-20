@@ -75,7 +75,7 @@ export interface SDKError {
  */
 export interface AuthorizationResult {
     status: 'success' | 'error' | 'cancelled';
-    /** Authorization ID from /oauth/verify endpoint */
+    /** Authorization ID returned by the auth page (created by Custody via the internal oauth/verify call) */
     authorizeId?: string;
     error?: SDKError;
 }

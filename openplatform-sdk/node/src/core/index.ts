@@ -19,7 +19,6 @@ import {
   AddUserRequest, InitBoardRequest, MerchantBoard,
   AddUnitCoinsRequest, FundControlUpdateRequest, WhitelistUpdateRequest,
   PaginatedResponse, GetAuthorizationUrlRequest, GetAuthorizationUrlResult,
-  VerifyOAuthTokenResult,
 } from '../types';
 import { SDKError, SDKErrorCode } from './error';
 import { HttpClient } from './http';
@@ -60,22 +59,6 @@ export class CregisSDK {
     if (params.token !== undefined) business.token = params.token;
     const basic = buildBasicInfo({ appId: this.config.appId, appSecret: this.config.appSecret, timestamp, nonce, business });
     return this.http.post<GetAuthorizationUrlResult>('/api/thirdparty/oauth/authorizeUrl', { basic, business });
-  }
-
-  /**
-   * Verify OAuth token. POST /api/thirdparty/oauth/verify
-   *
-   * @param oauthToken Token issued by the authorization page
-   * @param resourceKey Optional; when omitted the gateway verifies without binding
-   *   a resource key. Pass the key returned by `registerMerchant` (or the key
-   *   provisioned on the custody side) when the token should be bound to it.
-   */
-  async verifyOAuthToken(oauthToken: string, resourceKey?: string): Promise<VerifyOAuthTokenResult> {
-    const timestamp = getTimestamp(); const nonce = generateNonce();
-    const business: Record<string, unknown> = { oauthToken };
-    if (resourceKey !== undefined) business.resourceKey = resourceKey;
-    const basic = buildBasicInfo({ appId: this.config.appId, appSecret: this.config.appSecret, timestamp, nonce, business });
-    return this.http.post<VerifyOAuthTokenResult>('/api/thirdparty/oauth/verify', { basic, business });
   }
 
   // ============ Treasury Unit Methods ============

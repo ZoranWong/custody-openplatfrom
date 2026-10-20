@@ -105,11 +105,11 @@ describe('CregisSDK request shape', () => {
     expect(body.basic.nonce).toHaveLength(32);
   });
 
-  it('basic endpoints (OAuth) must not carry an authorizationId', async () => {
+  it('getAuthorizationUrl must not carry an authorizationId', async () => {
     const sdk = new CregisSDK(validConfig);
     const spy = spyPost();
 
-    await sdk.verifyOAuthToken('oauth-token');
+    await sdk.getAuthorizationUrl({ permissions: ['read'], state: 's' });
 
     const [, body] = spy.mock.calls[0] as [
       string,

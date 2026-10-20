@@ -4,7 +4,6 @@ import com.cregis.sdk.core.config.SdkConfig;
 import com.cregis.sdk.core.http.HttpClient;
 import com.cregis.sdk.core.sign.Signer;
 import com.cregis.sdk.dto.request.GetAuthorizationUrlRequest;
-import com.cregis.sdk.dto.request.VerifyOAuthTokenRequest;
 import com.cregis.sdk.dto.response.AuthorizationResponse;
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * OAuth service - uses Basic signature (no authorizationId).
- * Handles OAuth authorization URL generation and token verification.
+ * Handles OAuth authorization URL generation.
  */
 @Slf4j
 public class OAuthService {
@@ -70,43 +69,6 @@ public class OAuthService {
         String jsonBody = Signer.buildSignatureBody(basic, business);
 
         String url = config.getBaseUrl() + "/api/thirdparty/oauth/authorizeUrl";
-
-        return httpClient.postAsync(url, jsonBody, AuthorizationResponse.class);
-    }
-
-    /**
-     * Verify OAuth token.
-     * POST /api/thirdparty/oauth/verify
-     */
-    public AuthorizationResponse verifyOAuthToken(VerifyOAuthTokenRequest request) {
-        log.debug("Verifying OAuth token");
-
-        Map<String, Object> business = new LinkedHashMap<>();
-        business.put("oauthToken", request.getOauthToken());
-
-        Map<String, Object> basic = Signer.buildBasicInfo(config.getAppId(), config.getAppSecret(), business);
-        String jsonBody = Signer.buildSignatureBody(basic, business);
-
-        String url = config.getBaseUrl() + "/api/thirdparty/oauth/verify";
-        log.debug("POST {}", url);
-
-        return httpClient.post(url, jsonBody, AuthorizationResponse.class);
-    }
-
-    /**
-     * Verify OAuth token asynchronously.
-     * POST /api/thirdparty/oauth/verify
-     */
-    public CompletableFuture<AuthorizationResponse> verifyOAuthTokenAsync(VerifyOAuthTokenRequest request) {
-        log.debug("Verifying OAuth token async");
-
-        Map<String, Object> business = new LinkedHashMap<>();
-        business.put("oauthToken", request.getOauthToken());
-
-        Map<String, Object> basic = Signer.buildBasicInfo(config.getAppId(), config.getAppSecret(), business);
-        String jsonBody = Signer.buildSignatureBody(basic, business);
-
-        String url = config.getBaseUrl() + "/api/thirdparty/oauth/verify";
 
         return httpClient.postAsync(url, jsonBody, AuthorizationResponse.class);
     }

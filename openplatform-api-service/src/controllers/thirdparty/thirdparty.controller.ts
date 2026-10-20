@@ -15,82 +15,6 @@ import { logger } from '../../utils/logger';
 import { Application } from '@prisma/client';
 
 /**
- * POST /api/thirdparty/oauth/token
- * Issue OAuth token with signature verification
- * Uses resourceValidationMiddleware for signature verification before this handler
- *
- * Request body (after middleware):
- * {
- *   basic: { appId, resourceKey, timestamp, nonce, signature },
- *   business: { oauthUserId }
- * }
- *
- * Response:
- * {
- *   code: 0,
- *   message: 'Success',
- *   data: {
- *     access_token: string,
- *     expires_in: number,
- *     token_type: 'Bearer'
- *   }
- * }
- */
-export async function issueOauthToken(req: ResourceValidationRequest, res: Response): Promise<void> {
-    const businessData = req.body.business as { oauthUserId?: string } | undefined;
-    const oauthUserId = businessData?.oauthUserId;
-    const appId = req.context?.application?.id;
-    const resourceKey = req.authorizationId;
-
-    // Validate oauthUserId is present
-    if (!oauthUserId) {
-        res.status(HttpCodes.BAD_REQUEST).json({
-            code: BusinessCodes.PARAM_REQUIRED,
-            message: 'Missing required parameter: oauthUserId',
-        });
-        return;
-    }
-
-    // Validate oauthUserId is not empty string
-    if (typeof oauthUserId !== 'string' || oauthUserId.trim().length === 0) {
-        res.status(HttpCodes.BAD_REQUEST).json({
-            code: BusinessCodes.PARAM_INVALID_FORMAT,
-            message: 'oauthUserId must be a non-empty string',
-        });
-        return;
-    }
-
-    if (!appId) {
-        res.status(HttpCodes.UNAUTHORIZED).json({
-            code: BusinessCodes.AUTH_MISSING_HEADERS,
-            message: 'Invalid request: missing appId',
-        });
-        return;
-    }
-
-    // Issue JWT with oauthUserId and appId
-    const expiresIn = 7200; // 2 hours
-    const signed = signJWT(
-        {
-            oauthUserId: oauthUserId.trim(),
-            appId,
-            resourceKey: resourceKey || '',
-        },
-        { expiresIn }
-    );
-
-    res.json({
-        code: 0,
-        message: 'Success',
-        data: {
-            access_token: signed.token,
-            expires_in: expiresIn,
-            token_type: 'Bearer',
-        },
-    });
-}
-
-/**
  * POST /api/thirdparty/oauth/authorizeUrl
  * Build authorization URL with app configuration
  * Uses resourceValidationMiddleware for signature verification before this handler
@@ -347,7 +271,6 @@ export function logOAuthCall(req: Request, res: Response, next: NextFunction): v
     const apiNameMap: Record<string, string> = {
         'oauth/authorizeUrl': 'Get Authorization URL',
         'oauth/verify': 'Verify OAuth Token',
-        'oauth/token': 'Issue OAuth Token',
     };
     let apiName = '';
     for (const [path, name] of Object.entries(apiNameMap)) {

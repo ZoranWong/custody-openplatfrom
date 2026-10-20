@@ -13,7 +13,6 @@ async function main() {
 
   // OAuth endpoint name mapping (from thirdparty.controller.ts)
   const oauthMap = {
-    '/api/thirdparty/oauth/token': 'Issue OAuth Token',
     '/api/thirdparty/oauth/authorizeUrl': 'Get Authorization URL',
     '/api/thirdparty/oauth/verify': 'Verify OAuth Token',
   };

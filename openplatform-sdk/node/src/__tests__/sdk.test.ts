@@ -224,23 +224,6 @@ describe('CregisSDK oauth endpoints', () => {
     expect(body.business).toEqual({ permissions: ['read'], state: 's', callback: 'cb', token: 'tk' });
   });
 
-  it('verifyOAuthToken posts oauthToken', async () => {
-    const sdk = createSDK();
-    const spy = vi.spyOn(HttpClient.prototype, 'post').mockResolvedValue({ authorizeId: 'a1' } as never);
-    await sdk.verifyOAuthToken('tok');
-    const [url, body] = lastPost(spy as any);
-    expect(url).toBe('/api/thirdparty/oauth/verify');
-    expect(body.business).toEqual({ oauthToken: 'tok' });
-  });
-
-  it('verifyOAuthToken forwards resourceKey when provided', async () => {
-    const sdk = createSDK();
-    const spy = vi.spyOn(HttpClient.prototype, 'post').mockResolvedValue({ authorizeId: 'a1' } as never);
-    await sdk.verifyOAuthToken('tok', 'access-key-1');
-    const [, body] = lastPost(spy as any);
-    expect(body.business).toEqual({ oauthToken: 'tok', resourceKey: 'access-key-1' });
-  });
-
   it('getAuthorizationUrl does not send the deprecated redirectUri', async () => {
     const sdk = createSDK();
     const spy = vi.spyOn(HttpClient.prototype, 'post').mockResolvedValue({ authorizeUrl: 'x', expiresIn: 1 } as never);

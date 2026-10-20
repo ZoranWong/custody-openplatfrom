@@ -34,7 +34,8 @@ beforeAll(async () => {
   }
   sdk = createSDK();
 
-  // Reuse the authorization provisioned in the e2e helper flow.
+  // TEST-ONLY: /oauth/verify is called by the Custody backend in production, not by
+  // developers. We call it directly here just to provision an oauth_resources row.
   const authUrl = await sdk.getAuthorizationUrl({
     permissions: ['read', 'write'],
     callback: 'https://example.com/callback',
@@ -173,9 +174,16 @@ describe('Merchant / User / Board', () => {
 
 // ============ OAuth verify ============
 
-describe('OAuth — verifyOAuthToken', () => {
+describe('OAuth — verify endpoint (internal, Custody → gateway)', () => {
   it('rejects an invalid oauthToken', async () => {
-    await expectBusinessError(() => sdk.verifyOAuthToken('not-a-jwt'), 'verifyOAuthToken');
+    const res = await fetch(`${BASE_URL}/api/thirdparty/oauth/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resourceKey: RESOURCE_KEY, oauthToken: 'not-a-jwt' }),
+    });
+    const body: any = await res.json();
+    expect(res.status).toBe(401);
+    expect(body.code).toBe(40101);
   }, 15000);
 });
 

@@ -61,14 +61,17 @@ const sdk = new CregisSDK({
 });
 
 // 1. 获取授权地址，交给前端打开
+//    注意：当前网关把 permissions 序列化为 JSON，授权页却按逗号拆分，
+//    传入非空数组会导致授权页初始化失败，因此这里省略 permissions（默认 ['read']）。
 const { authorizeUrl } = await sdk.getAuthorizationUrl({
-  permissions: ['read', 'write'],
   state: 'random-state-string',
   callback: 'https://your-app.com/oauth/callback',
 });
 
-// 2. 用户授权后前端拿到 oauthToken，后端换取 authorizeId
-const { authorizeId } = await sdk.verifyOAuthToken(oauthToken);
+// 2. 把 authorizeUrl 交给前端打开授权页
+//    用户授权成功后，Custody 后台会回调网关并创建授权记录
+//    授权页 / Web SDK 会把 authorizeId 返回给你的前端
+const authorizeId = '<authorizeId 由授权页返回，请在你的后端保存>';
 
 // 3. 后续所有业务接口都使用 authorizeId
 const accounts = await sdk.listUnitAccount(authorizeId, 80);
@@ -136,8 +139,8 @@ SDK 自动计算，无需手动处理：
 
 ```typescript
 sdk.getAuthorizationUrl(params: {
-  permissions: string[];
-  state: string;
+  permissions?: string[];
+  state?: string;
   callback?: string;   // 授权完成后的回调通知地址
   token?: string;      // 开发者自定义 token，回调时原样带回
 }): Promise<{ authorizeUrl: string; expiresIn: number }>
@@ -145,26 +148,21 @@ sdk.getAuthorizationUrl(params: {
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `permissions` | `string[]` | 是 | 申请的权限列表 |
-| `state` | `string` | 是 | 防 CSRF 状态值，回调时带回 |
+| `permissions` | `string[]` | 否 | 申请的权限列表。**当前实现下请省略**：网关用 `JSON.stringify` 写入 URL，授权页却按逗号拆分，非空数组会导致授权页初始化失败 |
+| `state` | `string` | 否 | 防 CSRF 状态值，写入授权 URL。**授权页不会回传 `state`** |
 | `callback` | `string` | 否 | 授权成功后的回调通知地址 |
 | `token` | `string` | 否 | 业务侧身份映射 token |
 | `redirectUri` | `string` | 否 | **已废弃（1.1.0）**，不会发送；请改用 `callback` |
 
 返回的 `authorizeUrl` 交给前端打开；`expiresIn` 单位秒（默认 7200）。
 
-#### `verifyOAuthToken(oauthToken, resourceKey?)`
+#### 关于 `oauth/verify`
 
-```typescript
-sdk.verifyOAuthToken(oauthToken: string, resourceKey?: string): Promise<{ authorizeId: string }>
-```
+`POST /api/thirdparty/oauth/verify` **不是开发者接口**，SDK 不提供对应方法。
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `oauthToken` | `string` | 是 | 授权页签发的 token（即授权 URL 中的 `appToken`） |
-| `resourceKey` | `string` | 否 | 需要把授权绑定到某个资源键时传入（如 `registerMerchant` 返回的 `resourceAccessKey`）。不传则不绑定资源键 |
+调用链路是：授权页调用 Custody 内部接口完成授权 → **Custody 后台回调网关的 `/oauth/verify`** → 网关写入授权记录 → 授权页把 `authorizeId`（`authorization_succeed` 事件 / Web SDK 返回值）交给你的前端。
 
-`authorizeId` 即后续所有业务接口的 `authorizationId`。同一 `appId + resourceKey` 重复调用会返回同一条授权记录（upsert）。
+你的后端只需保存该 `authorizeId`，并在后续业务接口中作为 `authorizationId` 使用。
 
 ---
 
@@ -213,7 +211,7 @@ const result = await sdk.registerMerchant({
 |------|------|------|
 | `ecode` | `string` | 企业 code |
 | `vaultCode` | `string` | 金库 code |
-| `resourceAccessKey` | `string \| null` | 企业级访问 key，用于 `verifyOAuthToken` / `custody/callback` |
+| `resourceAccessKey` | `string \| null` | 企业级访问 key，用于 `custody/callback` 等 Custody 侧调用 |
 | `alreadyExists` | `boolean` | 是否命中幂等（已存在） |
 | `merchant` | `Merchant` | 企业详情 |
 
@@ -800,11 +798,11 @@ SDK 会自行拼接 `/api/thirdparty/...` 路径，`baseUrl` 不要带尾斜杠�
 - `getTreasuryUnitAddress` / `getUnitAddressByAccount` 返回类型由 `UnitAddress[]` 修正为 `PaginatedResponse<UnitAddress>`。
 - `createUnitAddressByAccount` 返回类型由 `void` 修正为 `UnitAddress[]`。
 - `getAuthorizationUrl`：新增官方 `callback` 参数；`redirectUri` 标记废弃（1.0.x 传入的 `redirectUri` 从未被网关使用）。
-- `verifyOAuthToken` 支持可选 `resourceKey` 参数。
+- **移除 `verifyOAuthToken`**：`oauth/verify` 是 Custody 后台回调网关的内部接口，不属于开发者 SDK 能力。
 
 **测试**
 
-- 单元测试 102 项；集成测试覆盖全部 24 个接口（本地与 SIT 双环境）。
+- 单元测试 100 项；集成测试覆盖全部 24 个接口（本地与 SIT 双环境）。
 
 ### 1.0.1
 
