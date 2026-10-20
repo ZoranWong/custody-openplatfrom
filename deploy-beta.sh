@@ -1,26 +1,20 @@
 #!/bin/bash
 
-# Build and deploy script for the beta environment (https://custody.cregis.ae).
+# Build and Deploy script for Cregis Custody OpenPlatform — beta environment
+# (https://custody.cregis.ae)
 #
-# Mirrors deploy-testing.sh but targets the beta host and, when deploying the
-# API service, swaps in the beta .env instead of the developer's local .env.
-# The beta API talks to the cregis-openplatform-beta database.
+# Same layout as deploy-testing.sh; only the target host differs.
 #
 # Usage:
 #   ./deploy-beta.sh                  # Build & deploy all projects
 #   ./deploy-beta.sh api-service      # Build & deploy api-service only
 #   ./deploy-beta.sh developer-portal # Build & deploy developer-portal only
 #   ./deploy-beta.sh admin-portal     # Build & deploy admin-portal only
-#   ./deploy-beta.sh auth-page        # Build & deploy auth-page only
-#
-# The api-service step runs `prisma migrate deploy` against the beta database,
-# and the script retires the app through pm2.
 
 set -e
 
 DEPLOY_HOST="root@8.210.46.143"
 DEPLOY_PATH="/web/custody-openplatform"
-BETA_ENV_FILE="$DEPLOY_PATH/api-service/.env.beta"
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 TARGET="${1:-all}"
 
@@ -50,44 +44,19 @@ build_admin() {
   npm run build
 }
 
-build_auth() {
-  echo "=========================================="
-  echo "Building Auth Page..."
-  echo "=========================================="
-  cd "$PROJECT_ROOT/openplatform-web/auth-page"
-  npm run build
-}
-
 deploy_api() {
   build_api
   echo "=========================================="
-  echo "Deploying API Service to beta..."
+  echo "Deploying API Service..."
   echo "=========================================="
-  # Fail before touching the server if we do not have the beta .env to switch in.
-  ssh "$DEPLOY_HOST" "test -f $BETA_ENV_FILE" || {
-    echo "Missing $BETA_ENV_FILE on $DEPLOY_HOST." >&2
-    echo "Create it from the currently live .env (cp $DEPLOY_PATH/api-service/.env $BETA_ENV_FILE) and re-run." >&2
-    exit 1
-  }
   ssh "$DEPLOY_HOST" "mkdir -p $DEPLOY_PATH/api-service"
-  # Never ship the local .env; it points at the SIT database. Stage the build and
-  # swap it in so the running process never sees a half-uploaded dist/.
-  ssh "$DEPLOY_HOST" "cd $DEPLOY_PATH/api-service && rm -rf dist.new dist.old && mkdir -p dist.new"
-  scp -r "$PROJECT_ROOT/openplatform-api-service/dist/." "$DEPLOY_HOST:$DEPLOY_PATH/api-service/dist.new/"
-  ssh "$DEPLOY_HOST" "cd $DEPLOY_PATH/api-service && \
-    if [ -d dist ]; then mv dist dist.old; fi && \
-    mv dist.new dist && \
-    rm -rf dist.old && echo '[api-service] switched'"
+  scp -r "$PROJECT_ROOT/openplatform-api-service/dist/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp "$PROJECT_ROOT/openplatform-api-service/package.json" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp "$PROJECT_ROOT/openplatform-api-service/package-lock.json" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
+  scp "$PROJECT_ROOT/openplatform-api-service/.env" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp -r "$PROJECT_ROOT/openplatform-api-service/prisma/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp "$PROJECT_ROOT/openplatform-api-service/prisma.config.ts" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
-  ssh "$DEPLOY_HOST" "cd $DEPLOY_PATH/api-service && \
-    npm install --production && \
-    cp -f $BETA_ENV_FILE .env && \
-    npx prisma migrate deploy && \
-    npx prisma generate && \
-    pm2 restart api-service --update-env"
+  ssh "$DEPLOY_HOST" "cd $DEPLOY_PATH/api-service && npm install --production && npx prisma migrate deploy && npx prisma generate"
   echo "API Service deployed."
 }
 
@@ -111,7 +80,7 @@ deploy_portal_dist() {
 deploy_developer() {
   build_developer
   echo "=========================================="
-  echo "Deploying Developer Portal to beta..."
+  echo "Deploying Developer Portal..."
   echo "=========================================="
   deploy_portal_dist \
     "$PROJECT_ROOT/openplatform-web/developer-portal-v2/dist" \
@@ -124,7 +93,7 @@ deploy_developer() {
 deploy_admin() {
   build_admin
   echo "=========================================="
-  echo "Deploying Admin Portal to beta..."
+  echo "Deploying Admin Portal..."
   echo "=========================================="
   deploy_portal_dist \
     "$PROJECT_ROOT/openplatform-web/admin-portal-v2/dist" \
@@ -132,18 +101,6 @@ deploy_admin() {
     "admin-portal"
   scp "$PROJECT_ROOT/openplatform-web/admin-portal-v2/.env" "$DEPLOY_HOST:$DEPLOY_PATH/admin-portal/"
   echo "Admin Portal deployed."
-}
-
-deploy_auth() {
-  build_auth
-  echo "=========================================="
-  echo "Deploying Auth Page to beta..."
-  echo "=========================================="
-  deploy_portal_dist \
-    "$PROJECT_ROOT/openplatform-web/auth-page/dist" \
-    "$DEPLOY_PATH/auth-page" \
-    "auth-page"
-  echo "Auth Page deployed."
 }
 
 case "$TARGET" in
@@ -156,23 +113,19 @@ case "$TARGET" in
   admin-portal)
     deploy_admin
     ;;
-  auth-page)
-    deploy_auth
-    ;;
   all)
     deploy_api
     deploy_developer
     deploy_admin
-    deploy_auth
     ;;
   *)
     echo "Unknown target: $TARGET"
-    echo "Usage: $0 [api-service|developer-portal|admin-portal|auth-page|all]"
+    echo "Usage: $0 [api-service|developer-portal|admin-portal|all]"
     exit 1
     ;;
 esac
 
 echo ""
 echo "=========================================="
-echo "Deployment to beta completed!"
+echo "Deployment completed!"
 echo "=========================================="
