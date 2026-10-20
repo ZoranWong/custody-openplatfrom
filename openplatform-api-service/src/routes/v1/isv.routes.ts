@@ -4,6 +4,7 @@
  */
 
 import { Router } from 'express'
+import bcrypt from 'bcrypt'
 import { generateAppSecret, maskSecret } from '../../utils/secret-generator'
 import { HttpCodes } from '../../enums/http-codes.enum'
 import { BusinessCodes } from '../../enums/business-codes.enum'
@@ -409,12 +410,31 @@ router.delete('/applications/:id', isvAuth, requireOwner, async (req, res) => {
 
 /**
  * POST /isv/applications/:id/regenerate-secret
- * Regenerate application secret (Owner only)
+ * Regenerate application secret (Owner only, requires password confirmation)
  */
 router.post('/applications/:id/regenerate-secret', isvAuth, requireOwner, async (req, res) => {
   try {
     const { id } = req.params
+    const { password } = req.body as { password?: string }
     const isvUser = (req as ISVAuthRequest).isvUser
+
+    if (!password) {
+      res.status(400).json({
+        code: BusinessCodes.PARAM_REQUIRED,
+        message: 'Password is required'
+      })
+      return
+    }
+
+    // Verify the operator's password before rotating the credential
+    const userWithHash = await isvUserService.getUserById(isvUser!.userId)
+    if (!userWithHash?.passwordHash || !bcrypt.compareSync(password, userWithHash.passwordHash)) {
+      res.status(401).json({
+        code: BusinessCodes.AUTH_INVALID_CREDENTIALS,
+        message: 'Invalid password'
+      })
+      return
+    }
 
     const app = await isvApplicationService.getApplicationById(id)
     if (!app) {

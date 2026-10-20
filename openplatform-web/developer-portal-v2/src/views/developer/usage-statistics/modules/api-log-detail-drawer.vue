@@ -37,6 +37,15 @@
           <ElDescriptionsItem :label="$t('developer.billing.apiLogDetail.userAgent')" :span="2">
             <span class="break-all">{{ detail.userAgent || '-' }}</span>
           </ElDescriptionsItem>
+          <ElDescriptionsItem :label="$t('developer.billing.apiLogDetail.sdkName')">
+            {{ detail.sdkName || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem :label="$t('developer.billing.apiLogDetail.sdkVersion')">
+            {{ detail.sdkVersion || '-' }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem :label="$t('developer.billing.apiLogDetail.sdkLanguage')" :span="2">
+            {{ detail.sdkLanguage || '-' }}
+          </ElDescriptionsItem>
         </ElDescriptions>
 
         <section class="detail-section">

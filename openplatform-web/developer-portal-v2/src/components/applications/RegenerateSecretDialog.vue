@@ -22,7 +22,7 @@ const emit = defineEmits<{
 }>()
 
 const step = ref<'confirm' | 'success'>('confirm')
-const confirmName = ref('')
+const password = ref('')
 const loading = ref(false)
 const newAppSecret = ref('')
 const copied = ref(false)
@@ -33,7 +33,7 @@ const showDialog = computed({
   set: (value) => emit('update:modelValue', value)
 })
 
-const isConfirmed = computed(() => confirmName.value === props.applicationName)
+const isConfirmed = computed(() => password.value.length >= 6)
 
 const copySecret = async () => {
   try {
@@ -50,7 +50,7 @@ const copySecret = async () => {
 
 const resetDialogState = () => {
   step.value = 'confirm'
-  confirmName.value = ''
+  password.value = ''
   newAppSecret.value = ''
   loading.value = false
   copied.value = false
@@ -62,7 +62,7 @@ const handleRegenerate = async () => {
 
   loading.value = true
   try {
-    const result = await fetchRegenerateAppSecret(props.applicationId)
+    const result = await fetchRegenerateAppSecret(props.applicationId, { password: password.value })
     const responseData = (result as any).data || result
     newAppSecret.value = responseData.applicationSecret || responseData.appSecret || responseData.app_secret || ''
     step.value = 'success'
@@ -72,7 +72,9 @@ const handleRegenerate = async () => {
     const code = e.response?.data?.code
     const message = e.response?.data?.message || t('developer.applications.regenerateDialog.resetFailed')
 
-    if (code === 1003) {
+    if (code === 40110) {
+      ElMessage.error(t('developer.applications.regenerateDialog.invalidPassword'))
+    } else if (code === 1003) {
       ElMessage.error(t('developer.applications.regenerateDialog.permissionDenied'))
     } else if (code === 1005) {
       ElMessage.error(t('developer.applications.regenerateDialog.statusNotAllowed'))
@@ -121,15 +123,17 @@ watch(showDialog, (val) => {
       </div>
 
       <div class="mb-4">
-        <label for="confirm-app-name" class="block text-sm font-medium text-gray-700 mb-2">
-          {{ t('developer.applications.regenerateDialog.confirmLabel') }} <span class="font-mono text-brand">{{ applicationName }}</span> {{ t('common.confirm') }}
+        <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-2">
+          {{ t('developer.applications.regenerateDialog.passwordLabel') }}
         </label>
         <el-input
-          id="confirm-app-name"
-          v-model="confirmName"
-          :placeholder="t('developer.applications.regenerateDialog.confirmPlaceholder') + applicationName"
+          id="confirm-password"
+          v-model="password"
+          type="password"
+          show-password
+          :placeholder="t('developer.applications.regenerateDialog.passwordPlaceholder')"
           size="large"
-          aria-label="Confirm application name"
+          aria-label="Account password"
           @keyup.enter="isConfirmed && handleRegenerate()"
         />
       </div>

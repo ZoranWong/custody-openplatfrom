@@ -20,6 +20,9 @@ export interface ApiLogEntry {
   responseTime?: number;
   ipAddress?: string;
   userAgent?: string;
+  sdkName?: string;
+  sdkVersion?: string;
+  sdkLanguage?: string;
   isError?: boolean;
 }
 
@@ -44,6 +47,9 @@ export async function createApiLog(entry: ApiLogEntry): Promise<void> {
         responseTime: entry.responseTime,
         ipAddress: entry.ipAddress,
         userAgent: entry.userAgent,
+        sdkName: entry.sdkName,
+        sdkVersion: entry.sdkVersion,
+        sdkLanguage: entry.sdkLanguage,
         isError: entry.isError || false,
     });
   } catch (error) {

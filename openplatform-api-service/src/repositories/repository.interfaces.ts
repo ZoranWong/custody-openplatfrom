@@ -182,6 +182,9 @@ export interface ApiLogRepository {
     responseTime?: number
     ipAddress?: string
     userAgent?: string
+    sdkName?: string
+    sdkVersion?: string
+    sdkLanguage?: string
     isError?: boolean
   }): Promise<ApiLog>
   findRecentErrors(developerId: string, limit?: number): Promise<{ apiName: string; endpoint: string; responseStatus: number; createdAt: string }[]>

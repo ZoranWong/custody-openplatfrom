@@ -8,6 +8,7 @@ import crypto from 'crypto'
 import axios, { AxiosError, AxiosResponse } from 'axios'
 import { logger } from '../utils/logger'
 import { Application } from '../types/isv.types'
+import { createApiLog } from './api-log.service'
 
 /**
  * Recursively sort object keys for deterministic JSON serialization.
@@ -179,6 +180,22 @@ export class ApplicationCallbackService {
 
       const callbackUrl = application.callbackUrl;
 
+      // Record every callback push attempt in the API log (fire-and-forget)
+      const logCallback = (status: number | undefined, error: string | undefined, attempts: number) => {
+        createApiLog({
+          appId: application.id,
+          apiName: 'callback.push',
+          endpoint: callbackUrl,
+          method: 'POST',
+          requestBody: { event: event || '', data },
+          responseStatus: status,
+          responseBody: error ? { error } : undefined,
+          userAgent: 'cregis-gateway/callback-pusher',
+          isError: !status || status < 200 || status >= 300,
+        }).catch(() => {});
+        void attempts;
+      };
+
       // Validate URL security
       const urlValidation = this.validateUrl(callbackUrl);
       if (!urlValidation.valid) {
@@ -196,7 +213,16 @@ export class ApplicationCallbackService {
       if (event) {
         meta.event = event;
       }
-      await this.sendWithRetry(callbackUrl, meta, data, application.appSecret);
+      let lastStatus: number | undefined;
+      let lastError: string | undefined;
+      try {
+        await this.sendWithRetry(callbackUrl, meta, data, application.appSecret, (status, error) => {
+          lastStatus = status;
+          lastError = error;
+        });
+      } finally {
+        logCallback(lastStatus, lastError, 1);
+      }
 
       logger.info(`Callback pushed successfully: ${event} to ${callbackUrl}`);
       return { success: true };
@@ -227,6 +253,7 @@ export class ApplicationCallbackService {
     meta: CallbackMeta,
     data: CallbackBody,
     appSecret: string,
+    onSettled?: (status: number | undefined, error: string | undefined) => void,
   ): Promise<void> {
     const maxAttempts = CALLBACK_CONFIG.maxRetries + 1; // initial + retries
 
@@ -250,6 +277,7 @@ export class ApplicationCallbackService {
 
         // 2xx is success (F1)
         if (response.status >= 200 && response.status < 300) {
+          onSettled?.(response.status, undefined);
           return;
         }
 
@@ -263,6 +291,7 @@ export class ApplicationCallbackService {
           continue;
         }
 
+        onSettled?.(response.status, `Callback failed with status ${response.status}`);
         throw new Error(`Callback failed with status ${response.status}`);
       } catch (error) {
         const retryable = this.isRetryableNetworkError(error);
@@ -286,10 +315,12 @@ export class ApplicationCallbackService {
         logger.error(
           `Callback push failed after ${attempt} attempt(s) to ${url} (appId: ${meta.appId}): ${message}`,
         );
+        onSettled?.(undefined, message);
         throw error;
       }
     }
 
+    onSettled?.(undefined, `Callback push failed after ${maxAttempts} attempts`);
     throw new Error(
       `Callback push failed after ${maxAttempts} attempts to ${url}`,
     );

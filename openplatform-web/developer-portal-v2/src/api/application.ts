@@ -36,8 +36,8 @@ export function fetchDeleteApplication(id: string) {
 }
 
 /**
- * 重新生成应用密钥
+ * 重新生成应用密钥（需密码确认）
  */
-export function fetchRegenerateAppSecret(id: string) {
-  return request.post<any>({ url: `/isv/applications/${id}/regenerate-secret` })
+export function fetchRegenerateAppSecret(id: string, data: { password: string }) {
+  return request.post<any>({ url: `/isv/applications/${id}/regenerate-secret`, data })
 }

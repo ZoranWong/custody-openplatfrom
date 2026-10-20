@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { DocumentCopy, Warning, Lock } from '@element-plus/icons-vue'
+import { DocumentCopy, Warning, Lock, Refresh } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import Button from '@/components/common/Button.vue'
 
@@ -11,6 +11,10 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const emit = defineEmits<{
+  (e: 'regenerate'): void
+}>()
 
 const { t } = useI18n()
 
@@ -45,10 +49,16 @@ const copyAppId = async () => {
       </div>
     </div>
 
-    <!-- Masked AppSecret -->
+    <!-- Masked AppSecret + Regenerate -->
     <div v-if="appSecretMasked">
       <label class="block text-sm font-medium text-gray-500 mb-2">{{ t('developer.applications.appSecret') }}</label>
-      <el-input :model-value="appSecretMasked" readonly size="large" class="font-mono" />
+      <div class="flex gap-2">
+        <el-input :model-value="appSecretMasked" readonly size="large" class="font-mono flex-1 h-10" />
+        <Button type="warning" @click="emit('regenerate')">
+          <el-icon class="mr-1"><Refresh /></el-icon>
+          {{ t('developer.applications.regenerateDialog.title') }}
+        </Button>
+      </div>
       <p class="text-xs text-gray-400 mt-2">{{ t('developer.applications.secretDialog.maskedDesc') }}</p>
     </div>
 
@@ -60,3 +70,4 @@ const copyAppId = async () => {
     </div>
   </div>
 </template>
+

@@ -155,6 +155,12 @@ model ApiLog {
   ipAddress       String?  @map("ip_address")
   /// 客户端User-Agent
   userAgent       String?  @map("user_agent")
+  /// SDK 包名（来自 X-SDK-Name 请求头）
+  sdkName         String?  @map("sdk_name")
+  /// SDK 版本（来自 X-SDK-Version 请求头）
+  sdkVersion      String?  @map("sdk_version")
+  /// SDK 实现语言（来自 X-SDK-Language 请求头）
+  sdkLanguage     String?  @map("sdk_language")
   /// 是否为异常调用
   isError         Boolean  @default(false) @map("is_error")
   /// 创建时间

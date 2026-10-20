@@ -5,6 +5,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { SDKConfig, ApiResponse } from '../types';
 import { SDKError, SDKErrorCode } from './error';
+import { SDK_NAME, SDK_VERSION, SDK_LANGUAGE } from '../version';
 
 /**
  * HTTP Client for API requests
@@ -18,7 +19,10 @@ export class HttpClient {
       timeout: config.timeout || 30000,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': '@cregis-kit/openplatform-node',
+        'User-Agent': `${SDK_NAME}/${SDK_VERSION} (${SDK_LANGUAGE})`,
+        'X-SDK-Name': SDK_NAME,
+        'X-SDK-Version': SDK_VERSION,
+        'X-SDK-Language': SDK_LANGUAGE,
       },
     });
 

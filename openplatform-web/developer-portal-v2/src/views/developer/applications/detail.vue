@@ -30,7 +30,7 @@
       <!-- AppSecret -->
       <ElCard class="mb-4">
         <template #header><span class="font-semibold">{{ $t('developer.applications.appSecret') }}</span></template>
-        <AppSecretDisplay :app-id="app.id" :app-secret-masked="app.appSecretMasked" />
+        <AppSecretDisplay :app-id="app.id" :app-secret-masked="app.appSecretMasked" @regenerate="showRegenerate = true" />
       </ElCard>
 
       <!-- 操作 -->
@@ -40,10 +40,6 @@
           <ElButton type="primary" @click="showEditDialog = true">
             <ElIcon><Edit /></ElIcon>
             {{ $t('developer.profile.edit') }}
-          </ElButton>
-          <ElButton type="warning" @click="showRegenerate = true">
-            <ElIcon><Refresh /></ElIcon>
-            {{ $t('developer.applications.regenerateDialog.title') }}
           </ElButton>
           <ElButton type="danger" @click="showDelete = true">
             <ElIcon><Delete /></ElIcon>
@@ -100,7 +96,7 @@ defineOptions({ name: 'ApplicationDetail' })
 
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { Loading, Edit, Refresh, Delete } from '@element-plus/icons-vue'
+import { Loading, Edit, Delete } from '@element-plus/icons-vue'
 import { fetchApplicationById, fetchUpdateApplication } from '@/api/application'
 import { formatDate } from '@/utils/date'
 import AppSecretDisplay from '@/components/applications/AppSecretDisplay.vue'

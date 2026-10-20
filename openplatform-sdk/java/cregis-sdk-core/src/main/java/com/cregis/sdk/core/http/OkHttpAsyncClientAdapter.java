@@ -1,5 +1,6 @@
 package com.cregis.sdk.core.http;
 
+import com.cregis.sdk.core.SdkInfo;
 import com.cregis.sdk.core.error.CregisSdkException;
 import com.cregis.sdk.core.error.SdkErrorCode;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -41,7 +42,11 @@ public class OkHttpAsyncClientAdapter implements HttpClient {
     @Override
     public HttpResponse execute(HttpRequest request) throws CregisSdkException {
         // For sync calls, delegate to OkHttpClientAdapter pattern
-        Request.Builder reqBuilder = new Request.Builder().url(request.getUrl());
+        Request.Builder reqBuilder = new Request.Builder().url(request.getUrl())
+                .header("User-Agent", SdkInfo.USER_AGENT)
+                .header("X-SDK-Name", SdkInfo.SDK_NAME)
+                .header("X-SDK-Version", SdkInfo.SDK_VERSION)
+                .header("X-SDK-Language", SdkInfo.SDK_LANGUAGE);
         request.getHeaders().forEach(reqBuilder::header);
         if ("POST".equalsIgnoreCase(request.getMethod()) && request.getBody() != null) {
             reqBuilder.post(RequestBody.create(request.getBody(), JSON_MEDIA_TYPE));
@@ -62,7 +67,11 @@ public class OkHttpAsyncClientAdapter implements HttpClient {
 
     @Override
     public CompletableFuture<HttpResponse> executeAsync(HttpRequest request) throws CregisSdkException {
-        Request.Builder reqBuilder = new Request.Builder().url(request.getUrl());
+        Request.Builder reqBuilder = new Request.Builder().url(request.getUrl())
+                .header("User-Agent", SdkInfo.USER_AGENT)
+                .header("X-SDK-Name", SdkInfo.SDK_NAME)
+                .header("X-SDK-Version", SdkInfo.SDK_VERSION)
+                .header("X-SDK-Language", SdkInfo.SDK_LANGUAGE);
         request.getHeaders().forEach(reqBuilder::header);
         if ("POST".equalsIgnoreCase(request.getMethod()) && request.getBody() != null) {
             reqBuilder.post(RequestBody.create(request.getBody(), JSON_MEDIA_TYPE));

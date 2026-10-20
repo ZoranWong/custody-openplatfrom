@@ -53,6 +53,9 @@ function logApiCall(ctx: LogContext, req: Request, status: number, elapsed: numb
     responseTime: elapsed,
     ipAddress: req.ip || req.socket.remoteAddress,
     userAgent: req.headers['user-agent'] as string,
+    sdkName: req.headers['x-sdk-name'] as string | undefined,
+    sdkVersion: req.headers['x-sdk-version'] as string | undefined,
+    sdkLanguage: req.headers['x-sdk-language'] as string | undefined,
     isError: isError || false,
   }).catch(() => {});
 }
