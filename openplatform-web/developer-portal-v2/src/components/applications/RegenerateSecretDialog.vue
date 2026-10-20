@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Warning, DocumentCopy, CircleCheck } from '@element-plus/icons-vue'
+import { Warning, DocumentCopy, CircleCheck, View, Hide } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import Button from '@/components/common/Button.vue'
 import { fetchRegenerateAppSecret } from '@/api/application'
@@ -26,6 +26,7 @@ const confirmName = ref('')
 const loading = ref(false)
 const newAppSecret = ref('')
 const copied = ref(false)
+const secretVisible = ref(false)
 
 const showDialog = computed({
   get: () => props.modelValue,
@@ -53,6 +54,7 @@ const resetDialogState = () => {
   newAppSecret.value = ''
   loading.value = false
   copied.value = false
+  secretVisible.value = false
 }
 
 const handleRegenerate = async () => {
@@ -62,7 +64,7 @@ const handleRegenerate = async () => {
   try {
     const result = await fetchRegenerateAppSecret(props.applicationId)
     const responseData = (result as any).data || result
-    newAppSecret.value = responseData.appSecret || responseData.app_secret || ''
+    newAppSecret.value = responseData.applicationSecret || responseData.appSecret || responseData.app_secret || ''
     step.value = 'success'
     ElMessage.success(t('developer.applications.regenerateDialog.success'))
     emit('regenerated')
@@ -143,13 +145,16 @@ watch(showDialog, (val) => {
 
         <div class="flex gap-2">
           <el-input
-            :value="newAppSecret"
+            :value="secretVisible ? newAppSecret : newAppSecret.replace(/.(?=.{4})/g, '•')"
             readonly
             size="large"
             class="font-mono flex-1 h-10"
-            type="password"
             aria-label="New secret"
           />
+          <Button type="info" @click="secretVisible = !secretVisible">
+            <el-icon class="mr-1"><Hide v-if="secretVisible" /><View v-else /></el-icon>
+            {{ secretVisible ? t('developer.applications.secretDialog.hide') : t('developer.applications.secretDialog.show') }}
+          </Button>
           <Button :type="copied ? 'success' : 'primary'" @click="copySecret">
             <el-icon class="mr-1"><DocumentCopy /></el-icon>
             {{ copied ? t('developer.applications.regenerateDialog.copied') : t('developer.applications.regenerateDialog.copy') }}

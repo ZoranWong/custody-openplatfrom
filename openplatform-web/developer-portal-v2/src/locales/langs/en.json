@@ -492,6 +492,8 @@
         "copyFailed": "Copy failed",
         "copySuccess": "Copied successfully",
         "hide": "Hide",
+        "maskedDesc": "If you have lost the secret, generate a new one via \"Reset Secret\"",
+        "maskedHint": "For security, the full secret is shown only once at creation or reset",
         "noSecret": "No App Secret",
         "noSecretDesc": "This application has no secret",
         "pleaseConfirm": "Please confirm you have saved the secret",

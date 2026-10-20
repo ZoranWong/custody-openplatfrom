@@ -11,6 +11,7 @@ import {
   Application,
 } from '../repositories/repository.interfaces'
 import { getIsvDeveloperRepository, getISVUserRepository, getApplicationRepository } from '../repositories/repository.factory'
+import { generateAppSecret } from '../utils/secret-generator'
 
 // ============================================
 // ISV Service
@@ -205,7 +206,7 @@ export const isvApplicationService = {
             appDescription: params.appDescription,
             appType: params.appType,
             appLogoUrl: params.appLogoUrl,
-            appSecret: `sk_${Date.now().toString(36)}${Math.random().toString(36).substring(2, 10)}`,
+            appSecret: generateAppSecret(),
             callbackUrl: params.callbackUrl,
             status: 'active',
         })

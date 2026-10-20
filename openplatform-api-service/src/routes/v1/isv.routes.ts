@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express'
-import { v4 as uuidv4 } from 'uuid'
+import { generateAppSecret, maskSecret } from '../../utils/secret-generator'
 import { HttpCodes } from '../../enums/http-codes.enum'
 import { BusinessCodes } from '../../enums/business-codes.enum'
 import { isvAuth, requireOwner, ISVAuthRequest } from '../../middleware/isv-auth.middleware'
@@ -157,11 +157,11 @@ router.get('/applications/:id', isvAuth, async (req, res) => {
       return
     }
 
-    const { appSecret: _, ...safeApp } = app
+    const { appSecret, ...safeApp } = app
     res.json({
       code: 0,
       message: 'Success',
-      data: { application: safeApp }
+      data: { application: { ...safeApp, appSecretMasked: maskSecret(appSecret) } }
     })
   } catch (error) {
     console.error('Get application error:', error)
@@ -295,11 +295,12 @@ router.post('/applications', isvAuth, requireOwner, validateCreateApplication, a
       callbackUrl
     })
 
-    const { appSecret: _, ...safeApp } = app
+    // Return the full appSecret once at creation time so the developer can
+    // save it. Subsequent reads (list/detail) only expose a masked value.
     res.status(201).json({
       code: 0,
       message: 'Application created successfully',
-      data: { application: safeApp }
+      data: { application: app }
     })
   } catch (error) {
     console.error('Create application error:', error)
@@ -432,7 +433,7 @@ router.post('/applications/:id/regenerate-secret', isvAuth, requireOwner, async 
       return
     }
 
-    const newSecret = `sk_${uuidv4().replace(/-/g, '')}`
+    const newSecret = generateAppSecret()
     const updated = await isvApplicationService.updateApplication(id, { appSecret: newSecret })
 
     res.json({

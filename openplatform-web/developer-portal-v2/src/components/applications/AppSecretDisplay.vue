@@ -1,70 +1,55 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { View, Hide, DocumentCopy, Warning, Lock } from '@element-plus/icons-vue'
+import { DocumentCopy, Warning, Lock } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import Button from '@/components/common/Button.vue'
 
 interface Props {
   appId?: string
-  appSecret?: string
+  /** Masked secret returned by the detail endpoint, e.g. `sk_beta_xK9...O5p`. */
+  appSecretMasked?: string
 }
 
 const props = defineProps<Props>()
 
 const { t } = useI18n()
 
-const secretVisible = ref(false)
-
-const maskedSecret = (secret: string) => {
-  if (!secret) return ''
-  // appSecret 32位，显示前8位 + 8个星号
-  return secret.substring(0, 8) + '••••••••'
-}
-
-const copySecret = async () => {
-  if (!props.appSecret) return
+const copyAppId = async () => {
+  if (!props.appId) return
 
   try {
-    await navigator.clipboard.writeText(props.appSecret)
+    await navigator.clipboard.writeText(props.appId)
     ElMessage.success(t('developer.applications.copySuccess'))
-  } catch (e) {
+  } catch {
     ElMessage.error(t('developer.applications.copyFailed'))
   }
-}
-
-const toggleSecretVisibility = () => {
-  secretVisible.value = !secretVisible.value
 }
 </script>
 
 <template>
   <div>
-    <div class="flex items-center gap-2 mb-2">
+    <div class="flex items-center gap-2 mb-3">
       <el-icon class="w-4 h-4 text-warning"><Warning /></el-icon>
-      <span class="text-sm text-warning">{{ t('developer.applications.secretDialog.warning') }}</span>
+      <span class="text-sm text-warning">{{ t('developer.applications.secretDialog.maskedHint') }}</span>
     </div>
 
-    <!-- AppSecret -->
-    <div v-if="appSecret">
-      <label class="block text-sm font-medium text-gray-500 mb-2">{{ t('developer.applications.appSecret') }}</label>
+    <!-- App ID -->
+    <div v-if="appId" class="mb-4">
+      <label class="block text-sm font-medium text-gray-500 mb-2">App ID</label>
       <div class="flex gap-2">
-        <el-input
-          :model-value="secretVisible ? appSecret : maskedSecret(appSecret || '')"
-          readonly
-          size="large"
-          class="font-mono flex-1 h-10"
-          :type="secretVisible ? 'text' : 'password'"
-        />
-        <Button type="info" @click="toggleSecretVisibility">
-          <el-icon class="mr-1"><Hide v-if="secretVisible" /><View v-else /></el-icon>
-          {{ secretVisible ? t('developer.applications.secretDialog.hide') : t('developer.applications.secretDialog.show') }}
-        </Button>
-        <Button type="primary" @click="copySecret">
+        <el-input :model-value="appId" readonly size="large" class="font-mono flex-1 h-10" />
+        <Button type="primary" @click="copyAppId">
           <el-icon class="mr-1"><DocumentCopy /></el-icon>
           {{ t('developer.applications.copy') }}
         </Button>
       </div>
+    </div>
+
+    <!-- Masked AppSecret -->
+    <div v-if="appSecretMasked">
+      <label class="block text-sm font-medium text-gray-500 mb-2">{{ t('developer.applications.appSecret') }}</label>
+      <el-input :model-value="appSecretMasked" readonly size="large" class="font-mono" />
+      <p class="text-xs text-gray-400 mt-2">{{ t('developer.applications.secretDialog.maskedDesc') }}</p>
     </div>
 
     <!-- 无 AppSecret 提示 -->

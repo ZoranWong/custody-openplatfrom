@@ -14,6 +14,8 @@ export interface Application {
   appDescription?: string
   appType?: ApplicationType
   appSecret?: string
+  /** Masked secret returned by detail/list endpoints, e.g. `sk_beta_xK9...O5p`. */
+  appSecretMasked?: string
   status: 'pending_review' | 'active' | 'inactive' | 'suspended'
   callbackUrl?: string
   permittedUsers: string[]

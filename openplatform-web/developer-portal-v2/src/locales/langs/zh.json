@@ -492,6 +492,8 @@
         "copyFailed": "复制失败",
         "copySuccess": "复制成功",
         "hide": "隐藏",
+        "maskedDesc": "如遗失密钥，请通过「重置密钥」生成新的密钥",
+        "maskedHint": "为保障安全，完整密钥仅在创建或重置时显示一次",
         "noSecret": "无 App Secret",
         "noSecretDesc": "该应用暂无密钥",
         "pleaseConfirm": "请确认已保存密钥",

@@ -30,7 +30,7 @@
       <!-- AppSecret -->
       <ElCard class="mb-4">
         <template #header><span class="font-semibold">{{ $t('developer.applications.appSecret') }}</span></template>
-        <AppSecretDisplay :app-secret="app.appSecret" />
+        <AppSecretDisplay :app-id="app.id" :app-secret-masked="app.appSecretMasked" />
       </ElCard>
 
       <!-- 操作 -->
