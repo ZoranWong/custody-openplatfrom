@@ -10,4 +10,4 @@ export const SDK_NAME = '@cregis-kit/openplatform-node';
 export const SDK_VERSION = '1.1.0';
 
 /** Implementation language reported to the gateway */
-export const SDK_LANGUAGE = 'node';
+export const SDK_LANGUAGE = 'nodejs';

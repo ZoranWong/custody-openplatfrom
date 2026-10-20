@@ -2,7 +2,8 @@
  * Integration Test Helpers
  *
  * Environment-driven base URL and health path:
- *   TEST_ENV=local    → http://127.0.0.1:1000/health (default)
+ *   TEST_ENV=local    → http://127.0.0.1:1000/health
+ *   TEST_ENV=beta     → https://custody.cregis.ae/openplatform/api/health
  *   TEST_ENV=testing  → https://custody-sit.cregis.ae/openplatform/api/health
  */
 import { CregisSDK } from '../../src';
@@ -11,11 +12,13 @@ export const TEST_ENV = process.env.TEST_ENV || 'local';
 
 export const BASE_URL = TEST_ENV === 'testing'
   ? 'https://custody-sit.cregis.ae/openplatform'
-  : 'http://127.0.0.1:1000';
+  : TEST_ENV === 'beta'
+    ? 'https://custody.cregis.ae/openplatform'
+    : 'http://127.0.0.1:1000';
 
 /** Health endpoint path differs per deployment (local `/health`, SIT `/api/health`). */
 export const HEALTH_PATH = process.env.CREGIS_HEALTH_PATH
-  || (TEST_ENV === 'testing' ? '/api/health' : '/health');
+  || (TEST_ENV === 'local' ? '/health' : '/api/health');
 
 export const APP_ID = process.env.CREGIS_APP_ID || '5c6bef2e-3da7-4d7f-9bed-9d198b9b9e16';
 export const APP_SECRET = process.env.CREGIS_APP_SECRET || 'sk_mo4bd1bum5dv0s4k';

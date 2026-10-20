@@ -306,6 +306,9 @@ export function logOAuthCall(req: Request, res: Response, next: NextFunction): v
             responseTime: elapsed,
             ipAddress: req.ip || req.socket.remoteAddress,
             userAgent: req.headers['user-agent'] as string,
+            sdkName: req.headers['x-sdk-name'] as string | undefined,
+            sdkVersion: req.headers['x-sdk-version'] as string | undefined,
+            sdkLanguage: req.headers['x-sdk-language'] as string | undefined,
             isError: res.statusCode >= 400,
         }).catch(() => {});
     });
