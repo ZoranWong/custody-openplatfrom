@@ -368,6 +368,29 @@
     return step3Rules.value
   })
 
+  // Fields owned by each step. `formRef.validate()` checks every registered
+  // field, including the ones hidden by v-show on later steps, so navigate by
+  // validating only the fields of the step being left.
+  const step1Fields = ['email', 'password', 'confirmPassword']
+  const step2Fields = [
+    'legalName',
+    'registrationNumber',
+    'jurisdiction',
+    'dateOfIncorporation',
+    'registeredAddress'
+  ]
+  const step3Fields = ['agreement']
+
+  const validateStep = async (fields: string[]): Promise<boolean> => {
+    if (!formRef.value) return false
+    try {
+      await Promise.all(fields.map((field) => formRef.value!.validateField(field)))
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const validatePassword = (_rule: any, value: string, callback: (error?: Error) => void) => {
     if (!value) {
       callback(new Error(t('register.placeholder.password')))
@@ -412,13 +435,9 @@
 
   // Step navigation
   const handleNext = async () => {
-    if (!formRef.value) return
-    try {
-      await formRef.value.validate()
-      currentStep.value++
-    } catch {
-      // validation failed
-    }
+    const fields = currentStep.value === 0 ? step1Fields : step2Fields
+    if (!(await validateStep(fields))) return
+    currentStep.value++
   }
 
   const handlePrev = () => {
@@ -440,11 +459,19 @@
   }
 
   const handleSubmit = async () => {
-    if (!formRef.value) return
+    // Validate UBO fields (their rules are attached inline) plus the agreement
+    // checkbox. Earlier steps were validated when the user advanced past them.
+    const uboFields = formData.uboInfo.flatMap((_, index) => [
+      `uboInfo.${index}.name`,
+      `uboInfo.${index}.idType`,
+      `uboInfo.${index}.idNumber`,
+      `uboInfo.${index}.nationality`,
+      `uboInfo.${index}.phone`
+    ])
+    const valid = await validateStep([...uboFields, ...step3Fields])
+    if (!valid) return
 
     try {
-      // Validate agreement + all UBO fields
-      await formRef.value.validate()
       loading.value = true
 
       const params = {
