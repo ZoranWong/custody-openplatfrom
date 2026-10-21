@@ -1633,7 +1633,7 @@ public class SignatureDemo {
 </li>
 <li>回调地址优先级：<code>authorizeUrl</code> 的 <code>callback</code> &gt; 应用配置的 <code>callbackUrl</code>。两者都没有时不会推送。
 </li>
-<li>回调是异步的，失败会重试：初始 1 次 + 最多 4 次重试（间隔 0s / 1s / 5s / 30s），网络错误与 HTTP 429 / 5xx 都会触发重试。<strong>没有持久化队列</strong>，5 次都失败后事件不会补投，请务必对 <code>authorizeId</code> 做幂等处理，并通过查询接口对账（见 14.5）。
+<li>回调是异步的，失败会重试：初始 1 次 + 最多 3 次重试（间隔 5s / 30s / 2min），网络错误与 HTTP 429 / 5xx 都会触发重试。<strong>没有持久化队列</strong>，4 次都失败后事件不会补投，请务必对 <code>authorizeId</code> 做幂等处理，并通过查询接口对账（见 14.5）。
 </li>
 </ul>
 <p>回调的 HMAC 验签、重试策略、事件列表与响应要求详见 <strong>第 14 章「回调与 Webhook」</strong>。</p>
@@ -4018,16 +4018,10 @@ public class SignatureDemo {
 <td><code>{ authorizeId, oauthToken? }</code>（14.2.1）</td>
 </tr>
 <tr>
-<td><code>authorization.created</code></td>
-<td><code>POST /api/v1/authorizations</code></td>
-<td>通过内部授权接口创建授权记录后</td>
-<td><code>{ authorizationId, resourceKey, expiresAt }</code>（14.2.2）</td>
-</tr>
-<tr>
 <td><code>transaction.completed</code></td>
 <td>Custody → 网关 <code>POST /api/thirdparty/custody/callback</code></td>
 <td>链上交易成功</td>
-<td>出金 / 归集、入金、审批任务三类（14.2.3）</td>
+<td>出金 / 归集、入金、审批任务三类（14.2.2）</td>
 </tr>
 <tr>
 <td><code>transaction.failed</code></td>
@@ -4039,8 +4033,6 @@ public class SignatureDemo {
 </table>
 <p>注意：</p>
 <ul>
-<li>前两行事件名相同但<strong>字段名不同</strong>（<code>authorizeId</code> vs <code>authorizationId</code>），接收方按字段存在性判断。
-</li>
 <li>交易类事件没有统一字段集，由 Custody 按业务类型推送，网关原样转发。
 </li>
 </ul>
@@ -4111,43 +4103,7 @@ public class SignatureDemo {
   "authorizeId": "123e4567-e89b-12d3-a456-426614174000",
   "oauthToken": "user-42-order-20261019"
 }</code></pre>
-<h4 id="s-14-2-2">14.2.2 <code>authorization.created</code>（<code>POST /api/v1/authorizations</code> 内部接口）</h4>
-<p>字段与上一小节<strong>不同</strong>，注意区分：</p>
-<table>
-<thead>
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>authorizationId</code></td>
-<td>string (UUID)</td>
-<td>授权记录 ID</td>
-</tr>
-<tr>
-<td><code>resourceKey</code></td>
-<td>string</td>
-<td>资源键</td>
-</tr>
-<tr>
-<td><code>expiresAt</code></td>
-<td>string (ISO 8601)</td>
-<td>授权过期时间</td>
-</tr>
-</tbody>
-</table>
-<pre class="codehilite"><code class="language-json">{
-  "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
-  "resourceKey": "access-key-d21396c169754470b3cdae0af9b2b8a6",
-  "expiresAt": "2027-10-19T08:00:00.000Z"
-}</code></pre>
-<blockquote>
-<p>两条路径的事件名相同但主键字段名不同（<code>authorizeId</code> vs <code>authorizationId</code>）。接收方应按字段存在性判断，不要假设只有一种形态。</p>
-</blockquote>
-<h4 id="s-14-2-3">14.2.3 <code>transaction.completed</code> / <code>transaction.failed</code></h4>
+<h4 id="s-14-2-2">14.2.2 <code>transaction.completed</code> / <code>transaction.failed</code></h4>
 <p>这两个事件的载荷<strong>完全由 Custody 决定</strong>，网关不做字段映射，透传规则如下：</p>
 <ol>
 <li>请求体含 <code>payload</code> 字段 → <strong>只转发 <code>payload</code> 的内容</strong>；
@@ -4514,7 +4470,7 @@ public class SignatureDemo {
 <li><code>orderState</code> / <code>state</code> 是业务状态；<code>callbackStatus</code> 描述的是回调投递状态，二者不要混用。
 </li>
 </ul>
-<h4 id="s-14-2-4">14.2.4 三种回调的完整报文对照</h4>
+<h4 id="s-14-2-3">14.2.3 三种回调的完整报文对照</h4>
 <p><strong>① 授权完成（<code>oauth/verify</code> 路径）</strong></p>
 <pre class="codehilite"><code>POST /your/callback HTTP/1.1
 Content-Type: application/json
@@ -4536,7 +4492,7 @@ X-Signature: sha256=&lt;hmac&gt;</code></pre>
   "resourceKey": "access-key-d21396c169754470b3cdae0af9b2b8a6",
   "expiresAt": "2027-10-19T08:00:00.000Z"
 }</code></pre>
-<p><strong>③ 交易完成 / 失败</strong>（字段随业务类型不同，此处为出金示例，完整字段见 14.2.3）</p>
+<p><strong>③ 交易完成 / 失败</strong>（字段随业务类型不同，此处为出金示例，完整字段见 14.2.2）</p>
 <pre class="codehilite"><code>X-App-Id: 550e8400-e29b-41d4-a716-446655440000
 X-Event: transaction.completed          ← 也可能是 transaction.failed
 X-Timestamp: 1792404000000
@@ -4645,7 +4601,7 @@ app.post('/cregis/callback', async (req, res) =&gt; {
       res.status(401).json({ code: 40101, message: 'invalid signature' });
       return;
     }
-    // 返回 5xx 会让平台重试该事件（共 5 次尝试）；若确定无法处理，
+    // 返回 5xx 会让平台重试该事件（共 4 次尝试，间隔 5s / 30s / 2min）；若确定无法处理，
     // 应记录日志后返回 2xx，交由本地队列 / 对账补偿，避免重复推送。
     res.status(500).json({ code: 50001, message: 'internal error' });
   }
@@ -4713,11 +4669,11 @@ public ResponseEntity&lt;?&gt; callback(@RequestBody Map&lt;String, Object&gt; b
 <tbody>
 <tr>
 <td>总尝试次数</td>
-<td>初始 1 次 + 最多 4 次重试（共 5 次）</td>
+<td>初始 1 次 + 最多 3 次重试（共 4 次）</td>
 </tr>
 <tr>
 <td>重试间隔</td>
-<td>第 2 次尝试前 0 ms、第 3 次前 1,000 ms、第 4 次前 5,000 ms、第 5 次前 30,000 ms</td>
+<td>第 2 次尝试前 5,000 ms、第 3 次前 30,000 ms、第 4 次前 120,000 ms</td>
 </tr>
 <tr>
 <td>触发重试</td>
@@ -4749,7 +4705,7 @@ public ResponseEntity&lt;?&gt; callback(@RequestBody Map&lt;String, Object&gt; b
 </tr>
 <tr>
 <td>投递保证</td>
-<td>尽力而为：内存中重试，无队列 / 持久化 / 死信；耗尽 5 次尝试后事件丢失</td>
+<td>尽力而为：内存中重试，无队列 / 持久化 / 死信；耗尽 4 次尝试后事件丢失</td>
 </tr>
 </tbody>
 </table>
@@ -4758,7 +4714,7 @@ public ResponseEntity&lt;?&gt; callback(@RequestBody Map&lt;String, Object&gt; b
 <p><strong>投递语义是“至少一次”，不是“恰好一次”。</strong> 网络抖动、超时（响应丢失但对方已处理）、重试都会造成重复推送。接收方必须按 14.6 的幂等键去重。</p>
 </blockquote>
 <blockquote>
-<p><strong>没有投递队列。</strong> 若 5 次尝试全部失败（例如接收方长时间宕机），该事件不会补投。请通过业务查询接口（12 章）或对账任务补偿最终状态；关键事件的接收方应在本地持久化后再返回 2xx，避免在事件处理期间返回 5xx 触发无意义重试。</p>
+<p><strong>没有投递队列。</strong> 若 4 次尝试全部失败（例如接收方长时间宕机），该事件不会补投。请通过业务查询接口（12 章）或对账任务补偿最终状态；关键事件的接收方应在本地持久化后再返回 2xx，避免在事件处理期间返回 5xx 触发无意义重试。</p>
 </blockquote>
 <blockquote>
 <p>这里的重试只属于<strong>回调推送器</strong>（<code>ApplicationCallbackService</code>）。第 7 章描述的网关转发客户端重试放大（上游 5xx / 超时被反复重试）发生在业务请求链路上，<strong>不适用于回调推送</strong>。</p>
@@ -5124,7 +5080,7 @@ public ResponseEntity&lt;?&gt; callback(@RequestBody Map&lt;String, Object&gt; b
 </tr>
 <tr>
 <td>收不到回调</td>
-<td>应用未配置 <code>callbackUrl</code>；生产使用 HTTP；载荷超过 64KB；5 次尝试全部失败（无持久化队列，不补投，见 14.5）</td>
+<td>应用未配置 <code>callbackUrl</code>；生产使用 HTTP；载荷超过 64KB；4 次尝试全部失败（无持久化队列，不补投，见 14.5）</td>
 <td>检查应用回调配置；生产使用 HTTPS；控制载荷大小；先持久化再返回 2xx，并通过对账 / 查询接口补偿（14.5）</td>
 </tr>
 </tbody>

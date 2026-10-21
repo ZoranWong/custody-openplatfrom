@@ -59,8 +59,11 @@ export interface PushResult {
 
 // Configuration
 const CALLBACK_CONFIG = {
-    maxRetries: 4, // 5 attempts total (initial + 4 retries)
-    retryDelays: [0, 1000, 5000, 30000, 60000] as const, // 0s, 1s, 5s, 30s, 60s
+    maxRetries: 3, // 4 attempts total (initial + 3 retries)
+    // Waits before retry #1/#2/#3. Long enough for a transient network blip or
+    // a slow handler to recover; the old 0s/1s/5s ladder burned every attempt
+    // inside a single hiccup.
+    retryDelays: [5000, 30000, 120000] as const, // 5s, 30s, 2min
     timeout: 30000, // 30 seconds
     maxPayloadSize: 64 * 1024, // 64KB max payload
 }
@@ -245,8 +248,8 @@ export class ApplicationCallbackService {
    * - Other 4xx       → no retry
    * - 2xx             → success
    *
-   * A total of maxRetries + 1 attempts are made (initial + retries), with an
-   * exponential-ish backoff from CALLBACK_CONFIG.retryDelays.
+   * A total of maxRetries + 1 attempts are made (initial + retries), waiting
+   * CALLBACK_CONFIG.retryDelays[attempt - 1] before each retry.
    */
   private async sendWithRetry(
     url: string,
@@ -336,10 +339,12 @@ export class ApplicationCallbackService {
     );
   }
 
-  /** Backoff delay for the attempt-th attempt (1-based), with a 30s fallback. */
+  /** Backoff delay before the retry that follows the attempt-th attempt (1-based). */
   private retryDelay(attempt: number): number {
     const idx = attempt - 1;
-    return CALLBACK_CONFIG.retryDelays[idx] ?? 30000;
+    // Past the configured ladder (should not happen), keep the longest wait.
+    return CALLBACK_CONFIG.retryDelays[idx]
+      ?? CALLBACK_CONFIG.retryDelays[CALLBACK_CONFIG.retryDelays.length - 1];
   }
 
   /**

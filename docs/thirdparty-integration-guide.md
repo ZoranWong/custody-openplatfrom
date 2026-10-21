@@ -680,7 +680,7 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 - `authorizeId`：授权记录 ID，用作业务请求的 `basic.authorizationId`。
 - `oauthToken`：`authorizeUrl` 请求中传入的 `token` 值（身份映射标识），**不是 JWT**；**未传 `token` 时载荷中没有该字段**。
 - 回调地址优先级：`authorizeUrl` 的 `callback` > 应用配置的 `callbackUrl`。两者都没有时不会推送。
-- 回调是异步的，失败会重试：初始 1 次 + 最多 4 次重试（间隔 0s / 1s / 5s / 30s），网络错误与 HTTP 429 / 5xx 都会触发重试。**没有持久化队列**，5 次都失败后事件不会补投，请务必对 `authorizeId` 做幂等处理，并通过查询接口对账（见 14.5）。
+- 回调是异步的，失败会重试：初始 1 次 + 最多 3 次重试（间隔 **5s / 30s / 2min**），网络错误与 HTTP 429 / 5xx 都会触发重试。**没有持久化队列**，4 次都失败后事件不会补投，请务必对 `authorizeId` 做幂等处理，并通过查询接口对账（见 14.5）。
 
 回调的 HMAC 验签、重试策略、事件列表与响应要求详见 **第 14 章「回调与 Webhook」**。
 
@@ -2095,13 +2095,11 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 | 事件名（`X-Event`） | 触发路径 | 触发时机 | `data` 结构 |
 |---------------------|----------|----------|-------------|
 | `authorization.created` | Custody → 网关 `POST /api/thirdparty/oauth/verify` | 用户完成授权、Custody 写入授权记录后 | `{ authorizeId, oauthToken? }`（14.2.1） |
-| `authorization.created` | `POST /api/v1/authorizations` | 通过内部授权接口创建授权记录后 | `{ authorizationId, resourceKey, expiresAt }`（14.2.2） |
-| `transaction.completed` | Custody → 网关 `POST /api/thirdparty/custody/callback` | 链上交易成功 | 出金 / 归集、入金、审批任务三类（14.2.3） |
+| `transaction.completed` | Custody → 网关 `POST /api/thirdparty/custody/callback` | 链上交易成功 | 出金 / 归集、入金、审批任务三类（14.2.2） |
 | `transaction.failed` | Custody → 网关 `POST /api/thirdparty/custody/callback` | 链上交易失败或状态非 `SUCCEED` | 同上 |
 
 注意：
 
-- 前两行事件名相同但**字段名不同**（`authorizeId` vs `authorizationId`），接收方按字段存在性判断。
 - 交易类事件没有统一字段集，由 Custody 按业务类型推送，网关原样转发。
 
 ### 14.2 请求头与请求体
@@ -2132,27 +2130,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 }
 ```
 
-#### 14.2.2 `authorization.created`（`POST /api/v1/authorizations` 内部接口）
-
-字段与上一小节**不同**，注意区分：
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `authorizationId` | string (UUID) | 授权记录 ID |
-| `resourceKey` | string | 资源键 |
-| `expiresAt` | string (ISO 8601) | 授权过期时间 |
-
-```json
-{
-  "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
-  "resourceKey": "access-key-d21396c169754470b3cdae0af9b2b8a6",
-  "expiresAt": "2027-10-19T08:00:00.000Z"
-}
-```
-
-> 两条路径的事件名相同但主键字段名不同（`authorizeId` vs `authorizationId`）。接收方应按字段存在性判断，不要假设只有一种形态。
-
-#### 14.2.3 `transaction.completed` / `transaction.failed`
+#### 14.2.2 `transaction.completed` / `transaction.failed`
 
 这两个事件的载荷**完全由 Custody 决定**，网关不做字段映射，透传规则如下：
 
@@ -2308,7 +2286,7 @@ data 里**没有 `type` 之类的分类字段**（入金报文的 `type` 表示�
 - **不要依赖 `status` 判断事件类型**——该字段在转发时会被删除；事件类型以 `X-Event` 头（即 SDK 传入的 `event`）为准。
 - `orderState` / `state` 是业务状态；`callbackStatus` 描述的是回调投递状态，二者不要混用。
 
-#### 14.2.4 三种回调的完整报文对照
+#### 14.2.3 三种回调的完整报文对照
 
 **① 授权完成（`oauth/verify` 路径）**
 
@@ -2343,7 +2321,7 @@ X-Signature: sha256=<hmac>
 }
 ```
 
-**③ 交易完成 / 失败**（字段随业务类型不同，此处为出金示例，完整字段见 14.2.3）
+**③ 交易完成 / 失败**（字段随业务类型不同，此处为出金示例，完整字段见 14.2.2）
 
 ```
 X-App-Id: 550e8400-e29b-41d4-a716-446655440000
@@ -2475,7 +2453,7 @@ app.post('/cregis/callback', async (req, res) => {
       res.status(401).json({ code: 40101, message: 'invalid signature' });
       return;
     }
-    // 返回 5xx 会让平台重试该事件（共 5 次尝试）；若确定无法处理，
+    // 返回 5xx 会让平台重试该事件（共 4 次尝试，间隔 5s / 30s / 2min）；若确定无法处理，
     // 应记录日志后返回 2xx，交由本地队列 / 对账补偿，避免重复推送。
     res.status(500).json({ code: 50001, message: 'internal error' });
   }
@@ -2536,8 +2514,8 @@ public ResponseEntity<?> callback(@RequestBody Map<String, Object> body,
 
 | 项 | 行为 |
 |----|------|
-| 总尝试次数 | 初始 1 次 + 最多 4 次重试（共 5 次） |
-| 重试间隔 | 第 2 次尝试前 0 ms、第 3 次前 1,000 ms、第 4 次前 5,000 ms、第 5 次前 30,000 ms |
+| 总尝试次数 | 初始 1 次 + 最多 3 次重试（共 4 次） |
+| 重试间隔 | 第 2 次尝试前 5,000 ms、第 3 次前 30,000 ms、第 4 次前 120,000 ms |
 | 触发重试 | **HTTP 429 / 5xx**，以及**网络 / 传输错误**（`ECONNABORTED` / `ETIMEDOUT` / 未收到任何 HTTP 响应） |
 | 不重试 | HTTP `3xx`、其余 `4xx`（例如 400 / 401 / 404） |
 | 成功判定 | 任意 `2xx` |
@@ -2545,13 +2523,13 @@ public ResponseEntity<?> callback(@RequestBody Map<String, Object> body,
 | 载荷上限 | `JSON.stringify(data).length > 64 * 1024` 时直接放弃，不发送（按字符数计算，不是 UTF-8 字节数） |
 | 未配置回调地址 | 直接跳过，返回 `success: true, error: 'no_callback_url'` |
 | URL 校验 | 生产环境必须 HTTPS；非生产环境 HTTP 仅允许 `localhost` / `127.0.0.1` |
-| 投递保证 | 尽力而为：内存中重试，无队列 / 持久化 / 死信；耗尽 5 次尝试后事件丢失 |
+| 投递保证 | 尽力而为：内存中重试，无队列 / 持久化 / 死信；耗尽 4 次尝试后事件丢失 |
 
 每次重试都会重新生成 `X-Timestamp` 并重新计算签名，因此接收方不能用第一次的时间戳校验后续尝试，也不能用 `X-Timestamp` 作为幂等键。
 
 > **投递语义是“至少一次”，不是“恰好一次”。** 网络抖动、超时（响应丢失但对方已处理）、重试都会造成重复推送。接收方必须按 14.6 的幂等键去重。
 
-> **没有投递队列。** 若 5 次尝试全部失败（例如接收方长时间宕机），该事件不会补投。请通过业务查询接口（12 章）或对账任务补偿最终状态；关键事件的接收方应在本地持久化后再返回 2xx，避免在事件处理期间返回 5xx 触发无意义重试。
+> **没有投递队列。** 若 4 次尝试全部失败（例如接收方长时间宕机），该事件不会补投。请通过业务查询接口（12 章）或对账任务补偿最终状态；关键事件的接收方应在本地持久化后再返回 2xx，避免在事件处理期间返回 5xx 触发无意义重试。
 
 > 这里的重试只属于**回调推送器**（`ApplicationCallbackService`）。第 7 章描述的网关转发客户端重试放大（上游 5xx / 超时被反复重试）发生在业务请求链路上，**不适用于回调推送**。
 
@@ -2659,7 +2637,7 @@ public ResponseEntity<?> callback(@RequestBody Map<String, Object> body,
 | HTTP `500` / `503` / `504`，响应体只有 `{code,message}` | Custody 返回非 2xx、连接失败或超时；上游响应体被丢弃 | 记录 `x-trace-id` 与请求时间，联系平台；写操作先确认是否已生效再重试 |
 | 同一笔出金 / 创建地址重复执行 | 网关对上游 5xx / 超时自动重试，且重试次数可能被放大；Custody 是否按 `orderId` 去重未验证 | 复用稳定业务单号；重试前先查询订单 / 地址；非幂等接口避免盲目重试（第 7、10 章） |
 | `400070`（`board/init`） | 护卫队公钥没有对应用户，或 `threshold` 超过有效签名人数 | 先用 13.2 建用户并绑定 `publicKey`，再初始化 board（13.3） |
-| 收不到回调 | 应用未配置 `callbackUrl`；生产使用 HTTP；载荷超过 64KB；5 次尝试全部失败（无持久化队列，不补投，见 14.5） | 检查应用回调配置；生产使用 HTTPS；控制载荷大小；通过对账 / 查询接口补偿（14.5） |
+| 收不到回调 | 应用未配置 `callbackUrl`；生产使用 HTTP；载荷超过 64KB；4 次尝试全部失败（无持久化队列，不补投，见 14.5） | 检查应用回调配置；生产使用 HTTPS；控制载荷大小；通过对账 / 查询接口补偿（14.5） |
 
 ### 15.4 已知实现限制
 
