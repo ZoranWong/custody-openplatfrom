@@ -2088,44 +2088,22 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 平台通过 HTTP POST 把授权与业务事件推送到开发者配置的回调地址。回调体**只有业务数据**，事件元数据全部放在请求头。
 
-### 14.1 事件清单
+### 14.1 支持的事件
 
-#### 14.1.1 当前实际会推送的事件
+平台当前只推送以下事件。每个事件的 `data` 结构见 14.2 对应小节。
 
-平台当前只有 **2 个事件名**在实际推送，来自 3 条不同路径。接入方只需要处理这 3 种回调：
-
-| # | 事件名（`X-Event`） | 触发路径 | 触发时机 | `data` 顶层字段 | 详见 |
-|---|---------------------|----------|----------|----------------|------|
-| 1 | `authorization.created` | Custody → 网关 `POST /api/thirdparty/oauth/verify` | 用户在企业授权页完成授权、Custody 内部完成授权记录写入后 | `authorizeId`（必有）<br>`oauthToken`（可选） | 14.2.1 |
-| 2 | `authorization.created` | `POST /api/v1/authorizations` | 通过内部授权接口创建授权记录后 | `authorizationId`<br>`resourceKey`<br>`expiresAt` | 14.2.2 |
-| 3 | `transaction.completed`<br>`transaction.failed` | Custody → 网关 `POST /api/thirdparty/custody/callback` | Custody 推送链上交易状态变更后，网关按 `resourceKey` 反查应用并转发 | 由 Custody 决定，网关透传 | 14.2.3 |
+| 事件名（`X-Event`） | 触发路径 | 触发时机 | `data` 结构 |
+|---------------------|----------|----------|-------------|
+| `authorization.created` | Custody → 网关 `POST /api/thirdparty/oauth/verify` | 用户完成授权、Custody 写入授权记录后 | `{ authorizeId, oauthToken? }`（14.2.1） |
+| `authorization.created` | `POST /api/v1/authorizations` | 通过内部授权接口创建授权记录后 | `{ authorizationId, resourceKey, expiresAt }`（14.2.2） |
+| `transaction.completed` | Custody → 网关 `POST /api/thirdparty/custody/callback` | 链上交易成功 | 出金 / 归集、入金、审批任务三类（14.2.3） |
+| `transaction.failed` | Custody → 网关 `POST /api/thirdparty/custody/callback` | 链上交易失败或状态非 `SUCCEED` | 同上 |
 
 注意：
 
-- **第 1 种和第 2 种事件名相同，但字段名不同**（`authorizeId` vs `authorizationId`）。接收方必须按字段存在性判断，不能只按事件名分支。
-- **第 3 种是两个事件名共用一条推送路径**，事件名由网关按 Custody 请求体映射得出（映射规则见 14.2.3）。
-- 路径 1、3 由 Custody/平台内部触发，开发者不能主动调用；路径 2 有签名保护，同样属于平台内部接口。
-
-#### 14.1.2 不支持的事件
-
-平台当前**不推送**以下事件。它们只存在于 SDK 的类型声明（`CallbackEventType`）与网关内部的枚举定义中，但没有任何代码会产生这些事件：
-
-| 事件名 | 状态 |
-|--------|------|
-| `authorization.revoked` | **不支持** |
-| `authorization.expired` | **不支持** |
-| `transaction.submitted` | **不支持** |
-| `transaction.confirming` | **不支持** |
-| `task.approved` | **不支持** |
-| `task.rejected` | **不支持** |
-
-具体说明：
-
-- **交易状态只有终态通知**。Custody → 网关的 `custody/callback` 只映射 `transaction.completed` 与 `transaction.failed` 两个事件；不存在 `submitted` / `confirming` 这类中间态推送。需要中间态请通过 12 章的查询接口轮询。
-- **没有任务审批事件**。审批结果（`task.approved` / `task.rejected`）不会通过回调下发；请调用 11 章的查询接口或交易查询接口确认任务状态。
-- **没有授权撤销 / 过期事件**。授权失效后业务接口会返回 `40301`，请据此处理。
-
-接入建议：不要为这 6 个事件写处理分支。事件入口按事件名做通用分发，遇到未知事件名记录日志后返回 2xx，不要返回 5xx（会触发重试）。
+- 前两行事件名相同但**字段名不同**（`authorizeId` vs `authorizationId`），接收方按字段存在性判断。
+- 交易类事件没有统一字段集，由 Custody 按业务类型推送，网关原样转发。
+- 除以上三行外，平台不推送其他事件（如授权撤销、交易中间态、任务审批结果）。
 
 ### 14.2 请求头与请求体
 
@@ -2190,34 +2168,146 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 | 2 | 否则 `status === 'SUCCEED'` → `transaction.completed` |
 | 3 | 其余任何 `status`（包括缺失）→ `transaction.failed` |
 
-典型载荷（`eyJ` 不适用，此处为业务字段，字段随 Custody 版本可能扩展）：
+**两个事件没有固定的 data 字段集**。Custody 按业务类型（出金、归集、入金、审批任务等）推送不同的报文，网关原样转发。下表按业务类型列出**常见字段**，接入方应按实际收到的字段解析，缺失字段一律视为 `null`。
+
+**A. 出金 / 归集（结构与 12.2 出金订单一致）**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | 订单内部 ID |
+| `orderId` | string | **业务订单号，推荐作为幂等键** |
+| `taskId` | string | 审批任务 ID，可用于 11.1 提交审批或查询任务 |
+| `ecode` | string | 企业编码 |
+| `treasuryUnitId` | number | 财务单元 ID |
+| `cusAccountId` | number | 出金账户 ID |
+| `address` | string | 出金地址（本平台侧） |
+| `payToList` | array | 收款明细，每项 `{ to, amount }` |
+| `coinId` / `network` | string | 币种与网络 |
+| `amount` / `totalAmount` | number | 金额（`totalAmount` 为含费总额） |
+| `fee` | string | 手续费 |
+| `txId` | string | 链上交易哈希；未上链时为空字符串 |
+| `orderState` | string | 订单状态，取值见 12.2（`SUCCEED` / `FAILED` / `AUDITING` …） |
+| `callbackStatus` | string | 回调状态（`TRANSITING` / `SUCCEED` / `FAILED`） |
+| `createTime` / `updateTime` | string | 服务器时间，格式 `YYYY-MM-DD HH:mm:ss` |
 
 ```json
 {
+  "id": 7001,
+  "ecode": "EC0000000001",
+  "treasuryUnitId": 80,
+  "cusAccountId": 101,
+  "address": "TXYZ...",
+  "coinId": "USDT",
+  "network": "TRC20",
   "orderId": "ORDER-20261019-001",
-  "unitId": 80,
+  "txId": "0xabc...",
+  "fee": "1",
+  "totalAmount": 100,
+  "orderState": "SUCCEED",
+  "callbackStatus": "SUCCEED",
+  "taskId": "task-20261019-003",
+  "payToList": [{ "to": "0x1234...abcd", "amount": 100 }],
+  "createTime": "2026-10-19 10:20:00",
+  "updateTime": "2026-10-19 10:35:00"
+}
+```
+
+**B. 入金（结构与 12.3 入金订单一致）**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | 订单内部 ID |
+| `orderId` | string | 业务订单号，推荐作为幂等键 |
+| `ecode` | string | 企业编码 |
+| `treasuryUnitId` | number | 财务单元 ID |
+| `cusAccountId` | number | 入金账户 ID |
+| `address` | string | 入金地址（本平台侧） |
+| `cpAddress` | string | **付款方地址** |
+| `coinId` / `network` | string | 币种与网络 |
+| `amount` | number | 到账金额 |
+| `fee` | string | 链上手续费 |
+| `txId` | string | 链上交易哈希 |
+| `type` | number | `1` 充值、`2` 收款 |
+| `orderState` | string | 状态，取值见 12.3（`SUCCEED` / `CONFIRMING` / `FAILED` …） |
+| `callbackStatus` | string | 回调状态 |
+| `note` | string | 备注 |
+| `createTime` / `updateTime` | string | 服务器时间 |
+
+```json
+{
+  "id": 6001,
+  "ecode": "EC0000000001",
+  "treasuryUnitId": 80,
   "cusAccountId": 101,
   "address": "TXYZ...",
   "cpAddress": "TABC...",
   "coinId": "USDT",
   "network": "TRC20",
   "amount": 100,
+  "orderId": "ORDER-20261019-001",
+  "txId": "0xdef...",
   "fee": "1",
-  "txId": "0xabc123",
-  "taskId": "task-20261019-003",
   "orderState": "SUCCEED",
-  "createTime": "2026-10-19 10:20:00",
-  "updateTime": "2026-10-19 10:35:00"
+  "callbackStatus": "SUCCEED",
+  "type": 1,
+  "note": "deposit",
+  "createTime": "2026-10-19 10:30:00",
+  "updateTime": "2026-10-19 10:31:00"
 }
 ```
+
+**C. 审批任务（出金、归集、加币、白名单等产生的任务）**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | 任务内部 ID |
+| `taskId` | string | **任务 ID，推荐作为幂等键** |
+| `taskOperation` | string | 任务类型，如 `PAYOUT` / `POOLING` / `FUND_FLOW` / `SET_WHITE_LIST` |
+| `businessId` | string | 关联业务单号 |
+| `state` | string | 任务状态，如 `AUDITING` / `SUCCEED` / `REJECTED` |
+| `threshold` | number | 审批门限 |
+| `total` | number | 签名人总数 |
+| `signers` | string[] | 签名人列表 |
+| `coinId` | string | 币种（部分任务类型存在） |
+| `signContent` | string | 待签名内容（部分任务类型存在） |
+| `createTime` / `updateTime` | string | 服务器时间 |
+
+```json
+{
+  "id": 5003,
+  "taskId": "task-20261019-003",
+  "taskOperation": "PAYOUT",
+  "businessId": "ORDER-20261019-001",
+  "state": "AUDITING",
+  "threshold": 2,
+  "total": 3,
+  "signers": ["guardian-1", "guardian-2", "guardian-3"],
+  "coinId": "USDT",
+  "createTime": "2026-10-19 10:20:00",
+  "updateTime": "2026-10-19 10:20:00"
+}
+```
+
+**如何判断收到的是哪一类**
+
+data 里**没有 `type` 之类的分类字段**（入金报文的 `type` 表示充值与收款，不是业务分类）。建议按字段存在性判断：
+
+| 特征字段 | 业务类型 |
+|----------|----------|
+| 同时有 `payToList` 与 `cusAccountId` | 出金 / 归集 |
+| 同时有 `cpAddress` 与 `type` | 入金 |
+| 有 `taskOperation` 或 `signers` | 审批任务 |
+
+三类都含 `orderId` / `taskId` 之一，可统一作为幂等键。字段随 Custody 版本可能扩展，**多出的字段应忽略，不要因未知字段报错**。
 
 应用侧只能看到**网关转发后**的请求体，看不到 Custody 原始报文；`payload` 是否被包裹、`status` 是否被删除，都由网关在转发前处理完毕。
 
 接入建议：
 
-- 把 `orderId`（或 `taskId`）作为幂等键；两者都缺失时用请求体 `sha256` 兜底。
-- 只依赖本节声明的字段存在性，不要把整个载荷结构写死；Custody 新增字段不应导致你的解析失败。
-- **不要依赖 HTTP 状态判断事件类型**——`status` 字段可能被上层过滤（见上方透传规则），事件类型以 `X-Event` 头为准。
+- 幂等键优先级：`taskId`（任务类）→ `orderId`（订单类）→ 请求体 `sha256`。
+- 只依赖表中声明的字段存在性，不要把整个载荷结构写死。
+- **不要依赖 `status` 判断事件类型**——该字段在转发时会被删除；事件类型以 `X-Event` 头（即 SDK 传入的 `event`）为准。
+- `orderState` / `state` 是业务状态；`callbackStatus` 描述的是回调投递状态，二者不要混用。
 
 #### 14.2.4 三种回调的完整报文对照
 
@@ -2254,7 +2344,7 @@ X-Signature: sha256=<hmac>
 }
 ```
 
-**③ 交易完成 / 失败**
+**③ 交易完成 / 失败**（字段随业务类型不同，此处为出金示例，完整字段见 14.2.3）
 
 ```
 X-App-Id: 550e8400-e29b-41d4-a716-446655440000
@@ -2264,13 +2354,18 @@ X-Signature: sha256=<hmac>
 ```
 ```json
 {
+  "id": 7001,
   "orderId": "ORDER-20261019-001",
-  "unitId": 80,
+  "taskId": "task-20261019-003",
+  "cusAccountId": 101,
   "coinId": "USDT",
   "network": "TRC20",
-  "amount": 100,
-  "txId": "0xabc123",
-  "orderState": "SUCCEED"
+  "totalAmount": 100,
+  "fee": "1",
+  "txId": "0xabc...",
+  "orderState": "SUCCEED",
+  "callbackStatus": "SUCCEED",
+  "payToList": [{ "to": "0x1234...abcd", "amount": 100 }]
 }
 ```
 
