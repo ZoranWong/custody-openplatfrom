@@ -2332,9 +2332,18 @@ signData = 550e8400-e29b-41d4-a716-446655440000.1792404000000.bafebc702c519d75e2
 HMAC-SHA256 = 27cb791bd95c41922058729f9801eea94de2753ef66662321db8cbd930e30885
 ```
 
-### 14.4 可运行的 Node.js 验签处理
+### 14.4 可运行的验签处理
 
-使用 `@cregis-kit/openplatform-node@1.2.0` 的 `sdk.onCallback(req, handler)`。它会读取 `x-app-id`、`x-timestamp`、`x-signature`（以及可选的 `x-event`），用构造 SDK 时的 `appSecret` 验签；成功后才调用 `handler(payload)`，`payload` 即请求体业务数据。
+#### Node.js
+
+使用 `@cregis-kit/openplatform-node@1.2.0` 的 `sdk.onCallback(req, handler)`。SDK 会依次校验：
+
+1. `x-app-id` / `x-timestamp` / `x-signature` 三个头是否存在
+2. `x-app-id` 是否与构造 SDK 时的 `appId` 一致
+3. `x-timestamp` 是否在允许窗口内（默认 ±5 分钟，可配置）
+4. HMAC-SHA256 签名是否匹配
+
+全部通过后才调用 `handler(payload, event)`；`event` 为 `x-event` 头，无该头时为 `undefined`。
 
 ```ts
 import express from 'express';
@@ -2344,42 +2353,90 @@ const sdk = new CregisSDK({
   baseUrl: 'https://custody-sit.cregis.ae/openplatform',
   appId: process.env.APP_ID!,
   appSecret: process.env.APP_SECRET!,
+  // 可选：调整重放窗口，默认 5 分钟；设为 0 关闭该检查
+  // callbackTimestampToleranceMs: 5 * 60 * 1000,
 });
 
 const app = express();
-app.use(express.json());
+app.use(express.json());   // 不要在验签前做任何 body 改写
 
 app.post('/cregis/callback', async (req, res) => {
   try {
-    await sdk.onCallback(req, async (payload) => {
-      const event = req.headers['x-event'] as string | undefined;
-      // 原子抢占幂等键（SET NX，见 14.6）
-      // 先持久化 / 入队，返回 2xx 后再异步消费；平台不会重投已返回 2xx 的事件
-      const primaryKey = payload.authorizeId || payload.orderId || payload.taskId;
+    await sdk.onCallback(req, async (payload, event) => {
+      // 事件名由 SDK 传入，无需再读请求头
+      // 原子抢占幂等键（SET NX，见 14.6），先持久化 / 入队，返回 2xx 后异步消费
+      const primaryKey =
+        (payload as any).authorizeId ||
+        (payload as any).authorizationId ||
+        (payload as any).orderId ||
+        (payload as any).taskId;
       if (!primaryKey) throw new Error('callback payload has no primary key');
+
       await eventStore.saveOnce(`${event ?? 'no-event'}:${primaryKey}`, { event, payload });
     });
 
-    // 已持久化：返回 2xx，由本地队列 / worker 异步处理
     res.status(200).json({ code: 0 });
   } catch (error) {
     if (error instanceof SDKError && error.code === 'SIGNATURE_INVALID') {
       res.status(401).json({ code: 40101, message: 'invalid signature' });
       return;
     }
-    // 只有持久化前失败（解析、写库异常）才会到这里。
-    // 返回 5xx 会让平台重试该事件（共 5 次尝试）；若确定无法处理，应记录日志后返回 2xx，
-    // 交由本地队列 / 对账补偿，避免重复推送。
+    // 返回 5xx 会让平台重试该事件（共 5 次尝试）；若确定无法处理，
+    // 应记录日志后返回 2xx，交由本地队列 / 对账补偿，避免重复推送。
     res.status(500).json({ code: 50001, message: 'internal error' });
   }
 });
 ```
 
+#### Java
+
+使用 `CregisClient.onCallback(CallbackRequest, CallbackHandler)`（`cregis-sdk-core` 1.2.1+）。校验顺序与 Node SDK 一致，失败时抛 `CregisSdkException`（`SdkErrorCode.WEBHOOK_VERIFY_FAILED`）。
+
+```java
+SdkConfig config = SdkConfig.builder()
+        .appId(System.getenv("APP_ID"))
+        .appSecret(System.getenv("APP_SECRET"))
+        .baseUrl("https://custody-sit.cregis.ae/openplatform")
+        // 可选：默认 5 分钟；设为 0 关闭重放窗口
+        // .callbackTimestampToleranceMs(5 * 60 * 1000L)
+        .build();
+
+CregisClient client = new CregisClient(config);
+
+// 在 HTTP 处理中（Spring MVC 示例）
+@PostMapping("/cregis/callback")
+public ResponseEntity<?> callback(@RequestBody Map<String, Object> body,
+                                  @RequestHeader("X-App-Id") String appId,
+                                  @RequestHeader("X-Timestamp") String timestamp,
+                                  @RequestHeader("X-Signature") String signature,
+                                  @RequestHeader(value = "X-Event", required = false) String event) {
+    CallbackRequest request = CallbackRequest.builder()
+            .appId(appId)
+            .timestamp(timestamp)
+            .event(event)
+            .signature(signature)
+            .data(body)
+            .build();
+
+    try {
+        client.onCallback(request, (data, eventName) -> {
+            // eventName 为 null 表示无 X-Event（authorizeUrl 的 callback 路径）
+            eventStore.saveOnce((eventName == null ? "no-event" : eventName)
+                    + ":" + primaryKeyOf(data), data);
+        });
+        return ResponseEntity.ok(Map.of("code", 0));
+    } catch (CregisSdkException e) {
+        return ResponseEntity.status(401).body(Map.of("code", 40101, "message", "invalid signature"));
+    }
+}
+```
+
 注意：
 
-- `handler` 只接收业务数据，事件名要从 `req.headers['x-event']` 读取；无事件时该头为 `undefined`。
-- SDK 验签只校验签名，不校验时间戳新鲜度，也不比对 `X-App-Id` 与构造配置中的 `appId`。请自行做重放防护：签名不含 nonce，请校验 `X-Timestamp`（毫秒）与服务端时间的偏差在可接受窗口内（例如 ±5 分钟），并用事件主键去重（见 14.6）。
-- 验签使用解析后的 `req.body` 重新排序序列化，因此不需要保留原始请求字节；但不要在验签前修改 `req.body`（增删字段、类型转换等都会改变 `md5(sortedJSON(data))`）。
+- 两个 SDK 的 handler 都会收到 **event 参数**：Node 为 `string | undefined`，Java 为可空 `String`。无需再自行读取 `X-Event` 头。
+- 验签使用解析后的 body 重新排序序列化，因此不需要保留原始请求字节；但**不要在验签前修改 body**（增删字段、`null` 转 `undefined`、数字/字符串互转都会改变 `md5(sortedJSON(data))`）。
+- 时间戳窗口只防重放，**不能代替幂等**。平台是「至少一次」投递，同一事件仍可能重复到达，必须按主键去重（见 14.6）。
+- 若你的部署存在较大时钟漂移，可调大 `callbackTimestampToleranceMs`；不要长期设为 0。
 
 ### 14.5 重试策略
 

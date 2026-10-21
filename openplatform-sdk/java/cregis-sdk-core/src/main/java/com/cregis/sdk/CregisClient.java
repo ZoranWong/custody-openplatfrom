@@ -151,12 +151,20 @@ public class CregisClient {
     /**
      * Verify a callback and dispatch to the business handler.
      *
-     * <p>The handler is invoked only after the signature verifies successfully.
-     * If the signature is missing or invalid, a {@link CregisSdkException} with
-     * {@link SdkErrorCode#WEBHOOK_VERIFY_FAILED} is thrown.
+     * <p>Defences applied before the handler runs:
+     * <ul>
+     *   <li>{@code appId} must match the configured {@code appId}</li>
+     *   <li>{@code timestamp} must be within {@code callbackTimestampToleranceMs}
+     *       (default 5 minutes)</li>
+     *   <li>the HMAC-SHA256 signature must verify over the parsed body</li>
+     * </ul>
+     *
+     * <p>Signature verification requires the body exactly as sent by the
+     * platform; do not mutate the map before calling this method.
      *
      * @param request the callback request (metadata in headers, data in body)
-     * @param handler the business handler invoked with the verified data
+     * @param handler the business handler invoked with the verified data and
+     *                the event name ({@code null} when {@code X-Event} is absent)
      */
     public void onCallback(CallbackRequest request, CallbackHandler handler) {
         if (request == null || request.getAppId() == null
@@ -165,6 +173,34 @@ public class CregisClient {
                     SdkErrorCode.WEBHOOK_VERIFY_FAILED,
                     "Missing required callback metadata (appId, timestamp, signature)"
             );
+        }
+
+        // The signature头 must belong to this application.
+        if (!this.appId.equals(request.getAppId())) {
+            throw new CregisSdkException(
+                    SdkErrorCode.WEBHOOK_VERIFY_FAILED,
+                    "Callback appId does not match the configured appId"
+            );
+        }
+
+        // Replay protection: X-Timestamp carries epoch milliseconds.
+        long tolerance = config.getCallbackTimestampToleranceMs();
+        if (tolerance > 0) {
+            long ts;
+            try {
+                ts = Long.parseLong(request.getTimestamp());
+            } catch (NumberFormatException e) {
+                throw new CregisSdkException(
+                        SdkErrorCode.WEBHOOK_VERIFY_FAILED,
+                        "Callback timestamp is not a valid millisecond value"
+                );
+            }
+            if (Math.abs(System.currentTimeMillis() - ts) > tolerance) {
+                throw new CregisSdkException(
+                        SdkErrorCode.WEBHOOK_VERIFY_FAILED,
+                        "Callback timestamp outside the allowed window"
+                );
+            }
         }
 
         String signature = request.getSignature().replaceFirst("^sha256=", "");
@@ -185,7 +221,7 @@ public class CregisClient {
             );
         }
 
-        handler.handle(request.getData());
+        handler.handle(request.getData(), request.getEvent());
     }
 
     /**

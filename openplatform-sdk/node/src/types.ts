@@ -11,6 +11,11 @@ export interface SDKConfig {
   appSecret: string;
   timeout?: number;
   debug?: boolean;
+  /**
+   * Max allowed clock skew for callback `X-Timestamp` (milliseconds).
+   * Defaults to 5 minutes. Set to 0 to disable the replay window.
+   */
+  callbackTimestampToleranceMs?: number;
 }
 
 export interface ApiResponse<T = unknown> {

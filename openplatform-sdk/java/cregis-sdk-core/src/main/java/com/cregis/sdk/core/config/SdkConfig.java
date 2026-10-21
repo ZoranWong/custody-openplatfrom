@@ -44,4 +44,11 @@ public class SdkConfig {
     /** Webhook callback path */
     @Builder.Default
     private String webhookPath = "/cregis/callback";
+
+    /**
+     * Max allowed clock skew for the callback {@code X-Timestamp} header, in
+     * milliseconds. Defaults to 5 minutes. Set to 0 to disable the replay window.
+     */
+    @Builder.Default
+    private long callbackTimestampToleranceMs = 5 * 60 * 1000L;
 }

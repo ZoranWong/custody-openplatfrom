@@ -34,7 +34,8 @@ function buildSignature(
 
 const appSecret = TEST_APP_SECRET;
 const appId = TEST_APP_ID;
-const timestamp = '1713600000000';
+const timestamp = '1713600000000';       // fixed, used by pure signature tests
+const freshTimestamp = () => String(Date.now());  // within the replay window
 const event = 'transaction.completed';
 
 describe('CallbackService.verifySignature', () => {
@@ -102,44 +103,43 @@ describe('CallbackService.buildSignature', () => {
 });
 
 describe('CregisSDK.onCallback', () => {
-  function createSDK(): CregisSDK {
-    return new CregisSDK(makeConfig({ appId, appSecret }));
+  function createSDK(overrides: Partial<Parameters<typeof makeConfig>[0]> = {}): CregisSDK {
+    return new CregisSDK(makeConfig({ appId, appSecret, ...overrides }));
+  }
+
+  /** Build a request with a matching timestamp in both signature and header. */
+  function makeRequest(
+    data: Record<string, unknown>,
+    opts: { event?: string; appIdOverride?: string; ts?: string; signatureOverride?: string } = {},
+  ): CallbackRequest {
+    const ts = opts.ts ?? String(Date.now());
+    const requestAppId = opts.appIdOverride ?? appId;
+    const signature =
+      opts.signatureOverride ??
+      buildSignature(appSecret, requestAppId, ts, opts.event, data);
+    const headers: CallbackRequest['headers'] = {
+      'x-app-id': requestAppId,
+      'x-timestamp': ts,
+      'x-signature': `sha256=${signature}`,
+    };
+    if (opts.event) headers['x-event'] = opts.event;
+    return { headers, body: data };
   }
 
   it('calls callback on valid signature (metadata in headers, data in body)', async () => {
     const sdk = createSDK();
     const data = { unitId: 123, orderId: 'ORD-001' };
-    const signature = buildSignature(appSecret, appId, timestamp, undefined, data);
-
-    const req: CallbackRequest = {
-      headers: {
-        'x-app-id': appId,
-        'x-timestamp': timestamp,
-        'x-signature': `sha256=${signature}`,
-      },
-      body: data,
-    };
 
     const callback = vi.fn();
-    await sdk.onCallback(req, callback);
+    await sdk.onCallback(makeRequest(data), callback);
 
     expect(callback).toHaveBeenCalledTimes(1);
-    expect(callback).toHaveBeenCalledWith(data);
+    expect(callback).toHaveBeenCalledWith(data, undefined);
   });
 
   it('awaits an async callback handler', async () => {
     const sdk = createSDK();
     const data = { unitId: 123 };
-    const signature = buildSignature(appSecret, appId, timestamp, undefined, data);
-
-    const req: CallbackRequest = {
-      headers: {
-        'x-app-id': appId,
-        'x-timestamp': timestamp,
-        'x-signature': `sha256=${signature}`,
-      },
-      body: data,
-    };
 
     let resolved = false;
     const callback = vi.fn(async () => {
@@ -147,44 +147,25 @@ describe('CregisSDK.onCallback', () => {
       resolved = true;
     });
 
-    await sdk.onCallback(req, callback);
+    await sdk.onCallback(makeRequest(data), callback);
 
     expect(callback).toHaveBeenCalledTimes(1);
     expect(resolved).toBe(true);
   });
 
-  it('calls callback on valid signature with event', async () => {
+  it('passes the event name when X-Event is present', async () => {
     const sdk = createSDK();
     const data = { unitId: 123, txHash: '0xabc' };
-    const signature = buildSignature(appSecret, appId, timestamp, event, data);
-
-    const req: CallbackRequest = {
-      headers: {
-        'x-app-id': appId,
-        'x-timestamp': timestamp,
-        'x-event': event,
-        'x-signature': `sha256=${signature}`,
-      },
-      body: data,
-    };
 
     const callback = vi.fn();
-    await sdk.onCallback(req, callback);
+    await sdk.onCallback(makeRequest(data, { event }), callback);
 
-    expect(callback).toHaveBeenCalledTimes(1);
-    expect(callback).toHaveBeenCalledWith(data);
+    expect(callback).toHaveBeenCalledWith(data, 'transaction.completed');
   });
 
   it('throws SDKError on invalid signature', async () => {
     const sdk = createSDK();
-    const req: CallbackRequest = {
-      headers: {
-        'x-app-id': appId,
-        'x-timestamp': timestamp,
-        'x-signature': 'sha256=invalid',
-      },
-      body: { unitId: 1 },
-    };
+    const req = makeRequest({ unitId: 1 }, { signatureOverride: 'invalid' });
     await expect(sdk.onCallback(req, () => {})).rejects.toThrow(SDKError);
   });
 
@@ -192,7 +173,7 @@ describe('CregisSDK.onCallback', () => {
     const sdk = createSDK();
     const req: CallbackRequest = {
       headers: {
-        'x-timestamp': timestamp,
+        'x-timestamp': String(Date.now()),
         'x-signature': 'sha256=some',
       },
       body: {},
@@ -214,31 +195,66 @@ describe('CregisSDK.onCallback', () => {
 
   it('throws SDKError on tampered data', async () => {
     const sdk = createSDK();
-    const data = { taskId: 'TSK-001' };
-    const signature = buildSignature(appSecret, appId, timestamp, undefined, data);
-    const tamperedData = { taskId: 'TSK-999' };
-
+    const ts = String(Date.now());
+    const signature = buildSignature(appSecret, appId, ts, undefined, { taskId: 'TSK-001' });
     const req: CallbackRequest = {
       headers: {
         'x-app-id': appId,
-        'x-timestamp': timestamp,
+        'x-timestamp': ts,
         'x-signature': `sha256=${signature}`,
       },
-      body: tamperedData,
+      body: { taskId: 'TSK-999' },
     };
     await expect(sdk.onCallback(req, () => {})).rejects.toThrow(SDKError);
   });
 
   it('uses SIGNATURE_INVALID error code', async () => {
     const sdk = createSDK();
-    const req: CallbackRequest = {
-      headers: {
-        'x-app-id': appId,
-        'x-timestamp': timestamp,
-        'x-signature': 'sha256=invalid',
-      },
-      body: {},
-    };
-    await expect(sdk.onCallback(req, () => {})).rejects.toMatchObject({ code: SDKErrorCode.SIGNATURE_INVALID });
+    const req = makeRequest({}, { signatureOverride: 'invalid' });
+    await expect(sdk.onCallback(req, () => {})).rejects.toMatchObject({
+      code: SDKErrorCode.SIGNATURE_INVALID,
+    });
+  });
+
+  it('rejects a callback whose appId differs from the configured appId', async () => {
+    const sdk = createSDK();
+    const otherAppId = '00000000-0000-4000-8000-000000000000';
+    const req = makeRequest({ unitId: 1 }, { appIdOverride: otherAppId });
+
+    await expect(sdk.onCallback(req, () => {})).rejects.toMatchObject({
+      code: SDKErrorCode.SIGNATURE_INVALID,
+      message: expect.stringContaining('appId'),
+    });
+  });
+
+  it('rejects a stale timestamp (replay protection)', async () => {
+    const sdk = createSDK();
+    const stale = String(Date.now() - 10 * 60 * 1000);
+    const req = makeRequest({ unitId: 1 }, { ts: stale });
+
+    await expect(sdk.onCallback(req, () => {})).rejects.toMatchObject({
+      code: SDKErrorCode.SIGNATURE_INVALID,
+      message: expect.stringContaining('timestamp'),
+    });
+  });
+
+  it('honours a custom tolerance window', async () => {
+    const sdk = createSDK({ callbackTimestampToleranceMs: 15 * 60 * 1000 });
+    const tenMinutesAgo = String(Date.now() - 10 * 60 * 1000);
+    const req = makeRequest({ unitId: 1 }, { ts: tenMinutesAgo });
+
+    const callback = vi.fn();
+    await sdk.onCallback(req, callback);
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips the replay window when tolerance is 0', async () => {
+    const sdk = createSDK({ callbackTimestampToleranceMs: 0 });
+    const longAgo = String(Date.now() - 24 * 60 * 60 * 1000);
+    const req = makeRequest({ unitId: 1 }, { ts: longAgo });
+
+    const callback = vi.fn();
+    await sdk.onCallback(req, callback);
+    expect(callback).toHaveBeenCalledTimes(1);
   });
 });
