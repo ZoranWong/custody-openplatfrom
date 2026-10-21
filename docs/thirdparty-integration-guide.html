@@ -198,7 +198,7 @@
         <a href="#s-13-2" class="nav-sub">13.2 添加企业用户</a>
         <a href="#s-13-3" class="nav-sub">13.3 初始化 Board（护卫队）</a>
         <a href="#ch-14" class="nav-item">14. 回调</a>
-        <a href="#s-14-1" class="nav-sub">14.1 事件清单</a>
+        <a href="#s-14-1" class="nav-sub">14.1 支持的事件</a>
         <a href="#s-14-2" class="nav-sub">14.2 请求头与请求体</a>
         <a href="#s-14-3" class="nav-sub">14.3 签名算法</a>
         <a href="#s-14-4" class="nav-sub">14.4 可运行的 Node.js 验签处理</a>
@@ -210,7 +210,7 @@
         <a href="#s-15-3" class="nav-sub">15.3 按现象排查</a>
         <a href="#s-15-4" class="nav-sub">15.4 已知实现限制</a>
         <a href="#ch-16" class="nav-item">16. SDK 集成</a>
-        <a href="#s-16-1" class="nav-sub">16.1 Node.js SDK 1.1.0</a>
+        <a href="#s-16-1" class="nav-sub">16.1 Node.js SDK 1.2.0</a>
         <a href="#s-16-2" class="nav-sub">16.2 Java SDK 1.2.0（JitPack）</a>
         <a href="#s-16-3" class="nav-sub">16.3 Web SDK 1.0.5</a>
         <a href="#s-16-4" class="nav-sub">16.4 版本兼容表</a>
@@ -223,8 +223,8 @@
         <h1>Cregis 开放平台 - 第三方开发者接入指南</h1>
 <p><strong>Last Updated:</strong> 2026-10-19</p>
 <blockquote>
-<p><strong>适用 SDK 版本：</strong> Node SDK 1.1.0 / Java SDK 1.2.0（1.3.0 未发布）/ Web SDK 1.0.5</p>
-<p><strong>发布状态：</strong> 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.0</code>。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。</p>
+<p><strong>适用 SDK 版本：</strong> Node SDK 1.2.0 / Java SDK 1.2.1 / Web SDK 1.0.5</p>
+<p><strong>发布状态：</strong> 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.1</code>。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。</p>
 <p><strong>接口基数：</strong> 网关对外 22 条转发接口 + 6 条本地接口，共 28 条</p>
 </blockquote>
 <p>本指南面向接入 Cregis 托管能力的第三方平台开发者。第 1–6 章覆盖平台概述、端到端接入流程、开发者入驻、认证与签名、OAuth 授权和通用约定；第 7–12 章为业务接口参考；第 13–17 章覆盖商户 / 用户 / Board、回调、错误码与排查、SDK 集成和附录。</p>
@@ -1253,7 +1253,7 @@ public class SignatureDemo {
 <tr>
 <td><code>40102</code>（签名错误），含对象数组的请求</td>
 <td>只排序了顶层 key，没有排序数组内的对象</td>
-<td>使用 1.1.0+ Node SDK / 1.2.0+ Java SDK，或按 4.3 递归排序</td>
+<td>使用 1.2.0+ Node SDK / 1.2.1+ Java SDK，或按 4.3 递归排序</td>
 </tr>
 <tr>
 <td><code>40102</code>，字段被改写</td>
@@ -1585,7 +1585,7 @@ public class SignatureDemo {
 <li>校验成功后会异步推送 <code>authorization.created</code> 回调（见 5.6）。回调是异步的，<code>verify</code> 的响应不等待回调结果。
 </li>
 </ul>
-<p>SDK 不提供该方法：<code>oauth/verify</code> 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 <code>verifyOAuthToken</code>；Java SDK 1.2.0（已发布 tag）中仍保留该方法，但请勿使用。</p>
+<p>SDK 不提供该方法：<code>oauth/verify</code> 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 <code>verifyOAuthToken</code>；Java SDK 1.2.1（已发布 tag）中仍保留该方法，但请勿使用。</p>
 <p><strong>关于 <code>oauthToken</code>：</strong> 它就是 <code>authorizeUrl</code> 响应中 <code>authorizeUrl</code> 查询参数里的 <code>appToken</code>（JWT，载荷含 <code>appId</code>、<code>callback</code>、<code>token</code>，默认 2 小时有效）。网关不会在授权页或 postMessage 事件中下发它；它由授权页随内部授权请求交给 Custody，由 Custody 在调用本接口时消费。开发者不需要保存它来换取 <code>authorizeId</code>。</p>
 <h3 id="s-5-5">5.5 已移除的 <code>oauth/token</code> 接口</h3>
 <p><code>/api/thirdparty/oauth/token</code> 原有的实现只是按 <code>business.oauthUserId</code> 现场签发一个无消费方的 JWT（<code>resourceKey</code> 恒为 <code>''</code>），既不能换取 <code>authorizationId</code>，也不能用于业务接口。该路由已从网关移除，请求会落入兜底转发：Basic 签名的旧调用方因缺少 <code>basic.authorizationId</code> 被 Resource 校验器拒绝，返回 <code>40001</code>（HTTP 400）；携带有效 Resource 签名时才会继续匹配并得到 <code>40401</code>（HTTP 404）。请勿在对接代码或旧版文档中引用。</p>
@@ -1633,7 +1633,7 @@ public class SignatureDemo {
 </li>
 <li>回调地址优先级：<code>authorizeUrl</code> 的 <code>callback</code> &gt; 应用配置的 <code>callbackUrl</code>。两者都没有时不会推送。
 </li>
-<li>回调是异步的，失败会重试：初始 1 次 + 3 次重试，实际间隔为 0s / 1s / 5s（配置中的第 4 个 30s 值不可达）。注意：<strong>当前实现只对网络 / 超时错误重试，HTTP 429 / 5xx 不会重试</strong>（缺陷 D14，见 14.5）。请务必对 <code>authorizeId</code> 做幂等处理，并通过查询接口对账。
+<li>回调是异步的，失败会重试：初始 1 次 + 最多 4 次重试（间隔 0s / 1s / 5s / 30s），网络错误与 HTTP 429 / 5xx 都会触发重试。<strong>没有持久化队列</strong>，5 次都失败后事件不会补投，请务必对 <code>authorizeId</code> 做幂等处理，并通过查询接口对账（见 14.5）。
 </li>
 </ul>
 <p>回调的 HMAC 验签、重试策略、事件列表与响应要求详见 <strong>第 14 章「回调与 Webhook」</strong>。</p>
@@ -3999,71 +3999,49 @@ public class SignatureDemo {
 <hr>
 <h2 id="ch-14">14. 回调</h2>
 <p>平台通过 HTTP POST 把授权与业务事件推送到开发者配置的回调地址。回调体<strong>只有业务数据</strong>，事件元数据全部放在请求头。</p>
-<h3 id="s-14-1">14.1 事件清单</h3>
-<p><code>application-callback.service.ts</code> 定义的事件枚举如下：</p>
+<h3 id="s-14-1">14.1 支持的事件</h3>
+<p>平台当前只推送以下事件。每个事件的 <code>data</code> 结构见 14.2 对应小节。</p>
 <table>
 <thead>
 <tr>
-<th>事件</th>
-<th>本仓库中的推送方</th>
-<th>说明</th>
+<th>事件名（<code>X-Event</code>）</th>
+<th>触发路径</th>
+<th>触发时机</th>
+<th><code>data</code> 结构</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>authorization.created</code></td>
-<td>由 Custody 在内部调用 <code>oauth/verify</code>（<code>thirdparty.controller.ts</code>）后触发</td>
-<td>授权验证成功后推送。载荷 <code>{ authorizeId, oauthToken? }</code>；<code>oauthToken</code> 是 <code>authorizeUrl</code> 请求传入的 <code>token</code> 值（不是 JWT），未传 <code>token</code> 时没有该字段</td>
+<td>Custody → 网关 <code>POST /api/thirdparty/oauth/verify</code></td>
+<td>用户完成授权、Custody 写入授权记录后</td>
+<td><code>{ authorizeId, oauthToken? }</code>（14.2.1）</td>
 </tr>
 <tr>
-<td><code>authorization.revoked</code></td>
-<td>无</td>
-<td>枚举已定义，当前仓库没有代码推送</td>
-</tr>
-<tr>
-<td><code>authorization.expired</code></td>
-<td>无</td>
-<td>同上</td>
-</tr>
-<tr>
-<td><code>transaction.submitted</code></td>
-<td>无</td>
-<td>同上</td>
-</tr>
-<tr>
-<td><code>transaction.confirming</code></td>
-<td>无</td>
-<td>同上</td>
+<td><code>authorization.created</code></td>
+<td><code>POST /api/v1/authorizations</code></td>
+<td>通过内部授权接口创建授权记录后</td>
+<td><code>{ authorizationId, resourceKey, expiresAt }</code>（14.2.2）</td>
 </tr>
 <tr>
 <td><code>transaction.completed</code></td>
-<td><code>custody/callback</code> 路由（<code>thirdparty.routes.ts</code>）</td>
-<td>由本仓库转发给应用 <code>callbackUrl</code>，见下方说明</td>
+<td>Custody → 网关 <code>POST /api/thirdparty/custody/callback</code></td>
+<td>链上交易成功</td>
+<td>出金 / 归集、入金、审批任务三类（14.2.3）</td>
 </tr>
 <tr>
 <td><code>transaction.failed</code></td>
-<td><code>custody/callback</code> 路由（<code>thirdparty.routes.ts</code>）</td>
-<td>由本仓库转发给应用 <code>callbackUrl</code>，见下方说明</td>
-</tr>
-<tr>
-<td><code>task.approved</code></td>
-<td>无</td>
-<td>枚举已定义，当前仓库没有代码推送</td>
-</tr>
-<tr>
-<td><code>task.rejected</code></td>
-<td>无</td>
+<td>Custody → 网关 <code>POST /api/thirdparty/custody/callback</code></td>
+<td>链上交易失败或状态非 <code>SUCCEED</code></td>
 <td>同上</td>
 </tr>
 </tbody>
 </table>
-<p>说明：</p>
+<p>注意：</p>
 <ul>
-<li>除 <code>authorization.created</code> 与 custody 回调转发的两个交易事件外，其余事件名当前<strong>没有生产者</strong>。它们是为 custody 侧事件预留的枚举；是否实际下发取决于 custody 部署，接入方应按事件名做通用处理，不要假设“一定会收到”。
+<li>前两行事件名相同但<strong>字段名不同</strong>（<code>authorizeId</code> vs <code>authorizationId</code>），接收方按字段存在性判断。
 </li>
-<li>另有签名保护的内部接口 <code>POST /api/v1/authorizations</code> 也会推送 <code>authorization.created</code>，但其载荷为 <code>{ authorizationId, resourceKey, expiresAt }</code>，与本指南使用的 <code>oauth/verify</code> 内部路径（<code>authorizeId</code>）字段名不同。
-</li>
-<li><code>POST /api/thirdparty/custody/callback</code> 由 Custody 服务调用（开发者不调用）。它按 <code>resourceKey</code> 反查 <code>oauth_resources</code> 与应用，要求应用配置了 <code>callbackUrl</code>；事件名优先取请求体 <code>eventType</code>，否则按 <code>status === 'SUCCEED'</code> 映射为 <code>transaction.completed</code>，<strong>其余任何状态都映射为 <code>transaction.failed</code></strong>。请求体含 <code>payload</code> 字段时，仅转发 <code>payload</code>；否则转发整个请求体但去掉 <code>status</code>、<code>resourceKey</code>、<code>ecode</code>。该路由始终以 HTTP 200 返回，业务失败通过响应体 <code>code</code> 表达（如缺少 <code>resourceKey</code> 返回 <code>40001</code>）。
+<li>交易类事件没有统一字段集，由 Custody 按业务类型推送，网关原样转发。
 </li>
 </ul>
 <h3 id="s-14-2">14.2 请求头与请求体</h3>
@@ -4103,7 +4081,481 @@ public class SignatureDemo {
 </tr>
 </tbody>
 </table>
-<p>请求体是纯业务数据（例如 <code>{ "authorizeId": "...", "oauthToken": "..." }</code> 或交易字段），不含 <code>appId</code>、事件名、时间戳等元数据。</p>
+<p>请求体是纯业务数据，不含 <code>appId</code>、事件名、时间戳等元数据。外层没有 <code>{ code, message, data }</code> envelope——<strong>业务数据就是整个请求体</strong>。</p>
+<h4 id="s-14-2-1">14.2.1 <code>authorization.created</code>（<code>oauth/verify</code> 路径）</h4>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>必有</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>authorizeId</code></td>
+<td>string (UUID)</td>
+<td>是</td>
+<td>授权记录主键，即业务接口的 <code>basic.authorizationId</code></td>
+</tr>
+<tr>
+<td><code>oauthToken</code></td>
+<td>string</td>
+<td>否</td>
+<td><code>authorizeUrl</code> 请求中传入的 <code>token</code> 值，原样回传；未传 <code>token</code> 时<strong>没有该字段</strong></td>
+</tr>
+</tbody>
+</table>
+<pre class="codehilite"><code class="language-json">{
+  "authorizeId": "123e4567-e89b-12d3-a456-426614174000",
+  "oauthToken": "user-42-order-20261019"
+}</code></pre>
+<h4 id="s-14-2-2">14.2.2 <code>authorization.created</code>（<code>POST /api/v1/authorizations</code> 内部接口）</h4>
+<p>字段与上一小节<strong>不同</strong>，注意区分：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>authorizationId</code></td>
+<td>string (UUID)</td>
+<td>授权记录 ID</td>
+</tr>
+<tr>
+<td><code>resourceKey</code></td>
+<td>string</td>
+<td>资源键</td>
+</tr>
+<tr>
+<td><code>expiresAt</code></td>
+<td>string (ISO 8601)</td>
+<td>授权过期时间</td>
+</tr>
+</tbody>
+</table>
+<pre class="codehilite"><code class="language-json">{
+  "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
+  "resourceKey": "access-key-d21396c169754470b3cdae0af9b2b8a6",
+  "expiresAt": "2027-10-19T08:00:00.000Z"
+}</code></pre>
+<blockquote>
+<p>两条路径的事件名相同但主键字段名不同（<code>authorizeId</code> vs <code>authorizationId</code>）。接收方应按字段存在性判断，不要假设只有一种形态。</p>
+</blockquote>
+<h4 id="s-14-2-3">14.2.3 <code>transaction.completed</code> / <code>transaction.failed</code></h4>
+<p>这两个事件的载荷<strong>完全由 Custody 决定</strong>，网关不做字段映射，透传规则如下：</p>
+<ol>
+<li>请求体含 <code>payload</code> 字段 → <strong>只转发 <code>payload</code> 的内容</strong>；
+</li>
+<li>否则转发整个请求体，但删除 <code>status</code>、<code>resourceKey</code>、<code>ecode</code> 三个字段。
+</li>
+</ol>
+<p>事件名判定顺序：</p>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>请求体显式提供 <code>eventType</code>（只接受 <code>transaction.completed</code> / <code>transaction.failed</code>）</td>
+</tr>
+<tr>
+<td>2</td>
+<td>否则 <code>status === 'SUCCEED'</code> → <code>transaction.completed</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>其余任何 <code>status</code>（包括缺失）→ <code>transaction.failed</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>两个事件没有固定的 data 字段集</strong>。Custody 按业务类型推送不同的报文，网关原样转发。下表按业务类型列出<strong>常见字段</strong>，接入方应按实际收到的字段解析，缺失字段一律视为 <code>null</code>。</p>
+<p><strong>A. 出金 / 归集（结构与 12.2 出金订单一致）</strong></p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>number</td>
+<td>订单内部 ID</td>
+</tr>
+<tr>
+<td><code>orderId</code></td>
+<td>string</td>
+<td><strong>业务订单号，推荐作为幂等键</strong></td>
+</tr>
+<tr>
+<td><code>taskId</code></td>
+<td>string</td>
+<td>审批任务 ID，可用于 11.1 提交审批或查询任务</td>
+</tr>
+<tr>
+<td><code>ecode</code></td>
+<td>string</td>
+<td>企业编码</td>
+</tr>
+<tr>
+<td><code>treasuryUnitId</code></td>
+<td>number</td>
+<td>财务单元 ID</td>
+</tr>
+<tr>
+<td><code>cusAccountId</code></td>
+<td>number</td>
+<td>出金账户 ID</td>
+</tr>
+<tr>
+<td><code>address</code></td>
+<td>string</td>
+<td>出金地址（本平台侧）</td>
+</tr>
+<tr>
+<td><code>payToList</code></td>
+<td>array</td>
+<td>收款明细，每项 <code>{ to, amount }</code></td>
+</tr>
+<tr>
+<td><code>coinId</code> / <code>network</code></td>
+<td>string</td>
+<td>币种与网络</td>
+</tr>
+<tr>
+<td><code>amount</code> / <code>totalAmount</code></td>
+<td>number</td>
+<td>金额（<code>totalAmount</code> 为含费总额）</td>
+</tr>
+<tr>
+<td><code>fee</code></td>
+<td>string</td>
+<td>手续费</td>
+</tr>
+<tr>
+<td><code>txId</code></td>
+<td>string</td>
+<td>链上交易哈希；未上链时为空字符串</td>
+</tr>
+<tr>
+<td><code>orderState</code></td>
+<td>string</td>
+<td>订单状态，取值见 12.2（<code>SUCCEED</code> / <code>FAILED</code> / <code>AUDITING</code> …）</td>
+</tr>
+<tr>
+<td><code>callbackStatus</code></td>
+<td>string</td>
+<td>回调状态（<code>TRANSITING</code> / <code>SUCCEED</code> / <code>FAILED</code>）</td>
+</tr>
+<tr>
+<td><code>createTime</code> / <code>updateTime</code></td>
+<td>string</td>
+<td>服务器时间，格式 <code>YYYY-MM-DD HH:mm:ss</code></td>
+</tr>
+</tbody>
+</table>
+<pre class="codehilite"><code class="language-json">{
+  "id": 7001,
+  "ecode": "EC0000000001",
+  "treasuryUnitId": 80,
+  "cusAccountId": 101,
+  "address": "TXYZ...",
+  "coinId": "USDT",
+  "network": "TRC20",
+  "orderId": "ORDER-20261019-001",
+  "txId": "0xabc...",
+  "fee": "1",
+  "totalAmount": 100,
+  "orderState": "SUCCEED",
+  "callbackStatus": "SUCCEED",
+  "taskId": "task-20261019-003",
+  "payToList": [{ "to": "0x1234...abcd", "amount": 100 }],
+  "createTime": "2026-10-19 10:20:00",
+  "updateTime": "2026-10-19 10:35:00"
+}</code></pre>
+<p><strong>B. 入金（结构与 12.3 入金订单一致）</strong></p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>number</td>
+<td>订单内部 ID</td>
+</tr>
+<tr>
+<td><code>orderId</code></td>
+<td>string</td>
+<td>业务订单号，推荐作为幂等键</td>
+</tr>
+<tr>
+<td><code>ecode</code></td>
+<td>string</td>
+<td>企业编码</td>
+</tr>
+<tr>
+<td><code>treasuryUnitId</code></td>
+<td>number</td>
+<td>财务单元 ID</td>
+</tr>
+<tr>
+<td><code>cusAccountId</code></td>
+<td>number</td>
+<td>入金账户 ID</td>
+</tr>
+<tr>
+<td><code>address</code></td>
+<td>string</td>
+<td>入金地址（本平台侧）</td>
+</tr>
+<tr>
+<td><code>cpAddress</code></td>
+<td>string</td>
+<td><strong>付款方地址</strong></td>
+</tr>
+<tr>
+<td><code>coinId</code> / <code>network</code></td>
+<td>string</td>
+<td>币种与网络</td>
+</tr>
+<tr>
+<td><code>amount</code></td>
+<td>number</td>
+<td>到账金额</td>
+</tr>
+<tr>
+<td><code>fee</code></td>
+<td>string</td>
+<td>链上手续费</td>
+</tr>
+<tr>
+<td><code>txId</code></td>
+<td>string</td>
+<td>链上交易哈希</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>number</td>
+<td><code>1</code> 充值、<code>2</code> 收款</td>
+</tr>
+<tr>
+<td><code>orderState</code></td>
+<td>string</td>
+<td>状态，取值见 12.3（<code>SUCCEED</code> / <code>CONFIRMING</code> / <code>FAILED</code> …）</td>
+</tr>
+<tr>
+<td><code>callbackStatus</code></td>
+<td>string</td>
+<td>回调状态</td>
+</tr>
+<tr>
+<td><code>note</code></td>
+<td>string</td>
+<td>备注</td>
+</tr>
+<tr>
+<td><code>createTime</code> / <code>updateTime</code></td>
+<td>string</td>
+<td>服务器时间</td>
+</tr>
+</tbody>
+</table>
+<pre class="codehilite"><code class="language-json">{
+  "id": 6001,
+  "ecode": "EC0000000001",
+  "treasuryUnitId": 80,
+  "cusAccountId": 101,
+  "address": "TXYZ...",
+  "cpAddress": "TABC...",
+  "coinId": "USDT",
+  "network": "TRC20",
+  "amount": 100,
+  "orderId": "ORDER-20261019-001",
+  "txId": "0xdef...",
+  "fee": "1",
+  "orderState": "SUCCEED",
+  "callbackStatus": "SUCCEED",
+  "type": 1,
+  "note": "deposit",
+  "createTime": "2026-10-19 10:30:00",
+  "updateTime": "2026-10-19 10:31:00"
+}</code></pre>
+<p><strong>C. 审批任务（出金、归集、加币、白名单等产生的任务）</strong></p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>number</td>
+<td>任务内部 ID</td>
+</tr>
+<tr>
+<td><code>taskId</code></td>
+<td>string</td>
+<td><strong>任务 ID，推荐作为幂等键</strong></td>
+</tr>
+<tr>
+<td><code>taskOperation</code></td>
+<td>string</td>
+<td>任务类型，如 <code>PAYOUT</code> / <code>POOLING</code> / <code>FUND_FLOW</code> / <code>SET_WHITE_LIST</code></td>
+</tr>
+<tr>
+<td><code>businessId</code></td>
+<td>string</td>
+<td>关联业务单号</td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td>string</td>
+<td>任务状态，如 <code>AUDITING</code> / <code>SUCCEED</code> / <code>REJECTED</code></td>
+</tr>
+<tr>
+<td><code>threshold</code></td>
+<td>number</td>
+<td>审批门限</td>
+</tr>
+<tr>
+<td><code>total</code></td>
+<td>number</td>
+<td>签名人总数</td>
+</tr>
+<tr>
+<td><code>signers</code></td>
+<td>string[]</td>
+<td>签名人列表</td>
+</tr>
+<tr>
+<td><code>coinId</code></td>
+<td>string</td>
+<td>币种（部分任务类型存在）</td>
+</tr>
+<tr>
+<td><code>signContent</code></td>
+<td>string</td>
+<td>待签名内容（部分任务类型存在）</td>
+</tr>
+<tr>
+<td><code>createTime</code> / <code>updateTime</code></td>
+<td>string</td>
+<td>服务器时间</td>
+</tr>
+</tbody>
+</table>
+<pre class="codehilite"><code class="language-json">{
+  "id": 5003,
+  "taskId": "task-20261019-003",
+  "taskOperation": "PAYOUT",
+  "businessId": "ORDER-20261019-001",
+  "state": "AUDITING",
+  "threshold": 2,
+  "total": 3,
+  "signers": ["guardian-1", "guardian-2", "guardian-3"],
+  "coinId": "USDT",
+  "createTime": "2026-10-19 10:20:00",
+  "updateTime": "2026-10-19 10:20:00"
+}</code></pre>
+<p><strong>如何判断收到的是哪一类</strong></p>
+<p>data 里<strong>没有 <code>type</code> 之类的分类字段</strong>（入金报文的 <code>type</code> 表示充值与收款，不是业务分类）。建议按字段存在性判断：</p>
+<table>
+<thead>
+<tr>
+<th>特征字段</th>
+<th>业务类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>同时有 <code>payToList</code> 与 <code>cusAccountId</code></td>
+<td>出金 / 归集</td>
+</tr>
+<tr>
+<td>同时有 <code>cpAddress</code> 与 <code>type</code></td>
+<td>入金</td>
+</tr>
+<tr>
+<td>有 <code>taskOperation</code> 或 <code>signers</code></td>
+<td>审批任务</td>
+</tr>
+</tbody>
+</table>
+<p>三类都含 <code>orderId</code> / <code>taskId</code> 之一，可统一作为幂等键。字段随 Custody 版本可能扩展，<strong>多出的字段应忽略，不要因未知字段报错</strong>。</p>
+<p>应用侧只能看到<strong>网关转发后</strong>的请求体，看不到 Custody 原始报文；<code>payload</code> 是否被包裹、<code>status</code> 是否被删除，都由网关在转发前处理完毕。</p>
+<p>接入建议：</p>
+<ul>
+<li>幂等键优先级：<code>taskId</code>（任务类）→ <code>orderId</code>（订单类）→ 请求体 <code>sha256</code>。
+</li>
+<li>只依赖表中声明的字段存在性，不要把整个载荷结构写死。
+</li>
+<li><strong>不要依赖 <code>status</code> 判断事件类型</strong>——该字段在转发时会被删除；事件类型以 <code>X-Event</code> 头（即 SDK 传入的 <code>event</code>）为准。
+</li>
+<li><code>orderState</code> / <code>state</code> 是业务状态；<code>callbackStatus</code> 描述的是回调投递状态，二者不要混用。
+</li>
+</ul>
+<h4 id="s-14-2-4">14.2.4 三种回调的完整报文对照</h4>
+<p><strong>① 授权完成（<code>oauth/verify</code> 路径）</strong></p>
+<pre class="codehilite"><code>POST /your/callback HTTP/1.1
+Content-Type: application/json
+X-App-Id: 550e8400-e29b-41d4-a716-446655440000
+X-Event: authorization.created
+X-Timestamp: 1792404000000
+X-Signature: sha256=&lt;hmac&gt;</code></pre>
+<pre class="codehilite"><code class="language-json">{
+  "authorizeId": "123e4567-e89b-12d3-a456-426614174000",
+  "oauthToken": "user-42-order-20261019"
+}</code></pre>
+<p><strong>② 授权完成（内部接口路径，字段名不同）</strong></p>
+<pre class="codehilite"><code>X-App-Id: 550e8400-e29b-41d4-a716-446655440000
+X-Event: authorization.created
+X-Timestamp: 1792404000000
+X-Signature: sha256=&lt;hmac&gt;</code></pre>
+<pre class="codehilite"><code class="language-json">{
+  "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
+  "resourceKey": "access-key-d21396c169754470b3cdae0af9b2b8a6",
+  "expiresAt": "2027-10-19T08:00:00.000Z"
+}</code></pre>
+<p><strong>③ 交易完成 / 失败</strong>（字段随业务类型不同，此处为出金示例，完整字段见 14.2.3）</p>
+<pre class="codehilite"><code>X-App-Id: 550e8400-e29b-41d4-a716-446655440000
+X-Event: transaction.completed          ← 也可能是 transaction.failed
+X-Timestamp: 1792404000000
+X-Signature: sha256=&lt;hmac&gt;</code></pre>
+<pre class="codehilite"><code class="language-json">{
+  "id": 7001,
+  "orderId": "ORDER-20261019-001",
+  "taskId": "task-20261019-003",
+  "cusAccountId": 101,
+  "coinId": "USDT",
+  "network": "TRC20",
+  "totalAmount": 100,
+  "fee": "1",
+  "txId": "0xabc...",
+  "orderState": "SUCCEED",
+  "callbackStatus": "SUCCEED",
+  "payToList": [{ "to": "0x1234...abcd", "amount": 100 }]
+}</code></pre>
+<p><strong>注意</strong>：授权回调若来自 <code>authorizeUrl</code> 的 <code>callback</code> 参数路径，<strong>没有 <code>X-Event</code> 头</strong>（见 14.2 表格与 14.3 的签名分支）。</p>
 <h3 id="s-14-3">14.3 签名算法</h3>
 <pre class="codehilite"><code>signData = appId + "." + [event + "."] + timestamp + "." + md5(sortedJSON(data))
 X-Signature = "sha256=" + lowerHex(HMAC-SHA256(appSecret, signData))</code></pre>
@@ -4144,8 +4596,20 @@ HMAC-SHA256 = a5579ed42e4dd08de06b58be599b534b1141f70f353affdf292330501acd3ea4</
 <p>同一份 <code>data</code> 与时间戳、但不带事件时（<code>callback</code> 参数路径）：</p>
 <pre class="codehilite"><code>signData = 550e8400-e29b-41d4-a716-446655440000.1792404000000.bafebc702c519d75e2e3682b72ec2c13
 HMAC-SHA256 = 27cb791bd95c41922058729f9801eea94de2753ef66662321db8cbd930e30885</code></pre>
-<h3 id="s-14-4">14.4 可运行的 Node.js 验签处理</h3>
-<p>使用 <code>@cregis-kit/openplatform-node@1.1.0</code> 的 <code>sdk.onCallback(req, handler)</code>。它会读取 <code>x-app-id</code>、<code>x-timestamp</code>、<code>x-signature</code>（以及可选的 <code>x-event</code>），用构造 SDK 时的 <code>appSecret</code> 验签；成功后才调用 <code>handler(payload)</code>，<code>payload</code> 即请求体业务数据。</p>
+<h3 id="s-14-4">14.4 可运行的验签处理</h3>
+<h4>Node.js</h4>
+<p>使用 <code>@cregis-kit/openplatform-node@1.2.0</code> 的 <code>sdk.onCallback(req, handler)</code>。SDK 会依次校验：</p>
+<ol>
+<li><code>x-app-id</code> / <code>x-timestamp</code> / <code>x-signature</code> 三个头是否存在
+</li>
+<li><code>x-app-id</code> 是否与构造 SDK 时的 <code>appId</code> 一致
+</li>
+<li><code>x-timestamp</code> 是否在允许窗口内（默认 ±5 分钟，可配置）
+</li>
+<li>HMAC-SHA256 签名是否匹配
+</li>
+</ol>
+<p>全部通过后才调用 <code>handler(payload, event)</code>；<code>event</code> 为 <code>x-event</code> 头，无该头时为 <code>undefined</code>。</p>
 <pre class="codehilite"><code class="language-ts">
 import express from 'express';
 import { CregisSDK, SDKError } from '@cregis-kit/openplatform-node';
@@ -4154,42 +4618,88 @@ const sdk = new CregisSDK({
   baseUrl: 'https://custody-sit.cregis.ae/openplatform',
   appId: process.env.APP_ID!,
   appSecret: process.env.APP_SECRET!,
+  // 可选：调整重放窗口，默认 5 分钟；设为 0 关闭该检查
+  // callbackTimestampToleranceMs: 5 * 60 * 1000,
 });
 
 const app = express();
-app.use(express.json());
+app.use(express.json());   // 不要在验签前做任何 body 改写
 
 app.post('/cregis/callback', async (req, res) =&gt; {
   try {
-    await sdk.onCallback(req, async (payload) =&gt; {
-      const event = req.headers['x-event'] as string | undefined;
-      // 原子抢占幂等键（SET NX，见 14.6）
-      // 先持久化 / 入队，返回 2xx 后再异步消费；平台不会重投已返回 2xx 的事件
-      const primaryKey = payload.authorizeId || payload.orderId || payload.taskId;
+    await sdk.onCallback(req, async (payload, event) =&gt; {
+      // 事件名由 SDK 传入，无需再读请求头
+      const primaryKey =
+        payload.authorizeId ||
+        payload.authorizationId ||
+        payload.orderId ||
+        payload.taskId;
       if (!primaryKey) throw new Error('callback payload has no primary key');
+
       await eventStore.saveOnce(`${event ?? 'no-event'}:${primaryKey}`, { event, payload });
     });
 
-    // 已持久化：返回 2xx，由本地队列 / worker 异步处理
     res.status(200).json({ code: 0 });
   } catch (error) {
     if (error instanceof SDKError &amp;&amp; error.code === 'SIGNATURE_INVALID') {
       res.status(401).json({ code: 40101, message: 'invalid signature' });
       return;
     }
-    // 只有持久化前失败（解析、写库异常）才会到这里。
-    // 平台不会重投（D14），请记录日志并通过本地队列 / 对账补偿。
+    // 返回 5xx 会让平台重试该事件（共 5 次尝试）；若确定无法处理，
+    // 应记录日志后返回 2xx，交由本地队列 / 对账补偿，避免重复推送。
     res.status(500).json({ code: 50001, message: 'internal error' });
   }
 });
 </code></pre>
+<h4>Java</h4>
+<p>使用 <code>CregisClient.onCallback(CallbackRequest, CallbackHandler)</code>（<code>cregis-sdk-core</code> 1.2.1+）。校验顺序与 Node SDK 一致，失败时抛 <code>CregisSdkException</code>（<code>SdkErrorCode.WEBHOOK_VERIFY_FAILED</code>）。</p>
+<pre class="codehilite"><code class="language-java">
+SdkConfig config = SdkConfig.builder()
+        .appId(System.getenv("APP_ID"))
+        .appSecret(System.getenv("APP_SECRET"))
+        .baseUrl("https://custody-sit.cregis.ae/openplatform")
+        // 可选：默认 5 分钟；设为 0 关闭重放窗口
+        // .callbackTimestampToleranceMs(5 * 60 * 1000L)
+        .build();
+
+CregisClient client = new CregisClient(config);
+
+// 在 HTTP 处理中（Spring MVC 示例）
+@PostMapping("/cregis/callback")
+public ResponseEntity&lt;?&gt; callback(@RequestBody Map&lt;String, Object&gt; body,
+                                  @RequestHeader("X-App-Id") String appId,
+                                  @RequestHeader("X-Timestamp") String timestamp,
+                                  @RequestHeader("X-Signature") String signature,
+                                  @RequestHeader(value = "X-Event", required = false) String event) {
+    CallbackRequest request = CallbackRequest.builder()
+            .appId(appId)
+            .timestamp(timestamp)
+            .event(event)
+            .signature(signature)
+            .data(body)
+            .build();
+
+    try {
+        client.onCallback(request, (data, eventName) -&gt; {
+            // eventName 为 null 表示无 X-Event（authorizeUrl 的 callback 路径）
+            eventStore.saveOnce((eventName == null ? "no-event" : eventName)
+                    + ":" + primaryKeyOf(data), data);
+        });
+        return ResponseEntity.ok(Map.of("code", 0));
+    } catch (CregisSdkException e) {
+        return ResponseEntity.status(401).body(Map.of("code", 40101, "message", "invalid signature"));
+    }
+}
+</code></pre>
 <p>注意：</p>
 <ul>
-<li><code>handler</code> 只接收业务数据，事件名要从 <code>req.headers['x-event']</code> 读取；无事件时该头为 <code>undefined</code>。
+<li>两个 SDK 的 handler 都会收到 <strong>event 参数</strong>：Node 为 <code>string | undefined</code>，Java 为可空 <code>String</code>。无需再自行读取 <code>X-Event</code> 头。
 </li>
-<li>SDK 验签只校验签名，不校验时间戳新鲜度，也不比对 <code>X-App-Id</code> 与构造配置中的 <code>appId</code>。请自行做重放防护：签名不含 nonce，请校验 <code>X-Timestamp</code>（毫秒）与服务端时间的偏差在可接受窗口内（例如 ±5 分钟），并用事件主键去重（见 14.6）。
+<li>验签使用解析后的 body 重新排序序列化，因此不需要保留原始请求字节；但<strong>不要在验签前修改 body</strong>（增删字段、<code>null</code> 转 <code>undefined</code>、数字/字符串互转都会改变 <code>md5(sortedJSON(data))</code>）。
 </li>
-<li>验签使用解析后的 <code>req.body</code> 重新排序序列化，因此不需要保留原始请求字节；但不要在验签前修改 <code>req.body</code>（增删字段、类型转换等都会改变 <code>md5(sortedJSON(data))</code>）。
+<li>时间戳窗口只防重放，<strong>不能代替幂等</strong>。平台是「至少一次」投递，同一事件仍可能重复到达，必须按主键去重（见 14.6）。
+</li>
+<li>若你的部署存在较大时钟漂移，可调大 <code>callbackTimestampToleranceMs</code>；不要长期设为 0。
 </li>
 </ul>
 <h3 id="s-14-5">14.5 重试策略</h3>
@@ -4203,23 +4713,19 @@ app.post('/cregis/callback', async (req, res) =&gt; {
 <tbody>
 <tr>
 <td>总尝试次数</td>
-<td>初始 1 次 + 最多 3 次重试（共 4 次）</td>
+<td>初始 1 次 + 最多 4 次重试（共 5 次）</td>
 </tr>
 <tr>
 <td>重试间隔</td>
-<td>第 2 次尝试前 0 ms、第 3 次前 1,000 ms、第 4 次前 5,000 ms</td>
-</tr>
-<tr>
-<td>30 秒档位</td>
-<td>配置中 <code>retryDelays</code> 含 <code>30000</code>，但循环最多执行 4 次，该档位<strong>不可达</strong>（缺陷 D8）</td>
+<td>第 2 次尝试前 0 ms、第 3 次前 1,000 ms、第 4 次前 5,000 ms、第 5 次前 30,000 ms</td>
 </tr>
 <tr>
 <td>触发重试</td>
-<td><strong>仅网络 / 传输错误</strong>：<code>ECONNABORTED</code> / <code>ETIMEDOUT</code> / 未收到任何 HTTP 响应（<code>error.response === undefined</code>）</td>
+<td><strong>HTTP 429 / 5xx</strong>，以及<strong>网络 / 传输错误</strong>（<code>ECONNABORTED</code> / <code>ETIMEDOUT</code> / 未收到任何 HTTP 响应）</td>
 </tr>
 <tr>
 <td>不重试</td>
-<td>HTTP <code>429</code>、<code>5xx</code>、<code>3xx</code>、其余 <code>4xx</code> —— 见下方 D14</td>
+<td>HTTP <code>3xx</code>、其余 <code>4xx</code>（例如 400 / 401 / 404）</td>
 </tr>
 <tr>
 <td>成功判定</td>
@@ -4243,28 +4749,56 @@ app.post('/cregis/callback', async (req, res) =&gt; {
 </tr>
 <tr>
 <td>投递保证</td>
-<td>尽力而为：无队列 / 持久化 / 死信，耗尽 4 次尝试后不保证送达</td>
+<td>尽力而为：内存中重试，无队列 / 持久化 / 死信；耗尽 5 次尝试后事件丢失</td>
 </tr>
 </tbody>
 </table>
-<blockquote>
-<p><strong>缺陷 D14 — HTTP 429 / 5xx 实际不会重试。</strong> 回调 HTTP 客户端（<code>application-callback.service.ts:68-75</code>）未配置 <code>validateStatus</code>，axios 默认拒绝所有非 2xx 并抛异常，因此 <code>response.status === 429 || response.status &gt;= 500</code> 的分支（<code>:253-263</code>）不可达；<code>catch</code> 中的 <code>isRetryableNetworkError()</code>（<code>:296-303</code>）只识别超时 / 无响应错误，HTTP 错误的 <code>error.response</code> 已设置，直接失败。<strong>净效果：只有网络 / 超时错误会重试；接收方返回 429 或 5xx 时事件立即丢失。</strong> 修复前请先把事件持久化后返回 2xx，不要依赖返回 5xx 让平台重投；最终状态由对账 / 查询接口补偿。同一缺陷也影响 <code>custody/callback</code>：该路由对 Custody 始终返回 HTTP 200，推送失败只记录日志，Custody 不会重投。</p>
-</blockquote>
 <p>每次重试都会重新生成 <code>X-Timestamp</code> 并重新计算签名，因此接收方不能用第一次的时间戳校验后续尝试，也不能用 <code>X-Timestamp</code> 作为幂等键。</p>
+<blockquote>
+<p><strong>投递语义是“至少一次”，不是“恰好一次”。</strong> 网络抖动、超时（响应丢失但对方已处理）、重试都会造成重复推送。接收方必须按 14.6 的幂等键去重。</p>
+</blockquote>
+<blockquote>
+<p><strong>没有投递队列。</strong> 若 5 次尝试全部失败（例如接收方长时间宕机），该事件不会补投。请通过业务查询接口（12 章）或对账任务补偿最终状态；关键事件的接收方应在本地持久化后再返回 2xx，避免在事件处理期间返回 5xx 触发无意义重试。</p>
+</blockquote>
 <blockquote>
 <p>这里的重试只属于<strong>回调推送器</strong>（<code>ApplicationCallbackService</code>）。第 7 章描述的网关转发客户端重试放大（上游 5xx / 超时被反复重试）发生在业务请求链路上，<strong>不适用于回调推送</strong>。</p>
 </blockquote>
 <h3 id="s-14-6">14.6 幂等与响应要求</h3>
 <ul>
-<li><strong>尽快返回 2xx</strong>：单次回调超时为 30 秒，超时会触发重试并可能造成重复处理。建议先把事件写入队列 / 幂等表并立即返回，业务处理异步进行。由于 429 / 5xx 不会重试（D14），先持久化再返回 2xx 是避免丢事件的唯一可靠方式。
+<li><strong>尽快返回 2xx</strong>：单次回调超时为 30 秒，超时会触发重试并可能造成重复处理。建议先把事件写入队列 / 幂等表并立即返回，业务处理异步进行。
 </li>
-<li><strong>按事件主键去重</strong>：授权事件用 <code>authorizeId</code>；交易事件用 <code>orderId</code>（或 <code>taskId</code> / <code>txId</code>，取决于载荷）。没有业务主键时用稳定的请求体哈希（<code>sha256(rawBody)</code>）兜底；<strong>不要用 <code>X-App-Id + X-Timestamp</code></strong>——时间戳每次重试都会重新生成，无法去重同一事件。同一事件可能被重复推送。
+<li><strong>按事件主键去重</strong>：
+<table>
+<thead>
+<tr>
+<th>事件</th>
+<th>幂等键</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>authorization.created</code>（<code>oauth/verify</code> 路径）</td>
+<td><code>authorizeId</code></td>
+</tr>
+<tr>
+<td><code>authorization.created</code>（内部接口路径）</td>
+<td><code>authorizationId</code></td>
+</tr>
+<tr>
+<td><code>transaction.completed</code> / <code>transaction.failed</code></td>
+<td><code>orderId</code>，缺失时用 <code>taskId</code>，再缺失用 <code>txId</code></td>
+</tr>
+</tbody>
+</table>
+<p>都没有业务主键时用稳定的请求体哈希（<code>sha256(rawBody)</code>）兜底；<strong>不要用 <code>X-App-Id + X-Timestamp</code></strong>——时间戳每次重试都会重新生成，无法去重同一事件。</p>
 </li>
 <li><strong>原子抢占</strong>：用 Redis <code>SET NX</code>（或数据库唯一键）在产生副作用前抢占幂等键，并区分 <code>processing</code> / <code>done</code> 状态与 TTL，避免「先查后写」的竞态；处理失败时释放键。
 </li>
 <li>无论处理结果如何，都不要在响应体里依赖平台读取业务字段；平台只判断 HTTP 状态码。
 </li>
 <li>回放防护：签名不含 nonce，请校验 <code>X-Timestamp</code> 的时间窗口并配合幂等键去重。
+</li>
+<li><strong>返回 5xx 会触发重试</strong>：确认事件本身有问题（签名之外）时应返回 2xx 并记录日志，交由人工处理；返回 5xx 只会让平台重复推送同一事件。
 </li>
 </ul>
 <hr>
@@ -4531,7 +5065,7 @@ app.post('/cregis/callback', async (req, res) =&gt; {
 <tr>
 <td><code>40102</code>，含对象数组的请求（<code>coinIds</code>、<code>primaryManager</code>、<code>payTo</code> 等）</td>
 <td>只排序了顶层 key，没有递归排序数组内对象</td>
-<td>使用 Node SDK 1.1.0+ / Java SDK 1.2.0+，或按 4.3 递归排序</td>
+<td>使用 Node SDK 1.2.0+ / Java SDK 1.2.1+，或按 4.3 递归排序</td>
 </tr>
 <tr>
 <td><code>40102</code>，所有请求</td>
@@ -4590,7 +5124,7 @@ app.post('/cregis/callback', async (req, res) =&gt; {
 </tr>
 <tr>
 <td>收不到回调</td>
-<td>应用未配置 <code>callbackUrl</code>；生产使用 HTTP；载荷超过 64KB；接收方返回非 2xx（不会重试，见 D14）</td>
+<td>应用未配置 <code>callbackUrl</code>；生产使用 HTTP；载荷超过 64KB；5 次尝试全部失败（无持久化队列，不补投，见 14.5）</td>
 <td>检查应用回调配置；生产使用 HTTPS；控制载荷大小；先持久化再返回 2xx，并通过对账 / 查询接口补偿（14.5）</td>
 </tr>
 </tbody>
@@ -4645,7 +5179,7 @@ app.post('/cregis/callback', async (req, res) =&gt; {
 <hr>
 <h2 id="ch-16">16. SDK 集成</h2>
 <p>官方 SDK 封装了签名、请求与错误处理，推荐在服务端直接使用。三端版本与本指南的对应关系见 16.4。</p>
-<h3 id="s-16-1">16.1 Node.js SDK 1.1.0</h3>
+<h3 id="s-16-1">16.1 Node.js SDK 1.2.0</h3>
 <p><strong>安装</strong>（要求 Node.js &gt;= 18）</p>
 <pre class="codehilite"><code class="language-bash">
 npm install @cregis-kit/openplatform-node@1.1.0
@@ -4877,10 +5411,10 @@ try {
 &lt;dependency&gt;
     &lt;groupId&gt;com.github.ZoranWong.custody-openplatfrom&lt;/groupId&gt;
     &lt;artifactId&gt;cregis-sdk-core&lt;/artifactId&gt;
-    &lt;version&gt;java-sdk-v1.2.0&lt;/version&gt;
+    &lt;version&gt;java-sdk-v1.2.1&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
-<p><code>java-sdk-v1.2.0</code> 是仓库中的 Git tag；JitPack 按该 tag 构建。<code>CregisClient</code> 的服务入口：</p>
+<p><code>java-sdk-v1.2.1</code> 是仓库中的 Git tag；JitPack 按该 tag 构建。<code>CregisClient</code> 的服务入口：</p>
 <table>
 <thead>
 <tr>
@@ -5128,7 +5662,7 @@ if (result.status === 'success') {
 <tr>
 <td>Java</td>
 <td><strong>1.2.0</strong></td>
-<td><code>com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.0</code>（JitPack）</td>
+<td><code>com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.1</code>（JitPack）</td>
 <td>服务端 Java 接入，全部业务接口、回调验签</td>
 <td>同上</td>
 </tr>
@@ -5144,7 +5678,7 @@ if (result.status === 'success') {
 <ul>
 <li>更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 <code>coinIds</code> / <code>primaryManager</code> / <code>payTo</code> 的请求会返回 <code>40102</code>，不要使用。
 </li>
-<li><strong>发布状态提醒</strong>：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java SDK 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.0</code>。若 <code>npm install</code> 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
+<li><strong>发布状态提醒</strong>：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java SDK 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.1</code>。若 <code>npm install</code> 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
 </li>
 <li>三个 SDK 版本必须与网关的接口路径前缀 <code>/api/thirdparty/</code> 配套；<code>baseUrl</code> 不要包含该前缀，也不要带尾斜杠。
 </li>
