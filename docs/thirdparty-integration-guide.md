@@ -2090,26 +2090,42 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 ### 14.1 事件清单
 
-`application-callback.service.ts` 定义的事件枚举如下：
+#### 14.1.1 当前实际会推送的事件
 
-| 事件 | 本仓库中的推送方 | `data` 顶层字段 |
-|------|------------------|----------------|
-| `authorization.created` | 由 Custody 在内部调用 `oauth/verify`（`thirdparty.controller.ts`）后触发 | `authorizeId`、`oauthToken?` |
-| `authorization.created` | 内部接口 `POST /api/v1/authorizations`（`authorization.controller.ts`） | `authorizationId`、`resourceKey`、`expiresAt` |
-| `authorization.revoked` | 无 | 枚举已定义，无生产者 |
-| `authorization.expired` | 无 | 同上 |
-| `transaction.submitted` | 无 | 同上 |
-| `transaction.confirming` | 无 | 同上 |
-| `transaction.completed` | `custody/callback` 路由（`thirdparty.routes.ts`） | 由 Custody 决定，网关透传（见 14.2） |
-| `transaction.failed` | `custody/callback` 路由（`thirdparty.routes.ts`） | 同上 |
-| `task.approved` | 无 | 枚举已定义，无生产者 |
-| `task.rejected` | 无 | 同上 |
+平台当前只有 **2 个事件名**在实际推送，来自 3 条不同路径。接入方只需要处理这 3 种回调：
 
-说明：
+| # | 事件名（`X-Event`） | 触发路径 | 触发时机 | `data` 顶层字段 | 详见 |
+|---|---------------------|----------|----------|----------------|------|
+| 1 | `authorization.created` | Custody → 网关 `POST /api/thirdparty/oauth/verify` | 用户在企业授权页完成授权、Custody 内部完成授权记录写入后 | `authorizeId`（必有）<br>`oauthToken`（可选） | 14.2.1 |
+| 2 | `authorization.created` | `POST /api/v1/authorizations` | 通过内部授权接口创建授权记录后 | `authorizationId`<br>`resourceKey`<br>`expiresAt` | 14.2.2 |
+| 3 | `transaction.completed`<br>`transaction.failed` | Custody → 网关 `POST /api/thirdparty/custody/callback` | Custody 推送链上交易状态变更后，网关按 `resourceKey` 反查应用并转发 | 由 Custody 决定，网关透传 | 14.2.3 |
 
-- 除 `authorization.created` 与 custody 回调转发的两个交易事件外，其余事件名当前**没有生产者**。它们是为 custody 侧事件预留的枚举；是否实际下发取决于 custody 部署，接入方应按事件名做通用处理，不要假设“一定会收到”。
-- 另有签名保护的内部接口 `POST /api/v1/authorizations` 也会推送 `authorization.created`，但其载荷为 `{ authorizationId, resourceKey, expiresAt }`，与本指南使用的 `oauth/verify` 内部路径（`authorizeId`）字段名不同。
-- `POST /api/thirdparty/custody/callback` 由 Custody 服务调用（开发者不调用）。它按 `resourceKey` 反查 `oauth_resources` 与应用，要求应用配置了 `callbackUrl`；事件名优先取请求体 `eventType`，否则按 `status === 'SUCCEED'` 映射为 `transaction.completed`，**其余任何状态都映射为 `transaction.failed`**。请求体含 `payload` 字段时，仅转发 `payload`；否则转发整个请求体但去掉 `status`、`resourceKey`、`ecode`。该路由始终以 HTTP 200 返回，业务失败通过响应体 `code` 表达（如缺少 `resourceKey` 返回 `40001`）。
+注意：
+
+- **第 1 种和第 2 种事件名相同，但字段名不同**（`authorizeId` vs `authorizationId`）。接收方必须按字段存在性判断，不能只按事件名分支。
+- **第 3 种是两个事件名共用一条推送路径**，事件名由网关按 Custody 请求体映射得出（映射规则见 14.2.3）。
+- 路径 1、3 由 Custody/平台内部触发，开发者不能主动调用；路径 2 有签名保护，同样属于平台内部接口。
+
+#### 14.1.2 不支持的事件
+
+平台当前**不推送**以下事件。它们只存在于 SDK 的类型声明（`CallbackEventType`）与网关内部的枚举定义中，但没有任何代码会产生这些事件：
+
+| 事件名 | 状态 |
+|--------|------|
+| `authorization.revoked` | **不支持** |
+| `authorization.expired` | **不支持** |
+| `transaction.submitted` | **不支持** |
+| `transaction.confirming` | **不支持** |
+| `task.approved` | **不支持** |
+| `task.rejected` | **不支持** |
+
+具体说明：
+
+- **交易状态只有终态通知**。Custody → 网关的 `custody/callback` 只映射 `transaction.completed` 与 `transaction.failed` 两个事件；不存在 `submitted` / `confirming` 这类中间态推送。需要中间态请通过 12 章的查询接口轮询。
+- **没有任务审批事件**。审批结果（`task.approved` / `task.rejected`）不会通过回调下发；请调用 11 章的查询接口或交易查询接口确认任务状态。
+- **没有授权撤销 / 过期事件**。授权失效后业务接口会返回 `40301`，请据此处理。
+
+接入建议：不要为这 6 个事件写处理分支。事件入口按事件名做通用分发，遇到未知事件名记录日志后返回 2xx，不要返回 5xx（会触发重试）。
 
 ### 14.2 请求头与请求体
 
@@ -2195,11 +2211,70 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 }
 ```
 
+应用侧只能看到**网关转发后**的请求体，看不到 Custody 原始报文；`payload` 是否被包裹、`status` 是否被删除，都由网关在转发前处理完毕。
+
 接入建议：
 
 - 把 `orderId`（或 `taskId`）作为幂等键；两者都缺失时用请求体 `sha256` 兜底。
-- 只依赖表 14.1 中声明的顶层字段存在性，不要把整个载荷结构写死；Custody 新增字段不应导致你的解析失败。
+- 只依赖本节声明的字段存在性，不要把整个载荷结构写死；Custody 新增字段不应导致你的解析失败。
 - **不要依赖 HTTP 状态判断事件类型**——`status` 字段可能被上层过滤（见上方透传规则），事件类型以 `X-Event` 头为准。
+
+#### 14.2.4 三种回调的完整报文对照
+
+**① 授权完成（`oauth/verify` 路径）**
+
+```
+POST /your/callback HTTP/1.1
+Content-Type: application/json
+X-App-Id: 550e8400-e29b-41d4-a716-446655440000
+X-Event: authorization.created
+X-Timestamp: 1792404000000
+X-Signature: sha256=<hmac>
+```
+```json
+{
+  "authorizeId": "123e4567-e89b-12d3-a456-426614174000",
+  "oauthToken": "user-42-order-20261019"
+}
+```
+
+**② 授权完成（内部接口路径，字段名不同）**
+
+```
+X-App-Id: 550e8400-e29b-41d4-a716-446655440000
+X-Event: authorization.created
+X-Timestamp: 1792404000000
+X-Signature: sha256=<hmac>
+```
+```json
+{
+  "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
+  "resourceKey": "access-key-d21396c169754470b3cdae0af9b2b8a6",
+  "expiresAt": "2027-10-19T08:00:00.000Z"
+}
+```
+
+**③ 交易完成 / 失败**
+
+```
+X-App-Id: 550e8400-e29b-41d4-a716-446655440000
+X-Event: transaction.completed          ← 也可能是 transaction.failed
+X-Timestamp: 1792404000000
+X-Signature: sha256=<hmac>
+```
+```json
+{
+  "orderId": "ORDER-20261019-001",
+  "unitId": 80,
+  "coinId": "USDT",
+  "network": "TRC20",
+  "amount": 100,
+  "txId": "0xabc123",
+  "orderState": "SUCCEED"
+}
+```
+
+**注意**：授权回调若来自 `authorizeUrl` 的 `callback` 参数路径，**没有 `X-Event` 头**（见 14.2 表格与 14.3 的签名分支）。
 
 ### 14.3 签名算法
 

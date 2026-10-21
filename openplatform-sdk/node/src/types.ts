@@ -719,12 +719,12 @@ export type CallbackEventType =
   | 'authorization.created'
   | 'authorization.revoked'
   | 'authorization.expired'
-  | 'transaction.submitted'
-  | 'transaction.confirming'
+  // | 'transaction.submitted'
+  // | 'transaction.confirming'
   | 'transaction.completed'
   | 'transaction.failed'
-  | 'task.approved'
-  | 'task.rejected';
+  // | 'task.approved'
+  // | 'task.rejected'
 
 /**
  * Callback payload — pure business data (metadata lives in request headers).

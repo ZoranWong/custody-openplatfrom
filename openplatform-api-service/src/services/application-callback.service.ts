@@ -30,15 +30,15 @@ function sortObjectKeys(obj: unknown): unknown {
 
 // Callback event types
 export type CallbackEventType =
-    | 'authorization.created'
-    | 'authorization.revoked'
-    | 'authorization.expired'
-    | 'transaction.submitted'
-    | 'transaction.confirming'
-    | 'transaction.completed'
-    | 'transaction.failed'
-    | 'task.approved'
-    | 'task.rejected'
+  | 'authorization.created'
+  | 'authorization.revoked'
+  | 'authorization.expired'
+  // | 'transaction.submitted'
+  // | 'transaction.confirming'
+  | 'transaction.completed'
+  | 'transaction.failed'
+  // | 'task.approved'
+  // | 'task.rejected'
 
 // Callback metadata — carried in request headers (body carries only business data).
 export interface CallbackMeta {
