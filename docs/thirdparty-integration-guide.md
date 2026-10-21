@@ -2103,7 +2103,6 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 - 前两行事件名相同但**字段名不同**（`authorizeId` vs `authorizationId`），接收方按字段存在性判断。
 - 交易类事件没有统一字段集，由 Custody 按业务类型推送，网关原样转发。
-- 除以上三行外，平台不推送其他事件（如授权撤销、交易中间态、任务审批结果）。
 
 ### 14.2 请求头与请求体
 
