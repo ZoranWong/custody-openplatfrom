@@ -1,8 +1,8 @@
 # Cregis 开放平台 - 第三方开发者接入指南
 
-> **适用 SDK 版本：** Node SDK 1.2.0 / Java SDK 1.2.1 / Web SDK 1.0.5
+> **适用 SDK 版本：** Node SDK 1.2.0 / Java SDK 1.2.2 / Web SDK 1.0.5
 >
-> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.1`。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
+> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.2`。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
 >
 > **接口基数：** 网关对外 22 条转发接口 + 6 条本地接口，共 28 条
 
@@ -645,7 +645,7 @@ Custody 收到授权页的 `POST /internal/third-party/authorize?appId=&ecode=&a
 - **结果落库**：授权记录写入 `oauth_resources`。业务接口会校验 `basic.authorizationId` 对应的记录；授权页返回的 `authorizationId` 可直接使用，正是因为 Custody 已内部调用本接口完成写入。开发者无需也不能调用本接口。
 - 校验成功后会异步推送 `authorization.created` 回调（见 5.6）。回调是异步的，`verify` 的响应不等待回调结果。
 
-SDK 不提供该方法：`oauth/verify` 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 `verifyOAuthToken`；Java SDK 1.2.1（已发布 tag）中仍保留该方法，但请勿使用。
+SDK 不提供该方法：`oauth/verify` 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 `verifyOAuthToken`；Java SDK 1.2.2（已发布 tag）中仍保留该方法，但请勿使用。
 
 **关于 `oauthToken`：** 它就是 `authorizeUrl` 响应中 `authorizeUrl` 查询参数里的 `appToken`（JWT，载荷含 `appId`、`callback`、`token`，默认 2 小时有效）。网关不会在授权页或 postMessage 事件中下发它；它由授权页随内部授权请求交给 Custody，由 Custody 在调用本接口时消费。开发者不需要保存它来换取 `authorizeId`。
 
@@ -2462,7 +2462,7 @@ app.post('/cregis/callback', async (req, res) => {
 
 #### Java
 
-使用 `CregisClient.onCallback(CallbackRequest, CallbackHandler)`（`cregis-sdk-core` 1.2.1+）。校验顺序与 Node SDK 一致，失败时抛 `CregisSdkException`（`SdkErrorCode.WEBHOOK_VERIFY_FAILED`）。
+使用 `CregisClient.onCallback(CallbackRequest, CallbackHandler)`（`cregis-sdk-core` 1.2.2+）。校验顺序与 Node SDK 一致，失败时抛 `CregisSdkException`（`SdkErrorCode.WEBHOOK_VERIFY_FAILED`）。
 
 ```java
 SdkConfig config = SdkConfig.builder()
@@ -2760,7 +2760,7 @@ try {
 
 > **OAuth 说明：** Node SDK 只封装 `getAuthorizationUrl`。`authorizeId` 由授权页在 Custody 内部完成 `verify` 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。`registerMerchant` / `addUser` / `initBoard` 其余字段与网关一致。
 
-### 16.2 Java SDK 1.2.1（JitPack）
+### 16.2 Java SDK 1.2.2（JitPack）
 
 **环境要求**：JDK 17+、Maven 3.8+。
 
@@ -2781,11 +2781,11 @@ try {
 <dependency>
     <groupId>com.github.ZoranWong.custody-openplatfrom</groupId>
     <artifactId>cregis-sdk-core</artifactId>
-    <version>java-sdk-v1.2.1</version>
+    <version>java-sdk-v1.2.2</version>
 </dependency>
 ```
 
-`java-sdk-v1.2.1` 是仓库中的 Git tag；JitPack 按该 tag 构建。`CregisClient` 的服务入口：
+`java-sdk-v1.2.2` 是仓库中的 Git tag；JitPack 按该 tag 构建。`CregisClient` 的服务入口：
 
 | 入口 | 覆盖 |
 |------|------|
@@ -2916,11 +2916,11 @@ if (result.status === 'success') {
 | SDK | 版本 | 坐标 / 安装 | 适用场景 | 与网关的已核对结论 |
 |-----|------|-------------|----------|--------------------|
 | Node.js | **1.2.0** | `npm install @cregis-kit/openplatform-node@1.2.0`（仓库版本；npm 尚未发布时从源码构建） | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致 |
-| Java | **1.2.1** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.1`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
+| Java | **1.2.2** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.2`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
 | Web | **1.0.5** | `npm install @cregis-kit/openplatform-webkit@1.0.5` | 浏览器嵌入授权页 | 只返回 `authorizationId`（即 Custody 内部 `verify` 生成的 `authorizeId`） |
 
 - 更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 `coinIds` / `primaryManager` / `payTo` 的请求会返回 `40102`，不要使用。
-- **发布状态提醒**：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java SDK 最新可用的 JitPack tag 为 `java-sdk-v1.2.1`。若 `npm install` 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
+- **发布状态提醒**：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java SDK 最新可用的 JitPack tag 为 `java-sdk-v1.2.2`。若 `npm install` 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
 - 三个 SDK 版本必须与网关的接口路径前缀 `/api/thirdparty/` 配套；`baseUrl` 不要包含该前缀，也不要带尾斜杠。
 - 环境地址见 2.3：本地 `http://127.0.0.1:1000`、SIT `https://custody-sit.cregis.ae/openplatform`、生产 `https://custody.cregis.ae/openplatform`。
 

@@ -211,7 +211,7 @@
         <a href="#s-15-4" class="nav-sub">15.4 已知实现限制</a>
         <a href="#ch-16" class="nav-item">16. SDK 集成</a>
         <a href="#s-16-1" class="nav-sub">16.1 Node.js SDK 1.2.0</a>
-        <a href="#s-16-2" class="nav-sub">16.2 Java SDK 1.2.0（JitPack）</a>
+        <a href="#s-16-2" class="nav-sub">16.2 Java SDK 1.2.2（JitPack）</a>
         <a href="#s-16-3" class="nav-sub">16.3 Web SDK 1.0.5</a>
         <a href="#s-16-4" class="nav-sub">16.4 版本兼容表</a>
         <a href="#ch-17" class="nav-item">17. 附录</a>
@@ -223,8 +223,8 @@
         <h1>Cregis 开放平台 - 第三方开发者接入指南</h1>
 <p><strong>Last Updated:</strong> 2026-10-19</p>
 <blockquote>
-<p><strong>适用 SDK 版本：</strong> Node SDK 1.2.0 / Java SDK 1.2.1 / Web SDK 1.0.5</p>
-<p><strong>发布状态：</strong> 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.1</code>。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。</p>
+<p><strong>适用 SDK 版本：</strong> Node SDK 1.2.0 / Java SDK 1.2.2 / Web SDK 1.0.5</p>
+<p><strong>发布状态：</strong> 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.2</code>。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。</p>
 <p><strong>接口基数：</strong> 网关对外 22 条转发接口 + 6 条本地接口，共 28 条</p>
 </blockquote>
 <p>本指南面向接入 Cregis 托管能力的第三方平台开发者。第 1–6 章覆盖平台概述、端到端接入流程、开发者入驻、认证与签名、OAuth 授权和通用约定；第 7–12 章为业务接口参考；第 13–17 章覆盖商户 / 用户 / Board、回调、错误码与排查、SDK 集成和附录。</p>
@@ -1253,7 +1253,7 @@ public class SignatureDemo {
 <tr>
 <td><code>40102</code>（签名错误），含对象数组的请求</td>
 <td>只排序了顶层 key，没有排序数组内的对象</td>
-<td>使用 1.2.0+ Node SDK / 1.2.1+ Java SDK，或按 4.3 递归排序</td>
+<td>使用 1.2.0+ Node SDK / 1.2.0+ Java SDK，或按 4.3 递归排序</td>
 </tr>
 <tr>
 <td><code>40102</code>，字段被改写</td>
@@ -1585,7 +1585,7 @@ public class SignatureDemo {
 <li>校验成功后会异步推送 <code>authorization.created</code> 回调（见 5.6）。回调是异步的，<code>verify</code> 的响应不等待回调结果。
 </li>
 </ul>
-<p>SDK 不提供该方法：<code>oauth/verify</code> 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 <code>verifyOAuthToken</code>；Java SDK 1.2.1（已发布 tag）中仍保留该方法，但请勿使用。</p>
+<p>SDK 不提供该方法：<code>oauth/verify</code> 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 <code>verifyOAuthToken</code>；Java SDK 1.2.2（已发布 tag）中仍保留该方法，但请勿使用。</p>
 <p><strong>关于 <code>oauthToken</code>：</strong> 它就是 <code>authorizeUrl</code> 响应中 <code>authorizeUrl</code> 查询参数里的 <code>appToken</code>（JWT，载荷含 <code>appId</code>、<code>callback</code>、<code>token</code>，默认 2 小时有效）。网关不会在授权页或 postMessage 事件中下发它；它由授权页随内部授权请求交给 Custody，由 Custody 在调用本接口时消费。开发者不需要保存它来换取 <code>authorizeId</code>。</p>
 <h3 id="s-5-5">5.5 已移除的 <code>oauth/token</code> 接口</h3>
 <p><code>/api/thirdparty/oauth/token</code> 原有的实现只是按 <code>business.oauthUserId</code> 现场签发一个无消费方的 JWT（<code>resourceKey</code> 恒为 <code>''</code>），既不能换取 <code>authorizationId</code>，也不能用于业务接口。该路由已从网关移除，请求会落入兜底转发：Basic 签名的旧调用方因缺少 <code>basic.authorizationId</code> 被 Resource 校验器拒绝，返回 <code>40001</code>（HTTP 400）；携带有效 Resource 签名时才会继续匹配并得到 <code>40401</code>（HTTP 404）。请勿在对接代码或旧版文档中引用。</p>
@@ -4608,7 +4608,7 @@ app.post('/cregis/callback', async (req, res) =&gt; {
 });
 </code></pre>
 <h4>Java</h4>
-<p>使用 <code>CregisClient.onCallback(CallbackRequest, CallbackHandler)</code>（<code>cregis-sdk-core</code> 1.2.1+）。校验顺序与 Node SDK 一致，失败时抛 <code>CregisSdkException</code>（<code>SdkErrorCode.WEBHOOK_VERIFY_FAILED</code>）。</p>
+<p>使用 <code>CregisClient.onCallback(CallbackRequest, CallbackHandler)</code>（<code>cregis-sdk-core</code> 1.2.2+）。校验顺序与 Node SDK 一致，失败时抛 <code>CregisSdkException</code>（<code>SdkErrorCode.WEBHOOK_VERIFY_FAILED</code>）。</p>
 <pre class="codehilite"><code class="language-java">
 SdkConfig config = SdkConfig.builder()
         .appId(System.getenv("APP_ID"))
@@ -5021,7 +5021,7 @@ public ResponseEntity&lt;?&gt; callback(@RequestBody Map&lt;String, Object&gt; b
 <tr>
 <td><code>40102</code>，含对象数组的请求（<code>coinIds</code>、<code>primaryManager</code>、<code>payTo</code> 等）</td>
 <td>只排序了顶层 key，没有递归排序数组内对象</td>
-<td>使用 Node SDK 1.2.0+ / Java SDK 1.2.1+，或按 4.3 递归排序</td>
+<td>使用 Node SDK 1.2.0+ / Java SDK 1.2.2+，或按 4.3 递归排序</td>
 </tr>
 <tr>
 <td><code>40102</code>，所有请求</td>
@@ -5351,7 +5351,7 @@ try {
 <blockquote>
 <p><strong>OAuth 说明：</strong> Node SDK 只封装 <code>getAuthorizationUrl</code>。<code>authorizeId</code> 由授权页在 Custody 内部完成 <code>verify</code> 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。<code>registerMerchant</code> / <code>addUser</code> / <code>initBoard</code> 其余字段与网关一致。</p>
 </blockquote>
-<h3 id="s-16-2">16.2 Java SDK 1.2.0（JitPack）</h3>
+<h3 id="s-16-2">16.2 Java SDK 1.2.2（JitPack）</h3>
 <p><strong>环境要求</strong>：JDK 17+、Maven 3.8+。</p>
 <p><strong>仓库配置</strong></p>
 <pre class="codehilite"><code class="language-xml">
@@ -5367,10 +5367,10 @@ try {
 &lt;dependency&gt;
     &lt;groupId&gt;com.github.ZoranWong.custody-openplatfrom&lt;/groupId&gt;
     &lt;artifactId&gt;cregis-sdk-core&lt;/artifactId&gt;
-    &lt;version&gt;java-sdk-v1.2.1&lt;/version&gt;
+    &lt;version&gt;java-sdk-v1.2.2&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
-<p><code>java-sdk-v1.2.1</code> 是仓库中的 Git tag；JitPack 按该 tag 构建。<code>CregisClient</code> 的服务入口：</p>
+<p><code>java-sdk-v1.2.2</code> 是仓库中的 Git tag；JitPack 按该 tag 构建。<code>CregisClient</code> 的服务入口：</p>
 <table>
 <thead>
 <tr>
@@ -5618,7 +5618,7 @@ if (result.status === 'success') {
 <tr>
 <td>Java</td>
 <td><strong>1.2.0</strong></td>
-<td><code>com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.1</code>（JitPack）</td>
+<td><code>com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.2</code>（JitPack）</td>
 <td>服务端 Java 接入，全部业务接口、回调验签</td>
 <td>同上</td>
 </tr>
@@ -5634,7 +5634,7 @@ if (result.status === 'success') {
 <ul>
 <li>更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 <code>coinIds</code> / <code>primaryManager</code> / <code>payTo</code> 的请求会返回 <code>40102</code>，不要使用。
 </li>
-<li><strong>发布状态提醒</strong>：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java SDK 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.1</code>。若 <code>npm install</code> 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
+<li><strong>发布状态提醒</strong>：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java SDK 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.2</code>。若 <code>npm install</code> 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
 </li>
 <li>三个 SDK 版本必须与网关的接口路径前缀 <code>/api/thirdparty/</code> 配套；<code>baseUrl</code> 不要包含该前缀，也不要带尾斜杠。
 </li>

@@ -2,7 +2,7 @@
 
 Cregis 托管开放平台官方 Java SDK，覆盖 **OAuth 授权、财务单元、地址、币种/资金控制/白名单、出金/归集、审批、商户与企业用户、Board、交易记录、回调验签** 全部业务接口。所有接口均提供同步与异步（`CompletableFuture`）两种调用方式。
 
-**当前版本：1.2.0（最新已发布 tag）；源码已包含 1.3.0 待发布改动**
+**当前版本：1.2.2**
 
 ---
 
@@ -43,7 +43,7 @@ Cregis 托管开放平台官方 Java SDK，覆盖 **OAuth 授权、财务单元�
 <dependency>
     <groupId>com.cregis</groupId>
     <artifactId>cregis-sdk-core</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.2</version>
 </dependency>
 ```
 
@@ -282,17 +282,24 @@ try {
 发布到 Maven Central 通过仓库脚本完成（需要本地 GPG 私钥与 Central Token）：
 
 ```bash
-./release.sh 1.2.0          # 上传到 Central Portal 并停在 Validated 状态，人工确认后点 Publish
-./release.sh 1.2.0 --auto   # 上传后自动发布
+./release.sh 1.2.2          # 上传到 Central Portal 并停在 Validated 状态，人工确认后点 Publish
+./release.sh 1.2.2 --auto   # 上传后自动发布
 ```
 
 CI 发布：GitHub Actions → **Release Java SDK** → 输入版本号（需先配置仓库 Secrets，见 `RELEASE.md`）。
 
 ## 版本与变更
 
-### 1.3.0（待发布）
+### 1.2.2
 
-- **移除 `verifyOAuthToken` / `verifyOAuthTokenAsync`**：`oauth/verify` 是 Custody 后台回调网关的内部接口，不属于开发者 SDK 能力。授权页 / Web SDK 返回的 `authorizeId` 可直接作为 `authorizationId` 使用。**1.2.0 已发布 tag 中该方法仍然存在，请勿使用。**
+- **`onCallback` 加固**：校验 `appId` 必须与配置一致、`X-Timestamp` 必须落在 `callbackTimestampToleranceMs`（默认 5 分钟）窗口内，再验证 HMAC-SHA256 签名；新增 `SdkConfig.callbackTimestampToleranceMs`，设为 `0` 可关闭时间窗校验。
+- **`CallbackHandler` 签名变更**：`handle(Map<String, Object> data)` → `handle(Map<String, Object> data, String event)`。事件名来自 `X-Event`，缺失时为 `null`。这是编译期不兼容改动，升级后需同步修改 handler。
+- 请求增加 `User-Agent` 与 `X-SDK-Name` / `X-SDK-Version` / `X-SDK-Language` 头，网关据此在 API 日志中记录 SDK 身份。
+
+### 1.2.1
+
+- 移除 `verifyOAuthToken` / `verifyOAuthTokenAsync`：`oauth/verify` 是 Custody 后台回调网关的内部接口，不属于开发者 SDK 能力。授权页 / Web SDK 返回的 `authorizeId` 可直接作为 `authorizationId` 使用。
+- `getAuthorizationUrl` 的 `token` 字段改为必填。
 
 ### 1.2.0
 

@@ -65,6 +65,9 @@ deploy_api() {
   scp -r "$PROJECT_ROOT/openplatform-api-service/prisma/" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   scp "$PROJECT_ROOT/openplatform-api-service/prisma.config.ts" "$DEPLOY_HOST:$DEPLOY_PATH/api-service/"
   ssh "$DEPLOY_HOST" "$REMOTE_NODE && cd $DEPLOY_PATH/api-service && npm install --production && npx prisma migrate deploy && npx prisma generate"
+  # dist/ and .env were just replaced, but pm2 keeps running the old in-memory
+  # process; --update-env re-reads .env on restart.
+  ssh "$DEPLOY_HOST" "$REMOTE_NODE && cd $DEPLOY_PATH/api-service && pm2 restart api-service --update-env"
   echo "API Service deployed."
 }
 
