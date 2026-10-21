@@ -1,8 +1,8 @@
 # Cregis 开放平台 - 第三方开发者接入指南
 
-> **适用 SDK 版本：** Node SDK 1.1.0 / Java SDK 1.2.0（1.3.0 未发布）/ Web SDK 1.0.5
+> **适用 SDK 版本：** Node SDK 1.2.0 / Java SDK 1.2.1 / Web SDK 1.0.5
 >
-> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.0`。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
+> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.1`。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
 >
 > **接口基数：** 网关对外 22 条转发接口 + 6 条本地接口，共 28 条
 
@@ -645,7 +645,7 @@ Custody 收到授权页的 `POST /internal/third-party/authorize?appId=&ecode=&a
 - **结果落库**：授权记录写入 `oauth_resources`。业务接口会校验 `basic.authorizationId` 对应的记录；授权页返回的 `authorizationId` 可直接使用，正是因为 Custody 已内部调用本接口完成写入。开发者无需也不能调用本接口。
 - 校验成功后会异步推送 `authorization.created` 回调（见 5.6）。回调是异步的，`verify` 的响应不等待回调结果。
 
-SDK 不提供该方法：`oauth/verify` 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 `verifyOAuthToken`；Java SDK 1.2.0（已发布 tag）中仍保留该方法，但请勿使用。
+SDK 不提供该方法：`oauth/verify` 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 `verifyOAuthToken`；Java SDK 1.2.1（已发布 tag）中仍保留该方法，但请勿使用。
 
 **关于 `oauthToken`：** 它就是 `authorizeUrl` 响应中 `authorizeUrl` 查询参数里的 `appToken`（JWT，载荷含 `appId`、`callback`、`token`，默认 2 小时有效）。网关不会在授权页或 postMessage 事件中下发它；它由授权页随内部授权请求交给 Custody，由 Custody 在调用本接口时消费。开发者不需要保存它来换取 `authorizeId`。
 
@@ -680,7 +680,7 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 - `authorizeId`：授权记录 ID，用作业务请求的 `basic.authorizationId`。
 - `oauthToken`：`authorizeUrl` 请求中传入的 `token` 值（身份映射标识），**不是 JWT**；**未传 `token` 时载荷中没有该字段**。
 - 回调地址优先级：`authorizeUrl` 的 `callback` > 应用配置的 `callbackUrl`。两者都没有时不会推送。
-- 回调是异步的，失败会重试：初始 1 次 + 3 次重试，实际间隔为 0s / 1s / 5s（配置中的第 4 个 30s 值不可达）。注意：**当前实现只对网络 / 超时错误重试，HTTP 429 / 5xx 不会重试**（缺陷 D14，见 14.5）。请务必对 `authorizeId` 做幂等处理，并通过查询接口对账。
+- 回调是异步的，失败会重试：初始 1 次 + 最多 4 次重试（间隔 0s / 1s / 5s / 30s），网络错误与 HTTP 429 / 5xx 都会触发重试。**没有持久化队列**，5 次都失败后事件不会补投，请务必对 `authorizeId` 做幂等处理，并通过查询接口对账（见 14.5）。
 
 回调的 HMAC 验签、重试策略、事件列表与响应要求详见 **第 14 章「回调与 Webhook」**。
 
@@ -2092,16 +2092,17 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 `application-callback.service.ts` 定义的事件枚举如下：
 
-| 事件 | 本仓库中的推送方 | 说明 |
-|------|------------------|------|
-| `authorization.created` | 由 Custody 在内部调用 `oauth/verify`（`thirdparty.controller.ts`）后触发 | 授权验证成功后推送。载荷 `{ authorizeId, oauthToken? }`；`oauthToken` 是 `authorizeUrl` 请求传入的 `token` 值（不是 JWT），未传 `token` 时没有该字段 |
-| `authorization.revoked` | 无 | 枚举已定义，当前仓库没有代码推送 |
+| 事件 | 本仓库中的推送方 | `data` 顶层字段 |
+|------|------------------|----------------|
+| `authorization.created` | 由 Custody 在内部调用 `oauth/verify`（`thirdparty.controller.ts`）后触发 | `authorizeId`、`oauthToken?` |
+| `authorization.created` | 内部接口 `POST /api/v1/authorizations`（`authorization.controller.ts`） | `authorizationId`、`resourceKey`、`expiresAt` |
+| `authorization.revoked` | 无 | 枚举已定义，无生产者 |
 | `authorization.expired` | 无 | 同上 |
 | `transaction.submitted` | 无 | 同上 |
 | `transaction.confirming` | 无 | 同上 |
-| `transaction.completed` | `custody/callback` 路由（`thirdparty.routes.ts`） | 由本仓库转发给应用 `callbackUrl`，见下方说明 |
-| `transaction.failed` | `custody/callback` 路由（`thirdparty.routes.ts`） | 由本仓库转发给应用 `callbackUrl`，见下方说明 |
-| `task.approved` | 无 | 枚举已定义，当前仓库没有代码推送 |
+| `transaction.completed` | `custody/callback` 路由（`thirdparty.routes.ts`） | 由 Custody 决定，网关透传（见 14.2） |
+| `transaction.failed` | `custody/callback` 路由（`thirdparty.routes.ts`） | 同上 |
+| `task.approved` | 无 | 枚举已定义，无生产者 |
 | `task.rejected` | 无 | 同上 |
 
 说明：
@@ -2120,7 +2121,85 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 | `X-Event` | 事件名，如 `authorization.created` | **仅当事件已设置时存在**；Custody 调用 `oauth/verify` 且使用 `callback` 参数路径时没有事件，因此没有该头 |
 | `Content-Type` | `application/json` | — |
 
-请求体是纯业务数据（例如 `{ "authorizeId": "...", "oauthToken": "..." }` 或交易字段），不含 `appId`、事件名、时间戳等元数据。
+请求体是纯业务数据，不含 `appId`、事件名、时间戳等元数据。外层没有 `{ code, message, data }` envelope——**业务数据就是整个请求体**。
+
+#### 14.2.1 `authorization.created`（`oauth/verify` 路径）
+
+字段：
+
+| 字段 | 类型 | 必有 | 说明 |
+|------|------|------|------|
+| `authorizeId` | string (UUID) | 是 | 授权记录主键，即业务接口的 `basic.authorizationId` |
+| `oauthToken` | string | 否 | `authorizeUrl` 请求中传入的 `token` 值，原样回传；未传 `token` 时**没有该字段** |
+
+```json
+{
+  "authorizeId": "123e4567-e89b-12d3-a456-426614174000",
+  "oauthToken": "user-42-order-20261019"
+}
+```
+
+#### 14.2.2 `authorization.created`（`POST /api/v1/authorizations` 内部接口）
+
+字段与上一小节**不同**，注意区分：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `authorizationId` | string (UUID) | 授权记录 ID |
+| `resourceKey` | string | 资源键 |
+| `expiresAt` | string (ISO 8601) | 授权过期时间 |
+
+```json
+{
+  "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
+  "resourceKey": "access-key-d21396c169754470b3cdae0af9b2b8a6",
+  "expiresAt": "2027-10-19T08:00:00.000Z"
+}
+```
+
+> 两条路径的事件名相同但主键字段名不同（`authorizeId` vs `authorizationId`）。接收方应按字段存在性判断，不要假设只有一种形态。
+
+#### 14.2.3 `transaction.completed` / `transaction.failed`
+
+这两个事件的载荷**完全由 Custody 决定**，网关不做字段映射，透传规则如下：
+
+1. 请求体含 `payload` 字段 → **只转发 `payload` 的内容**；
+2. 否则转发整个请求体，但删除 `status`、`resourceKey`、`ecode` 三个字段。
+
+事件名判定顺序：
+
+| 优先级 | 规则 |
+|--------|------|
+| 1 | 请求体显式提供 `eventType`（只接受 `transaction.completed` / `transaction.failed`） |
+| 2 | 否则 `status === 'SUCCEED'` → `transaction.completed` |
+| 3 | 其余任何 `status`（包括缺失）→ `transaction.failed` |
+
+典型载荷（`eyJ` 不适用，此处为业务字段，字段随 Custody 版本可能扩展）：
+
+```json
+{
+  "orderId": "ORDER-20261019-001",
+  "unitId": 80,
+  "cusAccountId": 101,
+  "address": "TXYZ...",
+  "cpAddress": "TABC...",
+  "coinId": "USDT",
+  "network": "TRC20",
+  "amount": 100,
+  "fee": "1",
+  "txId": "0xabc123",
+  "taskId": "task-20261019-003",
+  "orderState": "SUCCEED",
+  "createTime": "2026-10-19 10:20:00",
+  "updateTime": "2026-10-19 10:35:00"
+}
+```
+
+接入建议：
+
+- 把 `orderId`（或 `taskId`）作为幂等键；两者都缺失时用请求体 `sha256` 兜底。
+- 只依赖表 14.1 中声明的顶层字段存在性，不要把整个载荷结构写死；Custody 新增字段不应导致你的解析失败。
+- **不要依赖 HTTP 状态判断事件类型**——`status` 字段可能被上层过滤（见上方透传规则），事件类型以 `X-Event` 头为准。
 
 ### 14.3 签名算法
 
@@ -2162,6 +2241,8 @@ X-Signature: sha256=a5579ed42e4dd08de06b58be599b534b1141f70f353affdf292330501acd
 
 中间值（`appSecret = sk_demo_secret_9f8e7d6c`）：
 
+> 注：本示例的 `data` 是**验签算法的演示输入**，其中 `status` 字段仅用于展示事件名映射的原始输入。实际由 `custody/callback` 转发时该字段会被网关移除（见 14.2.3），验签对象以你实际收到的请求体为准。
+
 ```
 sortedJSON(data) = {"amount":100,"coinId":"USDT","network":"TRC20","orderId":"ORDER-20261019-001","status":"SUCCEED","taskId":"task-20261019-003","txId":"0xabc123","unitId":80}
 md5(sortedJSON(data)) = bafebc702c519d75e2e3682b72ec2c13
@@ -2178,7 +2259,7 @@ HMAC-SHA256 = 27cb791bd95c41922058729f9801eea94de2753ef66662321db8cbd930e30885
 
 ### 14.4 可运行的 Node.js 验签处理
 
-使用 `@cregis-kit/openplatform-node@1.1.0` 的 `sdk.onCallback(req, handler)`。它会读取 `x-app-id`、`x-timestamp`、`x-signature`（以及可选的 `x-event`），用构造 SDK 时的 `appSecret` 验签；成功后才调用 `handler(payload)`，`payload` 即请求体业务数据。
+使用 `@cregis-kit/openplatform-node@1.2.0` 的 `sdk.onCallback(req, handler)`。它会读取 `x-app-id`、`x-timestamp`、`x-signature`（以及可选的 `x-event`），用构造 SDK 时的 `appSecret` 验签；成功后才调用 `handler(payload)`，`payload` 即请求体业务数据。
 
 ```ts
 import express from 'express';
@@ -2212,7 +2293,8 @@ app.post('/cregis/callback', async (req, res) => {
       return;
     }
     // 只有持久化前失败（解析、写库异常）才会到这里。
-    // 平台不会重投（D14），请记录日志并通过本地队列 / 对账补偿。
+    // 返回 5xx 会让平台重试该事件（共 5 次尝试）；若确定无法处理，应记录日志后返回 2xx，
+    // 交由本地队列 / 对账补偿，避免重复推送。
     res.status(500).json({ code: 50001, message: 'internal error' });
   }
 });
@@ -2228,31 +2310,41 @@ app.post('/cregis/callback', async (req, res) => {
 
 | 项 | 行为 |
 |----|------|
-| 总尝试次数 | 初始 1 次 + 最多 3 次重试（共 4 次） |
-| 重试间隔 | 第 2 次尝试前 0 ms、第 3 次前 1,000 ms、第 4 次前 5,000 ms |
-| 30 秒档位 | 配置中 `retryDelays` 含 `30000`，但循环最多执行 4 次，该档位**不可达**（缺陷 D8） |
-| 触发重试 | **仅网络 / 传输错误**：`ECONNABORTED` / `ETIMEDOUT` / 未收到任何 HTTP 响应（`error.response === undefined`） |
-| 不重试 | HTTP `429`、`5xx`、`3xx`、其余 `4xx` —— 见下方 D14 |
+| 总尝试次数 | 初始 1 次 + 最多 4 次重试（共 5 次） |
+| 重试间隔 | 第 2 次尝试前 0 ms、第 3 次前 1,000 ms、第 4 次前 5,000 ms、第 5 次前 30,000 ms |
+| 触发重试 | **HTTP 429 / 5xx**，以及**网络 / 传输错误**（`ECONNABORTED` / `ETIMEDOUT` / 未收到任何 HTTP 响应） |
+| 不重试 | HTTP `3xx`、其余 `4xx`（例如 400 / 401 / 404） |
 | 成功判定 | 任意 `2xx` |
 | 单次超时 | 30 秒 |
 | 载荷上限 | `JSON.stringify(data).length > 64 * 1024` 时直接放弃，不发送（按字符数计算，不是 UTF-8 字节数） |
 | 未配置回调地址 | 直接跳过，返回 `success: true, error: 'no_callback_url'` |
 | URL 校验 | 生产环境必须 HTTPS；非生产环境 HTTP 仅允许 `localhost` / `127.0.0.1` |
-| 投递保证 | 尽力而为：无队列 / 持久化 / 死信，耗尽 4 次尝试后不保证送达 |
-
-> **缺陷 D14 — HTTP 429 / 5xx 实际不会重试。** 回调 HTTP 客户端（`application-callback.service.ts:68-75`）未配置 `validateStatus`，axios 默认拒绝所有非 2xx 并抛异常，因此 `response.status === 429 || response.status >= 500` 的分支（`:253-263`）不可达；`catch` 中的 `isRetryableNetworkError()`（`:296-303`）只识别超时 / 无响应错误，HTTP 错误的 `error.response` 已设置，直接失败。**净效果：只有网络 / 超时错误会重试；接收方返回 429 或 5xx 时事件立即丢失。** 修复前请先把事件持久化后返回 2xx，不要依赖返回 5xx 让平台重投；最终状态由对账 / 查询接口补偿。同一缺陷也影响 `custody/callback`：该路由对 Custody 始终返回 HTTP 200，推送失败只记录日志，Custody 不会重投。
+| 投递保证 | 尽力而为：内存中重试，无队列 / 持久化 / 死信；耗尽 5 次尝试后事件丢失 |
 
 每次重试都会重新生成 `X-Timestamp` 并重新计算签名，因此接收方不能用第一次的时间戳校验后续尝试，也不能用 `X-Timestamp` 作为幂等键。
+
+> **投递语义是“至少一次”，不是“恰好一次”。** 网络抖动、超时（响应丢失但对方已处理）、重试都会造成重复推送。接收方必须按 14.6 的幂等键去重。
+
+> **没有投递队列。** 若 5 次尝试全部失败（例如接收方长时间宕机），该事件不会补投。请通过业务查询接口（12 章）或对账任务补偿最终状态；关键事件的接收方应在本地持久化后再返回 2xx，避免在事件处理期间返回 5xx 触发无意义重试。
 
 > 这里的重试只属于**回调推送器**（`ApplicationCallbackService`）。第 7 章描述的网关转发客户端重试放大（上游 5xx / 超时被反复重试）发生在业务请求链路上，**不适用于回调推送**。
 
 ### 14.6 幂等与响应要求
 
-- **尽快返回 2xx**：单次回调超时为 30 秒，超时会触发重试并可能造成重复处理。建议先把事件写入队列 / 幂等表并立即返回，业务处理异步进行。由于 429 / 5xx 不会重试（D14），先持久化再返回 2xx 是避免丢事件的唯一可靠方式。
-- **按事件主键去重**：授权事件用 `authorizeId`；交易事件用 `orderId`（或 `taskId` / `txId`，取决于载荷）。没有业务主键时用稳定的请求体哈希（`sha256(rawBody)`）兜底；**不要用 `X-App-Id + X-Timestamp`**——时间戳每次重试都会重新生成，无法去重同一事件。同一事件可能被重复推送。
+- **尽快返回 2xx**：单次回调超时为 30 秒，超时会触发重试并可能造成重复处理。建议先把事件写入队列 / 幂等表并立即返回，业务处理异步进行。
+- **按事件主键去重**：
+
+  | 事件 | 幂等键 |
+  |------|--------|
+  | `authorization.created`（`oauth/verify` 路径） | `authorizeId` |
+  | `authorization.created`（内部接口路径） | `authorizationId` |
+  | `transaction.completed` / `transaction.failed` | `orderId`，缺失时用 `taskId`，再缺失用 `txId` |
+
+  都没有业务主键时用稳定的请求体哈希（`sha256(rawBody)`）兜底；**不要用 `X-App-Id + X-Timestamp`**——时间戳每次重试都会重新生成，无法去重同一事件。
 - **原子抢占**：用 Redis `SET NX`（或数据库唯一键）在产生副作用前抢占幂等键，并区分 `processing` / `done` 状态与 TTL，避免「先查后写」的竞态；处理失败时释放键。
 - 无论处理结果如何，都不要在响应体里依赖平台读取业务字段；平台只判断 HTTP 状态码。
 - 回放防护：签名不含 nonce，请校验 `X-Timestamp` 的时间窗口并配合幂等键去重。
+- **返回 5xx 会触发重试**：确认事件本身有问题（签名之外）时应返回 2xx 并记录日志，交由人工处理；返回 5xx 只会让平台重复推送同一事件。
 
 ---
 
@@ -2341,7 +2433,7 @@ app.post('/cregis/callback', async (req, res) => {
 | HTTP `500` / `503` / `504`，响应体只有 `{code,message}` | Custody 返回非 2xx、连接失败或超时；上游响应体被丢弃 | 记录 `x-trace-id` 与请求时间，联系平台；写操作先确认是否已生效再重试 |
 | 同一笔出金 / 创建地址重复执行 | 网关对上游 5xx / 超时自动重试，且重试次数可能被放大；Custody 是否按 `orderId` 去重未验证 | 复用稳定业务单号；重试前先查询订单 / 地址；非幂等接口避免盲目重试（第 7、10 章） |
 | `400070`（`board/init`） | 护卫队公钥没有对应用户，或 `threshold` 超过有效签名人数 | 先用 13.2 建用户并绑定 `publicKey`，再初始化 board（13.3） |
-| 收不到回调 | 应用未配置 `callbackUrl`；生产使用 HTTP；载荷超过 64KB；接收方返回非 2xx（不会重试，见 D14） | 检查应用回调配置；生产使用 HTTPS；控制载荷大小；先持久化再返回 2xx，并通过对账 / 查询接口补偿（14.5） |
+| 收不到回调 | 应用未配置 `callbackUrl`；生产使用 HTTP；载荷超过 64KB；5 次尝试全部失败（无持久化队列，不补投，见 14.5） | 检查应用回调配置；生产使用 HTTPS；控制载荷大小；通过对账 / 查询接口补偿（14.5） |
 
 ### 15.4 已知实现限制
 
@@ -2464,7 +2556,7 @@ try {
 
 > **OAuth 说明：** Node SDK 只封装 `getAuthorizationUrl`。`authorizeId` 由授权页在 Custody 内部完成 `verify` 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。`registerMerchant` / `addUser` / `initBoard` 其余字段与网关一致。
 
-### 16.2 Java SDK 1.2.0（JitPack）
+### 16.2 Java SDK 1.2.1（JitPack）
 
 **环境要求**：JDK 17+、Maven 3.8+。
 
@@ -2485,11 +2577,11 @@ try {
 <dependency>
     <groupId>com.github.ZoranWong.custody-openplatfrom</groupId>
     <artifactId>cregis-sdk-core</artifactId>
-    <version>java-sdk-v1.2.0</version>
+    <version>java-sdk-v1.2.1</version>
 </dependency>
 ```
 
-`java-sdk-v1.2.0` 是仓库中的 Git tag；JitPack 按该 tag 构建。`CregisClient` 的服务入口：
+`java-sdk-v1.2.1` 是仓库中的 Git tag；JitPack 按该 tag 构建。`CregisClient` 的服务入口：
 
 | 入口 | 覆盖 |
 |------|------|
@@ -2619,12 +2711,12 @@ if (result.status === 'success') {
 
 | SDK | 版本 | 坐标 / 安装 | 适用场景 | 与网关的已核对结论 |
 |-----|------|-------------|----------|--------------------|
-| Node.js | **1.1.0** | `npm install @cregis-kit/openplatform-node@1.1.0` | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致 |
-| Java | **1.2.0** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.0`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
+| Node.js | **1.2.0** | `npm install @cregis-kit/openplatform-node@1.2.0`（仓库版本；npm 尚未发布时从源码构建） | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致 |
+| Java | **1.2.1** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.1`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
 | Web | **1.0.5** | `npm install @cregis-kit/openplatform-webkit@1.0.5` | 浏览器嵌入授权页 | 只返回 `authorizationId`（即 Custody 内部 `verify` 生成的 `authorizeId`） |
 
 - 更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 `coinIds` / `primaryManager` / `payTo` 的请求会返回 `40102`，不要使用。
-- **发布状态提醒**：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java SDK 最新可用的 JitPack tag 为 `java-sdk-v1.2.0`。若 `npm install` 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
+- **发布状态提醒**：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java SDK 最新可用的 JitPack tag 为 `java-sdk-v1.2.1`。若 `npm install` 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
 - 三个 SDK 版本必须与网关的接口路径前缀 `/api/thirdparty/` 配套；`baseUrl` 不要包含该前缀，也不要带尾斜杠。
 - 环境地址见 2.3：本地 `http://127.0.0.1:1000`、SIT `https://custody-sit.cregis.ae/openplatform`、生产 `https://custody.cregis.ae/openplatform`。
 
