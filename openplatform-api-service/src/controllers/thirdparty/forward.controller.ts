@@ -232,42 +232,46 @@ export async function forwardRequest(req: Request, res: Response): Promise<void>
       headers: { 'x-trace-id': traceId },
     });
 
+    // Route-specific post-processing (e.g. merchant/register persists the
+    // resourceAccessKey and strips it from the response) runs on the body
+    // before it is sent back. The handler receives the response envelope
+    // { code, message, data } and returns the rewritten envelope; returning
+    // null/undefined passes the original body through.
+    let body = response;
+    if (config.responseHandler) {
+      try {
+        body = (await config.responseHandler(response, req)) ?? response;
+      } catch (handlerError: any) {
+        console.error(
+          '[Forward] Response handler error:',
+          handlerError.message || handlerError,
+        );
+        return fail(
+          ctx,
+          req,
+          res,
+          HttpCodes.INTERNAL_SERVER_ERROR,
+          BusinessCodes.SERVER_INTERNAL,
+          'Response handler error',
+          startTime,
+        );
+      }
+    }
+
     // The custody backend reports success as code 0 or 200; failures carry their
     // own code, which we map to the HTTP status recorded for this call.
-    const isSuccess = isSuccessCode(response?.code);
-    if (typeof response === 'object' && response !== null) res.json(response);
-    else {
-      if (config.responseHandler) {
-        try {
-          await config.responseHandler(response);
-        } catch (handlerError: any) {
-          console.error(
-            '[Forward] Response handler error:',
-            handlerError.message || handlerError,
-          );
-          return fail(
-            ctx,
-            req,
-            res,
-            HttpCodes.INTERNAL_SERVER_ERROR,
-            BusinessCodes.SERVER_INTERNAL,
-            'Response handler error',
-            startTime,
-          );
-        }
-      }
-      res.send(response);
-    }
+    const isSuccess = isSuccessCode(body?.code);
+    res.json(body);
 
     const logStatus = isSuccess
       ? HttpCodes.OK
-      : custodyCodeToHttpStatus(response?.code);
+      : custodyCodeToHttpStatus(body?.code);
     logApiCall(
       ctx,
       req,
       logStatus,
       Date.now() - startTime,
-      response,
+      body,
       !isSuccess,
     );
   } catch (error: any) {

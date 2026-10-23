@@ -11,6 +11,8 @@
  * - paramMapping: Parameter source mapping (url or context)
  */
 
+import { getOauthResourceRepository } from '../repositories/repository.factory';
+
 /**
  * Parameter source type
  */
@@ -27,7 +29,12 @@ export interface ForwardRouteConfig {
   method: string; // HTTP method
   clientName: string; // Backend client name
   paramMapping?: Record<string, ParamSource>; // Parameter source mapping (optional)
-  responseHandler?: (response: any) => Promise<any>; // Custom response handler
+  /**
+   * Custom post-processing on the custody response envelope { code, message, data }.
+   * Receives the unwrapped body, returns the rewritten body (or null/undefined
+   * to pass the original through).
+   */
+  responseHandler?: (response: any, req: any) => Promise<any>;
 }
 
 export interface BackendClientConfig {
@@ -180,8 +187,10 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   {
     routeId: 'treasury-create-unit-address',
     name: 'Create Unit Address',
-    inboundPath: '/api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number}',
-    route: '/api/third-party/create-unit-address/{resourceKey}/{unitId}/{accountType}/{network}/{coinId}/{number}',
+    inboundPath:
+      '/api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number}',
+    route:
+      '/api/third-party/create-unit-address/{resourceKey}/{unitId}/{accountType}/{network}/{coinId}/{number}',
     method: 'POST',
     clientName: 'custodyService',
     paramMapping: {
@@ -198,11 +207,17 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
   {
     routeId: 'treasury-create-unit-address-by-account',
     name: 'Create Unit Address By Account',
-    inboundPath: '/api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number}',
-    route: '/api/third-party/create-unit-address/{resourceKey}/{cusAccountId}/{number}',
+    inboundPath:
+      '/api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number}',
+    route:
+      '/api/third-party/create-unit-address/{resourceKey}/{cusAccountId}/{number}',
     method: 'POST',
     clientName: 'custodyService',
-    paramMapping: { resourceKey: 'context', cusAccountId: 'url', number: 'url' },
+    paramMapping: {
+      resourceKey: 'context',
+      cusAccountId: 'url',
+      number: 'url',
+    },
   },
 
   // List unit accounts (查询账户列表)
@@ -248,6 +263,31 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
     route: '/api/third-party/merchant/register',
     method: 'POST',
     clientName: 'custodyService',
+    responseHandler: async (response, req) => {
+      const data = response?.data;
+      // resourceAccessKey is null when the merchant already existed — nothing
+      // to persist or strip (idempotent re-registration).
+      if (!data?.resourceAccessKey) return response;
+
+      const appId =
+        (req as any).context?.application?.id ||
+        req.body?.basic?.appId ||
+        null;
+      if (!appId) {
+        throw new Error('Missing application id in request context or body');
+      }
+
+      // Persist the enterprise access key, then replace it in the response
+      // with the gateway-side authorizedId the caller uses going forward.
+      const oauthResource = getOauthResourceRepository();
+      const result = await oauthResource.upsert({
+        appId,
+        resourceKey: data.resourceAccessKey,
+        authorizedAt: new Date(),
+      });
+      const { resourceAccessKey: _stripped, ...rest } = data;
+      return { ...response, data: { ...rest, authorizedId: result.id } };
+    },
   },
 
   // Add user (三方平台添加用户)
