@@ -25,6 +25,8 @@ export interface HttpClientConfig {
   timeout: number;
   maxRetries?: number;
   retryDelay?: number;
+  responseHandler?: (response: AxiosResponse) => any;
+  errorHandler?: (error: AxiosError) => any;
 }
 
 /**
@@ -116,10 +118,12 @@ export class HttpClient {
     // Response interceptor
     this.client.interceptors.response.use(
       (response: AxiosResponse) => {
+        this.config.responseHandler?.(response);
         return response;
       },
       async (error: AxiosError) => {
         const wrappedError = this.wrapError(error, 0);
+        this.config.errorHandler?.(error);
 
         // Check if retryable
         if (this.isRetryableError(wrappedError) && this.config.maxRetries! > 0) {
@@ -233,7 +237,7 @@ export class HttpClient {
    */
   async request<T = any>(config: AxiosRequestConfig): Promise<T> {
       const response = await this.client.request<T>(config)
-    return response.data;
+      return response.data;
   }
 
   /**

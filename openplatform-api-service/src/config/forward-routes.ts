@@ -20,13 +20,14 @@ export type ParamSource = 'url' | 'context';
  * Forward route configuration
  */
 export interface ForwardRouteConfig {
-    routeId: string;                                    // Unique route identifier
-    name?: string;                                       // Human-readable API name for display
-    inboundPath: string;                                 // Developer-facing path (matching key)
-    route: string;                                      // Custody backend path (forwarding target)
-    method: string;                                      // HTTP method
-    clientName: string;                                  // Backend client name
-    paramMapping?: Record<string, ParamSource>;           // Parameter source mapping (optional)
+  routeId: string; // Unique route identifier
+  name?: string; // Human-readable API name for display
+  inboundPath: string; // Developer-facing path (matching key)
+  route: string; // Custody backend path (forwarding target)
+  method: string; // HTTP method
+  clientName: string; // Backend client name
+  paramMapping?: Record<string, ParamSource>; // Parameter source mapping (optional)
+  responseHandler?: (response: any) => Promise<any>; // Custom response handler
 }
 
 export interface BackendClientConfig {

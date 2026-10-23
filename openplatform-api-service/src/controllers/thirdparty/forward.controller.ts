@@ -7,18 +7,28 @@ import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { HttpCodes } from '../../enums/http-codes.enum';
 import { BusinessCodes } from '../../enums/business-codes.enum';
-import { findForwardRoute, normalizePath, validateParamValue } from '../../config/forward-routes';
-import { createHttpClient } from '../../services/http-client.service';
+import {
+  findForwardRoute,
+  ForwardRouteConfig,
+  normalizePath,
+  validateParamValue,
+} from '../../config/forward-routes';
+import {
+  createHttpClient,
+  HttpClient,
+} from '../../services/http-client.service';
 import { createApiLog } from '../../services/api-log.service';
 import { checkAndIncrement } from '../../services/quota.service';
+import { BACKEND_CLIENTS } from '../../config/forward-routes';
 
-let _httpClients: Map<string, any> | null = null;
+let _httpClients: Map<string, HttpClient> | null = null;
 
-function getHttpClients(): Map<string, any> {
+function getHttpClients(): Map<string, HttpClient> {
   if (!_httpClients) {
-    const { BACKEND_CLIENTS } = require('../../config/forward-routes');
+    // const { BACKEND_CLIENTS } = require('../../config/forward-routes');
     _httpClients = new Map();
-    for (const cfg of BACKEND_CLIENTS) _httpClients.set(cfg.name, createHttpClient(cfg));
+    for (const cfg of BACKEND_CLIENTS)
+      _httpClients.set(cfg.name, createHttpClient(cfg));
   }
   return _httpClients;
 }
@@ -169,7 +179,15 @@ export async function forwardRequest(req: Request, res: Response): Promise<void>
     if (!config.route.includes('{resourceKey}')) {
       // no resourceKey needed; proceed without key
     } else if (!resourceKey) {
-      return fail(ctx, req, res, HttpCodes.BAD_REQUEST, BusinessCodes.PARAM_REQUIRED, 'Missing resourceKey in request context', startTime);
+      return fail(
+        ctx,
+        req,
+        res,
+        HttpCodes.BAD_REQUEST,
+        BusinessCodes.PARAM_REQUIRED,
+        'Missing resourceKey in request context',
+        startTime,
+      );
     }
 
     let backendPath = config.route;
@@ -177,7 +195,16 @@ export async function forwardRequest(req: Request, res: Response): Promise<void>
       backendPath = backendPath.replace('{resourceKey}', resourceKey!);
     }
     for (const [key, value] of Object.entries(urlParams)) {
-      if (!validateParamValue(value)) return fail(ctx, req, res, HttpCodes.BAD_REQUEST, BusinessCodes.PARAM_REQUIRED, `Invalid parameter: ${key}`, startTime);
+      if (!validateParamValue(value))
+        return fail(
+          ctx,
+          req,
+          res,
+          HttpCodes.BAD_REQUEST,
+          BusinessCodes.PARAM_REQUIRED,
+          `Invalid parameter: ${key}`,
+          startTime,
+        );
       backendPath = backendPath.replace(`{${key}}`, value);
     }
 
@@ -185,12 +212,23 @@ export async function forwardRequest(req: Request, res: Response): Promise<void>
     if (ctx.developerId) {
       const quota = await checkAndIncrement(ctx.developerId);
       ctx.subscriptionId = quota.subscriptionId;
-      if (!quota.allowed) return fail(ctx, req, res, HttpCodes.TOO_MANY_REQUESTS, 42901, `Daily API quota exceeded (${quota.currentUsage}/${quota.dailyLimit})`, startTime);
+      if (!quota.allowed)
+        return fail(
+          ctx,
+          req,
+          res,
+          HttpCodes.TOO_MANY_REQUESTS,
+          42901,
+          `Daily API quota exceeded (${quota.currentUsage}/${quota.dailyLimit})`,
+          startTime,
+        );
     }
 
     const response = await client.request({
-      method: config.method as any, url: backendPath,
-      data: req.body?.business, params: req.query as Record<string, string>,
+      method: config.method as any,
+      url: backendPath,
+      data: req.body?.business,
+      params: req.query as Record<string, string>,
       headers: { 'x-trace-id': traceId },
     });
 
@@ -198,10 +236,40 @@ export async function forwardRequest(req: Request, res: Response): Promise<void>
     // own code, which we map to the HTTP status recorded for this call.
     const isSuccess = isSuccessCode(response?.code);
     if (typeof response === 'object' && response !== null) res.json(response);
-    else res.send(response);
+    else {
+      if (config.responseHandler) {
+        try {
+          await config.responseHandler(response);
+        } catch (handlerError: any) {
+          console.error(
+            '[Forward] Response handler error:',
+            handlerError.message || handlerError,
+          );
+          return fail(
+            ctx,
+            req,
+            res,
+            HttpCodes.INTERNAL_SERVER_ERROR,
+            BusinessCodes.SERVER_INTERNAL,
+            'Response handler error',
+            startTime,
+          );
+        }
+      }
+      res.send(response);
+    }
 
-    const logStatus = isSuccess ? HttpCodes.OK : custodyCodeToHttpStatus(response?.code);
-    logApiCall(ctx, req, logStatus, Date.now() - startTime, response, !isSuccess);
+    const logStatus = isSuccess
+      ? HttpCodes.OK
+      : custodyCodeToHttpStatus(response?.code);
+    logApiCall(
+      ctx,
+      req,
+      logStatus,
+      Date.now() - startTime,
+      response,
+      !isSuccess,
+    );
   } catch (error: any) {
     console.error('[Forward] Error:', error.message || error);
 
