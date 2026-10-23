@@ -5,7 +5,6 @@ import com.cregis.sdk.core.config.SdkConfigValidator;
 import com.cregis.sdk.core.http.HttpClient;
 import com.cregis.sdk.core.http.OkHttpClientAdapter;
 import com.cregis.sdk.core.callback.CallbackService;
-import com.cregis.sdk.core.callback.CallbackRequest;
 import com.cregis.sdk.core.callback.CallbackHandler;
 import com.cregis.sdk.core.error.CregisSdkException;
 import com.cregis.sdk.core.error.SdkErrorCode;
@@ -18,10 +17,13 @@ import com.cregis.sdk.service.TransactionService;
 import com.cregis.sdk.service.TreasuryService;
 import com.cregis.sdk.service.UserService;
 import com.cregis.sdk.service.WhitelistService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
  * Cregis SDK facade - unified entry point for all API operations.
@@ -151,10 +153,21 @@ public class CregisClient {
     /**
      * Verify a callback and dispatch to the business handler.
      *
+     * <p>Metadata is read directly from the incoming HTTP request headers, mirroring
+     * the Node.js SDK where the raw {@code req} object is passed in:
+     * <pre>{@code
+     * @PostMapping("/cregis/callback")
+     * public void callback(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+     *     client.onCallback(request, body, (payload, event) -> {
+     *         // business logic
+     *     });
+     * }
+     * }</pre>
+     *
      * <p>Defences applied before the handler runs:
      * <ul>
-     *   <li>{@code appId} must match the configured {@code appId}</li>
-     *   <li>{@code timestamp} must be within {@code callbackTimestampToleranceMs}
+     *   <li>{@code X-App-Id} must match the configured {@code appId}</li>
+     *   <li>{@code X-Timestamp} must be within {@code callbackTimestampToleranceMs}
      *       (default 5 minutes)</li>
      *   <li>the HMAC-SHA256 signature must verify over the parsed body</li>
      * </ul>
@@ -162,21 +175,34 @@ public class CregisClient {
      * <p>Signature verification requires the body exactly as sent by the
      * platform; do not mutate the map before calling this method.
      *
-     * @param request the callback request (metadata in headers, data in body)
+     * @param request the raw HTTP request carrying the metadata headers
+     * @param data    the callback body (business data)
      * @param handler the business handler invoked with the verified data and
      *                the event name ({@code null} when {@code X-Event} is absent)
      */
-    public void onCallback(CallbackRequest request, CallbackHandler handler) {
-        if (request == null || request.getAppId() == null
-                || request.getTimestamp() == null || request.getSignature() == null) {
+    public void onCallback(HttpServletRequest request, Map<String, Object> data,
+                           CallbackHandler handler) {
+        if (request == null) {
+            throw new CregisSdkException(
+                    SdkErrorCode.WEBHOOK_VERIFY_FAILED,
+                    "Missing callback request"
+            );
+        }
+
+        String appId = request.getHeader("X-App-Id");
+        String timestamp = request.getHeader("X-Timestamp");
+        String signature = request.getHeader("X-Signature");
+        String event = request.getHeader("X-Event");
+
+        if (appId == null || timestamp == null || signature == null) {
             throw new CregisSdkException(
                     SdkErrorCode.WEBHOOK_VERIFY_FAILED,
                     "Missing required callback metadata (appId, timestamp, signature)"
             );
         }
 
-        // The signature头 must belong to this application.
-        if (!this.appId.equals(request.getAppId())) {
+        // The signature header must belong to this application.
+        if (!this.appId.equals(appId)) {
             throw new CregisSdkException(
                     SdkErrorCode.WEBHOOK_VERIFY_FAILED,
                     "Callback appId does not match the configured appId"
@@ -188,7 +214,7 @@ public class CregisClient {
         if (tolerance > 0) {
             long ts;
             try {
-                ts = Long.parseLong(request.getTimestamp());
+                ts = Long.parseLong(timestamp);
             } catch (NumberFormatException e) {
                 throw new CregisSdkException(
                         SdkErrorCode.WEBHOOK_VERIFY_FAILED,
@@ -203,15 +229,13 @@ public class CregisClient {
             }
         }
 
-        String signature = request.getSignature().replaceFirst("^sha256=", "");
-
         boolean valid = callbackService.verifySignature(
                 appSecret,
-                request.getAppId(),
-                request.getEvent(),
-                request.getTimestamp(),
-                signature,
-                request.getData()
+                appId,
+                event,
+                timestamp,
+                signature.replaceFirst("^sha256=", ""),
+                data
         );
 
         if (!valid) {
@@ -221,7 +245,7 @@ public class CregisClient {
             );
         }
 
-        handler.handle(request.getData(), request.getEvent());
+        handler.handle(data, event);
     }
 
     /**
