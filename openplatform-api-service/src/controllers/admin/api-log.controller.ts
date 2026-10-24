@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { getApiLogRepository } from '../../repositories/repository.factory';
 import { HttpCodes } from '../../enums/http-codes.enum';
 import { BusinessCodes } from '../../enums/business-codes.enum';
+import { getRetentionDays } from '../../services/api-log.service';
 
 /**
  * GET /admin/api-logs

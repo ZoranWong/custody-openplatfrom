@@ -47,6 +47,7 @@ import { createMetricsMiddleware } from './middleware/metrics.middleware'
 import metricsRoutes from './routes/metrics.routes'
 import { getMetricsCollector } from './services/metrics-collector.service'
 import { startDailyResetScheduler } from './services/quota.service'
+import { startCleanupScheduler, getRetentionDays } from './services/api-log.service'
 
 // Import trace modules
 import { createTraceMiddleware } from './middleware/trace.middleware'
@@ -209,9 +210,15 @@ async function startServer() {
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`API Gateway running on port ${PORT}`)
         console.log(`Health check: http://localhost:${PORT}/health`)
+        console.log(`API log retention: ${getRetentionDays()} days`)
 
         // Start daily API usage quota reset scheduler
         startDailyResetScheduler()
+
+        // Start periodic API log cleanup
+        const stopLogCleanup = startCleanupScheduler()
+        process.on('SIGTERM', () => stopLogCleanup())
+        process.on('SIGINT', () => stopLogCleanup())
     })
 }
 

@@ -174,6 +174,32 @@ model ApiLog {
 }
 
 // ============================================
+// ApiLogSnapshot - daily aggregated stats for API logs
+// ============================================
+model ApiLogSnapshot {
+  id                BigInt   @id @default(autoincrement()) @map("id")
+  /// 开发者 ID
+  developerId       String   @map("developer_id")
+  /// 统计日期 (YYYY-MM-DD)
+  date              DateTime @map("date") @db.Date
+  /// 总调用次数
+  totalCalls        Int      @default(0) @map("total_calls")
+  /// 异常调用次数
+  errorCalls        Int      @default(0) @map("error_calls")
+  /// 平均响应时间 (ms)
+  avgResponseTime   Int      @default(0) @map("avg_response_time")
+  /// P95 响应时间 (ms)
+  p95ResponseTime   Int      @default(0) @map("p95_response_time")
+  /// Top 5 endpoints by call volume (JSON array)
+  topEndpoints      Json?    @map("top_endpoints")
+  /// 快照创建时间
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@unique([developerId, date], name: "uq_dev_date")
+  @@map("api_log_snapshots")
+}
+
+// ============================================
 // Metric - 指标数据表
 // ============================================
 model Metric {

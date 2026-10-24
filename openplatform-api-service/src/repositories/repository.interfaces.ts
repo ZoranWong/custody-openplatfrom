@@ -166,6 +166,21 @@ export interface ApiLogEndpointBreakdown {
   maxResponseTime: number
 }
 
+/**
+ * Daily snapshot row — compact aggregate of one day's API logs.
+ * Built before logs are slimmed/deleted so that long-period trends remain queryable.
+ */
+export interface ApiLogDailySnapshot {
+  date: string          // YYYY-MM-DD
+  developerId: string
+  totalCalls: number
+  errorCalls: number
+  avgResponseTime: number
+  p95ResponseTime: number
+  topEndpoints: Array<{ endpoint: string; calls: number; errorRate: number }>
+  createdAt: string
+}
+
 export interface ApiLogRepository {
   create(data: {
     appId: string
@@ -193,6 +208,12 @@ export interface ApiLogRepository {
   getStats(developerId: string, startDate: Date): Promise<ApiLogStats>
   getDailyBreakdown(developerId: string, startDate: Date): Promise<ApiLogDailyBreakdown[]>
   getEndpointBreakdown(developerId: string, startDate: Date, totalCalls: number): Promise<ApiLogEndpointBreakdown[]>
+  /** Null out large payload fields for logs older than N days (keeps stats fields). */
+  slimOlderThan(days: number): Promise<{ count: number }>
+  /** Build daily aggregate snapshots for a date range, deduplicating by (date, developerId). */
+  buildDailySnapshot(startDate: Date, endDate: Date): Promise<number>
+  /** Read pre-built snapshots for dashboard trend charts. */
+  getDailySnapshots(developerId: string, startDate: Date, endDate: Date): Promise<ApiLogDailySnapshot[]>
   cleanup(retentionDays?: number): Promise<{ count: number }>
   /** Paginated API log query */
   findByDeveloper(developerId: string, page: number, pageSize: number, filters?: { isError?: boolean; apiName?: string; startDate?: Date; endDate?: Date }): Promise<{ list: ApiLog[]; total: number; page: number; pageSize: number }>
