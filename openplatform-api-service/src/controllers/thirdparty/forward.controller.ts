@@ -35,7 +35,7 @@ function getHttpClients(): Map<string, HttpClient> {
 
 /** Log entry context, carried through the request lifecycle */
 interface LogContext {
-  appId: string;
+  appId?: string;
   developerId?: string;
   subscriptionId?: string;
   apiName: string;
@@ -43,8 +43,8 @@ interface LogContext {
   traceId?: string;
 }
 
-function extractAppId(req: Request): string {
-  return (req as any).context?.application?.id || req.body?.basic?.appId || 'unknown';
+function extractAppId(req: Request): string | undefined {
+  return (req as any).context?.application?.id || req.body?.basic?.appId || undefined;
 }
 
 function extractDeveloperId(req: Request): string | undefined {

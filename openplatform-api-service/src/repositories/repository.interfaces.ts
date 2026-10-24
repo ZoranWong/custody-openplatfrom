@@ -183,7 +183,7 @@ export interface ApiLogDailySnapshot {
 
 export interface ApiLogRepository {
   create(data: {
-    appId: string
+    appId?: string
     developerId?: string
     subscriptionId?: string
     apiName?: string

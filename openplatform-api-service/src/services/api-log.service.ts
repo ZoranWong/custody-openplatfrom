@@ -6,7 +6,7 @@
 import { getApiLogRepository } from '../repositories/repository.factory';
 
 export interface ApiLogEntry {
-  appId: string;
+  appId?: string;
   developerId?: string;
   subscriptionId?: string;
   apiName?: string;

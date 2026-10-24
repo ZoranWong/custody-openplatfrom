@@ -129,8 +129,8 @@ model ApiLog {
   id              String   @id @default(uuid())
   /// 分布式追踪ID
   traceId         String?  @map("trace_id")
-  /// 关联的应用ID
-  appId           String   @map("app_id")
+  /// 关联的应用ID（未知或未绑定时为 NULL）
+  appId           String?  @map("app_id")
   /// 关联的开发者ID
   developerId     String?  @map("developer_id")
   /// 关联的订阅ID
@@ -166,7 +166,7 @@ model ApiLog {
   /// 创建时间
   createdAt       DateTime @default(now()) @map("created_at")
 
-  application    Application @relation(fields: [appId], references: [id], onDelete: Cascade)
+  application    Application? @relation(fields: [appId], references: [id], onDelete: SetNull)
 
   @@index([appId, createdAt])
   @@index([traceId])
