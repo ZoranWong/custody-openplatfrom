@@ -2,9 +2,9 @@
 
 Cregis 托管开放平台官方 Node.js SDK（服务端），覆盖 **OAuth 授权、财务单元（Treasury Unit）、出金/归集、审批、商户与企业用户管理、交易记录查询、回调验签** 全部 24 个业务接口。
 
-**当前版本：1.1.0**
+**当前版本：1.2.0**
 
-> 1.1.0 变更摘要见文末 [版本与变更](#版本与变更)。
+> 1.2.0 变更摘要见文末 [版本与变更](#版本与变更)。
 
 **技术特性**
 
@@ -778,6 +778,18 @@ SDK 会自行拼接 `/api/thirdparty/...` 路径，`baseUrl` 不要带尾斜杠�
 ---
 
 ## 版本与变更
+
+### 1.2.0
+
+**回调验签加固（不兼容变更）**
+
+- `onCallback` 现在强制校验 `X-App-Id` 必须与配置的 `appId` 一致，`X-Timestamp` 必须落在 `callbackTimestampToleranceMs` 窗口内（默认 5 分钟，设为 `0` 关闭窗口校验），再验证 HMAC-SHA256 签名。
+- 回调 handler 签名由 `(payload) => void` 改为 `(payload, event) => void | Promise<void>`，事件名来自 `X-Event`，缺失时为 `undefined`。升级后需同步修改 handler。
+
+**其他**
+
+- `merchant/register` 响应的 `authorizedId` 字段（等同 `authorizeId`，首次注册时返回）；`resourceAccessKey` 经网关调用时会被剥离，改为可选。
+- 请求携带 `User-Agent` 与 `X-SDK-Name` / `X-SDK-Version` / `X-SDK-Language`，网关据此记录 SDK 身份。
 
 ### 1.1.0
 
