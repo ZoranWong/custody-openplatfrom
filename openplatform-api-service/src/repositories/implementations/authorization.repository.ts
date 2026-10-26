@@ -24,48 +24,39 @@ export class OauthResourceRepositoryImpl extends BaseRepository<Prisma.OauthReso
     return this.model.findFirst({ where: { appId, resourceKey } })
   }
 
-  async upsert(data: { appId: string; resourceKey: string | null; authorizedAt?: Date; expiresAt?: Date }): Promise<OauthResource> {
-    // Atomic upsert using Prisma's upsert for non-null resourceKey
-    // For null resourceKey, fallback to query+update/create (null can't be used in unique constraint lookup)
-    if (data.resourceKey !== null) {
-      return (this.model as any).upsert({
-        where: {
-          appId_resourceKey: {
-            appId: data.appId,
-            resourceKey: data.resourceKey,
-          },
-        },
-        update: {
-          authorizedAt: data.authorizedAt || new Date(),
-          expiresAt: data.expiresAt,
-          status: 'active',
-        },
-        create: {
-          appId: data.appId,
-          resourceKey: data.resourceKey,
-          authorizedAt: data.authorizedAt || new Date(),
-          expiresAt: data.expiresAt,
-          status: 'active',
-        },
-      })
+  /**
+   * Create or refresh the authorization record for (appId, resourceKey).
+   *
+   * Idempotent: the unique index `oauth_resources_app_id_resource_key_key`
+   * is the single source of truth. A concurrent insert loses the race and
+   * Prisma retries it as an update, so callers always observe one row per
+   * (appId, resourceKey) — and therefore a stable id.
+   *
+   * `resourceKey` is required: a null key would fall outside that unique
+   * index (MySQL allows duplicate NULLs), so two concurrent authorizations
+   * could create distinct rows and hand out different ids. Reject it here
+   * as a last line of defence, independent of the route-level validation.
+   */
+  async upsert(data: { appId: string; resourceKey: string; authorizedAt?: Date; expiresAt?: Date }): Promise<OauthResource> {
+    if (!data.resourceKey) {
+      throw new Error('resourceKey is required for authorization upsert');
     }
 
-    // Fallback for null resourceKey: find first, update or create
-    const existing = await this.model.findFirst({ where: { appId: data.appId, resourceKey: null } })
-    if (existing) {
-      return this.model.update({
-        where: { id: existing.id },
-        data: {
-          authorizedAt: data.authorizedAt || existing.authorizedAt,
-          expiresAt: data.expiresAt,
-          status: 'active',
+    return (this.model as any).upsert({
+      where: {
+        appId_resourceKey: {
+          appId: data.appId,
+          resourceKey: data.resourceKey,
         },
-      })
-    }
-    return this.model.create({
-      data: {
+      },
+      update: {
+        authorizedAt: data.authorizedAt || new Date(),
+        expiresAt: data.expiresAt,
+        status: 'active',
+      },
+      create: {
         appId: data.appId,
-        resourceKey: null,
+        resourceKey: data.resourceKey,
         authorizedAt: data.authorizedAt || new Date(),
         expiresAt: data.expiresAt,
         status: 'active',

@@ -86,7 +86,7 @@ export interface OauthResourceRepository {
   findByResourceKey(resourceKey: string): Promise<OauthResource | null>
   findByAppId(appId: string): Promise<OauthResource[]>
   findByAppAndResource(appId: string, resourceKey: string): Promise<OauthResource | null>
-  upsert(data: { appId: string; resourceKey: string | null; authorizedAt?: Date; expiresAt?: Date }): Promise<OauthResource>
+  upsert(data: { appId: string; resourceKey: string; authorizedAt?: Date; expiresAt?: Date }): Promise<OauthResource>
   create(data: Prisma.OauthResourceCreateInput): Promise<OauthResource>
   update(id: string, data: Prisma.OauthResourceUpdateInput): Promise<OauthResource>
   delete(id: string): Promise<OauthResource>
