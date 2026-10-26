@@ -157,7 +157,7 @@ client.transaction().submitTask(authorizationId, task.getTaskId(),
 
 | 方法 | 说明 |
 |------|------|
-| `MerchantRegisterResponse registerMerchant(MerchantRegisterRequest)` | 三方平台注册企业，幂等；返回 `ecode` / `vaultCode` / `resourceAccessKey` / `alreadyExists` |
+| `MerchantRegisterResponse registerMerchant(MerchantRegisterRequest)` | 三方平台注册企业，幂等；返回 `ecode` / `vaultCode` / `authorizedId`（首次注册，等同 `authorizeId`）/ `alreadyExists` |
 | `Map<String, Object> addUser(String authorizationId, AddUserRequest)` | 添加企业用户，返回如 `{ userId: 99 }` |
 | `BoardResponse initBoard(String authorizationId, InitBoardRequest)` | 初始化 Board（护卫队） |
 

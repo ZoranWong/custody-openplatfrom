@@ -648,7 +648,18 @@ export interface Merchant {
 export interface MerchantRegisterResult {
   ecode: string;
   vaultCode: string;
-  resourceAccessKey: string | null;
+  /**
+   * Gateway-side authorization record id (same value as `authorizeId`), usable
+   * directly as `basic.authorizationId` for subsequent resource calls.
+   * Present only on first registration; absent when `alreadyExists` is true.
+   */
+  authorizedId?: string;
+  /**
+   * Enterprise resource key returned by the upstream custody service.
+   * The gateway strips this field before responding, so callers normally see
+   * `authorizedId` instead. Kept optional for direct/upstream compatibility.
+   */
+  resourceAccessKey?: string | null;
   alreadyExists: boolean;
   merchant: Merchant;
 }

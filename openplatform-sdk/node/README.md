@@ -187,7 +187,7 @@ const result = await sdk.registerMerchant({
   networks: ['ethereum', 'tron'],
   owner: { email: 'owner@example.com', password: 'Str0ng!Passw0rd' },
 });
-// result.ecode / result.resourceAccessKey / result.vaultCode / result.alreadyExists
+// result.ecode / result.authorizedId / result.vaultCode / result.alreadyExists
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
@@ -211,7 +211,8 @@ const result = await sdk.registerMerchant({
 |------|------|------|
 | `ecode` | `string` | 企业 code |
 | `vaultCode` | `string` | 金库 code |
-| `resourceAccessKey` | `string \| null` | 企业级访问 key，用于 `custody/callback` 等 Custody 侧调用 |
+| `authorizedId` | `string \| undefined` | 网关授权记录 ID，等同于 `authorizeId`，可直接作为后续请求的 `authorizationId`。仅首次注册（未命中幂等）时返回 |
+| `resourceAccessKey` | `string \| null \| undefined` | 企业级访问 key（上游字段）；经网关调用时会被剥离，通常拿到的是 `authorizedId` |
 | `alreadyExists` | `boolean` | 是否命中幂等（已存在） |
 | `merchant` | `Merchant` | 企业详情 |
 

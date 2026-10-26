@@ -480,7 +480,7 @@ public class SignatureDemo {
 | `40102`，仅 `authorizeUrl` | 误用了 Resource 签名（签名串多了 `authorizationId`） | OAuth 接口使用 Basic 签名；`verify` 由 Custody 内部调用，开发者无需签名 |
 | `40102`，仅业务接口 | 未传 `basic.authorizationId`，或传入了另一个环境的 `authorizeId` | 使用本环境授权页返回的 `authorizeId`（Custody 内部经 `oauth/verify` 创建） |
 | `40301`（资源未授权） | `authorizationId` 不存在或授权记录状态不是 `active`（当前实现按 ID 查询，不校验应用归属） | 重新走 OAuth 流程（授权页重新授权） |
-| `400103`（资源键不存在） | `resourceKey` 未在 Custody 侧开通 | 使用 `merchant/register` 返回的 `resourceAccessKey`，或联系平台开通 |
+| `400103`（资源键不存在） | `resourceKey` 未在 Custody 侧开通 | 使用 `merchant/register` 首次注册后网关返回的 `authorizedId` 作为 `basic.authorizationId`，或联系平台开通 |
 | `40001`（缺少参数） | 缺少 `basic` 或必填字段 | 检查 `basic` 是否完整：Basic 签名 4 个字段（`appId`、`timestamp`、`nonce`、`signature`），Resource 签名 5 个字段（额外 `authorizationId`） |
 
 ---
@@ -619,7 +619,7 @@ Custody 收到授权页的 `POST /internal/third-party/authorize?appId=&ecode=&a
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `resourceKey` | string | 是 | 资源标识。Custody 使用企业的 `resourceAccessKey`（13.1 返回），或平台为该企业开通的资源键 |
+| `resourceKey` | string | 是 | 资源标识。Custody 使用企业的 `resourceAccessKey`（13.1 上游返回，网关不对外暴露），或平台为该企业开通的资源键 |
 | `oauthToken` | string | 是 | 网关在 `authorizeUrl` 中签发的 `appToken`（JWT）；授权页从 URL 读取后随内部授权请求带给 Custody，不会通过 postMessage 事件下发 |
 
 **响应**
@@ -776,7 +776,7 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 | 场景 | 幂等键 | 行为 |
 | --- | --- | --- |
 | 出金 `treasury/payout` | `business.orderId`（你的业务订单号） | 建议始终复用同一 `orderId` 以便对账。**Custody 是否按 `orderId` 去重尚未验证**（YAML/SDK 均未声明），重试可能导致重复出金，联调时需确认 |
-| 商户注册 `merchant/register` | `business.legalName` | 同一企业重复注册不会重复创建，返回 `alreadyExists: true` 及相同的 `ecode`、`resourceAccessKey` |
+| 商户注册 `merchant/register` | `business.legalName` | 同一企业重复注册不会重复创建，返回 `alreadyExists: true` 及相同的 `ecode`；首次注册还会返回 `authorizedId` |
 | 添加用户 `user/add` | `business.email` | 同一企业下同一邮箱不会重复创建用户 |
 | 授权 `oauth/verify`（Custody 内部调用） | `(appId, resourceKey)` | 重复验证返回同一个 `authorizeId`，并刷新授权时间 |
 | 授权回调 `authorization.created` | `authorizeId` | 可能重试推送，接收方必须按 `authorizeId` 去重 |
@@ -845,7 +845,7 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 | 403 | `40305` | 权限不足 | 应用 / 用户权限配置不满足 |
 | 404 | `40401` | 资源不存在 / 路由不存在 | 记录不存在；或网关未匹配到转发路由（转发层返回 `{ code: 40401, message: "Route not found: ..." }`） |
 | 409 | `40902` | 冲突 / 重复 | 邮箱已注册、授权记录冲突等 |
-| 400 | `400103` | 资源键不存在（上游 Custody） | `resourceKey` 未在 Custody 侧开通；使用 `merchant/register` 的 `resourceAccessKey` |
+| 400 | `400103` | 资源键不存在（上游 Custody） | `resourceKey` 未在 Custody 侧开通；使用 13.1 首次注册返回的 `authorizedId` 作为 `basic.authorizationId` |
 | 400 | `120042` | 归集来源账户类型不允许（上游 Custody） | 仅允许从收款类账户归集；检查 `fromAccountId` |
 | 429 | `42901` | 超出配额或限流 | 退避后重试；检查 `Retry-After` 与订阅套餐 |
 | 500 | `50001` | 服务内部错误 | 记录 `x-trace-id` 并联系平台 |
@@ -1945,7 +1945,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
   "data": {
     "ecode": "EC0000000001",
     "vaultCode": "VAULT001",
-    "resourceAccessKey": "access-key-d21396c169754470b3cdae0af9b2b8a6",
+    "authorizedId": "123e4567-e89b-12d3-a456-426614174000",
     "alreadyExists": false,
     "merchant": {
       "id": 1542,
@@ -1969,10 +1969,21 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 }
 ```
 
+**响应参数（data）**
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `ecode` | string | 企业 code |
+| `vaultCode` | string | 金库 code |
+| `authorizedId` | string | **网关返回的授权记录 ID，等同于 `authorizeId`**，可直接作为后续业务请求的 `basic.authorizationId` 使用。仅当上游返回了 `resourceAccessKey`（即首次注册）时才出现 |
+| `alreadyExists` | boolean | 是否命中幂等（该企业此前已注册） |
+| `merchant` | object | 企业详情 |
+
 关键说明：
 
-- **`resourceAccessKey` 是企业级资源键**，也是 Custody → 网关 `oauth/verify`（5.4）使用的 `resourceKey`，以及 `custody/callback` 反查应用的键；平台按该键维护授权记录与应用映射，再推送第 14 章的回调。**该值由 Custody 在内部调用 `verify` 时传入，开发者不需要在 `verify` 请求中传递它。** 请在首次注册成功时持久化保存。
-- 重复注册命中幂等时 `alreadyExists: true`；按上游 schema，此时 **`resourceAccessKey` 为 `null`**（避免同名注册换出他人凭据）。不要把重复注册当作重新获取 key 的手段。
+- **网关会剥离 `resourceAccessKey`，改为返回 `authorizedId`。** 上游 Custody 仍返回 `resourceAccessKey`（企业级资源键，同时是 Custody → 网关 `oauth/verify` 使用的 `resourceKey`，以及 `custody/callback` 反查应用的键）；网关用它写入 `/oauth_resources` 授权记录后**立即从响应中移除**，避免企业级凭据暴露给开发者前端。返回的 `authorizedId` 就是该授权记录的主键，**与 OAuth 授权流程返回的 `authorizeId` 是同一个值**。
+- **首次注册成功后请持久化 `authorizedId`**，后续所有 Resource 签名接口直接用它作为 `basic.authorizationId`，无需再走授权页。
+- 重复注册命中幂等时 `alreadyExists: true`；此时上游 `resourceAccessKey` 为 `null`（避免同名注册换出他人凭据），网关**不会**执行剥离逻辑，响应中**不会出现 `authorizedId`**。若需要该企业的授权标识，请走 OAuth 授权流程获取 `authorizeId`。
 - 该接口走 Basic 签名，`basic` 只需要 `appId`、`timestamp`、`nonce`、`signature`；**不要传 `authorizationId`**。
 - `owner` 中的用户仍需在 custody 完成二次验证绑定后才能登录 custody；仅作为签名人使用时按 13.2 绑定 `publicKey`。
 
@@ -1981,7 +1992,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 **POST** `/api/thirdparty/user/add` · 鉴权：Resource 签名
 > 网关转发至 custody：`/api/third-party/user/add/{resourceKey}`，`business` 原样作为上游请求体
 
-`{resourceKey}` 取自 `basic.authorizationId` 对应的授权记录（即 Custody 内部调用 `oauth/verify` 时绑定的 `resourceKey`，通常是 13.1 返回的 `resourceAccessKey`）。**同一邮箱重复调用幂等**，不会重复创建用户。
+`{resourceKey}` 取自 `basic.authorizationId` 对应的授权记录（即 Custody 内部调用 `oauth/verify` 时绑定的 `resourceKey`，通常来自 13.1 首次注册时的企业资源键）。**同一邮箱重复调用幂等**，不会重复创建用户。
 
 **请求参数（business）**
 
@@ -2631,7 +2642,7 @@ public ResponseEntity<?> callback(@RequestBody Map<String, Object> body,
 | `40104`，消息为 `Duplicate nonce detected` | 固定 nonce；重试沿用同一 nonce；并发共享 nonce | 每次请求（含重试）生成新 nonce |
 | `40104`，消息为 `Application is not active` | 应用被停用；错误码被复用，并非 nonce 问题 | 检查应用状态并联系平台 |
 | `40301` | `authorizeId` 不存在、授权记录非 `active`，或使用了另一环境的 `authorizeId` | 重新走 OAuth 流程（授权页重新授权） |
-| `400103` | `resourceKey` 拼写错误、跨环境使用、未在 custody 开通 | 使用 13.1 返回的 `resourceAccessKey`，或联系平台开通；`oauth/verify`（Custody 内部调用）不会提前发现该问题（5.4） |
+| `400103` | `resourceKey` 拼写错误、跨环境使用、未在 custody 开通 | 使用 13.1 首次注册返回的 `authorizedId` 作为 `basic.authorizationId`，或联系平台开通；`oauth/verify`（Custody 内部调用）不会提前发现该问题（5.4） |
 | 地址查询返回空分页 | 缺少 `coinId` / `network`；`accountType` 与账户不匹配；地址尚未创建 | 从 `list-unit-account`（7.4）取 `coinId` / `network`，四个字段一起传（第 8 章） |
 | `42901` | 超出订阅套餐 `dailyApiLimit`，或触发限流；配额服务异常时 fail-closed 也会返回 `42901` | 查看 `Retry-After` 与开发者门户订阅查询的 `dailyApiUsage`；退避重试（6.4、6.5） |
 | HTTP `500` / `503` / `504`，响应体只有 `{code,message}` | Custody 返回非 2xx、连接失败或超时；上游响应体被丢弃 | 记录 `x-trace-id` 与请求时间，联系平台；写操作先确认是否已生效再重试 |
@@ -3140,13 +3151,13 @@ interface UnitAddress {
 
 最常见原因是缺少 `coinId` 或 `network`——缺少时 Custody 返回空分页而不是错误。请确认 `unitId + accountType + coinId + network` 四个字段一起传入，且 `accountType` 与目标账户类型一致；地址尚未生成时同样为空，可用 8.3 / 8.4 创建。
 
-**Q：如何获得 `resourceAccessKey`？**
+**Q：如何获得 `authorizedId`？**
 
-调用 13.1 `merchant/register` 获取。首次注册返回非空 `resourceAccessKey`，它同时是 Custody 内部调用 `oauth/verify` 时使用的 `resourceKey` 与后续业务请求转发到 Custody 的资源键；开发者不需要在 `verify` 请求中传递它。重复注册时该字段可能为 `null`。若企业由平台侧开通，请向平台索取资源键。
+调用 13.1 `merchant/register` 获取。首次注册成功后，网关会用上游返回的 `resourceAccessKey` 建立授权记录，并在响应中返回该记录的 ID `authorizedId`（等同于 `authorizeId`），直接作为后续业务请求的 `basic.authorizationId`。上游 `resourceAccessKey` 不会透出给开发者。重复注册命中幂等时响应不含 `authorizedId`，此时需走 OAuth 授权流程获取 `authorizeId`。若企业由平台侧开通，请向平台索取授权标识。
 
 **Q：应该使用哪个环境地址？**
 
-本地 `http://127.0.0.1:1000`、SIT `https://custody-sit.cregis.ae/openplatform`、生产 `https://custody.cregis.ae/openplatform`（见 2.3）。`authorizeUrl` 的域名由平台配置（`OPENPLATFORM_AUTH_URL`），不要自行替换；跨环境混用 `authorizeId` / `appSecret` / `resourceAccessKey` 会得到 `40102`、`40301` 或 `400103`。
+本地 `http://127.0.0.1:1000`、SIT `https://custody-sit.cregis.ae/openplatform`、生产 `https://custody.cregis.ae/openplatform`（见 2.3）。`authorizeUrl` 的域名由平台配置（`OPENPLATFORM_AUTH_URL`），不要自行替换；跨环境混用 `authorizeId` / `appSecret` / `authorizedId` 会得到 `40102`、`40301` 或 `400103`。
 
 **Q：回调验签失败，但签名算法看起来一致？**
 

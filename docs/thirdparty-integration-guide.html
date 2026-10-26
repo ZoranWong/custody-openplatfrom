@@ -1293,7 +1293,7 @@ public class SignatureDemo {
 <tr>
 <td><code>400103</code>（资源键不存在）</td>
 <td><code>resourceKey</code> 未在 Custody 侧开通</td>
-<td>使用 <code>merchant/register</code> 返回的 <code>resourceAccessKey</code>，或联系平台开通</td>
+<td>使用 <code>merchant/register</code> 首次注册后网关返回的 <code>authorizedId</code> 作为 <code>basic.authorizationId</code>，或联系平台开通</td>
 </tr>
 <tr>
 <td><code>40001</code>（缺少参数）</td>
@@ -1546,7 +1546,7 @@ public class SignatureDemo {
 <td><code>resourceKey</code></td>
 <td>string</td>
 <td>是</td>
-<td>资源标识。Custody 使用企业的 <code>resourceAccessKey</code>（13.1 返回），或平台为该企业开通的资源键</td>
+<td>资源标识。Custody 使用企业的 <code>resourceAccessKey</code>（13.1 上游返回，网关不对外暴露），或平台为该企业开通的资源键</td>
 </tr>
 <tr>
 <td><code>oauthToken</code></td>
@@ -1836,7 +1836,7 @@ public class SignatureDemo {
 <tr>
 <td>商户注册 <code>merchant/register</code></td>
 <td><code>business.legalName</code></td>
-<td>同一企业重复注册不会重复创建，返回 <code>alreadyExists: true</code> 及相同的 <code>ecode</code>、<code>resourceAccessKey</code></td>
+<td>同一企业重复注册不会重复创建，返回 <code>alreadyExists: true</code> 及相同的 <code>ecode</code>；首次注册还会返回 <code>authorizedId</code></td>
 </tr>
 <tr>
 <td>添加用户 <code>user/add</code></td>
@@ -2060,7 +2060,7 @@ public class SignatureDemo {
 <td>400</td>
 <td><code>400103</code></td>
 <td>资源键不存在（上游 Custody）</td>
-<td><code>resourceKey</code> 未在 Custody 侧开通；使用 <code>merchant/register</code> 的 <code>resourceAccessKey</code></td>
+<td><code>resourceKey</code> 未在 Custody 侧开通；使用 13.1 首次注册返回的 <code>authorizedId</code> 作为 <code>basic.authorizationId</code></td>
 </tr>
 <tr>
 <td>400</td>
@@ -3803,7 +3803,7 @@ public class SignatureDemo {
   "data": {
     "ecode": "EC0000000001",
     "vaultCode": "VAULT001",
-    "resourceAccessKey": "access-key-d21396c169754470b3cdae0af9b2b8a6",
+    "authorizedId": "123e4567-e89b-12d3-a456-426614174000",
     "alreadyExists": false,
     "merchant": {
       "id": 1542,
@@ -3826,11 +3826,24 @@ public class SignatureDemo {
   }
 }
 </code></pre>
+<p>响应参数（data）：</p>
+<table>
+<thead><tr><th>参数</th><th>类型</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><code>ecode</code></td><td>string</td><td>企业 code</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>金库 code</td></tr>
+<tr><td><code>authorizedId</code></td><td>string</td><td><strong>网关返回的授权记录 ID，等同于 <code>authorizeId</code></strong>，可直接作为后续业务请求的 <code>basic.authorizationId</code> 使用。仅当上游返回了 <code>resourceAccessKey</code>（即首次注册）时才出现</td></tr>
+<tr><td><code>alreadyExists</code></td><td>boolean</td><td>是否命中幂等（该企业此前已注册）</td></tr>
+<tr><td><code>merchant</code></td><td>object</td><td>企业详情</td></tr>
+</tbody>
+</table>
 <p>关键说明：</p>
 <ul>
-<li><strong><code>resourceAccessKey</code> 是企业级资源键</strong>，也是 Custody → 网关 <code>oauth/verify</code>（5.4）使用的 <code>resourceKey</code>，以及 <code>custody/callback</code> 反查应用的键；平台按该键维护授权记录与应用映射，再推送第 14 章的回调。<strong>该值由 Custody 在内部调用 <code>verify</code> 时传入，开发者不需要在 <code>verify</code> 请求中传递它。</strong> 请在首次注册成功时持久化保存。
+<li><strong>网关会剥离 <code>resourceAccessKey</code>，改为返回 <code>authorizedId</code>。</strong> 上游 Custody 仍返回 <code>resourceAccessKey</code>（企业级资源键，同时是 Custody → 网关 <code>oauth/verify</code> 使用的 <code>resourceKey</code>，以及 <code>custody/callback</code> 反查应用的键）；网关用它写入 <code>/oauth_resources</code> 授权记录后<strong>立即从响应中移除</strong>，避免企业级凭据暴露给开发者前端。返回的 <code>authorizedId</code> 就是该授权记录的主键，<strong>与 OAuth 授权流程返回的 <code>authorizeId</code> 是同一个值</strong>。
 </li>
-<li>重复注册命中幂等时 <code>alreadyExists: true</code>；按上游 schema，此时 <strong><code>resourceAccessKey</code> 为 <code>null</code></strong>（避免同名注册换出他人凭据）。不要把重复注册当作重新获取 key 的手段。
+<li><strong>首次注册成功后请持久化 <code>authorizedId</code></strong>，后续所有 Resource 签名接口直接用它作为 <code>basic.authorizationId</code>，无需再走授权页。
+</li>
+<li>重复注册命中幂等时 <code>alreadyExists: true</code>；此时上游 <code>resourceAccessKey</code> 为 <code>null</code>（避免同名注册换出他人凭据），网关<strong>不会</strong>执行剥离逻辑，响应中<strong>不会出现 <code>authorizedId</code></strong>。若需要该企业的授权标识，请走 OAuth 授权流程获取 <code>authorizeId</code>。
 </li>
 <li>该接口走 Basic 签名，<code>basic</code> 只需要 <code>appId</code>、<code>timestamp</code>、<code>nonce</code>、<code>signature</code>；<strong>不要传 <code>authorizationId</code></strong>。
 </li>
@@ -3842,7 +3855,7 @@ public class SignatureDemo {
 <blockquote>
 <p>网关转发至 custody：<code>/api/third-party/user/add/{resourceKey}</code>，<code>business</code> 原样作为上游请求体</p>
 </blockquote>
-<p><code>{resourceKey}</code> 取自 <code>basic.authorizationId</code> 对应的授权记录（即 Custody 内部调用 <code>oauth/verify</code> 时绑定的 <code>resourceKey</code>，通常是 13.1 返回的 <code>resourceAccessKey</code>）。<strong>同一邮箱重复调用幂等</strong>，不会重复创建用户。</p>
+<p><code>{resourceKey}</code> 取自 <code>basic.authorizationId</code> 对应的授权记录（即 Custody 内部调用 <code>oauth/verify</code> 时绑定的 <code>resourceKey</code>，通常来自 13.1 首次注册时的企业资源键）。<strong>同一邮箱重复调用幂等</strong>，不会重复创建用户。</p>
 <p><strong>请求参数（business）</strong></p>
 <table>
 <thead>
@@ -5051,7 +5064,7 @@ public ResponseEntity&lt;?&gt; callback(@RequestBody Map&lt;String, Object&gt; b
 <tr>
 <td><code>400103</code></td>
 <td><code>resourceKey</code> 拼写错误、跨环境使用、未在 custody 开通</td>
-<td>使用 13.1 返回的 <code>resourceAccessKey</code>，或联系平台开通；<code>oauth/verify</code>（Custody 内部调用）不会提前发现该问题（5.4）</td>
+<td>使用 13.1 首次注册返回的 <code>authorizedId</code> 作为 <code>basic.authorizationId</code>，或联系平台开通；<code>oauth/verify</code>（Custody 内部调用）不会提前发现该问题（5.4）</td>
 </tr>
 <tr>
 <td>地址查询返回空分页</td>
@@ -5810,10 +5823,10 @@ interface UnitAddress {
 <p>从 <code>POST /api/thirdparty/treasury/list-unit-account/{unitId}</code>（7.4）的账户列表取 <code>coinId</code> 与 <code>network</code>。地址查询、出金、归集都应使用与该账户一致的值；不要从币种名称或链名自行拼接。</p>
 <p><strong>Q：地址列表为什么是空的？</strong></p>
 <p>最常见原因是缺少 <code>coinId</code> 或 <code>network</code>——缺少时 Custody 返回空分页而不是错误。请确认 <code>unitId + accountType + coinId + network</code> 四个字段一起传入，且 <code>accountType</code> 与目标账户类型一致；地址尚未生成时同样为空，可用 8.3 / 8.4 创建。</p>
-<p><strong>Q：如何获得 <code>resourceAccessKey</code>？</strong></p>
-<p>调用 13.1 <code>merchant/register</code> 获取。首次注册返回非空 <code>resourceAccessKey</code>，它同时是 Custody 内部调用 <code>oauth/verify</code> 时使用的 <code>resourceKey</code> 与后续业务请求转发到 Custody 的资源键；开发者不需要在 <code>verify</code> 请求中传递它。重复注册时该字段可能为 <code>null</code>。若企业由平台侧开通，请向平台索取资源键。</p>
+<p><strong>Q：如何获得 <code>authorizedId</code>？</strong></p>
+<p>调用 13.1 <code>merchant/register</code> 获取。首次注册成功后，网关会用上游返回的 <code>resourceAccessKey</code> 建立授权记录，并在响应中返回该记录的 ID <code>authorizedId</code>（等同于 <code>authorizeId</code>），直接作为后续业务请求的 <code>basic.authorizationId</code>。上游 <code>resourceAccessKey</code> 不会透出给开发者。重复注册命中幂等时响应不含 <code>authorizedId</code>，此时需走 OAuth 授权流程获取 <code>authorizeId</code>。若企业由平台侧开通，请向平台索取授权标识。</p>
 <p><strong>Q：应该使用哪个环境地址？</strong></p>
-<p>本地 <code>http://127.0.0.1:1000</code>、SIT <code>https://custody-sit.cregis.ae/openplatform</code>、生产 <code>https://custody.cregis.ae/openplatform</code>（见 2.3）。<code>authorizeUrl</code> 的域名由平台配置（<code>OPENPLATFORM_AUTH_URL</code>），不要自行替换；跨环境混用 <code>authorizeId</code> / <code>appSecret</code> / <code>resourceAccessKey</code> 会得到 <code>40102</code>、<code>40301</code> 或 <code>400103</code>。</p>
+<p>本地 <code>http://127.0.0.1:1000</code>、SIT <code>https://custody-sit.cregis.ae/openplatform</code>、生产 <code>https://custody.cregis.ae/openplatform</code>（见 2.3）。<code>authorizeUrl</code> 的域名由平台配置（<code>OPENPLATFORM_AUTH_URL</code>），不要自行替换；跨环境混用 <code>authorizeId</code> / <code>appSecret</code> / <code>authorizedId</code> 会得到 <code>40102</code>、<code>40301</code> 或 <code>400103</code>。</p>
 <p><strong>Q：回调验签失败，但签名算法看起来一致？</strong></p>
 <p>先确认走的是哪条回调路径：Custody 内部调用 <code>oauth/verify</code> 且使用 <code>callback</code> 参数时，回调<strong>没有</strong> <code>X-Event</code>，签名串也<strong>没有</strong>事件段；应用默认 <code>callbackUrl</code> 路径带事件段。其次确认 <code>md5(sortedJSON(data))</code> 使用的是解析后的请求体且递归排序、数组保内对象也排序；最后确认 <code>X-Signature</code> 前缀 <code>sha256=</code> 已去掉后再比较。</p>
 <p><strong>Q：<code>oauth/verify</code> 明明返回了 <code>authorizeId</code>，业务接口仍返回 <code>40301</code>？</strong></p>
