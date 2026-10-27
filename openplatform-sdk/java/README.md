@@ -2,7 +2,7 @@
 
 Cregis 托管开放平台官方 Java SDK，覆盖 **OAuth 授权、财务单元、地址、币种/资金控制/白名单、出金/归集、审批、商户与企业用户、Board、交易记录、回调验签** 全部业务接口。所有接口均提供同步与异步（`CompletableFuture`）两种调用方式。
 
-**当前版本：1.2.4**
+**当前版本：1.2.5**
 
 ---
 
@@ -43,7 +43,7 @@ Cregis 托管开放平台官方 Java SDK，覆盖 **OAuth 授权、财务单元�
 <dependency>
     <groupId>com.cregis</groupId>
     <artifactId>cregis-sdk-core</artifactId>
-    <version>1.2.4</version>
+    <version>1.2.5</version>
 </dependency>
 ```
 
@@ -160,10 +160,13 @@ client.transaction().submitTask(authorizationId, task.getTaskId(),
 | `MerchantRegisterResponse registerMerchant(MerchantRegisterRequest)` | 三方平台注册企业，幂等；返回 `ecode` / `vaultCode` / `authorizedId`（首次注册，等同 `authorizeId`）/ `alreadyExists` |
 | `Map<String, Object> addUser(String authorizationId, AddUserRequest)` | 添加企业用户，返回如 `{ userId: 99 }` |
 | `BoardResponse initBoard(String authorizationId, InitBoardRequest)` | 初始化 Board（护卫队） |
+| `AuditTaskResponse updateBoard(String authorizationId, UpdateBoardRequest)` | 修改 Board；返回审批任务，改动需按门限签名后生效 |
 
 `MerchantRegisterRequest` 必填 `legalName`、`appId`；可选 `alias`、`email`、`jurisdiction`、`registrationNumber`、`taxId`、`entityType`、`networks`、`owner`。
 
 `InitBoardRequest`：`guardians: List<String>`、`threshold: Integer`。
+
+`UpdateBoardRequest`：可选 `guardians`、`threshold`、`lang`、`note`、`validUntilTime`（签名有效期，单位分钟，custody 默认 1440）。
 
 ### 财务单元 Treasury
 
@@ -282,13 +285,17 @@ try {
 发布到 Maven Central 通过仓库脚本完成（需要本地 GPG 私钥与 Central Token）：
 
 ```bash
-./release.sh 1.2.4          # 上传到 Central Portal 并停在 Validated 状态，人工确认后点 Publish
-./release.sh 1.2.4 --auto   # 上传后自动发布
+./release.sh 1.2.5          # 上传到 Central Portal 并停在 Validated 状态，人工确认后点 Publish
+./release.sh 1.2.5 --auto   # 上传后自动发布
 ```
 
 CI 发布：GitHub Actions → **Release Java SDK** → 输入版本号（需先配置仓库 Secrets，见 `RELEASE.md`）。
 
 ## 版本与变更
+
+### 1.2.5
+
+- 新增 `BoardService.updateBoard` / `updateBoardAsync`（`UpdateBoardRequest` → `AuditTaskResponse`），对应网关 `POST /api/thirdparty/board/update`。修改 Board 会生成审批任务，需按门限签名后生效。
 
 ### 1.2.4
 

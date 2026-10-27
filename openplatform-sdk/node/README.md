@@ -1,10 +1,10 @@
 # Cregis OpenPlatform Node.js SDK
 
-Cregis 托管开放平台官方 Node.js SDK（服务端），覆盖 **OAuth 授权、财务单元（Treasury Unit）、出金/归集、审批、商户与企业用户管理、交易记录查询、回调验签** 全部 24 个业务接口。
+Cregis 托管开放平台官方 Node.js SDK（服务端），覆盖 **OAuth 授权、财务单元（Treasury Unit）、出金/归集、审批、商户与企业用户管理、交易记录查询、回调验签** 全部 25 个业务接口。
 
-**当前版本：1.2.0**
+**当前版本：1.3.0**
 
-> 1.2.0 变更摘要见文末 [版本与变更](#版本与变更)。
+> 1.3.0 变更摘要见文末 [版本与变更](#版本与变更)。
 
 **技术特性**
 
@@ -242,6 +242,20 @@ sdk.initBoard(authorizationId: string, request: {
 ```
 
 `MerchantBoard` 包含 `id`、`ecode`、`projectId`、`userInfos`（`StaffDTO[]`）、`threshold`、`status`、`creatorUserId`、`createTime`。
+
+#### `updateBoard(authorizationId, request)`
+
+```typescript
+sdk.updateBoard(authorizationId: string, request: {
+  guardians?: string[];      // 成员公钥；不传则保持原成员
+  threshold?: number;        // 操作门限
+  lang?: LangCode;
+  note?: string;
+  validUntilTime?: number;   // 签名有效期，单位分钟（custody 默认 1440）
+}): Promise<WCCIPCmdAuditTask>
+```
+
+修改已初始化的 board。与 `initBoard` 不同，本接口返回**审批任务**而非 board：改动需按 board 门限收集签名后才生效。响应结构与 `createPayout` / `updateWhitelist` 相同。
 
 ---
 
@@ -778,6 +792,12 @@ SDK 会自行拼接 `/api/thirdparty/...` 路径，`baseUrl` 不要带尾斜杠�
 ---
 
 ## 版本与变更
+
+### 1.3.0
+
+**新增接口**
+
+- `updateBoard(authorizationId, request)` — 修改 Board（护卫队），转发至 `POST /api/thirdparty/board/update`。返回审批任务 `WCCIPCmdAuditTask`，与 `initBoard` 的 `MerchantBoard` 不同。
 
 ### 1.2.0
 

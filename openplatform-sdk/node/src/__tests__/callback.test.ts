@@ -35,7 +35,6 @@ function buildSignature(
 const appSecret = TEST_APP_SECRET;
 const appId = TEST_APP_ID;
 const timestamp = '1713600000000';       // fixed, used by pure signature tests
-const freshTimestamp = () => String(Date.now());  // within the replay window
 const event = 'transaction.completed';
 
 describe('CallbackService.verifySignature', () => {

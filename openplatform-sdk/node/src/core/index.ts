@@ -2,7 +2,7 @@
  * Cregis OpenPlatform SDK - Main Entry Point
  *
  * A comprehensive Node.js SDK for Cregis Custody OpenPlatform API.
- * All 25 third-party APIs are supported.
+ * All 26 third-party APIs are supported.
  */
 
 import {
@@ -16,7 +16,7 @@ import {
   ProjectUnitTransferOutOrder, ProjectUnitTransferInOrder,
   ProjectUnitFundRecord, ProjectUnitLedgerFundRecord,
   MerchantRegisterRequest, MerchantRegisterResult,
-  AddUserRequest, InitBoardRequest, MerchantBoard,
+  AddUserRequest, InitBoardRequest, UpdateBoardRequest, MerchantBoard,
   AddUnitCoinsRequest, FundControlUpdateRequest, WhitelistUpdateRequest,
   PaginatedResponse, GetAuthorizationUrlRequest, GetAuthorizationUrlResult,
 } from '../types';
@@ -274,6 +274,26 @@ export class CregisSDK {
       request,
     );
     return this.http.post<MerchantBoard>('/api/thirdparty/board/init', {
+      basic,
+      business,
+    });
+  }
+
+  /**
+   * Update an existing board. POST /api/thirdparty/board/update
+   *
+   * The change goes through the approval flow: custody returns the resulting
+   * audit task (`WCCIPCmdAuditTask`), not the board.
+   */
+  async updateBoard(
+    authorizationId: string,
+    request: UpdateBoardRequest,
+  ): Promise<WCCIPCmdAuditTask> {
+    const { basic, business } = this.buildResourceRequest(
+      authorizationId,
+      request,
+    );
+    return this.http.post<WCCIPCmdAuditTask>('/api/thirdparty/board/update', {
       basic,
       business,
     });

@@ -312,6 +312,17 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
     paramMapping: { resourceKey: 'context' },
   },
 
+  // Update board (修改护卫队) — returns an audit task, not the board itself
+  {
+    routeId: 'board-update',
+    name: 'Update Board',
+    inboundPath: '/api/thirdparty/board/update',
+    route: '/api/third-party/resetBoard/{resourceKey}',
+    method: 'POST',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+  },
+
   // Add coins to unit (给财务单元添加币种/网络)
   {
     routeId: 'treasury-add-coins',

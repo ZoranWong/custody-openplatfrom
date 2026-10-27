@@ -1,8 +1,8 @@
 # Cregis 开放平台 - 第三方开发者接入指南
 
-> **适用 SDK 版本：** Node SDK 1.2.0 / Java SDK 1.2.4 / Web SDK 1.0.5
+> **适用 SDK 版本：** Node SDK 1.3.0 / Java SDK 1.2.5 / Web SDK 1.0.5
 >
-> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.4`。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
+> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.5`。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
 >
 > **接口基数：** 网关对外 22 条转发接口 + 6 条本地接口，共 28 条
 
@@ -136,7 +136,7 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 | 出金 / 归集 / 审批 | `POST /api/thirdparty/treasury/payout`、`POST /api/thirdparty/treasury/pooling`、`POST /api/thirdparty/treasury/submit-task/{taskId}` | Resource |
 | 交易查询 | `POST /api/thirdparty/treasury/activities`、`POST /api/thirdparty/treasury/transfer-out-orders`、`POST /api/thirdparty/treasury/transfer-in-orders`、`POST /api/thirdparty/treasury/fund-records`、`POST /api/thirdparty/treasury/unit-fund-records` | Resource |
 | 币种 / 规则 / 白名单 | `POST /api/thirdparty/treasury/add-coins`、`POST /api/thirdparty/treasury/fund-control-update`、`POST /api/thirdparty/treasury/whitelist-update` | Resource |
-| 商户 / 用户 / Board | `POST /api/thirdparty/merchant/register`、`POST /api/thirdparty/user/add`、`POST /api/thirdparty/board/init` | `merchant/register` 用 Basic，其余用 Resource |
+| 商户 / 用户 / Board | `POST /api/thirdparty/merchant/register`、`POST /api/thirdparty/user/add`、`POST /api/thirdparty/board/init`、`POST /api/thirdparty/board/update` | `merchant/register` 用 Basic，其余用 Resource |
 | OAuth | `POST /api/thirdparty/oauth/authorizeUrl`、`POST /api/thirdparty/oauth/verify` | `authorizeUrl` 用 Basic 签名；`verify` 是网关内部接口，由 Custody 调用，开发者不得直接调用 |
 | 内部回调 | `POST /api/thirdparty/custody/callback` | 由 Custody 服务调用，开发者无需调用（平台按 `resourceKey` 反查应用并推送事件） |
 
@@ -645,7 +645,7 @@ Custody 收到授权页的 `POST /internal/third-party/authorize?appId=&ecode=&a
 - **结果落库**：授权记录写入 `oauth_resources`。业务接口会校验 `basic.authorizationId` 对应的记录；授权页返回的 `authorizationId` 可直接使用，正是因为 Custody 已内部调用本接口完成写入。开发者无需也不能调用本接口。
 - 校验成功后会异步推送 `authorization.created` 回调（见 5.6）。回调是异步的，`verify` 的响应不等待回调结果。
 
-SDK 不提供该方法：`oauth/verify` 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 `verifyOAuthToken`；Java SDK 1.2.2（已发布 tag）中仍保留该方法，但请勿使用。
+SDK 不提供该方法：`oauth/verify` 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.2.5 起已移除 `verifyOAuthToken`；1.2.4 及更早版本仍保留该方法，但请勿使用。
 
 **关于 `oauthToken`：** 它就是 `authorizeUrl` 响应中 `authorizeUrl` 查询参数里的 `appToken`（JWT，载荷含 `appId`、`callback`、`token`，默认 2 小时有效）。网关不会在授权页或 postMessage 事件中下发它；它由授权页随内部授权请求交给 Custody，由 Custody 在调用本接口时消费。开发者不需要保存它来换取 `authorizeId`。
 
@@ -1885,7 +1885,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 ## 13. 商户、用户与 Board
 
-本章 3 个接口用于把三方平台上的企业、企业用户和签名人（Board）登记到 Custody 侧。它们与其他业务接口一样由网关原样转发 `business`，约束均来自 Custody；其中 `merchant/register` 是唯一使用 **Basic 签名**的转发接口。
+本章 4 个接口用于把三方平台上的企业、企业用户和签名人（Board）登记到 Custody 侧。它们与其他业务接口一样由网关原样转发 `business`，约束均来自 Custody；其中 `merchant/register` 是唯一使用 **Basic 签名**的转发接口。
 
 ### 13.1 注册商户企业
 
@@ -2092,6 +2092,78 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 ```
 
 > **已观测错误 `400070`：** 联调中，当 `guardians` 中的公钥在 custody 侧没有对应用户，或 `threshold` 大于有效签名人数量时，custody 返回业务码 `400070`（随 HTTP 2xx 响应体透传）。该码的精确语义由 custody 定义；请先通过 13.2 建好用户并绑定公钥，再初始化 board。
+
+### 13.4 修改 Board（护卫队）
+
+**POST** `/api/thirdparty/board/update` · 鉴权：Resource 签名
+> 网关转发至 custody：`/api/third-party/resetBoard/{resourceKey}`，`business` 原样作为上游请求体
+
+调整已初始化 board 的门限、成员、签名语言等参数。与 13.3 不同，本接口**不直接返回 board**，而是返回一个审批任务（`WCCIPCmdAuditTask`）：变更需按 board 门限收集签名后才能生效。
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `guardians` | string[] | 否 | 新的护卫队成员（公钥）；不传则保持原成员 |
+| `threshold` | number | 否 | 新的操作门限，需满足 `0 < threshold <= 有效成员数`；不传则保持原门限 |
+| `lang` | string | 否 | 签名语言，如 `zh_CN` / `en_US` |
+| `note` | string | 否 | 备注 |
+| `validUntilTime` | number | 否 | 签名有效期。上游类型为 int64、默认 `1440`，上游未注明单位（结合默认值推测为**分钟**），请与 custody 确认后使用 |
+
+**请求示例**
+
+```json
+{
+  "basic": {
+    "appId": "550e8400-e29b-41d4-a716-446655440000",
+    "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
+    "timestamp": 1742947200,
+    "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6",
+    "signature": "<Resource 签名，按第 4 章计算>"
+  },
+  "business": {
+    "guardians": ["0x04...owner-public-key", "0x04...staff-public-key"],
+    "threshold": 2,
+    "note": "raise threshold to 2"
+  }
+}
+```
+
+**响应示例**（`WCCIPCmdAuditTask`，值仅作示意）
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "id": 8213,
+    "taskId": "T-20261027-0001",
+    "vaultCode": "VAULT001",
+    "accountId": "",
+    "accountType": "GENERAL",
+    "submitter": "CUSTOMER001",
+    "ecode": "EC0000000001",
+    "cmdType": "BOARD",
+    "businessId": "",
+    "state": "AUDITING",
+    "businessType": "SYSTEM",
+    "taskType": "orders",
+    "taskOperation": "BOARD",
+    "threshold": 2,
+    "total": 2,
+    "signers": ["owner@example.com", "staff@example.com"],
+    "initiator": "owner@example.com",
+    "createTime": "2026-10-27 10:05:00",
+    "updateTime": "2026-10-27 10:05:00"
+  }
+}
+```
+
+关键说明：
+
+- **响应是审批任务，不是 board。** 上游 OpenAPI 将该接口的响应定义为 `MessageResultWCCIPCmdAuditTask`，即变更会生成审批任务；任务状态流转、签名窗口如何计算**未经验证**，以 custody 实际返回与联调结果为准。
+- 字段在 schema 中均为可选。实际是否支持“只改其中一项”（例如只调 `threshold` 而省略 `guardians`）上游未说明；稳妥做法是 `guardians` 与 `threshold` 成对传入，避免门限与成员数不匹配。
+- 该接口依赖 13.3 已初始化 board；未初始化时请先调用 `board/init`。
 
 ---
 
@@ -2419,7 +2491,7 @@ HMAC-SHA256 = 27cb791bd95c41922058729f9801eea94de2753ef66662321db8cbd930e30885
 
 #### Node.js
 
-使用 `@cregis-kit/openplatform-node@1.2.0` 的 `sdk.onCallback(req, handler)`。SDK 会依次校验：
+使用 `@cregis-kit/openplatform-node@1.3.0` 的 `sdk.onCallback(req, handler)`。SDK 会依次校验：
 
 1. `x-app-id` / `x-timestamp` / `x-signature` 三个头是否存在
 2. `x-app-id` 是否与构造 SDK 时的 `appId` 一致
@@ -2473,7 +2545,7 @@ app.post('/cregis/callback', async (req, res) => {
 
 #### Java
 
-使用 `CregisClient.onCallback(CallbackRequest, CallbackHandler)`（`cregis-sdk-core` 1.2.2+）。校验顺序与 Node SDK 一致，失败时抛 `CregisSdkException`（`SdkErrorCode.WEBHOOK_VERIFY_FAILED`）。
+使用 `CregisClient.onCallback(HttpServletRequest, Map, CallbackHandler)`（`cregis-sdk-core` 1.2.3+）。校验顺序与 Node SDK 一致，失败时抛 `CregisSdkException`（`SdkErrorCode.WEBHOOK_VERIFY_FAILED`）。
 
 ```java
 SdkConfig config = SdkConfig.builder()
@@ -2486,23 +2558,13 @@ SdkConfig config = SdkConfig.builder()
 
 CregisClient client = new CregisClient(config);
 
-// 在 HTTP 处理中（Spring MVC 示例）
+// 在 HTTP 处理中（Spring MVC 示例）——直接传入原始请求对象与已解析的 body
 @PostMapping("/cregis/callback")
-public ResponseEntity<?> callback(@RequestBody Map<String, Object> body,
-                                  @RequestHeader("X-App-Id") String appId,
-                                  @RequestHeader("X-Timestamp") String timestamp,
-                                  @RequestHeader("X-Signature") String signature,
-                                  @RequestHeader(value = "X-Event", required = false) String event) {
-    CallbackRequest request = CallbackRequest.builder()
-            .appId(appId)
-            .timestamp(timestamp)
-            .event(event)
-            .signature(signature)
-            .data(body)
-            .build();
-
+public ResponseEntity<?> callback(HttpServletRequest request,
+                                  @RequestBody Map<String, Object> body) {
     try {
-        client.onCallback(request, (data, eventName) -> {
+        // appId / timestamp / signature / event 均由 SDK 从请求头读取并校验
+        client.onCallback(request, body, (data, eventName) -> {
             // eventName 为 null 表示无 X-Event（authorizeUrl 的 callback 路径）
             eventStore.saveOnce((eventName == null ? "no-event" : eventName)
                     + ":" + primaryKeyOf(data), data);
@@ -2670,12 +2732,12 @@ public ResponseEntity<?> callback(@RequestBody Map<String, Object> body,
 
 官方 SDK 封装了签名、请求与错误处理，推荐在服务端直接使用。三端版本与本指南的对应关系见 16.4。
 
-### 16.1 Node.js SDK 1.1.0
+### 16.1 Node.js SDK 1.3.0
 
 **安装**（要求 Node.js >= 18）
 
 ```bash
-npm install @cregis-kit/openplatform-node@1.1.0
+npm install @cregis-kit/openplatform-node@1.3.0
 ```
 
 **构造与最小端到端示例**
@@ -2720,7 +2782,7 @@ const task = await sdk.createPayout(authorizeId, {
 await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 ```
 
-**完整方法表（23 个业务方法）**
+**完整方法表（24 个业务方法）**
 
 | 领域 | 方法 | 签名 | 返回类型 |
 |------|------|------|----------|
@@ -2728,6 +2790,7 @@ await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 | 商户 / 用户 / Board | `registerMerchant(request)` | Basic | `MerchantRegisterResult` |
 | 商户 / 用户 / Board | `addUser(authorizationId, request)` | Resource | `Record<string, unknown>`（如 `{ userId }`） |
 | 商户 / 用户 / Board | `initBoard(authorizationId, request)` | Resource | `MerchantBoard` |
+| 商户 / 用户 / Board | `updateBoard(authorizationId, request)` | Resource | `WCCIPCmdAuditTask` |
 | 财务单元 | `createTreasuryUnit(authorizationId, request)` | Resource | `CreateTreasuryUnitResponse` |
 | 财务单元 | `createCustomUnit(authorizationId, request)` | Resource | `TreasuryUnit` |
 | 财务单元 | `listTreasuryUnits(authorizationId, options?)` | Resource | `TreasuryUnit[]` |
@@ -2769,9 +2832,9 @@ try {
 
 `error.details.apiCode` 是网关响应体中的业务码（例如 `400103`）；`traceId` 仅在响应体含该字段时存在（转发响应通常没有，请以响应头 `x-trace-id` 为准）。SDK 对 `code !== 0 && code !== 200` 的响应抛 `SDKError`，不会静默返回。
 
-> **OAuth 说明：** Node SDK 只封装 `getAuthorizationUrl`。`authorizeId` 由授权页在 Custody 内部完成 `verify` 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。`registerMerchant` / `addUser` / `initBoard` 其余字段与网关一致。
+> **OAuth 说明：** Node SDK 只封装 `getAuthorizationUrl`。`authorizeId` 由授权页在 Custody 内部完成 `verify` 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。`registerMerchant` / `addUser` / `initBoard` / `updateBoard` 其余字段与网关一致。
 
-### 16.2 Java SDK 1.2.2（JitPack）
+### 16.2 Java SDK 1.2.5（JitPack）
 
 **环境要求**：JDK 17+、Maven 3.8+。
 
@@ -2792,11 +2855,11 @@ try {
 <dependency>
     <groupId>com.github.ZoranWong.custody-openplatfrom</groupId>
     <artifactId>cregis-sdk-core</artifactId>
-    <version>java-sdk-v1.2.2</version>
+    <version>java-sdk-v1.2.5</version>
 </dependency>
 ```
 
-`java-sdk-v1.2.2` 是仓库中的 Git tag；JitPack 按该 tag 构建。`CregisClient` 的服务入口：
+`java-sdk-v1.2.5` 是仓库中的 Git tag；JitPack 按该 tag 构建。`CregisClient` 的服务入口：
 
 | 入口 | 覆盖 |
 |------|------|
@@ -2806,7 +2869,7 @@ try {
 | `transaction()` | 入金订单、活动 / 流水、`submitTask` |
 | `merchant()` | `registerMerchant` |
 | `user()` | `addUser` |
-| `board()` | `initBoard` |
+| `board()` | `initBoard` / `updateBoard` |
 | `fundControl()` | `updateFundControl` |
 | `whitelist()` | `updateWhitelist` |
 | `callback()` | 回调验签 |
@@ -2820,6 +2883,7 @@ try {
 | `client.merchant().registerMerchant(request)` | `client.merchant().registerMerchantAsync(request)` |
 | `client.user().addUser(authorizationId, request)` | `client.user().addUserAsync(authorizationId, request)` |
 | `client.board().initBoard(authorizationId, request)` | `client.board().initBoardAsync(authorizationId, request)` |
+| `client.board().updateBoard(authorizationId, request)` | `client.board().updateBoardAsync(authorizationId, request)` |
 
 **最小示例**
 
@@ -2926,12 +2990,12 @@ if (result.status === 'success') {
 
 | SDK | 版本 | 坐标 / 安装 | 适用场景 | 与网关的已核对结论 |
 |-----|------|-------------|----------|--------------------|
-| Node.js | **1.2.0** | `npm install @cregis-kit/openplatform-node@1.2.0`（仓库版本；npm 尚未发布时从源码构建） | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致 |
-| Java | **1.2.2** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.2`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
+| Node.js | **1.3.0** | `npm install @cregis-kit/openplatform-node@1.3.0`（仓库版本；npm 尚未发布时从源码构建） | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致 |
+| Java | **1.2.5** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.5`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
 | Web | **1.0.5** | `npm install @cregis-kit/openplatform-webkit@1.0.5` | 浏览器嵌入授权页 | 只返回 `authorizationId`（即 Custody 内部 `verify` 生成的 `authorizeId`） |
 
 - 更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 `coinIds` / `primaryManager` / `payTo` 的请求会返回 `40102`，不要使用。
-- **发布状态提醒**：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java SDK 最新可用的 JitPack tag 为 `java-sdk-v1.2.2`。若 `npm install` 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
+- **发布状态提醒**：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java SDK 最新可用的 JitPack tag 为 `java-sdk-v1.2.5`。若 `npm install` 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
 - 三个 SDK 版本必须与网关的接口路径前缀 `/api/thirdparty/` 配套；`baseUrl` 不要包含该前缀，也不要带尾斜杠。
 - 环境地址见 2.3：本地 `http://127.0.0.1:1000`、SIT `https://custody-sit.cregis.ae/openplatform`、生产 `https://custody.cregis.ae/openplatform`。
 

@@ -152,6 +152,16 @@ describe('CregisSDK merchant/user/board endpoints', () => {
     const [url] = lastPost(spy as any);
     expect(url).toBe('/api/thirdparty/board/init');
   });
+
+  it('updateBoard posts to /board/update with a resource signature', async () => {
+    const sdk = createSDK();
+    const spy = spyPost();
+    await sdk.updateBoard(RAK, { threshold: 2, validUntilTime: 1440 });
+    const [url, body] = lastPost(spy as any);
+    expect(url).toBe('/api/thirdparty/board/update');
+    expect(body.business).toEqual({ threshold: 2, validUntilTime: 1440 });
+    expect((body.basic as any).authorizationId).toBe(RAK);
+  });
 });
 
 describe('CregisSDK payout/transaction/submit endpoints', () => {

@@ -197,6 +197,7 @@
         <a href="#s-13-1" class="nav-sub">13.1 注册商户企业</a>
         <a href="#s-13-2" class="nav-sub">13.2 添加企业用户</a>
         <a href="#s-13-3" class="nav-sub">13.3 初始化 Board（护卫队）</a>
+        <a href="#s-13-4" class="nav-sub">13.4 修改 Board（护卫队）</a>
         <a href="#ch-14" class="nav-item">14. 回调</a>
         <a href="#s-14-1" class="nav-sub">14.1 支持的事件</a>
         <a href="#s-14-2" class="nav-sub">14.2 请求头与请求体</a>
@@ -210,8 +211,8 @@
         <a href="#s-15-3" class="nav-sub">15.3 按现象排查</a>
         <a href="#s-15-4" class="nav-sub">15.4 已知实现限制</a>
         <a href="#ch-16" class="nav-item">16. SDK 集成</a>
-        <a href="#s-16-1" class="nav-sub">16.1 Node.js SDK 1.2.0</a>
-        <a href="#s-16-2" class="nav-sub">16.2 Java SDK 1.2.2（JitPack）</a>
+        <a href="#s-16-1" class="nav-sub">16.1 Node.js SDK 1.3.0</a>
+        <a href="#s-16-2" class="nav-sub">16.2 Java SDK 1.2.5（JitPack）</a>
         <a href="#s-16-3" class="nav-sub">16.3 Web SDK 1.0.5</a>
         <a href="#s-16-4" class="nav-sub">16.4 版本兼容表</a>
         <a href="#ch-17" class="nav-item">17. 附录</a>
@@ -223,8 +224,8 @@
         <h1>Cregis 开放平台 - 第三方开发者接入指南</h1>
 <p><strong>Last Updated:</strong> 2026-10-19</p>
 <blockquote>
-<p><strong>适用 SDK 版本：</strong> Node SDK 1.2.0 / Java SDK 1.2.4 / Web SDK 1.0.5</p>
-<p><strong>发布状态：</strong> 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.4</code>。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。</p>
+<p><strong>适用 SDK 版本：</strong> Node SDK 1.3.0 / Java SDK 1.2.5 / Web SDK 1.0.5</p>
+<p><strong>发布状态：</strong> 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.5</code>。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。</p>
 <p><strong>接口基数：</strong> 网关对外 22 条转发接口 + 6 条本地接口，共 28 条</p>
 </blockquote>
 <p>本指南面向接入 Cregis 托管能力的第三方平台开发者。第 1–6 章覆盖平台概述、端到端接入流程、开发者入驻、认证与签名、OAuth 授权和通用约定；第 7–12 章为业务接口参考；第 13–17 章覆盖商户 / 用户 / Board、回调、错误码与排查、SDK 集成和附录。</p>
@@ -429,7 +430,7 @@
 </tr>
 <tr>
 <td>商户 / 用户 / Board</td>
-<td><code>POST /api/thirdparty/merchant/register</code>、<code>POST /api/thirdparty/user/add</code>、<code>POST /api/thirdparty/board/init</code></td>
+<td><code>POST /api/thirdparty/merchant/register</code>、<code>POST /api/thirdparty/user/add</code>、<code>POST /api/thirdparty/board/init</code>、<code>POST /api/thirdparty/board/update</code></td>
 <td><code>merchant/register</code> 用 Basic，其余用 Resource</td>
 </tr>
 <tr>
@@ -1585,7 +1586,7 @@ public class SignatureDemo {
 <li>校验成功后会异步推送 <code>authorization.created</code> 回调（见 5.6）。回调是异步的，<code>verify</code> 的响应不等待回调结果。
 </li>
 </ul>
-<p>SDK 不提供该方法：<code>oauth/verify</code> 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.3.0（未发布）已移除 <code>verifyOAuthToken</code>；Java SDK 1.2.2（已发布 tag）中仍保留该方法，但请勿使用。</p>
+<p>SDK 不提供该方法：<code>oauth/verify</code> 是 Custody 内部接口。Node SDK 1.1.0 与 Java SDK 1.2.5 起已移除 <code>verifyOAuthToken</code>；1.2.4 及更早版本仍保留该方法，但请勿使用。</p>
 <p><strong>关于 <code>oauthToken</code>：</strong> 它就是 <code>authorizeUrl</code> 响应中 <code>authorizeUrl</code> 查询参数里的 <code>appToken</code>（JWT，载荷含 <code>appId</code>、<code>callback</code>、<code>token</code>，默认 2 小时有效）。网关不会在授权页或 postMessage 事件中下发它；它由授权页随内部授权请求交给 Custody，由 Custody 在调用本接口时消费。开发者不需要保存它来换取 <code>authorizeId</code>。</p>
 <h3 id="s-5-5">5.5 已移除的 <code>oauth/token</code> 接口</h3>
 <p><code>/api/thirdparty/oauth/token</code> 原有的实现只是按 <code>business.oauthUserId</code> 现场签发一个无消费方的 JWT（<code>resourceKey</code> 恒为 <code>''</code>），既不能换取 <code>authorizationId</code>，也不能用于业务接口。该路由已从网关移除，请求会落入兜底转发：Basic 签名的旧调用方因缺少 <code>basic.authorizationId</code> 被 Resource 校验器拒绝，返回 <code>40001</code>（HTTP 400）；携带有效 Resource 签名时才会继续匹配并得到 <code>40401</code>（HTTP 404）。请勿在对接代码或旧版文档中引用。</p>
@@ -3680,7 +3681,7 @@ public class SignatureDemo {
 <p>与 12.4 的区别：本接口按财务单元（<code>ledgerId</code>）聚合流水，不返回 <code>cusAccountId</code>。</p>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h2 id="ch-13">13. 商户、用户与 Board</h2>
-<p>本章 3 个接口用于把三方平台上的企业、企业用户和签名人（Board）登记到 Custody 侧。它们与其他业务接口一样由网关原样转发 <code>business</code>，约束均来自 Custody；其中 <code>merchant/register</code> 是唯一使用 <strong>Basic 签名</strong>的转发接口。</p>
+<p>本章 4 个接口用于把三方平台上的企业、企业用户和签名人（Board）登记到 Custody 侧。它们与其他业务接口一样由网关原样转发 <code>business</code>，约束均来自 Custody；其中 <code>merchant/register</code> 是唯一使用 <strong>Basic 签名</strong>的转发接口。</p>
 <h3 id="s-13-1">13.1 注册商户企业</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/merchant/register</code> · 鉴权：<strong>Basic 签名</strong>（不传 <code>basic.authorizationId</code>）</p>
 <blockquote>
@@ -4009,6 +4010,109 @@ public class SignatureDemo {
 <blockquote>
 <p><strong>已观测错误 <code>400070</code>：</strong> 联调中，当 <code>guardians</code> 中的公钥在 custody 侧没有对应用户，或 <code>threshold</code> 大于有效签名人数量时，custody 返回业务码 <code>400070</code>（随 HTTP 2xx 响应体透传）。该码的精确语义由 custody 定义；请先通过 13.2 建好用户并绑定公钥，再初始化 board。</p>
 </blockquote>
+<h3 id="s-13-4">13.4 修改 Board（护卫队）</h3>
+<p><strong>POST</strong> <code>/api/thirdparty/board/update</code> · 鉴权：Resource 签名</p>
+<blockquote>
+<p>网关转发至 custody：<code>/api/third-party/resetBoard/{resourceKey}</code>，<code>business</code> 原样作为上游请求体</p>
+</blockquote>
+<p>调整已初始化 board 的门限、成员、签名语言等参数。与 13.3 不同，本接口<strong>不直接返回 board</strong>，而是返回一个审批任务（<code>WCCIPCmdAuditTask</code>）：变更需按 board 门限收集签名后才能生效。</p>
+<p><strong>请求参数（business）</strong></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>guardians</code></td>
+<td>string[]</td>
+<td>否</td>
+<td>新的护卫队成员（公钥）；不传则保持原成员</td>
+</tr>
+<tr>
+<td><code>threshold</code></td>
+<td>number</td>
+<td>否</td>
+<td>新的操作门限，需满足 <code>0 &lt; threshold &lt;= 有效成员数</code>；不传则保持原门限</td>
+</tr>
+<tr>
+<td><code>lang</code></td>
+<td>string</td>
+<td>否</td>
+<td>签名语言，如 <code>zh_CN</code> / <code>en_US</code></td>
+</tr>
+<tr>
+<td><code>note</code></td>
+<td>string</td>
+<td>否</td>
+<td>备注</td>
+</tr>
+<tr>
+<td><code>validUntilTime</code></td>
+<td>number</td>
+<td>否</td>
+<td>签名有效期。上游类型为 int64、默认 <code>1440</code>，上游未注明单位（结合默认值推测为<strong>分钟</strong>），请与 custody 确认后使用</td>
+</tr>
+</tbody>
+</table>
+<p><strong>请求示例</strong></p>
+<pre class="codehilite"><code class="language-json">
+{
+  "basic": {
+    "appId": "550e8400-e29b-41d4-a716-446655440000",
+    "authorizationId": "123e4567-e89b-12d3-a456-426614174000",
+    "timestamp": 1742947200,
+    "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6",
+    "signature": "&lt;Resource 签名，按第 4 章计算&gt;"
+  },
+  "business": {
+    "guardians": ["0x04...owner-public-key", "0x04...staff-public-key"],
+    "threshold": 2,
+    "note": "raise threshold to 2"
+  }
+}
+</code></pre>
+<p><strong>响应示例</strong>（<code>WCCIPCmdAuditTask</code>，值仅作示意）</p>
+<pre class="codehilite"><code class="language-json">
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "id": 8213,
+    "taskId": "T-20261027-0001",
+    "vaultCode": "VAULT001",
+    "accountId": "",
+    "accountType": "GENERAL",
+    "submitter": "CUSTOMER001",
+    "ecode": "EC0000000001",
+    "cmdType": "BOARD",
+    "businessId": "",
+    "state": "AUDITING",
+    "businessType": "SYSTEM",
+    "taskType": "orders",
+    "taskOperation": "BOARD",
+    "threshold": 2,
+    "total": 2,
+    "signers": ["owner@example.com", "staff@example.com"],
+    "initiator": "owner@example.com",
+    "createTime": "2026-10-27 10:05:00",
+    "updateTime": "2026-10-27 10:05:00"
+  }
+}
+</code></pre>
+<p>关键说明：</p>
+<ul>
+<li><strong>响应是审批任务，不是 board。</strong> 上游 OpenAPI 将该接口的响应定义为 <code>MessageResultWCCIPCmdAuditTask</code>，即变更会生成审批任务；任务状态流转、签名窗口如何计算<strong>未经验证</strong>，以 custody 实际返回与联调结果为准。
+</li>
+<li>字段在 schema 中均为可选。实际是否支持“只改其中一项”（例如只调 <code>threshold</code> 而省略 <code>guardians</code>）上游未说明；稳妥做法是 <code>guardians</code> 与 <code>threshold</code> 成对传入，避免门限与成员数不匹配。
+</li>
+<li>该接口依赖 13.3 已初始化 board；未初始化时请先调用 <code>board/init</code>。
+</li>
+</ul>
 <hr>
 <h2 id="ch-14">14. 回调</h2>
 <p>平台通过 HTTP POST 把授权与业务事件推送到开发者配置的回调地址。回调体<strong>只有业务数据</strong>，事件元数据全部放在请求头。</p>
@@ -4567,7 +4671,7 @@ HMAC-SHA256 = a5579ed42e4dd08de06b58be599b534b1141f70f353affdf292330501acd3ea4</
 HMAC-SHA256 = 27cb791bd95c41922058729f9801eea94de2753ef66662321db8cbd930e30885</code></pre>
 <h3 id="s-14-4">14.4 可运行的验签处理</h3>
 <h4>Node.js</h4>
-<p>使用 <code>@cregis-kit/openplatform-node@1.2.0</code> 的 <code>sdk.onCallback(req, handler)</code>。SDK 会依次校验：</p>
+<p>使用 <code>@cregis-kit/openplatform-node@1.3.0</code> 的 <code>sdk.onCallback(req, handler)</code>。SDK 会依次校验：</p>
 <ol>
 <li><code>x-app-id</code> / <code>x-timestamp</code> / <code>x-signature</code> 三个头是否存在
 </li>
@@ -4621,7 +4725,7 @@ app.post('/cregis/callback', async (req, res) =&gt; {
 });
 </code></pre>
 <h4>Java</h4>
-<p>使用 <code>CregisClient.onCallback(CallbackRequest, CallbackHandler)</code>（<code>cregis-sdk-core</code> 1.2.2+）。校验顺序与 Node SDK 一致，失败时抛 <code>CregisSdkException</code>（<code>SdkErrorCode.WEBHOOK_VERIFY_FAILED</code>）。</p>
+<p>使用 <code>CregisClient.onCallback(HttpServletRequest, Map, CallbackHandler)</code>（<code>cregis-sdk-core</code> 1.2.3+）。校验顺序与 Node SDK 一致，失败时抛 <code>CregisSdkException</code>（<code>SdkErrorCode.WEBHOOK_VERIFY_FAILED</code>）。</p>
 <pre class="codehilite"><code class="language-java">
 SdkConfig config = SdkConfig.builder()
         .appId(System.getenv("APP_ID"))
@@ -4633,23 +4737,13 @@ SdkConfig config = SdkConfig.builder()
 
 CregisClient client = new CregisClient(config);
 
-// 在 HTTP 处理中（Spring MVC 示例）
+// 在 HTTP 处理中（Spring MVC 示例）——直接传入原始请求对象与已解析的 body
 @PostMapping("/cregis/callback")
-public ResponseEntity&lt;?&gt; callback(@RequestBody Map&lt;String, Object&gt; body,
-                                  @RequestHeader("X-App-Id") String appId,
-                                  @RequestHeader("X-Timestamp") String timestamp,
-                                  @RequestHeader("X-Signature") String signature,
-                                  @RequestHeader(value = "X-Event", required = false) String event) {
-    CallbackRequest request = CallbackRequest.builder()
-            .appId(appId)
-            .timestamp(timestamp)
-            .event(event)
-            .signature(signature)
-            .data(body)
-            .build();
-
+public ResponseEntity&lt;?&gt; callback(HttpServletRequest request,
+                                  @RequestBody Map&lt;String, Object&gt; body) {
     try {
-        client.onCallback(request, (data, eventName) -&gt; {
+        // appId / timestamp / signature / event 均由 SDK 从请求头读取并校验
+        client.onCallback(request, body, (data, eventName) -&gt; {
             // eventName 为 null 表示无 X-Event（authorizeUrl 的 callback 路径）
             eventStore.saveOnce((eventName == null ? "no-event" : eventName)
                     + ":" + primaryKeyOf(data), data);
@@ -5034,7 +5128,7 @@ public ResponseEntity&lt;?&gt; callback(@RequestBody Map&lt;String, Object&gt; b
 <tr>
 <td><code>40102</code>，含对象数组的请求（<code>coinIds</code>、<code>primaryManager</code>、<code>payTo</code> 等）</td>
 <td>只排序了顶层 key，没有递归排序数组内对象</td>
-<td>使用 Node SDK 1.2.0+ / Java SDK 1.2.2+，或按 4.3 递归排序</td>
+<td>使用 Node SDK 1.1.0+ / Java SDK 1.2.0+，或按 4.3 递归排序</td>
 </tr>
 <tr>
 <td><code>40102</code>，所有请求</td>
@@ -5148,10 +5242,10 @@ public ResponseEntity&lt;?&gt; callback(@RequestBody Map&lt;String, Object&gt; b
 <hr>
 <h2 id="ch-16">16. SDK 集成</h2>
 <p>官方 SDK 封装了签名、请求与错误处理，推荐在服务端直接使用。三端版本与本指南的对应关系见 16.4。</p>
-<h3 id="s-16-1">16.1 Node.js SDK 1.2.0</h3>
+<h3 id="s-16-1">16.1 Node.js SDK 1.3.0</h3>
 <p><strong>安装</strong>（要求 Node.js &gt;= 18）</p>
 <pre class="codehilite"><code class="language-bash">
-npm install @cregis-kit/openplatform-node@1.1.0
+npm install @cregis-kit/openplatform-node@1.3.0
 </code></pre>
 <p><strong>构造与最小端到端示例</strong></p>
 <pre class="codehilite"><code class="language-ts">
@@ -5193,7 +5287,7 @@ const task = await sdk.createPayout(authorizeId, {
 
 await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 </code></pre>
-<p><strong>完整方法表（23 个业务方法）</strong></p>
+<p><strong>完整方法表（24 个业务方法）</strong></p>
 <table>
 <thead>
 <tr>
@@ -5227,6 +5321,12 @@ await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 <td><code>initBoard(authorizationId, request)</code></td>
 <td>Resource</td>
 <td><code>MerchantBoard</code></td>
+</tr>
+<tr>
+<td>商户 / 用户 / Board</td>
+<td><code>updateBoard(authorizationId, request)</code></td>
+<td>Resource</td>
+<td><code>WCCIPCmdAuditTask</code></td>
 </tr>
 <tr>
 <td>财务单元</td>
@@ -5362,9 +5462,9 @@ try {
 </code></pre>
 <p><code>error.details.apiCode</code> 是网关响应体中的业务码（例如 <code>400103</code>）；<code>traceId</code> 仅在响应体含该字段时存在（转发响应通常没有，请以响应头 <code>x-trace-id</code> 为准）。SDK 对 <code>code !== 0 &amp;&amp; code !== 200</code> 的响应抛 <code>SDKError</code>，不会静默返回。</p>
 <blockquote>
-<p><strong>OAuth 说明：</strong> Node SDK 只封装 <code>getAuthorizationUrl</code>。<code>authorizeId</code> 由授权页在 Custody 内部完成 <code>verify</code> 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。<code>registerMerchant</code> / <code>addUser</code> / <code>initBoard</code> 其余字段与网关一致。</p>
+<p><strong>OAuth 说明：</strong> Node SDK 只封装 <code>getAuthorizationUrl</code>。<code>authorizeId</code> 由授权页在 Custody 内部完成 <code>verify</code> 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。<code>registerMerchant</code> / <code>addUser</code> / <code>initBoard</code> / <code>updateBoard</code> 其余字段与网关一致。</p>
 </blockquote>
-<h3 id="s-16-2">16.2 Java SDK 1.2.2（JitPack）</h3>
+<h3 id="s-16-2">16.2 Java SDK 1.2.5（JitPack）</h3>
 <p><strong>环境要求</strong>：JDK 17+、Maven 3.8+。</p>
 <p><strong>仓库配置</strong></p>
 <pre class="codehilite"><code class="language-xml">
@@ -5380,10 +5480,10 @@ try {
 &lt;dependency&gt;
     &lt;groupId&gt;com.github.ZoranWong.custody-openplatfrom&lt;/groupId&gt;
     &lt;artifactId&gt;cregis-sdk-core&lt;/artifactId&gt;
-    &lt;version&gt;java-sdk-v1.2.2&lt;/version&gt;
+    &lt;version&gt;java-sdk-v1.2.5&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
-<p><code>java-sdk-v1.2.2</code> 是仓库中的 Git tag；JitPack 按该 tag 构建。<code>CregisClient</code> 的服务入口：</p>
+<p><code>java-sdk-v1.2.5</code> 是仓库中的 Git tag；JitPack 按该 tag 构建。<code>CregisClient</code> 的服务入口：</p>
 <table>
 <thead>
 <tr>
@@ -5418,7 +5518,7 @@ try {
 </tr>
 <tr>
 <td><code>board()</code></td>
-<td><code>initBoard</code></td>
+<td><code>initBoard</code> / <code>updateBoard</code></td>
 </tr>
 <tr>
 <td><code>fundControl()</code></td>
@@ -5462,6 +5562,10 @@ try {
 <tr>
 <td><code>client.board().initBoard(authorizationId, request)</code></td>
 <td><code>client.board().initBoardAsync(authorizationId, request)</code></td>
+</tr>
+<tr>
+<td><code>client.board().updateBoard(authorizationId, request)</code></td>
+<td><code>client.board().updateBoardAsync(authorizationId, request)</code></td>
 </tr>
 </tbody>
 </table>
@@ -5623,15 +5727,15 @@ if (result.status === 'success') {
 <tbody>
 <tr>
 <td>Node.js</td>
-<td><strong>1.1.0</strong></td>
-<td><code>npm install @cregis-kit/openplatform-node@1.1.0</code></td>
+<td><strong>1.3.0</strong></td>
+<td><code>npm install @cregis-kit/openplatform-node@1.3.0</code></td>
 <td>服务端调用全部业务接口、回调验签</td>
 <td>签名（递归排序、Unix 秒）与网关一致</td>
 </tr>
 <tr>
 <td>Java</td>
-<td><strong>1.2.0</strong></td>
-<td><code>com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.2</code>（JitPack）</td>
+<td><strong>1.2.5</strong></td>
+<td><code>com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.5</code>（JitPack）</td>
 <td>服务端 Java 接入，全部业务接口、回调验签</td>
 <td>同上</td>
 </tr>
@@ -5647,7 +5751,7 @@ if (result.status === 'success') {
 <ul>
 <li>更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 <code>coinIds</code> / <code>primaryManager</code> / <code>payTo</code> 的请求会返回 <code>40102</code>，不要使用。
 </li>
-<li><strong>发布状态提醒</strong>：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java SDK 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.2</code>。若 <code>npm install</code> 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
+<li><strong>发布状态提醒</strong>：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java SDK 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.5</code>。若 <code>npm install</code> 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
 </li>
 <li>三个 SDK 版本必须与网关的接口路径前缀 <code>/api/thirdparty/</code> 配套；<code>baseUrl</code> 不要包含该前缀，也不要带尾斜杠。
 </li>

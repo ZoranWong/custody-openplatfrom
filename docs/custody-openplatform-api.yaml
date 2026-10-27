@@ -248,6 +248,35 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResultMerchantBoard'
       security: []
+  /api/third-party/resetBoard/{resourceAccessKey}:
+    post:
+      summary: 三方平台修改Board
+      deprecated: false
+      description: |-
+        三方平台修改Board
+        三方平台修改Board。
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBoardRequest'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResultWCCIPCmdAuditTask'
+      security: []
   /api/third-party/add-coins/{resourceAccessKey}:
     post:
       summary: 给财务单元添加币种/网络
@@ -1761,6 +1790,30 @@ components:
         join:
           type: string
           description: 连接的方式：and或者or
+    UpdateBoardRequest:
+      type: object
+      properties:
+        threshold:
+          type: integer
+          description: 护卫队的操作门限
+        guardians:
+          type: array
+          items:
+            type: string
+          description: 护卫队成员
+          default: '##default'
+        lang:
+          type: string
+          description: 签名的语言
+          default: '##default'
+        note:
+          type: string
+          description: ''
+        validUntilTime:
+          type: integer
+          description: ''
+          format: int64
+          default: 1440
     WCCIPCmdAuditTask:
       type: object
       properties:

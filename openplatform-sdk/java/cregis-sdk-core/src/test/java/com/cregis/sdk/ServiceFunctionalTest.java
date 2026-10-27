@@ -156,6 +156,21 @@ class ServiceFunctionalTest {
     }
 
     @Test
+    @DisplayName("updateBoard hits /board/update and returns an audit task")
+    void updateBoard() throws Exception {
+        enqueueSuccess("{\"id\":1,\"taskId\":\"T-1\",\"state\":\"AUDITING\"}");
+        BoardService svc = new BoardService(config, http);
+
+        AuditTaskResponse result = svc.updateBoard(RAK, UpdateBoardRequest.builder().threshold(2).validUntilTime(1440).build());
+
+        assertNotNull(result);
+        assertEquals("T-1", result.getTaskId());
+        RecordedRequest req = server.takeRequest();
+        assertEquals("/api/thirdparty/board/update", req.getPath());
+        assertTrue(req.getBody().readUtf8().contains("\"validUntilTime\":1440"));
+    }
+
+    @Test
     @DisplayName("updateWhitelist hits /whitelist-update")
     void updateWhitelist() throws Exception {
         enqueueSuccess("{\"id\":1,\"taskId\":\"T-1\"}");

@@ -700,6 +700,22 @@ export interface InitBoardRequest {
   note?: string;
 }
 
+/**
+ * Update an existing board. Fields are optional so callers can change one
+ * attribute at a time.
+ */
+export interface UpdateBoardRequest {
+  guardians?: string[];
+  threshold?: number;
+  lang?: LangCode;
+  note?: string;
+  /**
+   * Signature-window in **minutes** (custody name `validUntilTime`, default
+   * 1440). Minutes, not a timestamp, despite the name.
+   */
+  validUntilTime?: number;
+}
+
 // ============ Add Coins / Fund Control / Whitelist ============
 
 export interface AddUnitCoinsRequest {
