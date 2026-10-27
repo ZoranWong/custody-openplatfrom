@@ -30,6 +30,12 @@ export interface ForwardRouteConfig {
   clientName: string; // Backend client name
   paramMapping?: Record<string, ParamSource>; // Parameter source mapping (optional)
   /**
+   * Pre-flight validation of the inbound `business` payload. Return an error
+   * message to reject the request without forwarding it (HTTP 400), or null to
+   * proceed. Lets the gateway turn upstream 500s into actionable client errors.
+   */
+  validateBusiness?: (business: any) => string | null;
+  /**
    * Custom post-processing on the custody response envelope { code, message, data }.
    * Receives the unwrapped body, returns the rewritten body (or null/undefined
    * to pass the original through).
@@ -263,11 +269,30 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
     route: '/api/third-party/merchant/register',
     method: 'POST',
     clientName: 'custodyService',
+    // custody requires an owner user to build the vault; without one it fails
+    // with a bare 500 rather than a validation error.
+    validateBusiness: (business) => {
+      const owner = business?.owner;
+      if (!owner?.email || !owner?.password) {
+        return 'owner.email and owner.password are required';
+      }
+      return null;
+    },
+    // resourceAccessKey is custody's access key for the enterprise. It must never
+    // reach the developer — it is also the key custody uses for oauth/verify and
+    // custody/callback — so the gateway stores it and returns the row id instead.
+    //
+    // Custody omits the key for already-existing merchants (it is a credential;
+    // echoing it would let anyone re-register someone else's legalName and
+    // harvest it). Re-registration therefore has no authorizedId to return; the
+    // caller can recover it through the OAuth flow, which resolves to the same
+    // row because custody uses the same access key there.
     responseHandler: async (response, req) => {
       const data = response?.data;
-      // resourceAccessKey is null when the merchant already existed — nothing
-      // to persist or strip (idempotent re-registration).
-      if (!data?.resourceAccessKey) return response;
+      if (!data) return response;
+
+      const { resourceAccessKey, ...rest } = data;
+      if (!resourceAccessKey) return response;
 
       const appId =
         (req as any).context?.application?.id ||
@@ -277,15 +302,13 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
         throw new Error('Missing application id in request context or body');
       }
 
-      // Persist the enterprise access key, then replace it in the response
-      // with the gateway-side authorizedId the caller uses going forward.
       const oauthResource = getOauthResourceRepository();
       const result = await oauthResource.upsert({
         appId,
-        resourceKey: data.resourceAccessKey,
+        resourceKey: resourceAccessKey,
         authorizedAt: new Date(),
       });
-      const { resourceAccessKey: _stripped, ...rest } = data;
+
       return { ...response, data: { ...rest, authorizedId: result.id } };
     },
   },

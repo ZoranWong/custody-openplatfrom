@@ -224,6 +224,13 @@ export async function forwardRequest(req: Request, res: Response): Promise<void>
         );
     }
 
+    // Route-level payload checks run before forwarding, so custody's opaque
+    // 500s become actionable 400s.
+    const businessError = config.validateBusiness?.(req.body?.business);
+    if (businessError) {
+      return fail(ctx, req, res, HttpCodes.BAD_REQUEST, BusinessCodes.PARAM_INVALID_FORMAT, businessError, startTime);
+    }
+
     const response = await client.request({
       method: config.method as any,
       url: backendPath,

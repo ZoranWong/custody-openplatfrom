@@ -1964,8 +1964,8 @@ public class SignatureDemo {
 <tr>
 <td>400</td>
 <td><code>40002</code></td>
-<td>参数格式错误</td>
-<td>格式不符合要求；按文档修正</td>
+<td>参数格式错误 / 缺少必填业务字段</td>
+<td>格式不符合要求；按文档修正。<code>merchant/register</code> 缺少 <code>owner.email</code> / <code>owner.password</code> 时由网关返回</td>
 </tr>
 <tr>
 <td>400</td>
@@ -3768,8 +3768,8 @@ public class SignatureDemo {
 <tr>
 <td><code>owner</code></td>
 <td>object</td>
-<td>否</td>
-<td>内联创建企业负责人；<code>email</code>、<code>password</code> 必填，可选 <code>publicKey</code>。custody 会先建用户再建金库，保证金库签名人可用</td>
+<td><strong>是</strong></td>
+<td>内联创建企业负责人；<code>email</code>、<code>password</code> 必填，可选 <code>publicKey</code>。custody 会先建用户再建金库，保证金库签名人可用。缺失时网关直接返回 <code>40002</code>，不会转发给 custody（custody 侧缺 <code>owner</code> 只会返回笼统的 <code>500 UNKNOWN_ERROR</code>）</td>
 </tr>
 </tbody>
 </table>
@@ -3844,7 +3844,7 @@ public class SignatureDemo {
 </li>
 <li><strong>首次注册成功后请持久化 <code>authorizedId</code></strong>，后续所有 Resource 签名接口直接用它作为 <code>basic.authorizationId</code>，无需再走授权页。
 </li>
-<li>重复注册命中幂等时 <code>alreadyExists: true</code>；此时上游 <code>resourceAccessKey</code> 为 <code>null</code>（避免同名注册换出他人凭据），网关<strong>不会</strong>执行剥离逻辑，响应中<strong>不会出现 <code>authorizedId</code></strong>。若需要该企业的授权标识，请走 OAuth 授权流程获取 <code>authorizeId</code>。
+<li>重复注册命中幂等时 <code>alreadyExists: true</code>；此时上游 <code>resourceAccessKey</code> 为 <code>null</code>（避免同名注册换出他人凭据），响应中<strong>不会出现 <code>authorizedId</code></strong>。若需要该企业的授权标识，请走 OAuth 授权流程获取 <code>authorizeId</code> —— 该流程使用与企业相同的资源键，会命中同一条授权记录，返回的 <code>authorizeId</code> 就是首次注册时对应的 <code>authorizedId</code>。
 </li>
 <li>该接口走 Basic 签名，<code>basic</code> 只需要 <code>appId</code>、<code>timestamp</code>、<code>nonce</code>、<code>signature</code>；<strong>不要传 <code>authorizationId</code></strong>。
 </li>

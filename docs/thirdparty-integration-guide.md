@@ -829,7 +829,7 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 | HTTP | `code` | 含义 | 典型场景 / 处理建议 |
 | --- | --- | --- | --- |
 | 400 | `40001` | 缺少必填参数 | `basic` 不完整、缺少 `appId`；补齐后重试 |
-| 400 | `40002` | 参数格式错误 | 格式不符合要求；按文档修正 |
+| 400 | `40002` | 参数格式错误 / 缺少必填业务字段 | 格式不符合要求；按文档修正。`merchant/register` 缺少 `owner.email` / `owner.password` 时由网关返回 |
 | 400 | `40003` | 违反业务规则 | 请求合法但当前状态不允许 |
 | 400 | `40004` | 重复请求 | 业务字段重复 |
 | 400 | `40005` | 状态无效 | 对象当前状态不允许该操作 |
@@ -1909,7 +1909,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 | `taxId` | string | 否 | 税号（TIN / EIN） |
 | `entityType` | string | 否 | 实体类型 |
 | `networks` | string[] | 否 | 初始化金库的网络列表；不传则使用平台支持的全部网络 |
-| `owner` | object | 否 | 内联创建企业负责人；`email`、`password` 必填，可选 `publicKey`。custody 会先建用户再建金库，保证金库签名人可用 |
+| `owner` | object | **是** | 内联创建企业负责人；`email`、`password` 必填，可选 `publicKey`。custody 会先建用户再建金库，保证金库签名人可用。**缺失时网关直接返回 `40002`**，不会转发给 custody（custody 侧缺 `owner` 只会返回笼统的 `500 UNKNOWN_ERROR`） |
 
 **请求示例**
 
@@ -1983,7 +1983,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 - **网关会剥离 `resourceAccessKey`，改为返回 `authorizedId`。** 上游 Custody 仍返回 `resourceAccessKey`（企业级资源键，同时是 Custody → 网关 `oauth/verify` 使用的 `resourceKey`，以及 `custody/callback` 反查应用的键）；网关用它写入 `/oauth_resources` 授权记录后**立即从响应中移除**，避免企业级凭据暴露给开发者前端。返回的 `authorizedId` 就是该授权记录的主键，**与 OAuth 授权流程返回的 `authorizeId` 是同一个值**。
 - **首次注册成功后请持久化 `authorizedId`**，后续所有 Resource 签名接口直接用它作为 `basic.authorizationId`，无需再走授权页。
-- 重复注册命中幂等时 `alreadyExists: true`；此时上游 `resourceAccessKey` 为 `null`（避免同名注册换出他人凭据），网关**不会**执行剥离逻辑，响应中**不会出现 `authorizedId`**。若需要该企业的授权标识，请走 OAuth 授权流程获取 `authorizeId`。
+- 重复注册命中幂等时 `alreadyExists: true`；此时上游 `resourceAccessKey` 为 `null`（避免同名注册换出他人凭据），响应中**不会出现 `authorizedId`**。若需要该企业的授权标识，请走 OAuth 授权流程获取 `authorizeId` —— 该流程使用与企业相同的资源键，会命中同一条授权记录，返回的 `authorizeId` 就是首次注册时对应的 `authorizedId`。
 - 该接口走 Basic 签名，`basic` 只需要 `appId`、`timestamp`、`nonce`、`signature`；**不要传 `authorizationId`**。
 - `owner` 中的用户仍需在 custody 完成二次验证绑定后才能登录 custody；仅作为签名人使用时按 13.2 绑定 `publicKey`。
 
