@@ -15,6 +15,7 @@ on:
 
   release:
     types: [published]
+    tags: ['webkit-v*']
 
 permissions:
   contents: write

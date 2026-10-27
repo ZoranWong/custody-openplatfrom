@@ -15,6 +15,7 @@ on:
 
   release:
     types: [published]
+    tags: ['node-sdk-v*']
 
 permissions:
   contents: write
