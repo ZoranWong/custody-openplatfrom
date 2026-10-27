@@ -15,7 +15,6 @@ on:
 
   release:
     types: [published]
-    tags: ['node-sdk-v*']
 
 permissions:
   contents: write
@@ -56,11 +55,15 @@ jobs:
           git checkout -- package-lock.json 2>/dev/null || true
           git clean -fd 2>/dev/null || true
 
+      # `release` events fire for every published release in this repo (Java and
+      # web included), and GitHub ignores a `tags:` filter on `release`. Gate the
+      # version/publish steps on the tag name so a Java release never reaches
+      # `npm publish`.
       - name: Get version from release tag
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'node-sdk-v')
         working-directory: ./openplatform-sdk/node
         run: |
-          TAG=${GITHUB_REF#refs/tags/}
+          TAG="${{ github.event.release.tag_name }}"
           VERSION=${TAG#node-sdk-v}
           VERSION=${VERSION#v}
           echo "Extracted version: $VERSION"
@@ -73,6 +76,7 @@ jobs:
         run: npm version ${{ inputs.bump }}
 
       - name: Publish to npm
+        if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'node-sdk-v')
         working-directory: ./openplatform-sdk/node
         run: npm publish --access public --provenance
         env:
