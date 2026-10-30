@@ -2,9 +2,9 @@
 
 Cregis 托管开放平台官方 Node.js SDK（服务端），覆盖 **OAuth 授权、财务单元（Treasury Unit）、出金/归集、审批、商户与企业用户管理、交易记录查询、回调验签** 全部 25 个业务接口。
 
-**当前版本：1.3.0**
+**当前版本：1.4.0**
 
-> 1.3.0 变更摘要见文末 [版本与变更](#版本与变更)。
+> 1.4.0 变更摘要见文末 [版本与变更](#版本与变更)。
 
 **技术特性**
 
@@ -146,6 +146,15 @@ sdk.getAuthorizationUrl(params: {
 }): Promise<{ authorizeUrl: string; expiresIn: number }>
 ```
 
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `GetAuthorizationUrlResult` | `authorizeUrl` / `expiresIn` |
+| 可能业务码 | — | 业务码明细见 [错误处理](#错误处理) |
+
+
+
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `permissions` | `string[]` | 否 | 申请的权限列表。**当前实现下请省略**：网关用 `JSON.stringify` 写入 URL，授权页却按逗号拆分，非空数组会导致授权页初始化失败 |
@@ -175,6 +184,15 @@ sdk.getAuthorizationUrl(params: {
 ```typescript
 sdk.registerMerchant(request: MerchantRegisterRequest): Promise<MerchantRegisterResult>
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `MerchantRegisterResult` | `ecode` / `vaultCode` / `authorizedId`（首次）/ `alreadyExists` / `merchant` |
+| 可能业务码 | `400036` CREATE_VAULT_FAILED、`400067` PUBLIC_KEY_EXIST、`400099` PASSWORD_FORMAT_ERROR、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS、`400109` MERCHANT_NOT_EXIST、`400438` CREATE_MERCHANT_FAILED | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 ```typescript
 const result = await sdk.registerMerchant({
@@ -225,8 +243,17 @@ sdk.addUser(authorizationId: string, request: {
   publicKey?: string;   // 绑定后可作为金库签名人
   ecode?: string;       // 不传仅建用户；传则须与当前 key 所属企业一致
   role?: UserRole;
-}): Promise<Record<string, unknown>>   // 例如 { userId: 99 }
+}): Promise<ConsoleUser>   // 1.4.0 起：用户详情（id/email/pk/state/ecode…）
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `ConsoleUser` | `id` / `email` / `pk` / `state` / `ecode` |
+| 可能业务码 | `400011` OPERATION_NOT_SUPPORT、`400067` PUBLIC_KEY_EXIST、`400099` PASSWORD_FORMAT_ERROR、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 同邮箱重复调用幂等。
 
@@ -240,6 +267,15 @@ sdk.initBoard(authorizationId: string, request: {
   note?: string;
 }): Promise<MerchantBoard>
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `MerchantBoard` | `id` / `userInfos` / `threshold` / `status` |
+| 可能业务码 | `400005` INIT_BOARD_FAILED、`400008` BOARD_EXIST、`400070` SIGNER_NOT_EXIST_OR_NOT_ENOUGH、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS、`400127` MERCHANT_PROJECT_NOT_EXIST | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 `MerchantBoard` 包含 `id`、`ecode`、`projectId`、`userInfos`（`StaffDTO[]`）、`threshold`、`status`、`creatorUserId`、`createTime`。
 
@@ -255,6 +291,15 @@ sdk.updateBoard(authorizationId: string, request: {
 }): Promise<WCCIPCmdAuditTask>
 ```
 
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `WCCIPCmdAuditTask` | `taskId` / `state` / `signers` / `threshold` |
+| 可能业务码 | `400030` BOARD_NOT_EXIST、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS、`400119` BOARD_UPDATE_IN_PROGRESS、`400127` MERCHANT_PROJECT_NOT_EXIST | 业务码明细见 [错误处理](#错误处理) |
+
+
+
 修改已初始化的 board。与 `initBoard` 不同，本接口返回**审批任务**而非 board：改动需按 board 门限收集签名后才生效。响应结构与 `createPayout` / `updateWhitelist` 相同。
 
 ---
@@ -266,6 +311,15 @@ sdk.updateBoard(authorizationId: string, request: {
 ```typescript
 sdk.createTreasuryUnit(authorizationId, request: CreateTreasuryUnitRequest): Promise<CreateTreasuryUnitResponse>
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `TreasuryUnit` | `id`（即 `unitId`）/ `ecode` / `status` |
+| 可能业务码 | `400056` CONTRACT_FACTORY_DEPLOY_FAILED、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS、`400112` INIT_TREASURY_UNIT_FAILED、`400127` MERCHANT_PROJECT_NOT_EXIST | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 ```typescript
 const unit = await sdk.createTreasuryUnit(authorizeId, {
@@ -317,6 +371,15 @@ sdk.createCustomUnit(authorizationId, request: {
 }): Promise<TreasuryUnit>
 ```
 
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `TreasuryUnit` | `id`（即 `unitId`）/ `accounts` / `status` |
+| 可能业务码 | `400056` CONTRACT_FACTORY_DEPLOY_FAILED、`400062` ACCOUNT_UNIT_NAME_EXIST、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS、`400112` INIT_TREASURY_UNIT_FAILED、`400127` MERCHANT_PROJECT_NOT_EXIST | 业务码明细见 [错误处理](#错误处理) |
+
+
+
 #### `listTreasuryUnits(authorizationId, options?)`
 
 ```typescript
@@ -327,6 +390,15 @@ sdk.listTreasuryUnits(authorizationId, options?: {
 }): Promise<TreasuryUnit[]>
 ```
 
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `TreasuryUnit[]` | 数组，不分页包装 |
+| 可能业务码 | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
+
 返回数组（**不分页包装**），`TreasuryUnit` 含 `id`、`ecode`、`name`、`topology`、`coinIds`、`accounts`、`status`、`creationType` 等。
 
 #### `listUnitAccount(authorizationId, unitId)`
@@ -334,6 +406,15 @@ sdk.listTreasuryUnits(authorizationId, options?: {
 ```typescript
 sdk.listUnitAccount(authorizationId, unitId: number): Promise<UnitAccount[]>
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `UnitAccount[]` | `id`（= `cusAccountId`）/ `type` / `coinId` / `network` / 余额字段 |
+| 可能业务码 | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 `UnitAccount` 关键字段：`id`（`cusAccountId`）、`type`（`PRIMARY` / `PAYIN` / `PAYOUT` / `QUARANTINE` …）、`coinId`、`network`、`balance`、`freezeBalance`、`holdBalance`、`income`、`outcome`、`accountType`（金库账户类型）、`vaultAccountId`。
 
@@ -347,8 +428,17 @@ sdk.listUnitAccount(authorizationId, unitId: number): Promise<UnitAccount[]>
 
 ```typescript
 sdk.getTreasuryUnitAddress(authorizationId, request: GetUnitAddressRequest)
-  : Promise<PaginatedResponse<UnitAddress>>
+  : Promise<PaginatedResponse<ProjectUnitAccountAddress>>
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `PaginatedResponse<ProjectUnitAccountAddress>` | `records[]`：`status` / `available` / `holdFrozen` / `address` |
+| 可能业务码 | `400011` OPERATION_NOT_SUPPORT、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
@@ -364,8 +454,17 @@ sdk.getTreasuryUnitAddress(authorizationId, request: GetUnitAddressRequest)
 
 ```typescript
 sdk.getUnitAddressByAccount(authorizationId, cusAccountId: number, request?: GetUnitAddressRequest)
-  : Promise<PaginatedResponse<UnitAddress>>
+  : Promise<PaginatedResponse<ProjectUnitAccountAddress>>
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `PaginatedResponse<ProjectUnitAccountAddress>` | 同上 |
+| 可能业务码 | `400042` ACCOUNT_UNIT_NOT_EXIST、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 按账户 ID 查询地址。同样需要 `unitId + coinId + network`。
 
@@ -378,17 +477,35 @@ sdk.createUnitAddress(authorizationId, request: {
   network: string;
   coinId: string;
   number: number;      // 生成数量
-}): Promise<void>
+}): Promise<AccountAddressVO[]>   // 1.4.0 起：返回本次新建的地址
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `AccountAddressVO[]` | 新建地址：`address` / `status` / `cusAccountId` / `balance` |
+| 可能业务码 | `400006` ACCOUNT_NOT_EXIST、`400012` CREATE_ADDRESS_FAILED、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 #### `createUnitAddressByAccount(authorizationId, cusAccountId, number)`
 
 ```typescript
 sdk.createUnitAddressByAccount(authorizationId, cusAccountId: number, number: number)
-  : Promise<UnitAddress[]>
+  : Promise<AccountAddressVO[]>
 ```
 
-返回本次新建的地址列表（1.1.0 起类型由 `void` 修正为 `UnitAddress[]`）。
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `AccountAddressVO[]` | 同上；账户不存在时返回空数组（上游 `data:null`） |
+| 可能业务码 | `400012` CREATE_ADDRESS_FAILED、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
+
+返回本次新建的地址列表（1.4.0 起元素类型由 `UnitAddress` 改为 `AccountAddressVO`，对应上游 `AccountAddressVO`）。
 
 ---
 
@@ -405,16 +522,36 @@ sdk.addCoins(authorizationId, request: {
 }): Promise<WCCIPCmdAuditTask[]>
 ```
 
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `WCCIPCmdAuditTask[]` | 审批任务数组，逐个 `taskId` 提交审批 |
+| 可能业务码 | `400006` ACCOUNT_NOT_EXIST、`400012` CREATE_ADDRESS_FAILED、`400042` ACCOUNT_UNIT_NOT_EXIST、`400056` CONTRACT_FACTORY_DEPLOY_FAILED、`400070` SIGNER_NOT_EXIST_OR_NOT_ENOUGH、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS、`400127` MERCHANT_PROJECT_NOT_EXIST、`400215` COIN_ACCOUNT_ALREADY_EXISTS、`400216` NETWORK_NOT_SUPPORT | 业务码明细见 [错误处理](#错误处理) |
+
+
+
 #### `updateFundControl(authorizationId, request)`
 
 ```typescript
 sdk.updateFundControl(authorizationId, request: {
   treasuryUnitId: number;
+  cusAccountId: number;    // 必填（1.4.0 起）
   fundControls: FundControl[];
-  cusAccountId?: number;   // 指定账户时优先
   note?: string;
-}): Promise<void>
+}): Promise<WCCIPCmdAuditTask>   // 1.4.0 起：返回审批任务
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `WCCIPCmdAuditTask` | `taskId` / `state` / `taskOperation: FUND_FLOW` |
+| 可能业务码 | `400006` ACCOUNT_NOT_EXIST、`400030` BOARD_NOT_EXIST、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS、`400120` FUNDFLOW_UPDATE_IN_PROGRESS | 业务码明细见 [错误处理](#错误处理) |
+
+
+
+规则变更走审批流程，返回的 `taskId` 可交给 `submitTask` 完成签名。
 
 #### `updateWhitelist(authorizationId, request)`
 
@@ -430,6 +567,15 @@ sdk.updateWhitelist(authorizationId, request: {
 }): Promise<WCCIPCmdAuditTask>
 ```
 
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `WCCIPCmdAuditTask` | `taskId` / `state` / `taskOperation: SET_WHITE_LIST` |
+| 可能业务码 | `400026` MERCHANT_ACCOUNT_NOT_EXIST、`400027` WHITELIST_UPDATE_IN_PROGRESS、`400030` BOARD_NOT_EXIST、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
+
 ---
 
 ### 出金与归集
@@ -439,6 +585,15 @@ sdk.updateWhitelist(authorizationId, request: {
 ```typescript
 sdk.createPayout(authorizationId, request: CreatePayoutRequest): Promise<WCCIPCmdAuditTask>
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `WCCIPCmdAuditTask` | `taskId` / `state` / `signContent` / `signers` |
+| 可能业务码 | `300004` ACCOUNT_BALANCE_NOT_ENOUGH、`400006` ACCOUNT_NOT_EXIST、`400011` OPERATION_NOT_SUPPORT、`400013` UPDATE_ACCOUNT_FAILED、`400042` ACCOUNT_UNIT_NOT_EXIST、`400048` ACCOUNT_GROUP_NOT_ACTIVATED、`400101` INVALID_PAYOUT_AMOUNT、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS、`400127` MERCHANT_PROJECT_NOT_EXIST、`400214` PAY_TO_ADDRESS_EXCEED_LIMIT、`400440` ADDRESS_BALANCE_NOT_ENOUGH、`400441` ADDRESS_BALANCE_CHECK_FAILED | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 ```typescript
 const task = await sdk.createPayout(authorizeId, {
@@ -490,6 +645,15 @@ sdk.pooling(authorizationId, request: {
 }): Promise<ProjectUnitTransferOutOrder>
 ```
 
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `ProjectUnitTransferOutOrder` | `orderId` / `orderState` / `taskId` / `totalAmount` |
+| 可能业务码 | `300004` ACCOUNT_BALANCE_NOT_ENOUGH、`400006` ACCOUNT_NOT_EXIST、`400042` ACCOUNT_UNIT_NOT_EXIST、`400083` ACCOUNT_POOLING、`400102` ENERGY_PERIOD_NOT_START、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
+
 > custody 后端对来源账户有限制（仅允许 platform 创建的 acquiring 账户），否则返回 `120042 ONLY_ACQUIRING_ACCOUNT_ALLOWED`。
 
 ---
@@ -505,6 +669,15 @@ sdk.submitTask(authorizationId, taskId: string, request: {
 }): Promise<void>
 ```
 
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `void` | 成功时 `data` 为 `null` |
+| 可能业务码 | `400001` TASK_NOT_FOUND、`400013` UPDATE_ACCOUNT_FAILED、`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
+
 `taskId` 来自 `createPayout` / `pooling` / `addCoins` / `updateWhitelist` 的返回值。
 
 ---
@@ -518,12 +691,30 @@ sdk.listTransferOutOrders(authorizationId, options?: PaginationQuery)
   : Promise<PaginatedResponse<ProjectUnitTransferOutOrder>>
 ```
 
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `PaginatedResponse<ProjectUnitTransferOutOrder>` | `orderState` / `payToList` / `txId` / `totalAmount` |
+| 可能业务码 | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
+
 #### `listTransferInOrders(authorizationId, options?)`
 
 ```typescript
 sdk.listTransferInOrders(authorizationId, options?: PaginationQuery)
   : Promise<PaginatedResponse<ProjectUnitTransferInOrder>>
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `PaginatedResponse<ProjectUnitTransferInOrder>` | `orderState` / `cpAddress` / `amount` / `txId` |
+| 可能业务码 | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 #### `listActivities(authorizationId, options?)`
 
@@ -532,12 +723,30 @@ sdk.listActivities(authorizationId, options?: PaginationQuery)
   : Promise<PaginatedResponse<ProjectUnitActivity>>
 ```
 
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `PaginatedResponse<ProjectUnitActivity>` | `direction` / `status` / `travelRuleStatus` / `kytStatus` |
+| 可能业务码 | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
+
 #### `listFundRecords(authorizationId, options?)`
 
 ```typescript
 sdk.listFundRecords(authorizationId, options?: PaginationQuery)
   : Promise<PaginatedResponse<ProjectUnitFundRecord>>
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `PaginatedResponse<ProjectUnitFundRecord>` | `txType` / `direction` / `fromAddr` / `toAddr`（后三项目前不一定返回） |
+| 可能业务码 | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 #### `listUnitFundRecords(authorizationId, options?)`
 
@@ -546,23 +755,34 @@ sdk.listUnitFundRecords(authorizationId, options?: PaginationQuery)
   : Promise<PaginatedResponse<ProjectUnitLedgerFundRecord>>
 ```
 
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `PaginatedResponse<ProjectUnitLedgerFundRecord>` | `txType` / `ledgerId` / 余额字段 |
+| 可能业务码 | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+
+
 **PaginationQuery**
 
-```typescript
-interface PaginationQuery {
-  pageIndex?: number;
-  pageSize?: number;
-  sortFields?: string;
-  queryList?: QueryCondition[];
-}
+**`PaginationQuery`**
 
-interface QueryCondition {
-  key: string;
-  value: string | number | object;
-  oper?: '=' | '!=' | '>' | '<' | 'like';
-  join?: 'and' | 'or';
-}
-```
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `pageIndex` | `number` | 否 | — |
+| `pageSize` | `number` | 否 | — |
+| `sortFields` | `string` | 否 | — |
+| `queryList` | `QueryCondition[]` | 否 | — |
+
+**`QueryCondition`**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `key` | `string` | 是 | — |
+| `value` | `string / number / object` | 是 | — |
+| `oper` | `'=' / '!=' / '>' / '<' / 'like'` | 否 | — |
+| `join` | `'and' / 'or'` | 否 | — |
 
 ---
 
@@ -575,6 +795,15 @@ await sdk.onCallback(req, async (payload) => {
   // 业务处理
 });
 ```
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `Promise<R>`（handler 的返回值） | 验签失败抛 `SDKError(SIGNATURE_INVALID)` |
+| 可能业务码 | — | 业务码明细见 [错误处理](#错误处理) |
+
+
 
 `req` 需包含：
 
@@ -605,150 +834,268 @@ await sdk.onCallback(req, async (payload) => {
 
 ### 通用
 
-```typescript
-interface PaginatedResponse<T> {
-  records: T[];
-  total: number;
-  current: number;
-  size: number;
-  pages?: number;
-  orders?: OrderItem[];
-}
-```
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `records` | `T[]` | 是 | — |
+| `total` | `number` | 是 | — |
+| `current` | `number` | 是 | — |
+| `size` | `number` | 是 | — |
+| `pages` | `number` | 否 | — |
+| `orders` | `OrderItem[]` | 否 | — |
 
 ### 枚举
 
-```typescript
-type BusinessScope = 'DEDICATED_ACCOUNT' | 'OMNIBUS_ACCOUNT' | 'OPEN_API_PROXY';
-type Topology      = 'ORBIT' | 'SINGLE_GENERAL' | 'QUAD_SMART_ISOLATION';
-type AccountType   = 'FREEZE' | 'DEPOSIT' | 'PRIMARY' | 'RECEIVABLE' | 'PAYOUT'
-                   | 'PAYIN' | 'GENERAL_GAS' | 'QUARANTINE' | 'DIRTY';
-type VaultAccountType = 'GENERAL_ACQUIRING' | 'SMART_ACQUIRING' | 'SMART'
-                      | 'GENERAL' | 'GMA' | 'TMA';
-type MerchantType  = 'NON_FINANCIAL_CORPORATE' | 'REGULATED_VASP' | 'INTERNAL_SYSTEM';
-type PayoutOperation = 'withdraw' | 'allocate' | 'payout';
-type CreationType  = 'PLATFORM' | 'THIRD_PARTY';
-type TreasuryUnitStatus = 'ACTIVATED' | 'FROZEN' | 'CLOSED' | 'PENDING';
-```
+| 类型 | 取值 |
+|------|------|
+| `BusinessScope` | `'DEDICATED_ACCOUNT' / 'OMNIBUS_ACCOUNT' / 'OPEN_API_PROXY' |
+| `Topology` | `'ORBIT' / 'SINGLE_GENERAL' / 'QUAD_SMART_ISOLATION' |
+| `AccountType` | `'FREEZE' / 'DEPOSIT' / 'PRIMARY' / 'RECEIVABLE' / 'PAYOUT' / 'PAYIN' / 'GENERAL_GAS' / 'QUARANTINE' / 'DIRTY' |
+| `VaultAccountType` | `'GENERAL_ACQUIRING' / 'SMART_ACQUIRING' / 'SMART' / 'GENERAL' / 'GMA' / 'TMA' |
+| `MerchantType` | `'NON_FINANCIAL_CORPORATE' / 'REGULATED_VASP' / 'INTERNAL_SYSTEM' |
+| `PayoutOperation` | `'withdraw' / 'allocate' / 'payout' |
+| `CreationType` | `'PLATFORM' / 'THIRD_PARTY' |
+| `TreasuryUnitStatus` | `'ACTIVATED' / 'FROZEN' / 'CLOSED' / 'PENDING' |
 
 ### 财务单元
 
-```typescript
-interface CoinInfo { coinId: string; network: string; }
+**`CoinInfo`**
 
-interface FundControlRule {
-  guardians: string[];
-  threshold: string;
-  perTransferLimit: string;
-  dailyTransferLimit: string;
-}
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `coinId` | `string` | 是 | 币种 ID |
+| `network` | `string` | 是 | 网络 |
 
-interface FundControl { coinId: string; fundControlRules: FundControlRule[]; }
+**`FundControlRule`**
 
-interface AnyCallRule {
-  guardians: string[];
-  threshold: string;
-  allowedCommands: string[];
-}
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `guardians` | `string[]` | 是 | — |
+| `threshold` | `string` | 是 | — |
+| `perTransferLimit` | `string` | 是 | — |
+| `dailyTransferLimit` | `string` | 是 | — |
 
-interface WhiteListCreateRequest { network: string; address: string; alias?: string; }
+**`FundControl`**
 
-interface AccountFundControl { accountId: number; fundControls: FundControl[]; }
-```
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `coinId` | `string` | 是 | 币种 ID |
+| `fundControlRules` | `FundControlRule[]` | 是 | 门限与限额规则 |
+
+**`AnyCallRule`**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `guardians` | `string[]` | 是 | — |
+| `threshold` | `string` | 是 | — |
+| `allowedCommands` | `string[]` | 是 | — |
+
+**`WhiteListCreateRequest`**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `network` | `string` | 是 | 网络 |
+| `address` | `string` | 是 | 地址 |
+| `alias` | `string` | 否 | 别名 |
+
+**`AccountFundControl`**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `accountId` | `number` | 是 | 账户 ID（7.4 的 `id`） |
+| `fundControls` | `FundControl[]` | 是 | 该账户的资金流规则 |
+
 
 ### 地址与账户
 
-```typescript
-interface UnitAddress {
-  id: number;
-  address: string;
-  addressIndex: number;
-  accountType: AccountType;
-  coinId: string;
-  network: string;
-  cusAccountId: number;
-  treasuryUnitId: number;
-  available: number;
-  holdAmount: number;
-  holdFrozen: number;
-  status: number;
-  createTime: string;
-  updateTime: string;
-}
+**`ProjectUnitAccountAddress`**
 
-interface UnitAccount {
-  id: number;                // cusAccountId
-  ecode: string;
-  vaultCode: string;
-  vaultAccountId: string;
-  projectId: number;
-  treasuryUnitId: number;
-  accountName: string;
-  type: AccountType;
-  accountType?: VaultAccountType;
-  coinId: string;
-  network: string;
-  balance: number;
-  freezeBalance: number;
-  holdBalance: number;
-  income: number;
-  outcome: number;
-  isSmart: boolean;
-  status: number;
-  createTime: string;
-  updateTime: string;
-}
-```
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | `number` | 是 | — |
+| `ecode` | `string` | 是 | 企业code |
+| `vaultCode` | `string` | 是 | vault code |
+| `projectId` | `number` | 是 | — |
+| `address` | `string` | 是 | 地址 |
+| `vaultAccountId` | `string` | 是 | trustVault账户ID |
+| `cusAccountId` | `number` | 是 | 商户账户ID |
+| `treasuryUnitId` | `number` | 是 | — |
+| `coinId` | `string` | 是 | 币种ID |
+| `network` | `string` | 是 | 网络 |
+| `series` | `AddressSeries / string` | 否 | 系列 |
+| `addressIndex` | `number` | 是 | 地址索引 |
+| `alias` | `string` | 否 | 别名 |
+| `isSmart` | `number` | 是 | — |
+| `isContract` | `number` | 是 | 是smart账户地址,是否部署地址合约:1.是,0.否 |
+| `status` | `AddressStatus / number` | 是 | 地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结 |
+| `accountType` | `AccountType` | 是 | 账户类型 |
+| `available` | `number` | 是 | 是否可用:1.可用,0.不可用 |
+| `holdAmount` | `number` | 是 | 该地址当前被隔离(hold)的合计金额，>0 时禁止归集 |
+| `holdFrozen` | `number` | 是 | 是否因存在隔离资金而禁止归集:1.禁止,0.允许 |
+| `riskLevel` | `RiskLevel / string` | 否 | 风险等级 |
+| `riskScore` | `string` | 否 | 风险评分 |
+| `riskCheckTime` | `string` | 否 | 风险校验时间 |
+| `expireTime` | `number` | 否 | 有效时间,单位:小时 |
+| `userId` | `string` | 否 | 关联用户ID |
+| `lastUsedTime` | `string` | 否 | 最后使用时间 |
+| `coolingEndTime` | `string` | 否 | 冷静期结束时间 |
+| `createTime` | `string` | 是 | 创建时间 |
+| `updateTime` | `string` | 是 | 创建时间 |
+
+**`AccountAddressVO`**（创建地址返回）
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | `number` | 是 | — |
+| `ecode` | `string` | 是 | 企业code |
+| `vaultCode` | `string` | 是 | vault code |
+| `projectId` | `number` | 是 | — |
+| `address` | `string` | 是 | 地址 |
+| `alias` | `string` | 否 | 别名 |
+| `accountId` | `string` | 否 | trustVault账户ID |
+| `cusAccountId` | `number` | 是 | 商户账户ID |
+| `treasuryUnitId` | `number` | 是 | — |
+| `coinId` | `string` | 是 | 币种ID |
+| `network` | `string` | 是 | 网络 |
+| `isSmart` | `number` | 是 | — |
+| `isContract` | `number` | 是 | 是smart账户地址,是否部署地址合约:1.是,0.否 |
+| `status` | `AddressStatus / number` | 是 | 地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结 |
+| `holdAmount` | `number` | 是 | 该地址当前被隔离(hold)的合计金额，>0 时禁止归集 |
+| `riskLevel` | `RiskLevel / string` | 否 | 风险等级 |
+| `riskScore` | `string` | 否 | 风险评分 |
+| `accountType` | `AccountType` | 是 | 账户类型 |
+| `createTime` | `string` | 是 | 创建时间 |
+| `updateTime` | `string` | 是 | 更新时间 |
+| `balance` | `string` | 是 | — |
+
+**`UnitAccount`**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | `number` | 是 | id |
+| `ecode` | `string` | 是 | 企业code |
+| `vaultCode` | `string` | 是 | vault code |
+| `vaultAccountId` | `string` | 是 | 对应trustVault账户id |
+| `projectId` | `number` | 是 | 所属项目ID |
+| `treasuryUnitId` | `number` | 是 | 所属财务单元id |
+| `accountName` | `string` | 是 | 账户名称 |
+| `fundFlowCode` | `string` | 否 | fundFlow code |
+| `anycallCode` | `string` | 是 | anycall code |
+| `autoSignUrl` | `string` | 否 | auto_sign_url 自动签入地址 |
+| `balance` | `number` | 是 | 主账户余额 |
+| `freezeBalance` | `number` | 是 | 冻结余额 |
+| `holdBalance` | `number` | 是 | 隔离余额（合规待确认/待复核的入金隔离资金） |
+| `coinId` | `string` | 是 | 管理的资产类型 |
+| `network` | `string` | 是 | 网络 |
+| `type` | `AccountType` | 是 | 账户类型 |
+| `accountType` | `VaultAccountType` | 否 | 金库账户类型 |
+| `status` | `number` | 是 | 状态:0不可用,1可用 |
+| `income` | `number` | 是 | 账户总入金 |
+| `outcome` | `number` | 是 | 账户总出金 |
+| `isSmart` | `boolean` | 是 | 是否是智能账户 |
+| `remark` | `string` | 否 | 备注 |
+| `createTime` | `string` | 是 | 创建时间 |
+| `updateTime` | `string` | 是 | 创建时间 |
+
+> `UnitAddress` 为 `ProjectUnitAccountAddress` 的兼容别名。标注 `series` / `alias` / `riskLevel` 等字段在 SIT 实测中可能不返回。
+
 
 ### 审批任务
 
-```typescript
-interface WCCIPCmdAuditTask {
-  id: number;
-  taskId: string;
-  state: AuditTaskStatus | string;
-  taskOperation: TaskOperation | string;
-  signContent: string;
-  total: number;
-  threshold: number;
-  signers: string[];
-  algoType: AlgoType;
-  coinId: string;
-  unitName: string;
-  accountName: string;
-  createTime: string;
-  updateTime: string;
-  // ...
-}
+**`WCCIPCmdAuditTask`**
 
-type AuditTaskStatus =
-  | 'AUDITING' | 'REJECTED' | 'AUDIT_REJECTED' | 'AUDIT_PASSED'
-  | 'SIGNING' | 'SIGN_FAILED' | 'SIGN_SUCCEED' | 'FAILED' | 'WAITING'
-  | 'SIGN_REJECTED' | 'ALL_BROADCAST_SUCCEED' | 'PARTIALLY_BROADCAST_SUCCEED'
-  | 'ALL_BROADCAST_FAILED' | 'BROADCAST_FAILED' | 'BROADCAST_EXCEPTION' | 'EXPIRED';
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `id` | `number` | 是 | id |
+| `taskId` | `string` | 是 | 任务ID |
+| `vaultCode` | `string` | 是 | vault code |
+| `projectId` | `number` | 是 | — |
+| `accountId` | `string` | 是 | 金库的账户ID |
+| `accountType` | `VaultAccountType` | 是 | 金库的账户类型 |
+| `submitter` | `string` | 是 | 提交人:在三方模式时是customer code/两方模式时是guard squad id |
+| `ecode` | `string` | 是 | 企业code |
+| `cmdType` | `string` | 是 | 命令类型 |
+| `cmdBasic` | `Record<string, unknown>` | 否 | 命令 |
+| `cmdForm` | `Record<string, unknown>` | 否 | 命令参数 |
+| `businessId` | `string` | 是 | 业务id:主要是订单id |
+| `state` | `AuditTaskStatus / string` | 是 | 任务状态 |
+| `businessType` | `string` | 是 | 业务类型:SYSTEM/BTC_TRANSFER等等 |
+| `taskType` | `string` | 是 | 任务类型,用于前端判断是资金还是系统操作:orders/issues |
+| `createTime` | `string` | 是 | 任务创建时间 |
+| `updateTime` | `string` | 是 | 任务更新时间 |
+| `signContent` | `string` | 是 | 签名内容 |
+| `signContentKeyMapping` | `string` | 是 | 签名内容的映射 |
+| `total` | `number` | 是 | 总参与审批数量 |
+| `threshold` | `number` | 是 | 门限 |
+| `signers` | `string[]` | 是 | 任务参与者、审核人、审批人等 |
+| `algoType` | `AlgoType` | 是 | — |
+| `initiator` | `string` | 是 | 任务发起人 |
+| `taskOperation` | `TaskOperation / string` | 是 | 任务操作,如转账,设置board等等 |
+| `signersLevel` | `number` | 是 | — |
+| `coinId` | `string` | 是 | — |
+| `unitName` | `string` | 是 | — |
+| `accountName` | `string` | 是 | — |
+| `includes` | `string[]` | 是 | — |
+| `sponsored` | `boolean` | 是 | — |
+| `remark` | `string` | 是 | — |
 
-type AlgoType = 'ECDSA' | 'EC_SCHNORR' | 'ED_DSA' | 'UNASSIGNED' | 'ED25519';
-```
 
 ---
 
 ## 错误处理
 
+所有失败的调用都抛 `SDKError`。业务码（网关码或 custody 码）在 `error.apiCode` 中原样保留，SDK 另外把它归类到 `error.code`，并附带常量名、含义、分类与是否可重试。
+
 ```typescript
-import { CregisSDK, SDKError, SDKErrorCode } from '@cregis-kit/openplatform-node';
+import { CregisSDK, SDKError, SDKErrorCode, isCustodyError } from '@cregis-kit/openplatform-node';
 
 try {
-  await sdk.listUnitAccount(authorizeId, unitId);
+  await sdk.createPayout(authorizeId, request);
 } catch (error) {
   if (error instanceof SDKError) {
-    console.error(error.code);          // SDK 错误码或 HTTP 状态
-    console.error(error.details);       // { apiCode, traceId } —— 网关返回的业务码
-    console.error(error.isRetryable);   // 5xx / 网络错误为 true
+    error.code;        // SDKErrorCode（分类）
+    error.apiCode;     // 400030  ← 原始业务码
+    error.apiConstant; // 'BOARD_NOT_EXIST'
+    error.category;    // 'STATE' | 'VALIDATION' | 'CAPACITY' | 'INFRA' | ...
+    error.isRetryable; // 是否可重试
+    error.httpStatus;  // HTTP 状态
+    error.details;     // { apiCode, traceId }
   }
 }
 ```
 
-### SDK 错误码
+### 错误码 → SDK 分类
+
+| 业务码来源 | `apiCode` | `code`（`SDKErrorCode`） | `isRetryable` |
+|------------|-----------|--------------------------|---------------|
+| 网关 | `40001` / `40002` | `VALIDATION_MISSING_REQUIRED` / `VALIDATION_INVALID_FORMAT` | 否 |
+| 网关 | `40101`–`40107` | `API_UNAUTHORIZED` | 否 |
+| 网关 | `40301` | `API_FORBIDDEN` | 否 |
+| 网关 | `40401` | `API_NOT_FOUND` | 否 |
+| 网关 | `40901` / `40902` | `API_CONFLICT` | 否 |
+| 网关 | `42901` | `API_RATE_LIMITED` | 是（按 `Retry-After`） |
+| 网关 | `500` | `API_SERVER_ERROR`（上游非 2xx，网关丢弃了上游响应体） | 是 |
+| 网关 | `50001` / `50301` | `API_SERVER_ERROR` | 是 |
+| Custody | `400103` | `CUSTODY_RESOURCE_NOT_EXISTS` | 否 |
+| Custody | `300004` / `400440` | `CUSTODY_INSUFFICIENT_FUNDS` | 否 |
+| Custody | 分类 `VALIDATION`（如 `400216`、`120042`） | `CUSTODY_VALIDATION_ERROR` | 否 |
+| Custody | 分类 `STATE`（如 `400030`、`400006`） | `CUSTODY_STATE_ERROR` | 否 |
+| Custody | 分类 `INFRA`（如 `400441`、`400012`） | `CUSTODY_BUSINESS_ERROR` | **是** |
+| Custody | 其他已登记码 | `CUSTODY_BUSINESS_ERROR` | 见下表 |
+| 未知 | 其他 `4xxxx` | `API_ERROR` | 否 |
+| 传输层 | —（无 `apiCode`） | `HTTP_TIMEOUT` / `HTTP_NETWORK_ERROR` / `HTTP_REQUEST_FAILED` | 是 |
+
+> 分类不是按码段推断的：`300004` 是唯一的 3xxxx 业务码，`120042` 是上游规则码。需要精确判断时请用 `error.apiConstant`（如 `'BOARD_NOT_EXIST'`）或 `CustodyErrorCode` 常量。
+
+### 辅助函数
+
+| 函数 | 说明 |
+|------|------|
+| `isCustodyError(error)` | 是否为已登记的 custody 业务码 |
+| `isRetryableError(error)` | `error.isRetryable` 的安全封装（非 `SDKError` 返回 `false`） |
+| `getCustodyErrorInfo(code)` | 返回 `{ constant, meaning（英文）, meaningZh（中文原文）, category, retryable }` |
+| `CustodyErrorsByRoute[routeId]` | 某个网关接口可能返回的业务码列表（`routeId` 见 `forward-routes.ts`） |
+
+### SDK 内部错误码（无业务响应时）
 
 | `SDKErrorCode` | 触发场景 |
 |----------------|----------|
@@ -756,28 +1103,50 @@ try {
 | `CONFIG_INVALID_APP_ID` | `appId` 非 UUID |
 | `SIGNATURE_INVALID` | 回调验签失败 |
 | `HTTP_REQUEST_FAILED` / `HTTP_NETWORK_ERROR` / `HTTP_TIMEOUT` | 传输层错误 |
-| `API_ERROR` | 未归类的业务错误 |
-| `API_UNAUTHORIZED` | 认证失败（401xx） |
-| `API_FORBIDDEN` | 无权限（403xx） |
-| `API_NOT_FOUND` | 资源不存在（404xx） |
-| `API_CONFLICT` | 冲突（409xx） |
-| `API_RATE_LIMITED` | 限流（429xx） |
-| `API_SERVER_ERROR` | 服务端错误（5xx） |
-| `VALIDATION_MISSING_REQUIRED` / `VALIDATION_INVALID_FORMAT` | 参数校验失败 |
+| `TOKEN_NOT_FOUND` / `TOKEN_EXPIRED` / `TOKEN_REFRESH_FAILED` | OAuth 令牌问题 |
+| `SIGNATURE_TIMESTAMP_INVALID` / `SIGNATURE_NONCE_MISSING` | 回调时间戳 / nonce 校验 |
 
-### 常见网关业务码
+### Custody 业务码总表（35 个）
 
-| `apiCode` | 含义 |
-|-----------|------|
-| `400` / `400001` / `400006` / `400042` / `400070` | 参数或业务校验失败 |
-| `400103` | `THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS`：资源键在 custody 侧不存在 |
-| `120042` | `ONLY_ACQUIRING_ACCOUNT_ALLOWED`：归集来源账户类型不允许 |
-| `40102` / `40110` | 签名失败 / 凭证无效 |
-| `40301` | 资源未授权 |
-| `42901` | 超出配额或限流 |
-| `500` / `50001` | 服务端内部错误 |
+来源：[`docs/third-party-api-error-codes.md`](../docs/third-party-api-error-codes.md)。分类与「可重试」为 SDK 侧约定。
 
----
+| `code` | 常量 | 分类 | 可重试 | 含义 / 触发条件 |
+|--------|------|------|--------|----------------|
+| `120042` | `ONLY_ACQUIRING_ACCOUNT_ALLOWED` | VALIDATION | 否 | 归集来源账户不是 platform 创建的 acquiring 账户 |
+| `300004` | `ACCOUNT_BALANCE_NOT_ENOUGH` | CAPACITY | 否 | 出金账户余额不足；账户冻结行更新影响行数为 0；归集时无可用地址或预估金额不足 |
+| `400001` | `TASK_NOT_FOUND` | STATE | 否 | `taskId` 为空、按 taskId / 主键都查不到、或任务 ecode 与当前 key 不一致 |
+| `400005` | `INIT_BOARD_FAILED` | STATE | 否 | 初始化 Board 时门限非法（≤0 或 > 守护人数），或 TrustVault `initBoard` 非 200 |
+| `400006` | `ACCOUNT_NOT_EXIST` | STATE | 否 | 账户不存在或不属于当前企业：加币种引用外部账户、创建地址、出金、归集、修改资金流、修改白名单 |
+| `400008` | `BOARD_EXIST` | STATE | 否 | 企业已有 `AVAILABLE` 或 `PENDING` 的 Board，不允许重复初始化 |
+| `400011` | `OPERATION_NOT_SUPPORT` | VALIDATION | 否 | 添加用户时 ecode 与 key 所属企业不一致；地址查询的 accountType 非 PAYIN/PAYOUT/PRIMARY；出金 operation 非 payout/withdraw/allocate |
+| `400012` | `CREATE_ADDRESS_FAILED` | INFRA | 是 | 加币种新增网络、或按账户创建地址时，TrustVault `getAddress` 非 200 |
+| `400013` | `UPDATE_ACCOUNT_FAILED` | INFRA | 是 | 出金、提交任务的兜底 catch：任何非 `SparkException` 的异常 |
+| `400026` | `MERCHANT_ACCOUNT_NOT_EXIST` | STATE | 否 | CRM 错误码：白名单变更时账户不属于当前 ecode / unit |
+| `400027` | `WHITELIST_UPDATE_IN_PROGRESS` | STATE | 否 | 同账户已有 `PENDING` 的白名单变更 |
+| `400030` | `BOARD_NOT_EXIST` | STATE | 否 | 修改 Board、资金流、白名单时企业没有 `AVAILABLE` 的 Board |
+| `400036` | `CREATE_VAULT_FAILED` | INFRA | 是 | 三方注册企业时建项目返回 null，或 `ProjectInitHandler` 创建金库失败 |
+| `400042` | `ACCOUNT_UNIT_NOT_EXIST` | STATE | 否 | unit 不存在、不属于当前企业，或不是当前开发者创建的 |
+| `400048` | `ACCOUNT_GROUP_NOT_ACTIVATED` | STATE | 否 | 出金账户 `status = 0`（未激活） |
+| `400056` | `CONTRACT_FACTORY_DEPLOY_FAILED` | INFRA | 是 | 创建 unit、加币种时新网络的合约工厂部署失败 |
+| `400062` | `ACCOUNT_UNIT_NAME_EXIST` | STATE | 否 | 自定义 unit 名称在企业内已存在 |
+| `400067` | `PUBLIC_KEY_EXIST` | STATE | 否 | 公钥已被其他用户占用；或同一邮箱试图更换公钥 |
+| `400070` | `SIGNER_NOT_EXIST_OR_NOT_ENOUGH` | STATE | 否 | 初始化 Board 时 guardians 为空；加币种下发资金流任务时 TrustVault 未返回签名人 |
+| `400083` | `ACCOUNT_POOLING` | STATE | 否 | 该账户正在归集中（Redis 归集锁被占用） |
+| `400099` | `PASSWORD_FORMAT_ERROR` | VALIDATION | 否 | 密码为空、长度不足 8 位，或大小写/数字/特殊字符不足 3 类 |
+| `400101` | `INVALID_PAYOUT_AMOUNT` | VALIDATION | 否 | 出金 payTo 按地址聚合后总金额 ≤ 0 |
+| `400102` | `ENERGY_PERIOD_NOT_START` | INFRA | 是 | 归集时 TRON 能量租赁失败 |
+| `400103` | `THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS` | AUTH | 否 | `resourceAccessKey` 为空、不存在或状态非 `ACTIVE`（除注册企业外所有接口） |
+| `400109` | `MERCHANT_NOT_EXIST` | STATE | 否 | 企业 ecode 为空或企业不存在（注册企业的入驻编排链路） |
+| `400112` | `INIT_TREASURY_UNIT_FAILED` | INFRA | 是 | TrustVault 初始化 unit 非 200，或返回账户数与请求不一致 |
+| `400119` | `BOARD_UPDATE_IN_PROGRESS` | STATE | 否 | 已有 `PENDING` 的 Board 变更 |
+| `400120` | `FUNDFLOW_UPDATE_IN_PROGRESS` | STATE | 否 | 同金库账户已有 `PENDING` 的资金流变更 |
+| `400127` | `MERCHANT_PROJECT_NOT_EXIST` | STATE | 否 | 按 key 的企业找不到项目；出金时按 unit 找不到项目 |
+| `400214` | `PAY_TO_ADDRESS_EXCEED_LIMIT` | VALIDATION | 否 | 出金付款地址数超过网络上限（默认 150）；Travel Rule 开启时一对多付款 |
+| `400215` | `COIN_ACCOUNT_ALREADY_EXISTS` | STATE | 否 | 加币种时该币种 + 网络已存在 |
+| `400216` | `NETWORK_NOT_SUPPORT` | VALIDATION | 否 | 加币种的新网络不在项目支持网络内 |
+| `400438` | `CREATE_MERCHANT_FAILED` | INFRA | 是 | 三方注册企业时企业落库返回 null |
+| `400440` | `ADDRESS_BALANCE_NOT_ENOUGH` | CAPACITY | 否 | 出金来源地址为空；或地址可用额（扣除隔离资金与其他在途出金）不足以覆盖本单 |
+| `400441` | `ADDRESS_BALANCE_CHECK_FAILED` | INFRA | 是 | 出金地址锁获取失败、被其他请求持有，或 Redis 不可用（fail-closed） |
 
 ## 环境
 
@@ -792,6 +1161,32 @@ SDK 会自行拼接 `/api/thirdparty/...` 路径，`baseUrl` 不要带尾斜杠�
 ---
 
 ## 版本与变更
+
+### 1.4.0
+
+**错误码**
+
+- 新增 `CustodyErrorCode` / `CustodyErrorInfo` / `CustodyErrorsByRoute`（由 `docs/scripts/generate-error-codes.mjs` 从 `docs/third-party-api-error-codes.md` 生成）。`CustodyErrorInfo.meaning` 为英文说明（`SDKError.message` 也使用英文），中文原文保留在 `meaningZh`。
+- `SDKError` 新增 `apiCode` / `apiConstant` / `apiMeaning` / `category` / `constant`；新增分类 `CUSTODY_VALIDATION_ERROR` / `CUSTODY_STATE_ERROR` / `CUSTODY_RESOURCE_NOT_EXISTS` / `CUSTODY_INSUFFICIENT_FUNDS` / `CUSTODY_BUSINESS_ERROR`，`isRetryable` 改为按登记表判断（INFRA 类才可重试）。
+- 新增辅助函数 `isCustodyError` / `isRetryableError` / `getCustodyErrorInfo`。
+- 网关 `500`（上游非 2xx、网关丢弃响应体）消息改为明确提示上游失败。
+
+**响应类型修正**
+
+- `createTreasuryUnit` 的返回类型 `CreateTreasuryUnitResponse` 改为 `TreasuryUnit` 的别名：上游 `POST /treasury/create` 返回的是 `ProjectUnit`（与 `create-custom`、`list` 相同），旧类型里的 `vaultCode` / `groupCode` / `gmaId` / `caaFactoryAddresses` 等字段在实际响应中不存在（旧结构保留为 `LegacyCreateTreasuryUnitResponse`，仅供迁移参考）。
+- 依据 SIT 实测，下列字段改为可选：`ProjectUnitActivity` 的 `ledgerId` / `cpAccountId` / `businessId` / `kyaStatus`；`ProjectUnitTransferOutOrder` 的 `ledgerId` / `address` / `businessScope` / `travelRule*` / `kyt*` / `fee` / `callbackStatus` / `taskId` / `txId` / `note` / `businessId` / `vasp*` 等；`ProjectUnitTransferInOrder` 的 `treasuryUnitId` / `ledgerId` / `travelRule*` / `kyt*` / `note` 等；`UnitAccount` 的 `fundFlowCode` / `autoSignUrl` / `remark`；`TreasuryUnit.sort`。
+
+**与网关 2026-10 修订后的响应保持一致**
+
+- **地址**：新增 `ProjectUnitAccountAddress`（地址列表，8.1/8.2）替换旧的精简 `UnitAddress`（`UnitAddress` 保留为类型别名）；新增 `AccountAddressVO`（创建地址返回，8.3/8.4）。`createUnitAddress` 由 `void` 改为返回 `AccountAddressVO[]`，`createUnitAddressByAccount` 的元素类型同步改为 `AccountAddressVO`。
+- **资金流水**：`ProjectUnitFundRecord` 新增 `fromAddr`、`toAddr`、`direction`。
+- **出金订单**：`ProjectUnitTransferOutOrder` 新增 `vaspDid`、`vaspName`、`vaspReviewStatus`、`vaspReviewedBy`、`vaspReviewedAt`；`TransferOutOrderStatus` 新增 `BROADCAST_SUCCESS`、`VASP_MISMATCH_PENDING`。
+- **活动记录**：`ActivityStatus` 新增 `BROADCAST_SUCCESS`。
+- **用户**：`addUser` 返回 `ConsoleUser`（此前为 `Record<string, unknown>`）。
+- **资金流规则**：`updateFundControl` 返回 `WCCIPCmdAuditTask`（此前为 `void`），`cusAccountId` 改为必填。
+- **出金请求**：`CreatePayoutRequest` 的 `fromAccountId`、`fromAddress`、`orderId` 改为必填（上游 `ThirdPayoutRequest` 同步收紧）。
+- **Travel Rule**：`TravelRulePayload` 新增 `beneficiaryVaspDid`、`beneficiaryVaspName`。
+- **白名单**：`WhitelistUpdateRequest.cusAccountId` 改为必填。
 
 ### 1.3.0
 

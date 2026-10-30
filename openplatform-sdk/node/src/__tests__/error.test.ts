@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { SDKError, SDKErrorCode, ErrorCodeMessages } from '../core/error';
+import {
+  SDKError, SDKErrorCode, ErrorCodeMessages, isCustodyError, isRetryableError, getCustodyErrorInfo,
+} from '../core/error';
+import { CustodyErrorCode, CustodyErrorInfo, CustodyErrorsByRoute } from '../core/custody-errors';
 
 describe('SDKError', () => {
   it('exposes code, httpStatus, details, isRetryable', () => {
@@ -59,6 +62,69 @@ describe('SDKError.fromApiResponse', () => {
   });
   it('retains traceId and apiCode in details', () => {
     expect(SDKError.fromApiResponse(40301, 'x', 403, 'trace-1').details).toEqual({ traceId: 'trace-1', apiCode: 40301 });
+  });
+});
+
+describe('custody business codes', () => {
+  it('maps BOARD_NOT_EXIST (400030) → CUSTODY_STATE_ERROR with metadata', () => {
+    const err = SDKError.fromApiResponse(400030, 'BOARD_NOT_EXIST', 200, 't');
+    expect(err.code).toBe(SDKErrorCode.CUSTODY_STATE_ERROR);
+    expect(err.apiCode).toBe(400030);
+    expect(err.apiConstant).toBe('BOARD_NOT_EXIST');
+    expect(err.constant).toBe('BOARD_NOT_EXIST');
+    expect(err.category).toBe('STATE');
+    expect(err.message).toContain('BOARD_NOT_EXIST');
+    expect(err.isRetryable).toBe(false);
+  });
+
+  it('maps 400006 ACCOUNT_NOT_EXIST → CUSTODY_STATE_ERROR', () => {
+    const err = SDKError.fromApiResponse(400006, 'ACCOUNT_NOT_EXIST', 200);
+    expect(err.code).toBe(SDKErrorCode.CUSTODY_STATE_ERROR);
+    expect(err.message).toContain('does not belong to this company');
+    expect(getCustodyErrorInfo(400006).meaningZh).toContain('账户不存在');
+  });
+
+  it('maps 400103 → CUSTODY_RESOURCE_NOT_EXISTS', () => {
+    expect(SDKError.fromApiResponse(400103, 'THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS', 200).code)
+      .toBe(SDKErrorCode.CUSTODY_RESOURCE_NOT_EXISTS);
+  });
+
+  it.each([300004, 400440])('maps balance code %i → CUSTODY_INSUFFICIENT_FUNDS', (c) => {
+    expect(SDKError.fromApiResponse(c, 'X', 200).code).toBe(SDKErrorCode.CUSTODY_INSUFFICIENT_FUNDS);
+  });
+
+  it('maps 400216 NETWORK_NOT_SUPPORT → CUSTODY_VALIDATION_ERROR', () => {
+    expect(SDKError.fromApiResponse(400216, 'NETWORK_NOT_SUPPORT', 200).code)
+      .toBe(SDKErrorCode.CUSTODY_VALIDATION_ERROR);
+  });
+
+  it('flags infra codes as retryable (e.g. 400441 address lock)', () => {
+    const err = SDKError.fromApiResponse(400441, 'ADDRESS_BALANCE_CHECK_FAILED', 200);
+    expect(err.category).toBe('INFRA');
+    expect(err.isRetryable).toBe(true);
+  });
+
+  it('keeps gateway 500 non-retryable-agnostic mapping but server category', () => {
+    const err = SDKError.fromApiResponse(500, 'Request failed with status code 502', 500);
+    expect(err.code).toBe(SDKErrorCode.API_SERVER_ERROR);
+    expect(err.apiConstant).toBeNull();
+    expect(err.isRetryable).toBe(true);
+  });
+
+  it('isCustodyError / isRetryableError helpers', () => {
+    expect(isCustodyError(SDKError.fromApiResponse(400030, 'x', 200))).toBe(true);
+    expect(isCustodyError(SDKError.fromApiResponse(40102, 'x', 401))).toBe(false);
+    expect(isCustodyError(new Error('x'))).toBe(false);
+    expect(isRetryableError(SDKError.fromApiResponse(400441, 'x', 200))).toBe(true);
+    expect(isRetryableError(SDKError.fromApiResponse(400030, 'x', 200))).toBe(false);
+  });
+
+  it('registry stays consistent', () => {
+    for (const [name, code] of Object.entries(CustodyErrorCode)) {
+      expect(CustodyErrorInfo[code].constant).toBe(name);
+    }
+    expect(CustodyErrorsByRoute['treasury-payout']).toContain(CustodyErrorCode.ACCOUNT_BALANCE_NOT_ENOUGH);
+    expect(CustodyErrorsByRoute['board-init']).toContain(CustodyErrorCode.SIGNER_NOT_EXIST_OR_NOT_ENOUGH);
   });
 });
 

@@ -175,7 +175,20 @@ export interface CreateCustomUnitRequest {
   remark?: string;
 }
 
-export interface CreateTreasuryUnitResponse {
+/**
+ * Response of `createTreasuryUnit`.
+ *
+ * Custody returns the same `ProjectUnit` object as `create-custom` and
+ * `list` (upstream `MessageResultProjectUnit`), so this is an alias of
+ * `TreasuryUnit`. The previous shape (`vaultCode`/`groupCode`/`gmaId`/…) did
+ * not match any documented response; kept only as a deprecated alias.
+ *
+ * @deprecated Use `TreasuryUnit` (identical type).
+ */
+export type CreateTreasuryUnitResponse = TreasuryUnit;
+
+/** @deprecated Fields never appeared in the create response; see `TreasuryUnit`. */
+export interface LegacyCreateTreasuryUnitResponse {
   id: number;
   name: string;
   ecode: string;
@@ -205,7 +218,7 @@ export interface TreasuryUnit {
   accounts: Array<{ account_name: string; account_type: string }>;
   businessPurpose?: string;
   status: string;
-  sort: number;
+  sort?: number;
   creationType: CreationType;
   developerId: string;
   creatorId?: number;
@@ -231,21 +244,93 @@ export interface CreateUnitAddressRequest {
   number: number;
 }
 
-export interface UnitAddress {
+/** Address lifecycle state: 1 pending contract deploy, 2 deploying, 3 usable, 4 frozen. */
+export type AddressStatus = 1 | 2 | 3 | 4;
+
+export type AddressSeries =
+  | 'EVM' | 'BTC' | 'TRON' | 'BRC20' | 'SOL' | 'POLKA' | 'SUI' | 'COSMOS' | 'TON';
+
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
+
+/**
+ * Address returned by the address list queries.
+ * Maps to OpenAPI `ProjectUnitAccountAddress`.
+ *
+ * Fields marked optional are declared in the upstream schema but absent from
+ * some live responses (e.g. SIT omits `series` / `alias` / `riskLevel` /
+ * `riskCheckTime` / `expireTime` / `userId` / `lastUsedTime` / `coolingEndTime`).
+ */
+export interface ProjectUnitAccountAddress {
   id: number;
+  ecode: string;
+  vaultCode: string;
+  projectId: number;
   address: string;
-  addressIndex: number;
-  accountType: AccountType;
-  coinId: string;
-  network: string;
+  vaultAccountId: string;
   cusAccountId: number;
   treasuryUnitId: number;
+  coinId: string;
+  network: string;
+  series?: AddressSeries | string;
+  addressIndex: number;
+  alias?: string;
+  isSmart: number;
+  isContract: number;
+  /** 地址状态: 1 待部署合约, 2 部署合约中, 3 部署成功可用, 4 冻结 */
+  status: AddressStatus | number;
+  accountType: AccountType;
+  /** 是否可用: 1 可用, 0 不可用 */
   available: number;
+  /** 该地址当前被隔离 (hold) 的合计金额，> 0 时禁止归集 */
   holdAmount: number;
+  /** 是否因存在隔离资金而禁止归集: 1 禁止, 0 允许 */
   holdFrozen: number;
-  status: number;
+  riskLevel?: RiskLevel | string;
+  riskScore?: string;
+  riskCheckTime?: string;
+  /** 有效时间，单位：小时 */
+  expireTime?: number;
+  userId?: string;
+  lastUsedTime?: string;
+  coolingEndTime?: string;
   createTime: string;
   updateTime: string;
+}
+
+/** @deprecated Renamed to `ProjectUnitAccountAddress` (1.4.0). Alias kept for compatibility. */
+export type UnitAddress = ProjectUnitAccountAddress;
+
+/**
+ * Address returned by the create-address APIs.
+ * Maps to OpenAPI `AccountAddressVO`.
+ *
+ * Fields marked optional are declared in the upstream schema but absent from
+ * some live responses (SIT omits `alias`, `accountId`, `riskLevel`).
+ */
+export interface AccountAddressVO {
+  id: number;
+  ecode: string;
+  vaultCode: string;
+  projectId: number;
+  address: string;
+  alias?: string;
+  /** TrustVault account id */
+  accountId?: string;
+  cusAccountId: number;
+  treasuryUnitId: number;
+  coinId: string;
+  network: string;
+  isSmart: number;
+  isContract: number;
+  /** 地址状态: 1 待部署合约, 2 部署合约中, 3 部署成功可用, 4 冻结 */
+  status: AddressStatus | number;
+  holdAmount: number;
+  riskLevel?: RiskLevel | string;
+  riskScore?: string;
+  accountType: AccountType;
+  createTime: string;
+  updateTime: string;
+  balance: string;
 }
 
 export interface UnitAccount {
@@ -256,9 +341,9 @@ export interface UnitAccount {
   projectId: number;
   treasuryUnitId: number;
   accountName: string;
-  fundFlowCode: string;
+  fundFlowCode?: string;
   anycallCode: string;
-  autoSignUrl: string;
+  autoSignUrl?: string;
   balance: number;
   freezeBalance: number;
   holdBalance: number;
@@ -270,7 +355,7 @@ export interface UnitAccount {
   income: number;
   outcome: number;
   isSmart: boolean;
-  remark: string;
+  remark?: string;
   createTime: string;
   updateTime: string;
 }
@@ -318,6 +403,8 @@ export interface TravelRulePayload {
   beneficiaryLegalName?: string;
   beneficiaryLegalRegistrationNo?: string;
   beneficiaryLegalCountry?: string;
+  beneficiaryVaspDid?: string;
+  beneficiaryVaspName?: string;
 }
 
 export interface TravelRuleRequest {
@@ -327,16 +414,19 @@ export interface TravelRuleRequest {
 
 export interface CreatePayoutRequest {
   payTo: PayTo[];
-  fromAccountId?: number;
+  /** Required by custody since the 2026-10 API revision. */
+  fromAccountId: number;
   unitId: number;
   coinId: string;
   network: string;
+  /** Required by custody since the 2026-10 API revision. */
+  fromAddress: string;
+  /** Required by custody since the 2026-10 API revision. */
+  orderId: string;
   operation?: PayoutOperation;
-  fromAddress?: string;
   toCusAccountId?: number;
   username?: string;
   userId?: string;
-  orderId?: string;
   note?: string;
   lang?: LangCode;
   initiator?: string;
@@ -428,9 +518,9 @@ export interface PageRequest {
 export type ActivityDirection = 'IN' | 'OUT';
 
 export type ActivityStatus =
-  | 'SUBMITTING' | 'APPROVED' | 'REJECTED' | 'FAILED' | 'CONFIRMING'
-  | 'COMPLETED' | 'EXPIRED' | 'PENDING_CONFIRMATION' | 'PENDING_COMPLIANCE'
-  | 'PENDING_REVIEW' | 'REVIEW_ACCEPTED' | 'REVIEW_REJECTED';
+  | 'SUBMITTING' | 'APPROVED' | 'REJECTED' | 'FAILED' | 'BROADCAST_SUCCESS'
+  | 'CONFIRMING' | 'COMPLETED' | 'EXPIRED' | 'PENDING_CONFIRMATION'
+  | 'PENDING_COMPLIANCE' | 'PENDING_REVIEW' | 'REVIEW_ACCEPTED' | 'REVIEW_REJECTED';
 
 export type TravelRuleStatus = 'NOT_REQUIRED' | 'PENDING' | 'PASSED' | 'FAILED' | 'REVIEW';
 
@@ -442,14 +532,14 @@ export interface ProjectUnitActivity {
   ledgerId?: number;
   cusAccountId: number;
   accountType: string;
-  cpAccountId: number;
+  cpAccountId?: number;
   coinId: string;
   network: string;
   type: string;
   amount: number;
   direction: ActivityDirection | string;
   orderId: string;
-  businessId: string;
+  businessId?: string;
   status: ActivityStatus | string;
   travelRuleStatus: TravelRuleStatus | string;
   kytStatus: string;
@@ -462,9 +552,9 @@ export interface ProjectUnitActivity {
 
 export type TransferOutOrderStatus =
   | 'AUDITING' | 'SIGNING' | 'SIGN_FAILED' | 'SIGNING_REJECTED' | 'TRANSITING'
-  | 'SUCCEED' | 'FAILED' | 'EXPIRED' | 'SUBMIT_FAILED' | 'CONFIRMING'
-  | 'COMPLIANCE_PENDING' | 'TRAVEL_RULE_PENDING' | 'MANUAL_REVIEW_PENDING'
-  | 'REJECTED' | 'CANCELLED';
+  | 'BROADCAST_SUCCESS' | 'SUCCEED' | 'FAILED' | 'EXPIRED' | 'SUBMIT_FAILED'
+  | 'CONFIRMING' | 'COMPLIANCE_PENDING' | 'TRAVEL_RULE_PENDING'
+  | 'MANUAL_REVIEW_PENDING' | 'VASP_MISMATCH_PENDING' | 'REJECTED' | 'CANCELLED';
 
 export type TransferInOrderStatus =
   | 'PROCESSING' | 'CONFIRMING' | 'SUCCEED' | 'FAILED' | 'MISMATCH'
@@ -478,41 +568,47 @@ export interface ProjectUnitTransferOutOrder {
   vaultCode: string;
   projectId: number;
   treasuryUnitId: number;
-  ledgerId: number;
+  ledgerId?: number;
   cusAccountId: number;
-  address: string;
+  address?: string;
   coinId: string;
   network: string;
-  businessScope: BusinessScope | string;
-  travelRuleReferenceId: string;
-  travelRulePayload: string;
-  travelRuleStatus: string;
-  travelRuleCheckStatus: TravelRuleStatus | string;
-  travelRuleCheckPayload: string;
-  kytStatus: string;
+  businessScope?: BusinessScope | string;
+  travelRuleReferenceId?: string;
+  travelRulePayload?: string;
+  travelRuleStatus?: string;
+  travelRuleCheckStatus?: TravelRuleStatus | string;
+  travelRuleCheckPayload?: string;
+  kytStatus?: string;
   kytRiskScore?: number;
-  kytPayload: string;
+  kytPayload?: string;
   kyaRiskScore?: number;
-  complianceProvider: string;
+  complianceProvider?: string;
   orderId: string;
-  txId: string;
-  fee: string;
-  callbackStatus: CallbackStatus | string;
+  txId?: string;
+  fee?: string;
+  callbackStatus?: CallbackStatus | string;
   createTime: string;
   updateTime: string;
-  taskId: string;
+  taskId?: string;
   inputAmount: string;
   totalAmount: number;
-  fundFlowCode: string;
+  fundFlowCode?: string;
   orderState: TransferOutOrderStatus | string;
   payToList: PayTo[];
-  note: string;
-  businessId: string;
+  note?: string;
+  businessId?: string;
   txCount?: number;
   failReason?: string;
   taskInitiator?: string;
   source?: string;
   taskOperation?: string;
+  // Travel Rule / VASP counterparty info (2026-10 API revision)
+  vaspDid?: string;
+  vaspName?: string;
+  vaspReviewStatus?: string;
+  vaspReviewedBy?: string;
+  vaspReviewedAt?: string;
 }
 
 export interface ProjectUnitTransferInOrder {
@@ -520,34 +616,34 @@ export interface ProjectUnitTransferInOrder {
   ecode: string;
   vaultCode: string;
   projectId: number;
-  treasuryUnitId: number;
-  ledgerId: number;
+  treasuryUnitId?: number;
+  ledgerId?: number;
   cusAccountId: number;
   address: string;
   coinId: string;
   network: string;
-  businessScope: BusinessScope | string;
-  travelRuleReferenceId: string;
-  travelRulePayload: string;
-  travelRuleStatus: string;
-  travelRuleCheckStatus: TravelRuleStatus | string;
-  travelRuleCheckPayload: string;
-  kytStatus: string;
+  businessScope?: BusinessScope | string;
+  travelRuleReferenceId?: string;
+  travelRulePayload?: string;
+  travelRuleStatus?: string;
+  travelRuleCheckStatus?: TravelRuleStatus | string;
+  travelRuleCheckPayload?: string;
+  kytStatus?: string;
   kytRiskScore?: number;
-  kytPayload: string;
+  kytPayload?: string;
   kyaRiskScore?: number;
-  complianceProvider: string;
+  complianceProvider?: string;
   orderId: string;
   txId: string;
-  fee: string;
-  callbackStatus: CallbackStatus | string;
+  fee?: string;
+  callbackStatus?: CallbackStatus | string;
   createTime: string;
   updateTime: string;
   cpAddress: string;
   amount: number;
   orderState: TransferInOrderStatus | string;
   type: number;
-  note: string;
+  note?: string;
   initiator: number;
 }
 
@@ -567,6 +663,11 @@ export interface ProjectUnitFundRecord {
   orderId: string;
   coinId: string;
   network: string;
+  /** 出金地址 (source address) */
+  fromAddr: string;
+  /** 入金地址 (destination address) */
+  toAddr: string;
+  direction: ActivityDirection | string;
   amount: number;
   preBalance: number;
   postBalance: number;
@@ -726,7 +827,7 @@ export interface AddUnitCoinsRequest {
 }
 
 export interface FundControlUpdateRequest {
-  cusAccountId?: number;
+  cusAccountId: number;
   treasuryUnitId: number;
   fundControls: FundControl[];
   note?: string;
@@ -736,10 +837,36 @@ export interface WhitelistUpdateRequest {
   addItems?: WhiteListCreateRequest[];
   removeItems?: WhiteListCreateRequest[];
   treasuryUnitId: number;
-  cusAccountId?: number;
+  cusAccountId: number;
   allowListEnabled?: string;
   lang?: LangCode;
   note?: string;
+}
+
+// ============ Console User Types ============
+
+export type ConsoleUserState = 'SUSPENDING' | 'ACTIVE' | 'INACTIVE';
+
+/**
+ * User created by `addUser`.
+ * Maps to OpenAPI `ConsoleUser`.
+ */
+export interface ConsoleUser {
+  id: number;
+  username: string;
+  password: string;
+  email: string;
+  phone: string;
+  /** Public key */
+  pk: string;
+  state: ConsoleUserState | string;
+  apiFlag: boolean;
+  ecode: string;
+  isSetPassword: boolean;
+  loginTime: string;
+  logoutTime: string;
+  createTime: string;
+  updateTime: string;
 }
 
 // ============ Callback Types ============

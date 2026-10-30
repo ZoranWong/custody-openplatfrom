@@ -9,14 +9,15 @@ import {
   SDKConfig, CallbackPayload, CallbackRequest,
   CreateTreasuryUnitRequest, CreateTreasuryUnitResponse,
   CreateCustomUnitRequest, TreasuryUnit,
-  GetUnitAddressRequest, CreateUnitAddressRequest, UnitAccount, UnitAddress,
+  GetUnitAddressRequest, CreateUnitAddressRequest, UnitAccount,
+  ProjectUnitAccountAddress, AccountAddressVO,
   PoolingRequest,
   CreatePayoutRequest, WCCIPCmdAuditTask,
   SubmitTaskRequest, PaginationQuery, ProjectUnitActivity,
   ProjectUnitTransferOutOrder, ProjectUnitTransferInOrder,
   ProjectUnitFundRecord, ProjectUnitLedgerFundRecord,
   MerchantRegisterRequest, MerchantRegisterResult,
-  AddUserRequest, InitBoardRequest, UpdateBoardRequest, MerchantBoard,
+  AddUserRequest, ConsoleUser, InitBoardRequest, UpdateBoardRequest, MerchantBoard,
   AddUnitCoinsRequest, FundControlUpdateRequest, WhitelistUpdateRequest,
   PaginatedResponse, GetAuthorizationUrlRequest, GetAuthorizationUrlResult,
 } from '../types';
@@ -144,12 +145,12 @@ export class CregisSDK {
   async getTreasuryUnitAddress(
     authorizationId: string,
     request: GetUnitAddressRequest,
-  ): Promise<PaginatedResponse<UnitAddress>> {
+  ): Promise<PaginatedResponse<ProjectUnitAccountAddress>> {
     const { basic, business } = this.buildResourceRequest(
       authorizationId,
       request,
     );
-    return this.http.post<PaginatedResponse<UnitAddress>>(
+    return this.http.post<PaginatedResponse<ProjectUnitAccountAddress>>(
       '/api/thirdparty/treasury/address',
       { basic, business },
     );
@@ -160,12 +161,12 @@ export class CregisSDK {
     authorizationId: string,
     cusAccountId: number,
     request: GetUnitAddressRequest = {},
-  ): Promise<PaginatedResponse<UnitAddress>> {
+  ): Promise<PaginatedResponse<ProjectUnitAccountAddress>> {
     const { basic, business } = this.buildResourceRequest(
       authorizationId,
       request,
     );
-    return this.http.post<PaginatedResponse<UnitAddress>>(
+    return this.http.post<PaginatedResponse<ProjectUnitAccountAddress>>(
       `/api/thirdparty/treasury/address-by-account/${cusAccountId}`,
       { basic, business },
     );
@@ -202,13 +203,13 @@ export class CregisSDK {
   async createUnitAddress(
     authorizationId: string,
     request: CreateUnitAddressRequest,
-  ): Promise<void> {
+  ): Promise<AccountAddressVO[]> {
     const { basic } = this.buildResourceRequest(authorizationId, {});
     const { unitId, accountType, network, coinId, number } = request;
     const path = [unitId, accountType, network, coinId, number]
       .map((v) => encodeURIComponent(String(v)))
       .join('/');
-    await this.http.post<void>(
+    return this.http.post<AccountAddressVO[]>(
       `/api/thirdparty/treasury/create-unit-address/${path}`,
       { basic, business: {} },
     );
@@ -219,9 +220,9 @@ export class CregisSDK {
     authorizationId: string,
     cusAccountId: number,
     number: number,
-  ): Promise<UnitAddress[]> {
+  ): Promise<AccountAddressVO[]> {
     const { basic } = this.buildResourceRequest(authorizationId, {});
-    return this.http.post<UnitAddress[]>(
+    return this.http.post<AccountAddressVO[]>(
       `/api/thirdparty/treasury/create-unit-address-by-account/${cusAccountId}/${number}`,
       { basic, business: {} },
     );
@@ -253,12 +254,12 @@ export class CregisSDK {
   async addUser(
     authorizationId: string,
     request: AddUserRequest,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<ConsoleUser> {
     const { basic, business } = this.buildResourceRequest(
       authorizationId,
       request,
     );
-    return this.http.post<Record<string, unknown>>('/api/thirdparty/user/add', {
+    return this.http.post<ConsoleUser>('/api/thirdparty/user/add', {
       basic,
       business,
     });
@@ -316,19 +317,19 @@ export class CregisSDK {
     );
   }
 
-  /** Update fund control rules. POST /api/thirdparty/treasury/fund-control-update */
+  /** Update fund control rules. POST /api/thirdparty/treasury/fund-control-update (returns an audit task) */
   async updateFundControl(
     authorizationId: string,
     request: FundControlUpdateRequest,
-  ): Promise<void> {
+  ): Promise<WCCIPCmdAuditTask> {
     const { basic, business } = this.buildResourceRequest(
       authorizationId,
       request,
     );
-    await this.http.post<void>('/api/thirdparty/treasury/fund-control-update', {
-      basic,
-      business,
-    });
+    return this.http.post<WCCIPCmdAuditTask>(
+      '/api/thirdparty/treasury/fund-control-update',
+      { basic, business },
+    );
   }
 
   /** Update whitelist. POST /api/thirdparty/treasury/whitelist-update */
