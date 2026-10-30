@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..', '..');
 const forwardRoutesFile = path.join(repoRoot, 'openplatform-api-service/src/config/forward-routes.ts');
-const EXPECTED_FORWARDED_ROUTES = 22;
+const EXPECTED_FORWARDED_ROUTES = 23;
 
 const LOCAL_ROUTES = [
   '/api/thirdparty/oauth/authorizeUrl',

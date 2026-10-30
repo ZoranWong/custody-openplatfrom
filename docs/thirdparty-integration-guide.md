@@ -1,10 +1,10 @@
 # Cregis 开放平台 - 第三方开发者接入指南
 
-> **适用 SDK 版本：** Node SDK 1.3.0 / Java SDK 1.2.5 / Web SDK 1.0.5
+> **适用 SDK 版本：** Node SDK 1.4.0 / Java SDK 1.2.6 / Web SDK 1.0.5
 >
-> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.5`。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
+> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.6`。文中「1.4.0 起 / 1.2.6 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
 >
-> **接口基数：** 网关对外 22 条转发接口 + 6 条本地接口，共 28 条
+> **接口基数：** 网关对外 23 条转发接口 + 6 条本地接口，共 29 条
 
 本指南面向接入 Cregis 托管能力的第三方平台开发者。第 1–6 章覆盖平台概述、端到端接入流程、开发者入驻、认证与签名、OAuth 授权和通用约定；第 7–12 章为业务接口参考；第 13–17 章覆盖商户 / 用户 / Board、回调、错误码与排查、SDK 集成和附录。
 
@@ -959,6 +959,31 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 
 `data.id` 即后续接口使用的 `unitId`。SDK 将该响应映射为 `CreateTreasuryUnitResponse`。
 
+**响应字段**（上游 `ProjectUnit`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | ID |
+| `ecode` | string | 企业code |
+| `projectId` | number | 项目ID |
+| `name` | string | 名字 |
+| `ubo` | string | 最终受益人的ecode，如果是三方模式，是另外一个企业ID，否则就是自己的企业ID |
+| `custodyServiceMode` | string | 托管接入模式 |
+| `topology` | string | 账户模型 |
+| `coinIds` | `CoinDto`[] | 币种集合 |
+| `accounts` | `AccountData`[] | 账户列表 |
+| `businessPurpose` | string | 业务用途 |
+| `status` | string | — |
+| `sort` † | number | 排序 |
+| `creationType` | string | 创建类型: PLATFORM/THIRD_PARTY |
+| `developerId` | string | 三方平台开发者ID |
+| `creatorId` † | number | 创建人 |
+| `remark` | string | 备注 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 更新时间 |
+
+> 标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。
+
 **常见业务码**：`400 请求参数格式错误`（作为上游 2xx 响应体内的业务码由 custody 返回，网关透传）。**已知问题：** 即使 `business` 结构完整，SIT 环境当前仍会从 custody 收到该错误；原因未在代码中确认，请以 custody 后续版本为准。另有 `400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`（签名与授权问题）。
 
 ### 7.2 创建自定义结构财务单元
@@ -1009,7 +1034,32 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 { "code": 200, "message": "SUCCESS", "data": { "id": 81, "ecode": "EC0000000001", "name": "Custom Unit", "topology": "CUSTOM", "status": "ACTIVATED" } }
 ```
 
-SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声明为 `null`，实际字段以 custody 返回为准。
+SDK 将 `data` 映射为 `TreasuryUnit`（= 上游 `ProjectUnit`）。上游 YAML 已将该接口响应定义为 `MessageResultProjectUnit`，字段与 7.1 完全一致，见下方字段表。
+
+**响应字段**（上游 `ProjectUnit`，同 7.1）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | ID |
+| `ecode` | string | 企业code |
+| `projectId` | number | 项目ID |
+| `name` | string | 名字 |
+| `ubo` | string | 最终受益人的ecode，如果是三方模式，是另外一个企业ID，否则就是自己的企业ID |
+| `custodyServiceMode` | string | 托管接入模式 |
+| `topology` | string | 账户模型 |
+| `coinIds` | `CoinDto`[] | 币种集合 |
+| `accounts` | `AccountData`[] | 账户列表 |
+| `businessPurpose` | string | 业务用途 |
+| `status` | string | — |
+| `sort` † | number | 排序 |
+| `creationType` | string | 创建类型: PLATFORM/THIRD_PARTY |
+| `developerId` | string | 三方平台开发者ID |
+| `creatorId` † | number | 创建人 |
+| `remark` | string | 备注 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 更新时间 |
+
+> 标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`（签名与授权）——均由 custody 返回，网关透传。
 
@@ -1048,6 +1098,31 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 ```
 
 > 虽然网关会把 `pageSize` / `pageNum` 原样转发，但上游 YAML 未为该接口声明请求体，custody 是否真正分页**未经验证**；响应始终是数组，请勿按 `{ records, total, ... }` 解析（见 6.2）。
+
+**响应字段**（上游 `ProjectUnit`，同 7.1）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | ID |
+| `ecode` | string | 企业code |
+| `projectId` | number | 项目ID |
+| `name` | string | 名字 |
+| `ubo` | string | 最终受益人的ecode，如果是三方模式，是另外一个企业ID，否则就是自己的企业ID |
+| `custodyServiceMode` | string | 托管接入模式 |
+| `topology` | string | 账户模型 |
+| `coinIds` | `CoinDto`[] | 币种集合 |
+| `accounts` | `AccountData`[] | 账户列表 |
+| `businessPurpose` | string | 业务用途 |
+| `status` | string | — |
+| `sort` † | number | 排序 |
+| `creationType` | string | 创建类型: PLATFORM/THIRD_PARTY |
+| `developerId` | string | 三方平台开发者ID |
+| `creatorId` † | number | 创建人 |
+| `remark` | string | 备注 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 更新时间 |
+
+> 标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1110,6 +1185,38 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 
 `id` 即其他接口使用的 `cusAccountId`；`type` 为账户类型（`PRIMARY` / `PAYIN` / `PAYOUT` / `QUARANTINE` 等），`accountType` 为金库账户类型。后续地址、出金、归集接口的 `coinId` / `network` 建议取自本接口。
 
+**响应字段**（上游 `ProjectUnitAccount`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | id |
+| `ecode` | string | 企业code |
+| `vaultCode` | string | vault code |
+| `vaultAccountId` | string | 对应trustVault账户id |
+| `projectId` | number | 所属项目ID |
+| `treasuryUnitId` | number | 所属财务单元id |
+| `accountName` | string | 账户名称 |
+| `fundFlowCode` | string | fundFlow code |
+| `anycallCode` | string | anycall code |
+| `autoSignUrl` | string | auto_sign_url
+自动签入地址 |
+| `balance` | number | 主账户余额 |
+| `freezeBalance` | number | 冻结余额 |
+| `holdBalance` | number | 隔离余额（合规待确认/待复核的入金隔离资金） |
+| `coinId` | string | 管理的资产类型 |
+| `network` | string | 网络 |
+| `type` | string | 账户类型 |
+| `accountType` † | string | 金库账户类型 |
+| `status` | number | 状态:0不可用,1可用 |
+| `income` | number | 账户总入金 |
+| `outcome` | number | 账户总出金 |
+| `isSmart` | boolean | 是否是智能账户 |
+| `remark` † | string | 备注 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 创建时间 |
+
+> 标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。 `type` 是业务账户类型，`accountType` 是金库账户类型（`GENERAL` / `SMART` 等）。
+
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
 ---
@@ -1147,7 +1254,7 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 }
 ```
 
-**响应示例**（分页对象）
+**响应示例**（分页对象，record 为 `ProjectUnitAccountAddress`）
 
 ```json
 {
@@ -1157,17 +1264,32 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
     "records": [
       {
         "id": 9001,
+        "ecode": "EC0000000001",
+        "vaultCode": "VAULT001",
+        "projectId": 10,
         "address": "TXYZ...",
-        "addressIndex": 1,
-        "accountType": "PAYIN",
-        "coinId": "USDT",
-        "network": "TRC20",
+        "vaultAccountId": "tv-acc-001",
         "cusAccountId": 101,
         "treasuryUnitId": 80,
+        "coinId": "USDT",
+        "network": "TRC20",
+        "series": "TRON",
+        "addressIndex": 1,
+        "alias": "",
+        "isSmart": 0,
+        "isContract": 0,
+        "status": 3,
+        "accountType": "PAYIN",
         "available": 1,
         "holdAmount": 0,
         "holdFrozen": 0,
-        "status": 1,
+        "riskLevel": "LOW",
+        "riskScore": "0",
+        "riskCheckTime": "2026-10-19 09:59:00",
+        "expireTime": 24,
+        "userId": "",
+        "lastUsedTime": "2026-10-19 10:00:00",
+        "coolingEndTime": "",
         "createTime": "2026-10-19 10:00:00",
         "updateTime": "2026-10-19 10:00:00"
       }
@@ -1179,6 +1301,46 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
   }
 }
 ```
+
+**响应字段**（上游 `ProjectUnitAccountAddress`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | — |
+| `ecode` | string | 企业code |
+| `vaultCode` | string | vault code |
+| `projectId` | number | — |
+| `address` | string | 地址 |
+| `vaultAccountId` | string | trustVault账户ID |
+| `cusAccountId` | number | 商户账户ID |
+| `treasuryUnitId` | number | — |
+| `coinId` | string | 币种ID |
+| `network` | string | 网络 |
+| `series` † | string | 系列 |
+| `addressIndex` | number | 地址索引 |
+| `alias` † | string | 别名 |
+| `isSmart` | number | — |
+| `isContract` | number | 是smart账户地址,是否部署地址合约:1.是,0.否 |
+| `status` | number | 地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结 |
+| `accountType` | string | 账户类型 |
+| `available` | number | 是否可用:1.可用,0.不可用 |
+| `holdAmount` | number | 该地址当前被隔离(hold)的合计金额，>0 时禁止归集 |
+| `holdFrozen` | number | 是否因存在隔离资金而禁止归集:1.禁止,0.允许 |
+| `riskLevel` † | string | 风险等级 |
+| `riskScore` | string | 风险评分 |
+| `riskCheckTime` † | string | 风险校验时间 |
+| `expireTime` † | number | 有效时间,单位:小时 |
+| `userId` † | string | 关联用户ID |
+| `lastUsedTime` † | string | 最后使用时间 |
+| `coolingEndTime` † | string | 冷静期结束时间 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 创建时间 |
+
+> 标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。
+
+> `status` 与 `available` 是两个独立字段：`status` 描述地址（合约）生命周期，`available` 描述当前是否可用于收款/归集。归集前建议同时检查 `status === 3`、`available === 1` 且 `holdFrozen === 0`。
+>
+> 上表为上游 schema 全量字段；SIT 实测中 `series`、`alias`、`riskLevel`、`riskCheckTime`、`expireTime`、`userId`、`lastUsedTime`、`coolingEndTime` 可能缺失，请按可选字段处理。
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`。以 2xx 返回时由 custody 产生、网关透传；缺少 `accountType` 时返回的是**网关生成的** `500` `{ code, message }` 响应体（上游非 2xx，网关丢弃上游响应体），原因在上游。
 
@@ -1224,7 +1386,7 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
   "message": "SUCCESS",
   "data": {
     "records": [
-      { "id": 9001, "address": "TXYZ...", "addressIndex": 1, "accountType": "PAYIN", "coinId": "USDT", "network": "TRC20", "cusAccountId": 101, "treasuryUnitId": 80, "status": 1, "createTime": "2026-10-19 10:00:00", "updateTime": "2026-10-19 10:00:00" }
+      { "id": 9001, "ecode": "EC0000000001", "vaultCode": "VAULT001", "projectId": 10, "address": "TXYZ...", "vaultAccountId": "tv-acc-001", "cusAccountId": 101, "treasuryUnitId": 80, "coinId": "USDT", "network": "TRC20", "series": "TRON", "addressIndex": 1, "alias": "", "isSmart": 0, "isContract": 0, "status": 3, "accountType": "PAYIN", "available": 1, "holdAmount": 0, "holdFrozen": 0, "riskLevel": "LOW", "riskScore": "0", "riskCheckTime": "2026-10-19 09:59:00", "expireTime": 24, "userId": "", "lastUsedTime": "2026-10-19 10:00:00", "coolingEndTime": "", "createTime": "2026-10-19 10:00:00", "updateTime": "2026-10-19 10:00:00" }
     ],
     "total": 1,
     "current": 1,
@@ -1233,6 +1395,42 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
   }
 }
 ```
+
+**响应字段**：record 结构同 8.1（`ProjectUnitAccountAddress`），
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | — |
+| `ecode` | string | 企业code |
+| `vaultCode` | string | vault code |
+| `projectId` | number | — |
+| `address` | string | 地址 |
+| `vaultAccountId` | string | trustVault账户ID |
+| `cusAccountId` | number | 商户账户ID |
+| `treasuryUnitId` | number | — |
+| `coinId` | string | 币种ID |
+| `network` | string | 网络 |
+| `series` † | string | 系列 |
+| `addressIndex` | number | 地址索引 |
+| `alias` † | string | 别名 |
+| `isSmart` | number | — |
+| `isContract` | number | 是smart账户地址,是否部署地址合约:1.是,0.否 |
+| `status` | number | 地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结 |
+| `accountType` | string | 账户类型 |
+| `available` | number | 是否可用:1.可用,0.不可用 |
+| `holdAmount` | number | 该地址当前被隔离(hold)的合计金额，>0 时禁止归集 |
+| `holdFrozen` | number | 是否因存在隔离资金而禁止归集:1.禁止,0.允许 |
+| `riskLevel` † | string | 风险等级 |
+| `riskScore` | string | 风险评分 |
+| `riskCheckTime` † | string | 风险校验时间 |
+| `expireTime` † | number | 有效时间,单位:小时 |
+| `userId` † | string | 关联用户ID |
+| `lastUsedTime` † | string | 最后使用时间 |
+| `coolingEndTime` † | string | 冷静期结束时间 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 创建时间 |
+
+> 标 † 的字段 SIT 实测未返回。
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1266,13 +1464,49 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 }
 ```
 
-**响应示例**
+**响应示例**（`data` 为本次新建的地址数组，元素为 `AccountAddressVO`）
 
 ```json
-{ "code": 200, "message": "SUCCESS", "data": null }
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": [
+    { "id": 9003, "ecode": "EC0000000001", "vaultCode": "VAULT001", "projectId": 10, "address": "TABC...", "alias": "", "accountId": "tv-acc-001", "cusAccountId": 101, "treasuryUnitId": 80, "coinId": "USDT", "network": "TRC20", "isSmart": 0, "isContract": 0, "status": 1, "holdAmount": 0, "riskLevel": "LOW", "riskScore": "0", "accountType": "PAYIN", "createTime": "2026-10-19 10:05:00", "updateTime": "2026-10-19 10:05:00", "balance": "0" }
+  ]
+}
 ```
 
-该接口不返回新建的地址；需要地址时请调用 8.1 查询。`coinId` / `network` 必须是该财务单元已配置的币种与网络。
+**响应字段**（上游 `AccountAddressVO`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | — |
+| `ecode` | string | 企业code |
+| `vaultCode` | string | vault code |
+| `projectId` | number | — |
+| `address` | string | 地址 |
+| `alias` † | string | 别名 |
+| `accountId` † | string | trustVault账户ID |
+| `cusAccountId` | number | 商户账户ID |
+| `treasuryUnitId` | number | — |
+| `coinId` | string | 币种ID |
+| `network` | string | 网络 |
+| `isSmart` | number | — |
+| `isContract` | number | 是smart账户地址,是否部署地址合约:1.是,0.否 |
+| `status` | number | 地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结 |
+| `holdAmount` | number | 该地址当前被隔离(hold)的合计金额，>0 时禁止归集 |
+| `riskLevel` † | string | 风险等级 |
+| `riskScore` | string | 风险评分 |
+| `accountType` | string | 账户类型 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 更新时间 |
+| `balance` | string | — |
+
+> 标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。
+
+新建的 smart 地址通常以 `status: 1`（待部署合约）返回，需等合约部署完成（`status: 3`）后才可用于收款；部署进度可轮询 8.1 / 8.2 获取。 SIT 实测中 `alias`、`accountId`、`riskLevel` 可能缺失。
+
+Node SDK `createUnitAddress` / `createUnitAddressByAccount` 自 1.4.0 起返回 `AccountAddressVO[]`（此前分别为 `void` / `UnitAddress[]`）；Java SDK 自 1.2.6 起返回 `AccountAddressResponse[]` / `List<AccountAddressResponse>`（此前分别为 `void` / `List<UnitAddressResponse>`）。
 
 **常见业务码**：`400xxx`（参数；币种 / 网络未在单元下配置时由 custody 拒绝）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1303,19 +1537,47 @@ SDK 将 `data` 映射为 `TreasuryUnit`。上游 YAML 对该响应的 `data` 声
 }
 ```
 
-**响应示例**（`data` 为本次新建的地址数组）
+**响应示例**（`data` 为本次新建的地址数组，字段见 8.3 的 `AccountAddressVO`）
 
 ```json
 {
   "code": 200,
   "message": "SUCCESS",
   "data": [
-    { "id": 9002, "address": "TABC...", "addressIndex": 2, "accountType": "PAYIN", "coinId": "USDT", "network": "TRC20", "cusAccountId": 101, "treasuryUnitId": 80, "status": 1, "createTime": "2026-10-19 10:05:00", "updateTime": "2026-10-19 10:05:00" }
+    { "id": 9002, "ecode": "EC0000000001", "vaultCode": "VAULT001", "projectId": 10, "address": "TABC...", "alias": "", "accountId": "tv-acc-001", "cusAccountId": 101, "treasuryUnitId": 80, "coinId": "USDT", "network": "TRC20", "isSmart": 0, "isContract": 0, "status": 1, "holdAmount": 0, "riskLevel": "LOW", "riskScore": "0", "accountType": "PAYIN", "createTime": "2026-10-19 10:05:00", "updateTime": "2026-10-19 10:05:00", "balance": "0" }
   ]
 }
 ```
 
-Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java SDK 自 1.2.0 起返回 `List<UnitAddressResponse>`（此前为 `void`）。
+Node SDK `createUnitAddressByAccount` 自 1.4.0 起返回 `AccountAddressVO[]`；Java SDK 自 1.2.6 起返回 `List<AccountAddressResponse>`（字段同 8.3 的 `AccountAddressVO`）。
+
+**响应字段**：数组元素结构同 8.3（`AccountAddressVO`），
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | — |
+| `ecode` | string | 企业code |
+| `vaultCode` | string | vault code |
+| `projectId` | number | — |
+| `address` | string | 地址 |
+| `alias` † | string | 别名 |
+| `accountId` † | string | trustVault账户ID |
+| `cusAccountId` | number | 商户账户ID |
+| `treasuryUnitId` | number | — |
+| `coinId` | string | 币种ID |
+| `network` | string | 网络 |
+| `isSmart` | number | — |
+| `isContract` | number | 是smart账户地址,是否部署地址合约:1.是,0.否 |
+| `status` | number | 地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结 |
+| `holdAmount` | number | 该地址当前被隔离(hold)的合计金额，>0 时禁止归集 |
+| `riskLevel` † | string | 风险等级 |
+| `riskScore` | string | 风险评分 |
+| `accountType` | string | 账户类型 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 更新时间 |
+| `balance` | string | — |
+
+> 标 † 的字段 SIT 实测未返回。
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1369,6 +1631,43 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 返回的 `taskId` 可用于 11.1 提交审批。
 
+**响应字段**（上游 `WCCIPCmdAuditTask`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | id |
+| `taskId` | string | 任务ID |
+| `vaultCode` | string | vault code |
+| `projectId` | number | — |
+| `accountId` | string | 金库的账户ID |
+| `accountType` | string | 金库的账户类型 |
+| `submitter` | string | 提交人:在三方模式时是customer code/两方模式时是guard squad id |
+| `ecode` | string | 企业code |
+| `cmdType` | string | 命令类型 |
+| `cmdBasic` | `MapObject` | 命令 |
+| `cmdForm` | `MapObject` | 命令参数 |
+| `businessId` | string | 业务id:主要是订单id |
+| `state` | string | 任务状态 |
+| `businessType` | string | 业务类型:SYSTEM/BTC_TRANSFER等等 |
+| `taskType` | string | 任务类型,用于前端判断是资金还是系统操作:orders/issues |
+| `createTime` | string | 任务创建时间 |
+| `updateTime` | string | 任务更新时间 |
+| `signContent` | string | 签名内容 |
+| `signContentKeyMapping` | string | 签名内容的映射 |
+| `total` | number | 总参与审批数量 |
+| `threshold` | number | 门限 |
+| `signers` | string[] | 任务参与者、审核人、审批人等 |
+| `algoType` | string | — |
+| `initiator` | string | 任务发起人 |
+| `taskOperation` | string | 任务操作,如转账,设置board等等 |
+| `signersLevel` | number | — |
+| `coinId` | string | — |
+| `unitName` | string | — |
+| `accountName` | string | — |
+| `includes` | string[] | — |
+| `sponsored` | boolean | — |
+| `remark` | string | — |
+
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
 ### 9.2 更新资金流控制规则
@@ -1380,9 +1679,9 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `treasuryUnitId` | number | 是 | 财务单元 ID（SDK 类型必填） |
+| `treasuryUnitId` | number | 是 | 财务单元 ID |
+| `cusAccountId` | number | 是 | 账户 ID；规则按该账户更新 |
 | `fundControls` | FundControl[] | 是 | 资金管理员规则，每项 `{ coinId, fundControlRules }` |
-| `cusAccountId` | number | 否 | 指定账户 ID；传入时按该账户更新 |
 | `note` | string | 否 | 备注 |
 
 **请求示例**
@@ -1401,13 +1700,56 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 }
 ```
 
-**响应示例**
+**响应示例**（`data` 为生成的审批任务）
 
 ```json
-{ "code": 200, "message": "SUCCESS", "data": null }
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": { "id": 5002, "taskId": "task-20261019-011", "taskOperation": "FUND_FLOW", "state": "AUDITING", "threshold": 1, "total": 1, "signers": ["guardian-1"], "createTime": "2026-10-19 10:20:00", "updateTime": "2026-10-19 10:20:00" }
+}
 ```
 
-该变更的具体效果（是否需要 Board 审批、是否异步生成审批任务）**未经验证**：SDK 返回 `void`，上游 YAML 的响应为 `MessageResult?`，均未描述审批流程。
+规则变更走审批流程：返回的 `taskId` 可用于 11.1 提交审批，签名达到门限后规则才生效。
+
+**响应字段**（上游 `WCCIPCmdAuditTask`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | id |
+| `taskId` | string | 任务ID |
+| `vaultCode` | string | vault code |
+| `projectId` | number | — |
+| `accountId` | string | 金库的账户ID |
+| `accountType` | string | 金库的账户类型 |
+| `submitter` | string | 提交人:在三方模式时是customer code/两方模式时是guard squad id |
+| `ecode` | string | 企业code |
+| `cmdType` | string | 命令类型 |
+| `cmdBasic` | `MapObject` | 命令 |
+| `cmdForm` | `MapObject` | 命令参数 |
+| `businessId` | string | 业务id:主要是订单id |
+| `state` | string | 任务状态 |
+| `businessType` | string | 业务类型:SYSTEM/BTC_TRANSFER等等 |
+| `taskType` | string | 任务类型,用于前端判断是资金还是系统操作:orders/issues |
+| `createTime` | string | 任务创建时间 |
+| `updateTime` | string | 任务更新时间 |
+| `signContent` | string | 签名内容 |
+| `signContentKeyMapping` | string | 签名内容的映射 |
+| `total` | number | 总参与审批数量 |
+| `threshold` | number | 门限 |
+| `signers` | string[] | 任务参与者、审核人、审批人等 |
+| `algoType` | string | — |
+| `initiator` | string | 任务发起人 |
+| `taskOperation` | string | 任务操作,如转账,设置board等等 |
+| `signersLevel` | number | — |
+| `coinId` | string | — |
+| `unitName` | string | — |
+| `accountName` | string | — |
+| `includes` | string[] | — |
+| `sponsored` | boolean | — |
+| `remark` | string | — |
+
+Node SDK `updateFundControl` 自 1.4.0 起返回 `WCCIPCmdAuditTask`；Java SDK `FundControlService.updateFundControl` 自 1.2.6 起返回 `AuditTaskResponse`（此前均为 `void`）。
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1456,6 +1798,43 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 返回的 `taskId` 可用于 11.1 提交审批。
 
+**响应字段**（上游 `WCCIPCmdAuditTask`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | id |
+| `taskId` | string | 任务ID |
+| `vaultCode` | string | vault code |
+| `projectId` | number | — |
+| `accountId` | string | 金库的账户ID |
+| `accountType` | string | 金库的账户类型 |
+| `submitter` | string | 提交人:在三方模式时是customer code/两方模式时是guard squad id |
+| `ecode` | string | 企业code |
+| `cmdType` | string | 命令类型 |
+| `cmdBasic` | `MapObject` | 命令 |
+| `cmdForm` | `MapObject` | 命令参数 |
+| `businessId` | string | 业务id:主要是订单id |
+| `state` | string | 任务状态 |
+| `businessType` | string | 业务类型:SYSTEM/BTC_TRANSFER等等 |
+| `taskType` | string | 任务类型,用于前端判断是资金还是系统操作:orders/issues |
+| `createTime` | string | 任务创建时间 |
+| `updateTime` | string | 任务更新时间 |
+| `signContent` | string | 签名内容 |
+| `signContentKeyMapping` | string | 签名内容的映射 |
+| `total` | number | 总参与审批数量 |
+| `threshold` | number | 门限 |
+| `signers` | string[] | 任务参与者、审核人、审批人等 |
+| `algoType` | string | — |
+| `initiator` | string | 任务发起人 |
+| `taskOperation` | string | 任务操作,如转账,设置board等等 |
+| `signersLevel` | number | — |
+| `coinId` | string | — |
+| `unitName` | string | — |
+| `accountName` | string | — |
+| `includes` | string[] | — |
+| `sponsored` | boolean | — |
+| `remark` | string | — |
+
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
 ---
@@ -1487,7 +1866,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 | `initiator` | string | 否 | 任务发起人（邮箱 / 名称） |
 | `travelRule` | TravelRuleRequest | 否 | Travel Rule：`{ referenceId?, payload? }` |
 
-`TravelRulePayload` 字段：`beneficiaryType`（`NATURAL` / `LEGAL`）、`beneficiaryName`、`beneficiaryDob`、`beneficiaryIdNumber`、`beneficiaryIdType`、`beneficiaryNationality`（以上适用于 `NATURAL`）、`beneficiaryLegalName`、`beneficiaryLegalRegistrationNo`、`beneficiaryLegalCountry`（以上适用于 `LEGAL`）。
+`TravelRulePayload` 字段：`beneficiaryType`（`NATURAL` / `LEGAL`）、`beneficiaryName`、`beneficiaryDob`、`beneficiaryIdNumber`、`beneficiaryIdType`、`beneficiaryNationality`（以上适用于 `NATURAL`）、`beneficiaryLegalName`、`beneficiaryLegalRegistrationNo`、`beneficiaryLegalCountry`（以上适用于 `LEGAL`），以及对手方 VASP 信息 `beneficiaryVaspDid`、`beneficiaryVaspName`。
 
 > 本接口是非幂等写操作：网关对上游 5xx / 超时会自动重试（实际次数可能远超 3 次，见第 7 章开头的转发说明），而 `orderId` 去重尚未验证，重试可能导致重复出金。
 
@@ -1535,6 +1914,43 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 ```
 
 返回的是审核任务（`WCCIPCmdAuditTask`）。`data.taskId` 用于 11.1 提交审批；`state`、`signContent`、`signers` 等字段用于后续签名流程。
+
+**响应字段**（上游 `WCCIPCmdAuditTask`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | id |
+| `taskId` | string | 任务ID |
+| `vaultCode` | string | vault code |
+| `projectId` | number | — |
+| `accountId` | string | 金库的账户ID |
+| `accountType` | string | 金库的账户类型 |
+| `submitter` | string | 提交人:在三方模式时是customer code/两方模式时是guard squad id |
+| `ecode` | string | 企业code |
+| `cmdType` | string | 命令类型 |
+| `cmdBasic` | `MapObject` | 命令 |
+| `cmdForm` | `MapObject` | 命令参数 |
+| `businessId` | string | 业务id:主要是订单id |
+| `state` | string | 任务状态 |
+| `businessType` | string | 业务类型:SYSTEM/BTC_TRANSFER等等 |
+| `taskType` | string | 任务类型,用于前端判断是资金还是系统操作:orders/issues |
+| `createTime` | string | 任务创建时间 |
+| `updateTime` | string | 任务更新时间 |
+| `signContent` | string | 签名内容 |
+| `signContentKeyMapping` | string | 签名内容的映射 |
+| `total` | number | 总参与审批数量 |
+| `threshold` | number | 门限 |
+| `signers` | string[] | 任务参与者、审核人、审批人等 |
+| `algoType` | string | — |
+| `initiator` | string | 任务发起人 |
+| `taskOperation` | string | 任务操作,如转账,设置board等等 |
+| `signersLevel` | number | — |
+| `coinId` | string | — |
+| `unitName` | string | — |
+| `accountName` | string | — |
+| `includes` | string[] | — |
+| `sponsored` | boolean | — |
+| `remark` | string | — |
 
 **常见业务码**：`400xxx`（参数）、`120xxx`（业务规则，如余额或政策不允许）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1606,6 +2022,58 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 }
 ```
 
+**响应字段**（上游 `ProjectUnitTransferOutOrder`，同 12.2）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `ecode` | string | 企业code |
+| `vaultCode` | string | 金库code |
+| `projectId` | number | 项目Id |
+| `treasuryUnitId` | number | 财务单元ID |
+| `ledgerId` † | number | 账本id |
+| `cusAccountId` | number | 账户id |
+| `address` † | string | 交易地址 |
+| `coinId` | string | 币种ID |
+| `network` | string | 所在网络 |
+| `businessScope` † | string | 托管业务类型 |
+| `travelRuleReferenceId` † | string | Travel Rule 引用ID |
+| `travelRulePayload` † | string | Travel Rule 原始数据(JSON字符串) |
+| `travelRuleStatus` † | string | Travel Rule 状态 |
+| `travelRuleCheckStatus` † | string | Travel Rule 合规状态 |
+| `travelRuleCheckPayload` † | string | Travel Rule 合规回执(JSON字符串) |
+| `kytStatus` † | string | KYT 合规状态 |
+| `kytRiskScore` † | number | KYT 风险评分 |
+| `kytPayload` † | string | KYT 回执(JSON字符串) |
+| `kyaRiskScore` † | number | KYA 地址风险最大评分 |
+| `complianceProvider` † | string | 合规提供方 |
+| `orderId` | string | 业务订单ID |
+| `txId` † | string | 链上ID,一般情况下为一条记录，有时候会出现多条记录 |
+| `fee` † | string | 付款手续费 |
+| `callbackStatus` † | string | 回调状态 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 创建时间 |
+| `id` | number | id |
+| `taskId` † | string | 审批任务ID |
+| `inputAmount` | string | 可读金额 |
+| `totalAmount` | number | 付款链上金额 |
+| `fundFlowCode` † | string | 资金流水号 |
+| `orderState` | string | 订单状态：初始化，审批中，已拒绝，交易中，交易成功，交易失败 |
+| `payToList` | `PayTo`[] | — |
+| `note` † | string | 付款备注 |
+| `businessId` † | string | 第三方业务订单ID |
+| `txCount` | number | 交易数 |
+| `failReason` † | string | 失败原因 |
+| `taskInitiator` † | string | 任务发起人(邮箱/名称) |
+| `source` † | string | 接口来源: INTERNAL/API/THIRD_PARTY |
+| `taskOperation` † | string | 任务操作类型: PAYOUT/WITHDRAW/ALLOCATE |
+| `vaspDid` † | string | 生效的对方 VASP DID（用户申报值与后端 discover 查到一致时即该值；admin 复核可修正） |
+| `vaspName` † | string | 生效的对方 VASP 机构名（仅展示/审计，不参与一致性判定） |
+| `vaspReviewStatus` † | string | VASP 复核状态：MATCHED-申报与查到一致 / MISMATCH-不一致待处理 / CONFIRMED-admin 强制放行 |
+| `vaspReviewedBy` † | string | VASP 复核操作人（admin） |
+| `vaspReviewedAt` † | string | VASP 复核时间 |
+
+> 标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。
+
 **常见业务码**：`120042 ONLY_ACQUIRING_ACCOUNT_ALLOWED`（来源账户不是 platform 创建的收款类账户）、`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
 ---
@@ -1649,6 +2117,8 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 ```json
 { "code": 200, "message": "SUCCESS", "data": null }
 ```
+
+**响应**：上游 YAML 将该接口声明为 `MessageResult?`，成功时 `data` 为 `null`，无响应字段。
 
 任务不存在或 `taskId` 无效时由 custody 返回错误（网关透传；`taskId` 还会先经过网关路径参数校验，非法字符返回 `40001`）。
 
@@ -1698,7 +2168,14 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 **POST** `/api/thirdparty/treasury/activities` · 鉴权：Resource 签名
 > 网关转发至 custody：`/api/third-party/activities/{resourceKey}`，`business` 原样作为上游请求体
 
-**请求参数（business）**：`PaginationQuery`（见本章开头的查询参数定义）
+**请求参数（business）**：`PaginationQuery`（字段定义见本章开头的查询参数）
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `pageIndex` | number | 否 | 页索引，从 0 开始 |
+| `pageSize` | number | 否 | 每页数量 |
+| `sortFields` | string | 否 | 排序，格式 `字段_类型`，如 `createTime_d` |
+| `queryList` | QueryCondition[] | 否 | 过滤条件，每项 `{ key, value, oper?, join? }`；常用 `key`：`cusAccountId`、`treasuryUnitId`、`ledgerId`、`txType`、`direction` |
 
 **请求示例**
 
@@ -1717,7 +2194,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
   "message": "SUCCESS",
   "data": {
     "records": [
-      { "id": 3001, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "cusAccountId": 101, "accountType": "PAYIN", "coinId": "USDT", "network": "TRC20", "type": "TRANSFER_IN", "amount": 100, "direction": "IN", "orderId": "ORDER-20261019-001", "businessId": "BIZ-001", "status": "COMPLETED", "travelRuleStatus": "NOT_REQUIRED", "kytStatus": "PASSED", "createTime": "2026-10-19 10:30:00", "updateTime": "2026-10-19 10:31:00" }
+      { "id": 3001, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "ledgerId": 20, "cusAccountId": 101, "accountType": "PAYIN", "cpAccountId": 102, "coinId": "USDT", "network": "TRC20", "type": "TRANSFER_IN", "amount": 100, "direction": "IN", "orderId": "ORDER-20261019-001", "businessId": "BIZ-001", "status": "COMPLETED", "travelRuleStatus": "NOT_REQUIRED", "kytStatus": "PASSED", "kyaStatus": "LOW", "createTime": "2026-10-19 10:30:00", "updateTime": "2026-10-19 10:31:00" }
     ],
     "total": 1,
     "current": 1,
@@ -1727,7 +2204,35 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 }
 ```
 
-关键字段：`direction`（`IN` / `OUT`）、`status`（`SUBMITTING` / `APPROVED` / `REJECTED` / `FAILED` / `CONFIRMING` / `COMPLETED` / `EXPIRED` / `PENDING_COMPLIANCE` / `PENDING_CONFIRMATION` / `PENDING_REVIEW` / `REVIEW_ACCEPTED` / `REVIEW_REJECTED`）、`travelRuleStatus`（`NOT_REQUIRED` / `PENDING` / `PASSED` / `FAILED` / `REVIEW`）、`kytStatus` / `kyaStatus`（风险相关，取值以后端为准）。
+关键字段：`direction`（`IN` / `OUT`）、`status`（`SUBMITTING` / `APPROVED` / `REJECTED` / `FAILED` / `BROADCAST_SUCCESS` / `CONFIRMING` / `COMPLETED` / `EXPIRED` / `PENDING_COMPLIANCE` / `PENDING_CONFIRMATION` / `PENDING_REVIEW` / `REVIEW_ACCEPTED` / `REVIEW_REJECTED`）、`travelRuleStatus`（`NOT_REQUIRED` / `PENDING` / `PASSED` / `FAILED` / `REVIEW`）、`kytStatus` / `kyaStatus`（风险相关，取值以后端为准）。
+
+**响应字段**（上游 `ProjectUnitActivity`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | — |
+| `ecode` | string | 商户号 |
+| `projectId` | number | 项目ID |
+| `treasuryUnitId` | number | 账户单元ID |
+| `ledgerId` † | number | 账本ID |
+| `cusAccountId` | number | 发生交易的账户ID,出金就是from账户id,入金就是to账户id,这里是TrustVault账户id |
+| `accountType` | string | 发生交易的账户名称出金就是from账户名,入金就是to账户名 |
+| `cpAccountId` † | number | 对向账户ID,与accountId对应,这里是Custody账户id |
+| `coinId` | string | 币种ID |
+| `network` | string | 网络 |
+| `type` | string | 活动类型 |
+| `amount` | number | 活动金额 |
+| `direction` | string | 资金流转方向:IN/OUT |
+| `orderId` | string | 活动所属订单号 |
+| `businessId` † | string | 第三方业务订单ID |
+| `status` | string | 状态 |
+| `travelRuleStatus` | string | Travel Rule 状态 |
+| `kytStatus` | string | KYT 状态 |
+| `kyaStatus` † | string | KYA 风险等级(HIGH/MEDIUM/LOW) |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 更新时间 |
+
+> 标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1736,7 +2241,14 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 **POST** `/api/thirdparty/treasury/transfer-out-orders` · 鉴权：Resource 签名
 > 网关转发至 custody：`/api/third-party/transfer-out-orders/{resourceKey}`，`business` 原样作为上游请求体
 
-**请求参数（business）**：`PaginationQuery`（见本章开头的查询参数定义）
+**请求参数（business）**：`PaginationQuery`（字段定义见本章开头的查询参数）
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `pageIndex` | number | 否 | 页索引，从 0 开始 |
+| `pageSize` | number | 否 | 每页数量 |
+| `sortFields` | string | 否 | 排序，格式 `字段_类型`，如 `createTime_d` |
+| `queryList` | QueryCondition[] | 否 | 过滤条件，每项 `{ key, value, oper?, join? }`；常用 `key`：`cusAccountId`、`treasuryUnitId`、`ledgerId`、`txType`、`direction` |
 
 **请求示例**
 
@@ -1755,7 +2267,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
   "message": "SUCCESS",
   "data": {
     "records": [
-      { "id": 7001, "ecode": "EC0000000001", "vaultCode": "VAULT001", "projectId": 10, "treasuryUnitId": 80, "cusAccountId": 101, "address": "TXYZ...", "coinId": "USDT", "network": "TRC20", "orderId": "ORDER-20261019-001", "txId": "0xabc...", "fee": "1", "inputAmount": "100", "totalAmount": 100, "orderState": "SUCCEED", "callbackStatus": "SUCCEED", "taskId": "task-20261019-003", "payToList": [{ "to": "0x1234...abcd", "amount": 100 }], "createTime": "2026-10-19 10:20:00", "updateTime": "2026-10-19 10:35:00" }
+      { "id": 7001, "ecode": "EC0000000001", "vaultCode": "VAULT001", "projectId": 10, "treasuryUnitId": 80, "ledgerId": 20, "cusAccountId": 101, "address": "TXYZ...", "coinId": "USDT", "network": "TRC20", "businessScope": "DEDICATED_ACCOUNT", "orderId": "ORDER-20261019-001", "txId": "0xabc...", "fee": "1", "inputAmount": "100", "totalAmount": 100, "orderState": "SUCCEED", "callbackStatus": "SUCCEED", "taskId": "task-20261019-003", "payToList": [{ "to": "0x1234...abcd", "amount": 100 }], "vaspDid": "did:example:counterparty", "vaspName": "Example VASP", "vaspReviewStatus": "NOT_REQUIRED", "createTime": "2026-10-19 10:20:00", "updateTime": "2026-10-19 10:35:00" }
     ],
     "total": 1,
     "current": 1,
@@ -1765,7 +2277,61 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 }
 ```
 
-关键字段：`orderState`（`AUDITING` / `SIGNING` / `SIGN_FAILED` / `SIGNING_REJECTED` / `TRANSITING` / `SUCCEED` / `FAILED` / `EXPIRED` / `SUBMIT_FAILED` / `CONFIRMING` / `COMPLIANCE_PENDING` / `TRAVEL_RULE_PENDING` / `MANUAL_REVIEW_PENDING` / `REJECTED` / `CANCELLED`）、`callbackStatus`（`TRANSITING` / `SUCCEED` / `FAILED`）、`taskId`、`txId`、`fee`、`payToList`；`travelRuleStatus` / `travelRuleCheckStatus` / `kytStatus` / `kyaRiskScore` 为合规与风险字段。
+关键字段：`orderState`（`AUDITING` / `SIGNING` / `SIGN_FAILED` / `SIGNING_REJECTED` / `TRANSITING` / `BROADCAST_SUCCESS` / `SUCCEED` / `FAILED` / `EXPIRED` / `SUBMIT_FAILED` / `CONFIRMING` / `COMPLIANCE_PENDING` / `TRAVEL_RULE_PENDING` / `MANUAL_REVIEW_PENDING` / `VASP_MISMATCH_PENDING` / `REJECTED` / `CANCELLED`）、`callbackStatus`（`TRANSITING` / `SUCCEED` / `FAILED`）、`taskId`、`txId`、`fee`、`payToList`；`travelRuleStatus` / `travelRuleCheckStatus` / `kytStatus` / `kyaRiskScore` 为合规与风险字段。
+
+Travel Rule / VASP 相关字段：`vaspDid`（对手方 VASP DID）、`vaspName`（对手方 VASP 名称）、`vaspReviewStatus`（VASP 复核状态）、`vaspReviewedBy` / `vaspReviewedAt`（复核人/时间）。`orderState` 为 `VASP_MISMATCH_PENDING` 表示 Travel Rule 汇款信息与对手方 VASP 不一致、等待人工处理。
+
+**响应字段**（上游 `ProjectUnitTransferOutOrder`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `ecode` | string | 企业code |
+| `vaultCode` | string | 金库code |
+| `projectId` | number | 项目Id |
+| `treasuryUnitId` | number | 财务单元ID |
+| `ledgerId` † | number | 账本id |
+| `cusAccountId` | number | 账户id |
+| `address` † | string | 交易地址 |
+| `coinId` | string | 币种ID |
+| `network` | string | 所在网络 |
+| `businessScope` † | string | 托管业务类型 |
+| `travelRuleReferenceId` † | string | Travel Rule 引用ID |
+| `travelRulePayload` † | string | Travel Rule 原始数据(JSON字符串) |
+| `travelRuleStatus` † | string | Travel Rule 状态 |
+| `travelRuleCheckStatus` † | string | Travel Rule 合规状态 |
+| `travelRuleCheckPayload` † | string | Travel Rule 合规回执(JSON字符串) |
+| `kytStatus` † | string | KYT 合规状态 |
+| `kytRiskScore` † | number | KYT 风险评分 |
+| `kytPayload` † | string | KYT 回执(JSON字符串) |
+| `kyaRiskScore` † | number | KYA 地址风险最大评分 |
+| `complianceProvider` † | string | 合规提供方 |
+| `orderId` | string | 业务订单ID |
+| `txId` † | string | 链上ID,一般情况下为一条记录，有时候会出现多条记录 |
+| `fee` † | string | 付款手续费 |
+| `callbackStatus` † | string | 回调状态 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 创建时间 |
+| `id` | number | id |
+| `taskId` † | string | 审批任务ID |
+| `inputAmount` | string | 可读金额 |
+| `totalAmount` | number | 付款链上金额 |
+| `fundFlowCode` † | string | 资金流水号 |
+| `orderState` | string | 订单状态：初始化，审批中，已拒绝，交易中，交易成功，交易失败 |
+| `payToList` | `PayTo`[] | — |
+| `note` † | string | 付款备注 |
+| `businessId` † | string | 第三方业务订单ID |
+| `txCount` | number | 交易数 |
+| `failReason` † | string | 失败原因 |
+| `taskInitiator` † | string | 任务发起人(邮箱/名称) |
+| `source` † | string | 接口来源: INTERNAL/API/THIRD_PARTY |
+| `taskOperation` † | string | 任务操作类型: PAYOUT/WITHDRAW/ALLOCATE |
+| `vaspDid` † | string | 生效的对方 VASP DID（用户申报值与后端 discover 查到一致时即该值；admin 复核可修正） |
+| `vaspName` † | string | 生效的对方 VASP 机构名（仅展示/审计，不参与一致性判定） |
+| `vaspReviewStatus` † | string | VASP 复核状态：MATCHED-申报与查到一致 / MISMATCH-不一致待处理 / CONFIRMED-admin 强制放行 |
+| `vaspReviewedBy` † | string | VASP 复核操作人（admin） |
+| `vaspReviewedAt` † | string | VASP 复核时间 |
+
+> 标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1774,7 +2340,14 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 **POST** `/api/thirdparty/treasury/transfer-in-orders` · 鉴权：Resource 签名
 > 网关转发至 custody：`/api/third-party/transfer-in-orders/{resourceKey}`，`business` 原样作为上游请求体
 
-**请求参数（business）**：`PaginationQuery`（见本章开头的查询参数定义）
+**请求参数（business）**：`PaginationQuery`（字段定义见本章开头的查询参数）
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `pageIndex` | number | 否 | 页索引，从 0 开始 |
+| `pageSize` | number | 否 | 每页数量 |
+| `sortFields` | string | 否 | 排序，格式 `字段_类型`，如 `createTime_d` |
+| `queryList` | QueryCondition[] | 否 | 过滤条件，每项 `{ key, value, oper?, join? }`；常用 `key`：`cusAccountId`、`treasuryUnitId`、`ledgerId`、`txType`、`direction` |
 
 **请求示例**
 
@@ -1793,7 +2366,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
   "message": "SUCCESS",
   "data": {
     "records": [
-      { "id": 6001, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "cusAccountId": 101, "address": "TXYZ...", "cpAddress": "TABC...", "coinId": "USDT", "network": "TRC20", "amount": 100, "orderId": "ORDER-20261019-001", "txId": "0xdef...", "fee": "1", "orderState": "SUCCEED", "callbackStatus": "SUCCEED", "type": 1, "note": "deposit", "createTime": "2026-10-19 10:30:00", "updateTime": "2026-10-19 10:31:00" }
+      { "id": 6001, "ecode": "EC0000000001", "vaultCode": "VAULT001", "projectId": 10, "treasuryUnitId": 80, "ledgerId": 20, "cusAccountId": 101, "address": "TXYZ...", "cpAddress": "TABC...", "coinId": "USDT", "network": "TRC20", "businessScope": "DEDICATED_ACCOUNT", "amount": 100, "orderId": "ORDER-20261019-001", "txId": "0xdef...", "fee": "1", "orderState": "SUCCEED", "callbackStatus": "SUCCEED", "type": 1, "note": "deposit", "initiator": 1, "createTime": "2026-10-19 10:30:00", "updateTime": "2026-10-19 10:31:00" }
     ],
     "total": 1,
     "current": 1,
@@ -1805,6 +2378,46 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 
 关键字段：`orderState`（`PROCESSING` / `CONFIRMING` / `SUCCEED` / `FAILED` / `MISMATCH` / `EXPIRED` / `COMPLIANCE_HOLD` / `PENDING_REVIEW` / `REVIEW_ACCEPTED` / `REVIEW_REJECTED`）、`type`（`1` 充值、`2` 收款）、`initiator`（`1` 商户、`2` 商户的用户）、`cpAddress`、`amount`、`txId`。
 
+**响应字段**（上游 `ProjectUnitTransferInOrder`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `ecode` | string | 企业code |
+| `vaultCode` | string | 金库code |
+| `projectId` | number | 项目Id |
+| `treasuryUnitId` † | number | 财务单元ID |
+| `ledgerId` † | number | 账本id |
+| `cusAccountId` | number | 账户id |
+| `address` | string | 交易地址 |
+| `coinId` | string | 币种ID |
+| `network` | string | 所在网络 |
+| `businessScope` † | string | 托管业务类型 |
+| `travelRuleReferenceId` † | string | Travel Rule 引用ID |
+| `travelRulePayload` † | string | Travel Rule 原始数据(JSON字符串) |
+| `travelRuleStatus` † | string | Travel Rule 状态 |
+| `travelRuleCheckStatus` † | string | Travel Rule 合规状态 |
+| `travelRuleCheckPayload` † | string | Travel Rule 合规回执(JSON字符串) |
+| `kytStatus` † | string | KYT 合规状态 |
+| `kytRiskScore` † | number | KYT 风险评分 |
+| `kytPayload` † | string | KYT 回执(JSON字符串) |
+| `kyaRiskScore` † | number | KYA 地址风险最大评分 |
+| `complianceProvider` † | string | 合规提供方 |
+| `orderId` | string | 业务订单ID |
+| `txId` | string | 链上ID,一般情况下为一条记录，有时候会出现多条记录 |
+| `fee` † | string | 付款手续费 |
+| `callbackStatus` † | string | 回调状态 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 创建时间 |
+| `id` | number | id |
+| `cpAddress` | string | 付款地址 |
+| `amount` | number | 收款金额 |
+| `orderState` | string | 订单状态：交易中，交易成功，交易失败 |
+| `type` | number | 订单类型：1.充值，2.收款 |
+| `note` † | string | 收款备注 |
+| `initiator` | number | 发起方:1.商户,2.商户的用户 |
+
+> 标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。
+
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
 ### 12.4 查询账户资金流水
@@ -1812,7 +2425,14 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 **POST** `/api/thirdparty/treasury/fund-records` · 鉴权：Resource 签名
 > 网关转发至 custody：`/api/third-party/fund-records/{resourceKey}`，`business` 原样作为上游请求体
 
-**请求参数（business）**：`PaginationQuery`（见本章开头的查询参数定义）
+**请求参数（business）**：`PaginationQuery`（字段定义见本章开头的查询参数）
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `pageIndex` | number | 否 | 页索引，从 0 开始 |
+| `pageSize` | number | 否 | 每页数量 |
+| `sortFields` | string | 否 | 排序，格式 `字段_类型`，如 `createTime_d` |
+| `queryList` | QueryCondition[] | 否 | 过滤条件，每项 `{ key, value, oper?, join? }`；常用 `key`：`cusAccountId`、`treasuryUnitId`、`ledgerId`、`txType`、`direction` |
 
 **请求示例**
 
@@ -1831,7 +2451,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
   "message": "SUCCESS",
   "data": {
     "records": [
-      { "id": 4001, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "cusAccountId": 101, "txId": "0xdef...", "orderId": "ORDER-20261019-001", "coinId": "USDT", "network": "TRC20", "amount": 100, "preBalance": 900, "postBalance": 1000, "fee": "1", "txType": "TRANSFER_IN", "createTime": "2026-10-19 10:30:00" }
+      { "id": 4001, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "cusAccountId": 101, "txId": "0xdef...", "orderId": "ORDER-20261019-001", "coinId": "USDT", "network": "TRC20", "fromAddr": "TABC...", "toAddr": "TXYZ...", "direction": "IN", "amount": 100, "preBalance": 900, "postBalance": 1000, "fee": "1", "txType": "TRANSFER_IN", "createTime": "2026-10-19 10:30:00" }
     ],
     "total": 1,
     "current": 1,
@@ -1841,7 +2461,34 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 }
 ```
 
+**记录字段**（`ProjectUnitFundRecord`）
+
+**响应字段**（上游 `ProjectUnitFundRecord`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | 流水主键 |
+| `ecode` | string | 商户编码 |
+| `projectId` | number | 账户组 code |
+| `treasuryUnitId` | number | 所属财务单元 ID |
+| `cusAccountId` | number | 对应账户 ID |
+| `txId` | string | 链上交易 ID |
+| `orderId` | string | 业务订单 ID |
+| `coinId` / `network` | string | 币种 / 网络 |
+| `fromAddr`（可选） | string | **出金地址**（转出方地址） |
+| `toAddr`（可选） | string | **入金地址**（转入方地址） |
+| `direction`（可选） | string | **方向：`IN`（入金）/ `OUT`（出金）** |
+| `amount` | number | 金额（最小单位） |
+| `preBalance` / `postBalance` | number | 期初 / 期末余额 |
+| `fee` | string | 手续费 |
+| `txType` | string | 流水类型，见下 |
+| `createTime` | string | 创建时间 |
+
 `txType` 取值：`TRANSFER_IN` / `TRANSFER_OUT` / `WITHDRAW` / `ALLOCATE_IN` / `ALLOCATE_OUT` / `POOL_IN` / `POOL_OUT` / `GAS_OUT` / `FEE_OUT` / `DEPLOY`。
+
+> `direction` 与 `txType` 互补：`txType` 描述业务动作（如 `ALLOCATE_IN` 是内部划转），`direction` 只描述对当前账户的资金进出方向，对账时以 `direction` 为准。`fromAddr` / `toAddr` 在内部划转中为平台内部地址，在链上充提中为链上地址。
+>
+> 注意：`fromAddr` / `toAddr` / `direction` 已列入上游 schema（2026-10 版 `ProjectUnitFundRecord`），但 SIT 实测的部分历史流水（如 `txType: TRANSFER_IN` 的早期记录）**未返回这三个字段**。请按可选字段处理，缺失时回退到 `txType` 判断方向。
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1850,7 +2497,14 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 **POST** `/api/thirdparty/treasury/unit-fund-records` · 鉴权：Resource 签名
 > 网关转发至 custody：`/api/third-party/unit-fund-records/{resourceKey}`，`business` 原样作为上游请求体
 
-**请求参数（business）**：`PaginationQuery`（见本章开头的查询参数定义）
+**请求参数（business）**：`PaginationQuery`（字段定义见本章开头的查询参数）
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `pageIndex` | number | 否 | 页索引，从 0 开始 |
+| `pageSize` | number | 否 | 每页数量 |
+| `sortFields` | string | 否 | 排序，格式 `字段_类型`，如 `createTime_d` |
+| `queryList` | QueryCondition[] | 否 | 过滤条件，每项 `{ key, value, oper?, join? }`；常用 `key`：`cusAccountId`、`treasuryUnitId`、`ledgerId`、`txType`、`direction` |
 
 **请求示例**
 
@@ -1879,7 +2533,27 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 }
 ```
 
-与 12.4 的区别：本接口按财务单元（`ledgerId`）聚合流水，不返回 `cusAccountId`。
+与 12.4 的区别：本接口按财务单元（`ledgerId`）聚合流水，不返回 `cusAccountId`。注意上游 `ProjectUnitLedgerFundRecord` **没有** `fromAddr` / `toAddr` / `direction` 三个字段（见下方字段表）。
+
+**响应字段**（上游 `ProjectUnitLedgerFundRecord`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | 主键id |
+| `ecode` | string | 商户编码 |
+| `projectId` | number | 账户组code |
+| `treasuryUnitId` | number | 所属财务单元id |
+| `ledgerId` | number | 对应账本id |
+| `txId` | string | 交易ID |
+| `orderId` | string | 订单id |
+| `coinId` | string | 币种 |
+| `network` | string | 网络 |
+| `amount` | number | 金额 |
+| `preBalance` | number | 期初余额 |
+| `postBalance` | number | 期末余额 |
+| `fee` | string | 手续费 |
+| `txType` | string | 流水类型 |
+| `createTime` | string | 创建时间 |
 
 **常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
@@ -1969,7 +2643,7 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 }
 ```
 
-**响应参数（data）**
+**响应字段**（上游 `ThirdMerchantRegisterResult` + 网关补充的 `authorizedId`）
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
@@ -1978,6 +2652,29 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 | `authorizedId` | string | **网关返回的授权记录 ID，等同于 `authorizeId`**，可直接作为后续业务请求的 `basic.authorizationId` 使用。仅当上游返回了 `resourceAccessKey`（即首次注册）时才出现 |
 | `alreadyExists` | boolean | 是否命中幂等（该企业此前已注册） |
 | `merchant` | object | 企业详情 |
+
+**`merchant` 对象字段**（上游 `Merchant`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | 商户ID |
+| `code` | string | 商户识别码 |
+| `merchantName` | string | 商户名称 |
+| `source` | string | 商户来源:PLATFORM/THIRD_PARTY，与企业名共同唯一 |
+| `alias` | string | 别名，三方平台的企业外部标识 |
+| `status` | string | 商户状态 |
+| `kybStatus` | string | KYB状态（来自合规案件，非表字段） |
+| `email` | string | 所属邮箱 |
+| `sumsubApplicantId` | string | Sumsub applicant ID |
+| `jurisdiction` | string | 注册国家 ISO3166-1 |
+| `registrationNumber` | string | 注册号 |
+| `dateOfIncorporation` | string | 注册日期 |
+| `taxId` | string | 税号(TIN/EIN) |
+| `entityType` | string | 实体类型 |
+| `dbaName` | string | DBA/商号 |
+| `creatorId` | number | 创建人 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 更新时间 |
 
 关键说明：
 
@@ -2025,11 +2722,53 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 }
 ```
 
-**响应示例**（`MapObject`，字段名以 custody 实际返回为准）
+**响应示例**（`ConsoleUser`）
 
 ```json
-{ "code": 200, "message": "SUCCESS", "data": { "userId": 99 } }
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "id": 99,
+    "username": "staff@example.com",
+    "password": "",
+    "email": "staff@example.com",
+    "phone": "",
+    "pk": "0x04...",
+    "state": "ACTIVE",
+    "apiFlag": false,
+    "ecode": "EC0000000001",
+    "isSetPassword": true,
+    "loginTime": "",
+    "logoutTime": "",
+    "createTime": "2026-10-19 10:40:00",
+    "updateTime": "2026-10-19 10:40:00"
+  }
+}
 ```
+
+`data` 为 `ConsoleUser`：`id`（用户 ID）、`username` / `email` / `phone`、`pk`（公钥）、`state`（`SUSPENDING` / `ACTIVE` / `INACTIVE`）、`apiFlag`、`ecode`、`isSetPassword`、`loginTime` / `logoutTime`、`createTime` / `updateTime`。响应中的 `password` 不保证回填，请勿依赖。
+
+Node SDK `addUser` 自 1.4.0 起返回 `ConsoleUser`；Java SDK `UserService.addUser` 自 1.2.6 起返回 `ConsoleUserResponse`（此前分别为 `Record<string, unknown>` / `Map<String, Object>`）。
+
+**响应字段**（上游 `ConsoleUser`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | 内部ID |
+| `username` | string | 用户名 |
+| `password` | string | 密码 |
+| `email` | string | 邮箱 |
+| `phone` | string | 手机号 |
+| `pk` | string | 公钥 |
+| `state` | string | 用户状态 |
+| `apiFlag` | boolean | 是否启用了API设置，如果启用了，有审批任务给到该用户时，会调用回调接口进行通知 |
+| `ecode` | string | 所属商户 |
+| `isSetPassword` | boolean | — |
+| `loginTime` | string | 登录时间 |
+| `logoutTime` | string | 登出时间 |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 更新时间 |
 
 > 新用户若需要登录 custody，仍需在 custody 侧绑定二次验证；仅作为 API 用户 / 签名人时无需登录。
 
@@ -2090,6 +2829,20 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
   }
 }
 ```
+
+**响应字段**（上游 `MerchantBoard`）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | — |
+| `ecode` | string | 企业code |
+| `projectId` | number | 项目id |
+| `userInfos` | `StaffDTO`[] | 审批员工信息 |
+| `threshold` | number | 门限 |
+| `status` | string | 审批状态 |
+| `creatorUserId` | number | 创建人id |
+| `createTime` | string | 创建时间 |
+| `updateTime` | string | 更新时间 |
 
 > **已观测错误 `400070`：** 联调中，当 `guardians` 中的公钥在 custody 侧没有对应用户，或 `threshold` 大于有效签名人数量时，custody 返回业务码 `400070`（随 HTTP 2xx 响应体透传）。该码的精确语义由 custody 定义；请先通过 13.2 建好用户并绑定公钥，再初始化 board。
 
@@ -2164,6 +2917,43 @@ Node SDK `createUnitAddressByAccount` 自 1.1.0 起返回 `UnitAddress[]`；Java
 - **响应是审批任务，不是 board。** 上游 OpenAPI 将该接口的响应定义为 `MessageResultWCCIPCmdAuditTask`，即变更会生成审批任务；任务状态流转、签名窗口如何计算**未经验证**，以 custody 实际返回与联调结果为准。
 - 字段在 schema 中均为可选。实际是否支持“只改其中一项”（例如只调 `threshold` 而省略 `guardians`）上游未说明；稳妥做法是 `guardians` 与 `threshold` 成对传入，避免门限与成员数不匹配。
 - 该接口依赖 13.3 已初始化 board；未初始化时请先调用 `board/init`。
+
+**响应字段**（上游 `WCCIPCmdAuditTask`，同 10.1）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | id |
+| `taskId` | string | 任务ID |
+| `vaultCode` | string | vault code |
+| `projectId` | number | — |
+| `accountId` | string | 金库的账户ID |
+| `accountType` | string | 金库的账户类型 |
+| `submitter` | string | 提交人:在三方模式时是customer code/两方模式时是guard squad id |
+| `ecode` | string | 企业code |
+| `cmdType` | string | 命令类型 |
+| `cmdBasic` | `MapObject` | 命令 |
+| `cmdForm` | `MapObject` | 命令参数 |
+| `businessId` | string | 业务id:主要是订单id |
+| `state` | string | 任务状态 |
+| `businessType` | string | 业务类型:SYSTEM/BTC_TRANSFER等等 |
+| `taskType` | string | 任务类型,用于前端判断是资金还是系统操作:orders/issues |
+| `createTime` | string | 任务创建时间 |
+| `updateTime` | string | 任务更新时间 |
+| `signContent` | string | 签名内容 |
+| `signContentKeyMapping` | string | 签名内容的映射 |
+| `total` | number | 总参与审批数量 |
+| `threshold` | number | 门限 |
+| `signers` | string[] | 任务参与者、审核人、审批人等 |
+| `algoType` | string | — |
+| `initiator` | string | 任务发起人 |
+| `taskOperation` | string | 任务操作,如转账,设置board等等 |
+| `signersLevel` | number | — |
+| `coinId` | string | — |
+| `unitName` | string | — |
+| `accountName` | string | — |
+| `includes` | string[] | — |
+| `sponsored` | boolean | — |
+| `remark` | string | — |
 
 ---
 
@@ -2491,7 +3281,7 @@ HMAC-SHA256 = 27cb791bd95c41922058729f9801eea94de2753ef66662321db8cbd930e30885
 
 #### Node.js
 
-使用 `@cregis-kit/openplatform-node@1.3.0` 的 `sdk.onCallback(req, handler)`。SDK 会依次校验：
+使用 `@cregis-kit/openplatform-node@1.4.0` 的 `sdk.onCallback(req, handler)`。SDK 会依次校验：
 
 1. `x-app-id` / `x-timestamp` / `x-signature` 三个头是否存在
 2. `x-app-id` 是否与构造 SDK 时的 `appId` 一致
@@ -2629,7 +3419,7 @@ public ResponseEntity<?> callback(HttpServletRequest request,
 
 ### 15.1 平台业务码
 
-下表来自 `openplatform-api-service/src/enums/business-codes.enum.ts`（仅列出该枚举中存在的值）。转发接口的最终响应形态见 15.2：上游 Custody 的业务码通常透传在 HTTP 2xx 的响应体中，网关自身的错误才使用下表中的码与非 200 状态。
+下表来自 `openplatform-api-service/src/enums/business-codes.enum.ts`（仅列出该枚举中存在的值）。转发接口的最终响应形态见 15.2：上游 Custody 的业务码通常透传在 HTTP 2xx 的响应体中，网关自身的错误才使用下表中的码与非 200 状态。**Custody 侧的完整业务码（35 个）见 15.2。**
 
 | `code` | 枚举名 | 含义 / 触发场景 |
 |--------|--------|----------------|
@@ -2674,25 +3464,88 @@ public ResponseEntity<?> callback(HttpServletRequest request,
 - 枚举中存在但当前没有主动返回路径的码（如 `40402`、`42902`、`42903`、`50201`、`50301`、`50402`、`50403`）不应当作稳定的接口契约；转发层失败使用的是原始 HTTP 状态码（见 15.2）。
 - 判断业务成败以响应体 `code` 为准（成功为 `0` 或 `200`），不要只看 HTTP 状态码。
 
-### 15.2 Custody 透传码
+### 15.2 Custody 业务码
 
-以下码由 Custody 产生，不在平台枚举中。它们出现的方式取决于上游的 HTTP 状态：
+Custody 的业务码以 `{ "code": 400030, "message": "BOARD_NOT_EXIST", "data": null }` 的形式在 **HTTP 200 的响应体**中返回（网关原样透传）；`message` 是错误常量名，不是中文描述。完整清单与触发条件见 [`third-party-api-error-codes.md`](./third-party-api-error-codes.md)。
 
-| 上游业务码 | 出现方式 | 含义 |
-|------------|----------|------|
-| `400` | 上游 HTTP 2xx，网关原样透传响应体，HTTP 200 | Custody 参数 / 请求格式错误（常见于 `treasury/create`） |
-| `400001` | 同上 | 参数或业务校验失败（具体语义由 custody 定义） |
-| `400006` | 同上 | 参数或业务校验失败（具体语义由 custody 定义） |
-| `400042` | 同上 | 参数或业务校验失败（具体语义由 custody 定义） |
-| `400070` | 同上 | 参数或业务校验失败；已观测到 `board/init` 护卫队签名人不足时返回（见 13.3） |
-| `400103` | 同上 | `THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS`：`resourceKey` 在 custody 侧不存在 |
-| `120042` | 同上 | `ONLY_ACQUIRING_ACCOUNT_ALLOWED`：归集来源账户不是 platform 创建的 acquiring 账户 |
+**出现方式**
 
-当 Custody 返回**非 2xx**（包括 4xx）时，网关丢弃上游响应体，返回 HTTP `500` 与 `{ "code": 500, "message": "..." }`；连接失败返回 `503`，超时返回 `504`（响应体同样只有 `code` 与 `message`）。因此：
+| 场景 | HTTP | 响应体 `code` | 说明 |
+|------|------|---------------|------|
+| 上游 2xx 且业务成功 | 200 | `0` / `200` | `data` 为业务数据 |
+| 上游 2xx 且业务失败 | 200 | custody 业务码 | 网关透传上游 `code` / `message` |
+| 上游非 2xx（含 4xx） | 500 | `500` | 网关**丢弃**上游响应体，只剩 `{ code, message }` |
+| 连接失败 / 超时 | 503 / 504 | `503` / `504` | 同上，只有 `code` / `message` |
 
-- 看到 HTTP 200 + 业务码 ≠ 成功，需要判断响应体 `code`。
-- 看到 `500` 且响应体没有上游业务码时，真正原因在上游，网关侧看不到；请记录 `x-trace-id`。
-- 网关对上游 5xx / 超时会自动重试（且当前实现存在递归重试，实际次数可能远超 3 次），写操作重试可能导致重复提交（见 15.3、15.4）。
+因此：**HTTP 200 ≠ 成功**，必须判断响应体 `code`；看到 `500` 时真正原因在上游，请记录 `x-trace-id`。
+
+**业务码总表**（分类与「可重试」为 SDK 侧约定；`300004` 是唯一的 3xxxx 业务码，不要用「4 开头」判断）
+
+| `code` | 常量 | 分类 | 可重试 | 含义 / 触发条件 |
+|--------|------|------|--------|----------------|
+| `120042` | `ONLY_ACQUIRING_ACCOUNT_ALLOWED` | VALIDATION | 否 | 归集来源账户不是 platform 创建的 acquiring 账户 |
+| `300004` | `ACCOUNT_BALANCE_NOT_ENOUGH` | CAPACITY | 否 | 出金账户余额不足；账户冻结行更新影响行数为 0；归集时无可用地址或预估金额不足 |
+| `400001` | `TASK_NOT_FOUND` | STATE | 否 | `taskId` 为空、按 taskId / 主键都查不到、或任务 ecode 与当前 key 不一致 |
+| `400005` | `INIT_BOARD_FAILED` | STATE | 否 | 初始化 Board 时门限非法（≤0 或 > 守护人数），或 TrustVault `initBoard` 非 200 |
+| `400006` | `ACCOUNT_NOT_EXIST` | STATE | 否 | 账户不存在或不属于当前企业：加币种引用外部账户、创建地址、出金、归集、修改资金流、修改白名单 |
+| `400008` | `BOARD_EXIST` | STATE | 否 | 企业已有 `AVAILABLE` 或 `PENDING` 的 Board，不允许重复初始化 |
+| `400011` | `OPERATION_NOT_SUPPORT` | VALIDATION | 否 | 添加用户时 ecode 与 key 所属企业不一致；地址查询的 accountType 非 PAYIN/PAYOUT/PRIMARY；出金 operation 非 payout/withdraw/allocate |
+| `400012` | `CREATE_ADDRESS_FAILED` | INFRA | 是 | 加币种新增网络、或按账户创建地址时，TrustVault `getAddress` 非 200 |
+| `400013` | `UPDATE_ACCOUNT_FAILED` | INFRA | 是 | 出金、提交任务的兜底 catch：任何非 `SparkException` 的异常 |
+| `400026` | `MERCHANT_ACCOUNT_NOT_EXIST` | STATE | 否 | CRM 错误码：白名单变更时账户不属于当前 ecode / unit |
+| `400027` | `WHITELIST_UPDATE_IN_PROGRESS` | STATE | 否 | 同账户已有 `PENDING` 的白名单变更 |
+| `400030` | `BOARD_NOT_EXIST` | STATE | 否 | 修改 Board、资金流、白名单时企业没有 `AVAILABLE` 的 Board |
+| `400036` | `CREATE_VAULT_FAILED` | INFRA | 是 | 三方注册企业时建项目返回 null，或 `ProjectInitHandler` 创建金库失败 |
+| `400042` | `ACCOUNT_UNIT_NOT_EXIST` | STATE | 否 | unit 不存在、不属于当前企业，或不是当前开发者创建的 |
+| `400048` | `ACCOUNT_GROUP_NOT_ACTIVATED` | STATE | 否 | 出金账户 `status = 0`（未激活） |
+| `400056` | `CONTRACT_FACTORY_DEPLOY_FAILED` | INFRA | 是 | 创建 unit、加币种时新网络的合约工厂部署失败 |
+| `400062` | `ACCOUNT_UNIT_NAME_EXIST` | STATE | 否 | 自定义 unit 名称在企业内已存在 |
+| `400067` | `PUBLIC_KEY_EXIST` | STATE | 否 | 公钥已被其他用户占用；或同一邮箱试图更换公钥 |
+| `400070` | `SIGNER_NOT_EXIST_OR_NOT_ENOUGH` | STATE | 否 | 初始化 Board 时 guardians 为空；加币种下发资金流任务时 TrustVault 未返回签名人 |
+| `400083` | `ACCOUNT_POOLING` | STATE | 否 | 该账户正在归集中（Redis 归集锁被占用） |
+| `400099` | `PASSWORD_FORMAT_ERROR` | VALIDATION | 否 | 密码为空、长度不足 8 位，或大小写/数字/特殊字符不足 3 类 |
+| `400101` | `INVALID_PAYOUT_AMOUNT` | VALIDATION | 否 | 出金 payTo 按地址聚合后总金额 ≤ 0 |
+| `400102` | `ENERGY_PERIOD_NOT_START` | INFRA | 是 | 归集时 TRON 能量租赁失败 |
+| `400103` | `THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS` | AUTH | 否 | `resourceAccessKey` 为空、不存在或状态非 `ACTIVE`（除注册企业外所有接口） |
+| `400109` | `MERCHANT_NOT_EXIST` | STATE | 否 | 企业 ecode 为空或企业不存在（注册企业的入驻编排链路） |
+| `400112` | `INIT_TREASURY_UNIT_FAILED` | INFRA | 是 | TrustVault 初始化 unit 非 200，或返回账户数与请求不一致 |
+| `400119` | `BOARD_UPDATE_IN_PROGRESS` | STATE | 否 | 已有 `PENDING` 的 Board 变更 |
+| `400120` | `FUNDFLOW_UPDATE_IN_PROGRESS` | STATE | 否 | 同金库账户已有 `PENDING` 的资金流变更 |
+| `400127` | `MERCHANT_PROJECT_NOT_EXIST` | STATE | 否 | 按 key 的企业找不到项目；出金时按 unit 找不到项目 |
+| `400214` | `PAY_TO_ADDRESS_EXCEED_LIMIT` | VALIDATION | 否 | 出金付款地址数超过网络上限（默认 150）；Travel Rule 开启时一对多付款 |
+| `400215` | `COIN_ACCOUNT_ALREADY_EXISTS` | STATE | 否 | 加币种时该币种 + 网络已存在 |
+| `400216` | `NETWORK_NOT_SUPPORT` | VALIDATION | 否 | 加币种的新网络不在项目支持网络内 |
+| `400438` | `CREATE_MERCHANT_FAILED` | INFRA | 是 | 三方注册企业时企业落库返回 null |
+| `400440` | `ADDRESS_BALANCE_NOT_ENOUGH` | CAPACITY | 否 | 出金来源地址为空；或地址可用额（扣除隔离资金与其他在途出金）不足以覆盖本单 |
+| `400441` | `ADDRESS_BALANCE_CHECK_FAILED` | INFRA | 是 | 出金地址锁获取失败、被其他请求持有，或 Redis 不可用（fail-closed） |
+
+**按接口归属**
+
+| 接口 | 可能返回的业务码 |
+|------|------------------|
+| 查询财务单元列表 `POST /api/thirdparty/treasury/list` | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 查询账户列表 `POST /api/thirdparty/treasury/list-unit-account/{unitId}` | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 查询地址 `POST /api/thirdparty/treasury/address-by-account/{cusAccountId}` | `400042` ACCOUNT_UNIT_NOT_EXIST<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 查询地址 `POST /api/thirdparty/treasury/address` | `400011` OPERATION_NOT_SUPPORT<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 查询活动记录 `POST /api/thirdparty/treasury/activities` | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 查询出金订单 `POST /api/thirdparty/treasury/transfer-out-orders` | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 查询入金订单 `POST /api/thirdparty/treasury/transfer-in-orders` | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 查询账户资金流水 `POST /api/thirdparty/treasury/fund-records` | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 查询单元资金流水 `POST /api/thirdparty/treasury/unit-fund-records` | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 按账户创建地址 `POST /api/thirdparty/treasury/create-unit-address-by-account/...` | `400012` CREATE_ADDRESS_FAILED<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 按单元+类型创建地址 `POST /api/thirdparty/treasury/create-unit-address/...` | `400006` ACCOUNT_NOT_EXIST<br>`400012` CREATE_ADDRESS_FAILED<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 创建财务单元 `POST /api/thirdparty/treasury/create` | `400056` CONTRACT_FACTORY_DEPLOY_FAILED<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br>`400112` INIT_TREASURY_UNIT_FAILED<br>`400127` MERCHANT_PROJECT_NOT_EXIST |
+| 创建自定义结构 `POST /api/thirdparty/treasury/create-custom` | `400056` CONTRACT_FACTORY_DEPLOY_FAILED<br>`400062` ACCOUNT_UNIT_NAME_EXIST<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br>`400112` INIT_TREASURY_UNIT_FAILED<br>`400127` MERCHANT_PROJECT_NOT_EXIST |
+| 注册商户企业 `POST /api/thirdparty/merchant/register` | `400036` CREATE_VAULT_FAILED<br>`400067` PUBLIC_KEY_EXIST<br>`400099` PASSWORD_FORMAT_ERROR<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br>`400109` MERCHANT_NOT_EXIST<br>`400438` CREATE_MERCHANT_FAILED |
+| 添加企业用户 `POST /api/thirdparty/user/add` | `400011` OPERATION_NOT_SUPPORT<br>`400067` PUBLIC_KEY_EXIST<br>`400099` PASSWORD_FORMAT_ERROR<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 初始化 Board `POST /api/thirdparty/board/init` | `400005` INIT_BOARD_FAILED<br>`400008` BOARD_EXIST<br>`400070` SIGNER_NOT_EXIST_OR_NOT_ENOUGH<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br>`400127` MERCHANT_PROJECT_NOT_EXIST |
+| 修改 Board `POST /api/thirdparty/board/update` | `400030` BOARD_NOT_EXIST<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br>`400119` BOARD_UPDATE_IN_PROGRESS<br>`400127` MERCHANT_PROJECT_NOT_EXIST |
+| 添加币种 `POST /api/thirdparty/treasury/add-coins` | `400006` ACCOUNT_NOT_EXIST<br>`400012` CREATE_ADDRESS_FAILED<br>`400042` ACCOUNT_UNIT_NOT_EXIST<br>`400056` CONTRACT_FACTORY_DEPLOY_FAILED<br>`400070` SIGNER_NOT_EXIST_OR_NOT_ENOUGH<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br>`400127` MERCHANT_PROJECT_NOT_EXIST<br>`400215` COIN_ACCOUNT_ALREADY_EXISTS<br>`400216` NETWORK_NOT_SUPPORT |
+| 发起出金 `POST /api/thirdparty/treasury/payout` | `300004` ACCOUNT_BALANCE_NOT_ENOUGH<br>`400006` ACCOUNT_NOT_EXIST<br>`400011` OPERATION_NOT_SUPPORT<br>`400013` UPDATE_ACCOUNT_FAILED<br>`400042` ACCOUNT_UNIT_NOT_EXIST<br>`400048` ACCOUNT_GROUP_NOT_ACTIVATED<br>`400101` INVALID_PAYOUT_AMOUNT<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br>`400127` MERCHANT_PROJECT_NOT_EXIST<br>`400214` PAY_TO_ADDRESS_EXCEED_LIMIT<br>`400440` ADDRESS_BALANCE_NOT_ENOUGH<br>`400441` ADDRESS_BALANCE_CHECK_FAILED |
+| 发起归集 `POST /api/thirdparty/treasury/pooling` | `300004` ACCOUNT_BALANCE_NOT_ENOUGH<br>`400006` ACCOUNT_NOT_EXIST<br>`400042` ACCOUNT_UNIT_NOT_EXIST<br>`400083` ACCOUNT_POOLING<br>`400102` ENERGY_PERIOD_NOT_START<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 提交审批 `POST /api/thirdparty/treasury/submit-task/{taskId}` | `400001` TASK_NOT_FOUND<br>`400013` UPDATE_ACCOUNT_FAILED<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
+| 更新资金流规则 `POST /api/thirdparty/treasury/fund-control-update` | `400006` ACCOUNT_NOT_EXIST<br>`400030` BOARD_NOT_EXIST<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br>`400120` FUNDFLOW_UPDATE_IN_PROGRESS |
+| 更新白名单 `POST /api/thirdparty/treasury/whitelist-update` | `400026` MERCHANT_ACCOUNT_NOT_EXIST<br>`400027` WHITELIST_UPDATE_IN_PROGRESS<br>`400030` BOARD_NOT_EXIST<br>`400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS |
 
 ### 15.3 按现象排查
 
@@ -2709,7 +3562,11 @@ public ResponseEntity<?> callback(HttpServletRequest request,
 | `42901` | 超出订阅套餐 `dailyApiLimit`，或触发限流；配额服务异常时 fail-closed 也会返回 `42901` | 查看 `Retry-After` 与开发者门户订阅查询的 `dailyApiUsage`；退避重试（6.4、6.5） |
 | HTTP `500` / `503` / `504`，响应体只有 `{code,message}` | Custody 返回非 2xx、连接失败或超时；上游响应体被丢弃 | 记录 `x-trace-id` 与请求时间，联系平台；写操作先确认是否已生效再重试 |
 | 同一笔出金 / 创建地址重复执行 | 网关对上游 5xx / 超时自动重试，且重试次数可能被放大；Custody 是否按 `orderId` 去重未验证 | 复用稳定业务单号；重试前先查询订单 / 地址；非幂等接口避免盲目重试（第 7、10 章） |
-| `400070`（`board/init`） | 护卫队公钥没有对应用户，或 `threshold` 超过有效签名人数 | 先用 13.2 建用户并绑定 `publicKey`，再初始化 board（13.3） |
+| `400070`（`board/init`） | `SIGNER_NOT_EXIST_OR_NOT_ENOUGH`：护卫队公钥没有对应用户，或 `threshold` 超过有效签名人数 | 先用 13.2 建用户并绑定 `publicKey`，再初始化 board（13.3） |
+| `400030`（`resetBoard` / 资金流 / 白名单） | `BOARD_NOT_EXIST`：企业没有 `AVAILABLE` 的 Board | 先调用 13.3 `board/init` |
+| `400120` / `400119` / `400027` | 同一账户 / Board 已有 `PENDING` 的变更 | 等待上一笔审批完成（11.1 提交或拒绝）后再发起 |
+| `400083` | `ACCOUNT_POOLING`：该账户正在归集中（Redis 锁） | 稍后重试；不要并发归集同一账户 |
+| `300004` / `400440` | 余额不足 / 来源地址可用额不足（扣除隔离资金与在途出金） | 重新查询 7.4 账户余额与地址 `holdAmount` 后再发起 |
 | 收不到回调 | 应用未配置 `callbackUrl`；生产使用 HTTP；载荷超过 64KB；4 次尝试全部失败（无持久化队列，不补投，见 14.5） | 检查应用回调配置；生产使用 HTTPS；控制载荷大小；通过对账 / 查询接口补偿（14.5） |
 
 ### 15.4 已知实现限制
@@ -2732,12 +3589,12 @@ public ResponseEntity<?> callback(HttpServletRequest request,
 
 官方 SDK 封装了签名、请求与错误处理，推荐在服务端直接使用。三端版本与本指南的对应关系见 16.4。
 
-### 16.1 Node.js SDK 1.3.0
+### 16.1 Node.js SDK 1.4.0
 
 **安装**（要求 Node.js >= 18）
 
 ```bash
-npm install @cregis-kit/openplatform-node@1.3.0
+npm install @cregis-kit/openplatform-node@1.4.0
 ```
 
 **构造与最小端到端示例**
@@ -2788,19 +3645,19 @@ await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 |------|------|------|----------|
 | OAuth | `getAuthorizationUrl(params)` | Basic | `{ authorizeUrl, expiresIn }` |
 | 商户 / 用户 / Board | `registerMerchant(request)` | Basic | `MerchantRegisterResult` |
-| 商户 / 用户 / Board | `addUser(authorizationId, request)` | Resource | `Record<string, unknown>`（如 `{ userId }`） |
+| 商户 / 用户 / Board | `addUser(authorizationId, request)` | Resource | `ConsoleUser` |
 | 商户 / 用户 / Board | `initBoard(authorizationId, request)` | Resource | `MerchantBoard` |
 | 商户 / 用户 / Board | `updateBoard(authorizationId, request)` | Resource | `WCCIPCmdAuditTask` |
 | 财务单元 | `createTreasuryUnit(authorizationId, request)` | Resource | `CreateTreasuryUnitResponse` |
 | 财务单元 | `createCustomUnit(authorizationId, request)` | Resource | `TreasuryUnit` |
 | 财务单元 | `listTreasuryUnits(authorizationId, options?)` | Resource | `TreasuryUnit[]` |
 | 财务单元 | `listUnitAccount(authorizationId, unitId)` | Resource | `UnitAccount[]` |
-| 地址 | `getTreasuryUnitAddress(authorizationId, request)` | Resource | `PaginatedResponse<UnitAddress>` |
-| 地址 | `getUnitAddressByAccount(authorizationId, cusAccountId, request?)` | Resource | `PaginatedResponse<UnitAddress>` |
-| 地址 | `createUnitAddress(authorizationId, request)` | Resource | `void` |
-| 地址 | `createUnitAddressByAccount(authorizationId, cusAccountId, number)` | Resource | `UnitAddress[]` |
+| 地址 | `getTreasuryUnitAddress(authorizationId, request)` | Resource | `PaginatedResponse<ProjectUnitAccountAddress>` |
+| 地址 | `getUnitAddressByAccount(authorizationId, cusAccountId, request?)` | Resource | `PaginatedResponse<ProjectUnitAccountAddress>` |
+| 地址 | `createUnitAddress(authorizationId, request)` | Resource | `AccountAddressVO[]` |
+| 地址 | `createUnitAddressByAccount(authorizationId, cusAccountId, number)` | Resource | `AccountAddressVO[]` |
 | 币种 / 规则 / 白名单 | `addCoins(authorizationId, request)` | Resource | `WCCIPCmdAuditTask[]` |
-| 币种 / 规则 / 白名单 | `updateFundControl(authorizationId, request)` | Resource | `void` |
+| 币种 / 规则 / 白名单 | `updateFundControl(authorizationId, request)` | Resource | `WCCIPCmdAuditTask` |
 | 币种 / 规则 / 白名单 | `updateWhitelist(authorizationId, request)` | Resource | `WCCIPCmdAuditTask` |
 | 出金 / 归集 | `createPayout(authorizationId, request)` | Resource | `WCCIPCmdAuditTask` |
 | 出金 / 归集 | `pooling(authorizationId, request)` | Resource | `ProjectUnitTransferOutOrder` |
@@ -2834,7 +3691,7 @@ try {
 
 > **OAuth 说明：** Node SDK 只封装 `getAuthorizationUrl`。`authorizeId` 由授权页在 Custody 内部完成 `verify` 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。`registerMerchant` / `addUser` / `initBoard` / `updateBoard` 其余字段与网关一致。
 
-### 16.2 Java SDK 1.2.5（JitPack）
+### 16.2 Java SDK 1.2.6（JitPack）
 
 **环境要求**：JDK 17+、Maven 3.8+。
 
@@ -2855,11 +3712,11 @@ try {
 <dependency>
     <groupId>com.github.ZoranWong.custody-openplatfrom</groupId>
     <artifactId>cregis-sdk-core</artifactId>
-    <version>java-sdk-v1.2.5</version>
+    <version>java-sdk-v1.2.6</version>
 </dependency>
 ```
 
-`java-sdk-v1.2.5` 是仓库中的 Git tag；JitPack 按该 tag 构建。`CregisClient` 的服务入口：
+`java-sdk-v1.2.6` 是仓库中的 Git tag；JitPack 按该 tag 构建。`CregisClient` 的服务入口：
 
 | 入口 | 覆盖 |
 |------|------|
@@ -2990,12 +3847,12 @@ if (result.status === 'success') {
 
 | SDK | 版本 | 坐标 / 安装 | 适用场景 | 与网关的已核对结论 |
 |-----|------|-------------|----------|--------------------|
-| Node.js | **1.3.0** | `npm install @cregis-kit/openplatform-node@1.3.0`（仓库版本；npm 尚未发布时从源码构建） | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致 |
-| Java | **1.2.5** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.5`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
+| Node.js | **1.4.0** | `npm install @cregis-kit/openplatform-node@1.4.0`（仓库版本；npm 尚未发布时从源码构建） | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致 |
+| Java | **1.2.6** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.6`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
 | Web | **1.0.5** | `npm install @cregis-kit/openplatform-webkit@1.0.5` | 浏览器嵌入授权页 | 只返回 `authorizationId`（即 Custody 内部 `verify` 生成的 `authorizeId`） |
 
 - 更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 `coinIds` / `primaryManager` / `payTo` 的请求会返回 `40102`，不要使用。
-- **发布状态提醒**：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java SDK 最新可用的 JitPack tag 为 `java-sdk-v1.2.5`。若 `npm install` 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
+- **发布状态提醒**：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java SDK 最新可用的 JitPack tag 为 `java-sdk-v1.2.6`。若 `npm install` 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
 - 三个 SDK 版本必须与网关的接口路径前缀 `/api/thirdparty/` 配套；`baseUrl` 不要包含该前缀，也不要带尾斜杠。
 - 环境地址见 2.3：本地 `http://127.0.0.1:1000`、SIT `https://custody-sit.cregis.ae/openplatform`、生产 `https://custody.cregis.ae/openplatform`。
 
@@ -3184,28 +4041,185 @@ interface UnitAccount {
 }
 ```
 
-**UnitAddress**
+**ProjectUnitAccountAddress**（地址列表，8.1 / 8.2；`UnitAddress` 为兼容别名）
 
 ```ts
-interface UnitAddress {
+interface ProjectUnitAccountAddress {
   id: number;
+  ecode: string;
+  vaultCode: string;
+  projectId: number;
   address: string;
-  addressIndex: number;
-  accountType: AccountType;
-  coinId: string;
-  network: string;
+  vaultAccountId: string;
   cusAccountId: number;
   treasuryUnitId: number;
-  available: number;
+  coinId: string;
+  network: string;
+  series: 'EVM' | 'BTC' | 'TRON' | 'BRC20' | 'SOL' | 'POLKA' | 'SUI' | 'COSMOS' | 'TON' | string;
+  addressIndex: number;
+  alias: string;
+  isSmart: number;
+  isContract: number;
+  status: 1 | 2 | 3 | 4;      // 1 待部署合约 / 2 部署中 / 3 可用 / 4 冻结
+  accountType: AccountType;
+  available: number;          // 1 可用 / 0 不可用
   holdAmount: number;
-  holdFrozen: number;
-  status: number;
+  holdFrozen: number;         // 1 禁止归集 / 0 允许
+  riskLevel: RiskLevel | string;
+  riskScore: string;
+  riskCheckTime: string;
+  expireTime: number;         // 小时
+  userId: string;
+  lastUsedTime: string;
+  coolingEndTime: string;
   createTime: string;
   updateTime: string;
 }
 ```
 
-### 17.3 FAQ
+**AccountAddressVO**（创建地址返回，8.3 / 8.4）
+
+```ts
+interface AccountAddressVO {
+  id: number;
+  ecode: string;
+  vaultCode: string;
+  projectId: number;
+  address: string;
+  alias: string;
+  accountId: string;          // TrustVault 账户 ID
+  cusAccountId: number;
+  treasuryUnitId: number;
+  coinId: string;
+  network: string;
+  isSmart: number;
+  isContract: number;
+  status: 1 | 2 | 3 | 4;
+  holdAmount: number;
+  riskLevel: RiskLevel | string;
+  riskScore: string;
+  accountType: AccountType;
+  createTime: string;
+  updateTime: string;
+  balance: string;
+}
+```
+
+**ProjectUnitFundRecord**（账户级资金流水，12.4）
+
+```ts
+interface ProjectUnitFundRecord {
+  id: number;
+  ecode: string;
+  projectId: number;
+  treasuryUnitId: number;
+  cusAccountId: number;
+  txId: string;
+  orderId: string;
+  coinId: string;
+  network: string;
+  fromAddr?: string;          // 出金地址（部分流水不返回）
+  toAddr?: string;            // 入金地址（部分流水不返回）
+  direction?: 'IN' | 'OUT' | string;   // 部分流水不返回，缺失时回退到 txType
+  amount: number;
+  preBalance: number;
+  postBalance: number;
+  fee: string;
+  txType: TxType | string;
+  createTime: string;
+}
+```
+
+**ConsoleUser**（添加用户返回，13.2）
+
+```ts
+interface ConsoleUser {
+  id: number;
+  username: string;
+  password: string;
+  email: string;
+  phone: string;
+  pk: string;                 // 公钥
+  state: 'SUSPENDING' | 'ACTIVE' | 'INACTIVE' | string;
+  apiFlag: boolean;
+  ecode: string;
+  isSetPassword: boolean;
+  loginTime: string;
+  logoutTime: string;
+  createTime: string;
+  updateTime: string;
+}
+```
+
+### 17.3 接口参数索引
+
+下表列出全部开发者接口及其参数／请求体，字段级说明见对应章节。**鉴权**列为 `Basic`（`basic` 中不含 `authorizationId`）或 `Resource`（`basic` 必须含 `authorizationId`）。
+
+**OAuth 与回调**
+
+| 接口 | 方法 / 路径 | 鉴权 | 参数 / 请求体 |
+|------|-------------|------|---------------|
+| 获取授权地址 | `POST /api/thirdparty/oauth/authorizeUrl` | Basic | `permissions[]`、`state`、`token`、`callback?`（5.2） |
+| 授权校验（内部） | `POST /api/thirdparty/oauth/verify` | 内部 | `resourceKey`、`oauthToken`；由 Custody 调用（5.4） |
+| 授权回调 | `POST /api/thirdparty/custody/callback` | 内部 | 由 Custody 调用的回调通知（5.6） |
+| 刷新令牌 | `POST /api/oauth/appToken/refresh` | Basic | `refreshToken` |
+| 撤销授权 | `POST /api/oauth/revoke` | Basic | `token` |
+| 校验令牌 | `POST /api/oauth/appToken/validate` | Basic | `token` |
+
+**财务单元**
+
+| 接口 | 方法 / 路径 | 鉴权 | 参数 / 请求体 |
+|------|-------------|------|---------------|
+| 创建财务单元 | `POST /api/thirdparty/treasury/create` | Resource | `unitName`、`businessScope`、`topology`、`coinIds[]`、`primaryManager[]`、`payoutManager[]`、`primaryWhiteList[]?`、`primaryAnycallRules[]?`、`payoutAnycallRules[]?`、`payinAnycallRules[]?`、`autoSignUrl?`、`thirdPartyEcode?`、`remark?`（7.1） |
+| 创建自定义结构 | `POST /api/thirdparty/treasury/create-custom` | Resource | `unitName`、`coinIds[]`、`customUnitDTOs[]`、`fundControls[][]`、`topology?`、`businessScope?`、`isSmart?`、`businessPurpose?`、`whitelistRules[]?`、`thirdPartyEcode?`、`remark?`（7.2） |
+| 查询财务单元列表 | `POST /api/thirdparty/treasury/list` | Resource | `pageNum?`、`pageSize?`、`sortFields?`（7.3） |
+| 查询账户列表 | `POST /api/thirdparty/treasury/list-unit-account/{unitId}` | Resource | 路径 `unitId`；无业务字段（7.4） |
+
+**地址**
+
+| 接口 | 方法 / 路径 | 鉴权 | 参数 / 请求体 |
+|------|-------------|------|---------------|
+| 查询地址（按单元+类型） | `POST /api/thirdparty/treasury/address` | Resource | `unitId`、`accountType`、`coinId`、`network`、`pageNum?`、`pageSize?`（8.1） |
+| 查询地址（按账户） | `POST /api/thirdparty/treasury/address-by-account/{cusAccountId}` | Resource | 路径 `cusAccountId`；`unitId`、`coinId`、`network`、`pageSize?`、`pageNum?`（8.2） |
+| 创建地址（按单元+类型） | `POST /api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number}` | Resource | 全部在路径中（8.3） |
+| 创建地址（按账户） | `POST /api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number}` | Resource | 全部在路径中（8.4） |
+
+**币种 / 资金控制 / 白名单**
+
+| 接口 | 方法 / 路径 | 鉴权 | 参数 / 请求体 |
+|------|-------------|------|---------------|
+| 添加币种 | `POST /api/thirdparty/treasury/add-coins` | Resource | `treasuryUnitId`、`coinIds[]`、`accountFundControls[]?`、`note?`（9.1） |
+| 更新资金流规则 | `POST /api/thirdparty/treasury/fund-control-update` | Resource | `treasuryUnitId`、`cusAccountId`、`fundControls[]`、`note?`（9.2） |
+| 更新白名单 | `POST /api/thirdparty/treasury/whitelist-update` | Resource | `treasuryUnitId`、`cusAccountId`、`addItems[]?`、`removeItems[]?`、`allowListEnabled?`、`lang?`、`note?`（9.3） |
+
+**出金 / 归集 / 审批**
+
+| 接口 | 方法 / 路径 | 鉴权 | 参数 / 请求体 |
+|------|-------------|------|---------------|
+| 发起出金 | `POST /api/thirdparty/treasury/payout` | Resource | `payTo[]`、`fromAccountId`、`unitId`、`coinId`、`network`、`fromAddress`、`orderId`、`operation?`、`toCusAccountId?`、`username?`、`userId?`、`note?`、`lang?`、`initiator?`、`merchantType`、`travelRule?`（10.1） |
+| 发起归集 | `POST /api/thirdparty/treasury/pooling` | Resource | `unitId`、`fromAccountId`、`address`、`amount`、`coinId`、`network`、`lang?`、`note?`、`includes[]?`、`excludes[]?`（10.2） |
+| 提交审批 | `POST /api/thirdparty/treasury/submit-task/{taskId}` | Resource | 路径 `taskId`；`signatures?`、`confirmed`（11.1） |
+
+**交易查询**（`business` 均为 `PaginationQuery`：`pageIndex?`、`pageSize?`、`sortFields?`、`queryList[]?`）
+
+| 接口 | 方法 / 路径 | 鉴权 | 参数 / 请求体 |
+|------|-------------|------|---------------|
+| 查询活动记录 | `POST /api/thirdparty/treasury/activities` | Resource | `PaginationQuery`（12.1） |
+| 查询出金订单 | `POST /api/thirdparty/treasury/transfer-out-orders` | Resource | `PaginationQuery`（12.2） |
+| 查询入金订单 | `POST /api/thirdparty/treasury/transfer-in-orders` | Resource | `PaginationQuery`（12.3） |
+| 查询账户资金流水 | `POST /api/thirdparty/treasury/fund-records` | Resource | `PaginationQuery`（12.4） |
+| 查询单元资金流水 | `POST /api/thirdparty/treasury/unit-fund-records` | Resource | `PaginationQuery`（12.5） |
+
+**商户 / 用户 / Board**
+
+| 接口 | 方法 / 路径 | 鉴权 | 参数 / 请求体 |
+|------|-------------|------|---------------|
+| 注册商户企业 | `POST /api/thirdparty/merchant/register` | Basic | `legalName`、`appId`、`owner`、`alias?`、`email?`、`dbaName?`、`jurisdiction?`、`registrationNumber?`、`dateOfIncorporation?`（13.1） |
+| 添加企业用户 | `POST /api/thirdparty/user/add` | Resource | `email`、`password`、`publicKey?`、`ecode?`、`role?`（13.2） |
+| 初始化 Board | `POST /api/thirdparty/board/init` | Resource | `guardians[]`、`threshold`、`lang?`、`note?`（13.3） |
+| 修改 Board | `POST /api/thirdparty/board/update` | Resource | `guardians[]`、`threshold`、`validUntilTime?`、`lang?`、`note?`（13.4） |
+
+### 17.4 FAQ
 
 **Q：`coinId` / `network` 从哪里获取？**
 

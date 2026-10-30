@@ -211,22 +211,23 @@
         <a href="#s-15-3" class="nav-sub">15.3 按现象排查</a>
         <a href="#s-15-4" class="nav-sub">15.4 已知实现限制</a>
         <a href="#ch-16" class="nav-item">16. SDK 集成</a>
-        <a href="#s-16-1" class="nav-sub">16.1 Node.js SDK 1.3.0</a>
-        <a href="#s-16-2" class="nav-sub">16.2 Java SDK 1.2.5（JitPack）</a>
+        <a href="#s-16-1" class="nav-sub">16.1 Node.js SDK 1.4.0</a>
+        <a href="#s-16-2" class="nav-sub">16.2 Java SDK 1.2.6（JitPack）</a>
         <a href="#s-16-3" class="nav-sub">16.3 Web SDK 1.0.5</a>
         <a href="#s-16-4" class="nav-sub">16.4 版本兼容表</a>
         <a href="#ch-17" class="nav-item">17. 附录</a>
         <a href="#s-17-1" class="nav-sub">17.1 枚举</a>
         <a href="#s-17-2" class="nav-sub">17.2 常用结构</a>
-        <a href="#s-17-3" class="nav-sub">17.3 FAQ</a>
+        <a href="#s-17-3" class="nav-sub">17.3 接口参数索引</a>
+        <a href="#s-17-4" class="nav-sub">17.4 FAQ</a>
     </nav>
     <main class="main-content">
         <h1>Cregis 开放平台 - 第三方开发者接入指南</h1>
 <p><strong>Last Updated:</strong> 2026-10-19</p>
 <blockquote>
-<p><strong>适用 SDK 版本：</strong> Node SDK 1.3.0 / Java SDK 1.2.5 / Web SDK 1.0.5</p>
-<p><strong>发布状态：</strong> 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.5</code>。文中「1.1.0 起 / 1.2.0 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。</p>
-<p><strong>接口基数：</strong> 网关对外 22 条转发接口 + 6 条本地接口，共 28 条</p>
+<p><strong>适用 SDK 版本：</strong> Node SDK 1.4.0 / Java SDK 1.2.6 / Web SDK 1.0.5</p>
+<p><strong>发布状态：</strong> 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.6</code>。文中「1.4.0 起 / 1.2.6 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。</p>
+<p><strong>接口基数：</strong> 网关对外 23 条转发接口 + 6 条本地接口，共 29 条</p>
 </blockquote>
 <p>本指南面向接入 Cregis 托管能力的第三方平台开发者。第 1–6 章覆盖平台概述、端到端接入流程、开发者入驻、认证与签名、OAuth 授权和通用约定；第 7–12 章为业务接口参考；第 13–17 章覆盖商户 / 用户 / Board、回调、错误码与排查、SDK 集成和附录。</p>
 <hr>
@@ -2323,6 +2324,36 @@ public class SignatureDemo {
 }
 </code></pre>
 <p><code>data.id</code> 即后续接口使用的 <code>unitId</code>。SDK 将该响应映射为 <code>CreateTreasuryUnitResponse</code>。</p>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnit</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>ID</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>项目ID</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>名字</td></tr>
+<tr><td><code>ubo</code></td><td>string</td><td>最终受益人的ecode，如果是三方模式，是另外一个企业ID，否则就是自己的企业ID</td></tr>
+<tr><td><code>custodyServiceMode</code></td><td>string</td><td>托管接入模式</td></tr>
+<tr><td><code>topology</code></td><td>string</td><td>账户模型</td></tr>
+<tr><td><code>coinIds</code></td><td><code>CoinDto</code>[]</td><td>币种集合</td></tr>
+<tr><td><code>accounts</code></td><td><code>AccountData</code>[]</td><td>账户列表</td></tr>
+<tr><td><code>businessPurpose</code></td><td>string</td><td>业务用途</td></tr>
+<tr><td><code>status</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>sort</code> †</td><td>number</td><td>排序</td></tr>
+<tr><td><code>creationType</code></td><td>string</td><td>创建类型: PLATFORM/THIRD_PARTY</td></tr>
+<tr><td><code>developerId</code></td><td>string</td><td>三方平台开发者ID</td></tr>
+<tr><td><code>creatorId</code> †</td><td>number</td><td>创建人</td></tr>
+<tr><td><code>remark</code></td><td>string</td><td>备注</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>更新时间</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
+
 <p><strong>常见业务码</strong>：<code>400 请求参数格式错误</code>（作为上游 2xx 响应体内的业务码由 custody 返回，网关透传）。<strong>已知问题：</strong> 即使 <code>business</code> 结构完整，SIT 环境当前仍会从 custody 收到该错误；原因未在代码中确认，请以 custody 后续版本为准。另有 <code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>（签名与授权问题）。</p>
 <h3 id="s-7-2">7.2 创建自定义结构财务单元</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/create-custom</code> · 鉴权：Resource 签名</p>
@@ -2431,7 +2462,37 @@ public class SignatureDemo {
 <pre class="codehilite"><code class="language-json">
 { "code": 200, "message": "SUCCESS", "data": { "id": 81, "ecode": "EC0000000001", "name": "Custom Unit", "topology": "CUSTOM", "status": "ACTIVATED" } }
 </code></pre>
-<p>SDK 将 <code>data</code> 映射为 <code>TreasuryUnit</code>。上游 YAML 对该响应的 <code>data</code> 声明为 <code>null</code>，实际字段以 custody 返回为准。</p>
+<p>SDK 将 <code>data</code> 映射为 <code>TreasuryUnit</code>（= 上游 <code>ProjectUnit</code>）。上游 YAML 已将该接口响应定义为 <code>MessageResultProjectUnit</code>，字段与 7.1 完全一致，见下方字段表。</p>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnit</code>，同 7.1）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>ID</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>项目ID</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>名字</td></tr>
+<tr><td><code>ubo</code></td><td>string</td><td>最终受益人的ecode，如果是三方模式，是另外一个企业ID，否则就是自己的企业ID</td></tr>
+<tr><td><code>custodyServiceMode</code></td><td>string</td><td>托管接入模式</td></tr>
+<tr><td><code>topology</code></td><td>string</td><td>账户模型</td></tr>
+<tr><td><code>coinIds</code></td><td><code>CoinDto</code>[]</td><td>币种集合</td></tr>
+<tr><td><code>accounts</code></td><td><code>AccountData</code>[]</td><td>账户列表</td></tr>
+<tr><td><code>businessPurpose</code></td><td>string</td><td>业务用途</td></tr>
+<tr><td><code>status</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>sort</code> †</td><td>number</td><td>排序</td></tr>
+<tr><td><code>creationType</code></td><td>string</td><td>创建类型: PLATFORM/THIRD_PARTY</td></tr>
+<tr><td><code>developerId</code></td><td>string</td><td>三方平台开发者ID</td></tr>
+<tr><td><code>creatorId</code> †</td><td>number</td><td>创建人</td></tr>
+<tr><td><code>remark</code></td><td>string</td><td>备注</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>更新时间</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
+
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>（签名与授权）——均由 custody 返回，网关透传。</p>
 <h3 id="s-7-3">7.3 查询财务单元列表</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/list</code> · 鉴权：Resource 签名</p>
@@ -2488,6 +2549,36 @@ public class SignatureDemo {
 </code></pre>
 <blockquote>
 <p>虽然网关会把 <code>pageSize</code> / <code>pageNum</code> 原样转发，但上游 YAML 未为该接口声明请求体，custody 是否真正分页<strong>未经验证</strong>；响应始终是数组，请勿按 <code>{ records, total, ... }</code> 解析（见 6.2）。</p>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnit</code>，同 7.1）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>ID</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>项目ID</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>名字</td></tr>
+<tr><td><code>ubo</code></td><td>string</td><td>最终受益人的ecode，如果是三方模式，是另外一个企业ID，否则就是自己的企业ID</td></tr>
+<tr><td><code>custodyServiceMode</code></td><td>string</td><td>托管接入模式</td></tr>
+<tr><td><code>topology</code></td><td>string</td><td>账户模型</td></tr>
+<tr><td><code>coinIds</code></td><td><code>CoinDto</code>[]</td><td>币种集合</td></tr>
+<tr><td><code>accounts</code></td><td><code>AccountData</code>[]</td><td>账户列表</td></tr>
+<tr><td><code>businessPurpose</code></td><td>string</td><td>业务用途</td></tr>
+<tr><td><code>status</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>sort</code> †</td><td>number</td><td>排序</td></tr>
+<tr><td><code>creationType</code></td><td>string</td><td>创建类型: PLATFORM/THIRD_PARTY</td></tr>
+<tr><td><code>developerId</code></td><td>string</td><td>三方平台开发者ID</td></tr>
+<tr><td><code>creatorId</code> †</td><td>number</td><td>创建人</td></tr>
+<tr><td><code>remark</code></td><td>string</td><td>备注</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>更新时间</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
+
 </blockquote>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h3 id="s-7-4">7.4 查询财务单元账户列表</h3>
@@ -2554,7 +2645,44 @@ public class SignatureDemo {
   ]
 }
 </code></pre>
-<p><code>id</code> 即其他接口使用的 <code>cusAccountId</code>；<code>type</code> 为账户类型（<code>PRIMARY</code> / <code>PAYIN</code> / <code>PAYOUT</code> / <code>QUARANTINE</code> 等），<code>accountType</code> 为金库账户类型。后续地址、出金、归集接口的 <code>coinId</code> / <code>network</code> 建议取自本接口。</p>
+<p><code>id</code> 即其他接口使用的 <code>cusAccountId</code>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnitAccount</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>id</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>vaultAccountId</code></td><td>string</td><td>对应trustVault账户id</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>所属项目ID</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>所属财务单元id</td></tr>
+<tr><td><code>accountName</code></td><td>string</td><td>账户名称</td></tr>
+<tr><td><code>fundFlowCode</code></td><td>string</td><td>fundFlow code</td></tr>
+<tr><td><code>anycallCode</code></td><td>string</td><td>anycall code</td></tr>
+<tr><td><code>autoSignUrl</code></td><td>string</td><td>auto_sign_url
+自动签入地址</td></tr>
+<tr><td><code>balance</code></td><td>number</td><td>主账户余额</td></tr>
+<tr><td><code>freezeBalance</code></td><td>number</td><td>冻结余额</td></tr>
+<tr><td><code>holdBalance</code></td><td>number</td><td>隔离余额（合规待确认/待复核的入金隔离资金）</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>管理的资产类型</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>网络</td></tr>
+<tr><td><code>type</code></td><td>string</td><td>账户类型</td></tr>
+<tr><td><code>accountType</code> †</td><td>string</td><td>金库账户类型</td></tr>
+<tr><td><code>status</code></td><td>number</td><td>状态:0不可用,1可用</td></tr>
+<tr><td><code>income</code></td><td>number</td><td>账户总入金</td></tr>
+<tr><td><code>outcome</code></td><td>number</td><td>账户总出金</td></tr>
+<tr><td><code>isSmart</code></td><td>boolean</td><td>是否是智能账户</td></tr>
+<tr><td><code>remark</code> †</td><td>string</td><td>备注</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>创建时间</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。 <code>type</code> 是业务账户类型，<code>accountType</code> 是金库账户类型（<code>GENERAL</code> / <code>SMART</code> 等）。</p>
+</blockquote>
+；<code>type</code> 为账户类型（<code>PRIMARY</code> / <code>PAYIN</code> / <code>PAYOUT</code> / <code>QUARANTINE</code> 等），<code>accountType</code> 为金库账户类型。后续地址、出金、归集接口的 <code>coinId</code> / <code>network</code> 建议取自本接口。</p>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <hr>
 <h2 id="ch-8">8. 地址</h2>
@@ -2567,50 +2695,38 @@ public class SignatureDemo {
 <p><strong>请求参数（business）</strong></p>
 <table>
 <thead>
-<tr>
-<th>参数</th>
-<th>类型</th>
-<th>必填</th>
-<th>说明</th>
-</tr>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
 </thead>
 <tbody>
-<tr>
-<td><code>unitId</code></td>
-<td>number</td>
-<td>是</td>
-<td>财务单元 ID</td>
-</tr>
-<tr>
-<td><code>accountType</code></td>
-<td>string</td>
-<td>是</td>
-<td>账户类型，取值见本章开头</td>
-</tr>
-<tr>
-<td><code>coinId</code></td>
-<td>string</td>
-<td>是</td>
-<td>币种 ID</td>
-</tr>
-<tr>
-<td><code>network</code></td>
-<td>string</td>
-<td>是</td>
-<td>网络</td>
-</tr>
-<tr>
-<td><code>pageSize</code></td>
-<td>number</td>
-<td>否</td>
-<td>每页数量</td>
-</tr>
-<tr>
-<td><code>pageNum</code></td>
-<td>number</td>
-<td>否</td>
-<td>页码（从 1 开始）</td>
-</tr>
+<tr><td><code>id</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>address</code></td><td>string</td><td>地址</td></tr>
+<tr><td><code>vaultAccountId</code></td><td>string</td><td>trustVault账户ID</td></tr>
+<tr><td><code>cusAccountId</code></td><td>number</td><td>商户账户ID</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种ID</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>网络</td></tr>
+<tr><td><code>series</code> †</td><td>string</td><td>系列</td></tr>
+<tr><td><code>addressIndex</code></td><td>number</td><td>地址索引</td></tr>
+<tr><td><code>alias</code> †</td><td>string</td><td>别名</td></tr>
+<tr><td><code>isSmart</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>isContract</code></td><td>number</td><td>是smart账户地址,是否部署地址合约:1.是,0.否</td></tr>
+<tr><td><code>status</code></td><td>number</td><td>地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>账户类型</td></tr>
+<tr><td><code>available</code></td><td>number</td><td>是否可用:1.可用,0.不可用</td></tr>
+<tr><td><code>holdAmount</code></td><td>number</td><td>该地址当前被隔离(hold)的合计金额，&gt;0 时禁止归集</td></tr>
+<tr><td><code>holdFrozen</code></td><td>number</td><td>是否因存在隔离资金而禁止归集:1.禁止,0.允许</td></tr>
+<tr><td><code>riskLevel</code> †</td><td>string</td><td>风险等级</td></tr>
+<tr><td><code>riskScore</code></td><td>string</td><td>风险评分</td></tr>
+<tr><td><code>riskCheckTime</code> †</td><td>string</td><td>风险校验时间</td></tr>
+<tr><td><code>expireTime</code> †</td><td>number</td><td>有效时间,单位:小时</td></tr>
+<tr><td><code>userId</code> †</td><td>string</td><td>关联用户ID</td></tr>
+<tr><td><code>lastUsedTime</code> †</td><td>string</td><td>最后使用时间</td></tr>
+<tr><td><code>coolingEndTime</code> †</td><td>string</td><td>冷静期结束时间</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>创建时间</td></tr>
 </tbody>
 </table>
 <blockquote>
@@ -2633,17 +2749,32 @@ public class SignatureDemo {
     "records": [
       {
         "id": 9001,
+        "ecode": "EC0000000001",
+        "vaultCode": "VAULT001",
+        "projectId": 10,
         "address": "TXYZ...",
-        "addressIndex": 1,
-        "accountType": "PAYIN",
-        "coinId": "USDT",
-        "network": "TRC20",
+        "vaultAccountId": "tv-acc-001",
         "cusAccountId": 101,
         "treasuryUnitId": 80,
+        "coinId": "USDT",
+        "network": "TRC20",
+        "series": "TRON",
+        "addressIndex": 1,
+        "alias": "",
+        "isSmart": 0,
+        "isContract": 0,
+        "status": 3,
+        "accountType": "PAYIN",
         "available": 1,
         "holdAmount": 0,
         "holdFrozen": 0,
-        "status": 1,
+        "riskLevel": "LOW",
+        "riskScore": "0",
+        "riskCheckTime": "2026-10-19 09:59:00",
+        "expireTime": 24,
+        "userId": "",
+        "lastUsedTime": "2026-10-19 10:00:00",
+        "coolingEndTime": "",
         "createTime": "2026-10-19 10:00:00",
         "updateTime": "2026-10-19 10:00:00"
       }
@@ -2655,6 +2786,128 @@ public class SignatureDemo {
   }
 }
 </code></pre>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnitAccountAddress</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>address</code></td><td>string</td><td>地址</td></tr>
+<tr><td><code>vaultAccountId</code></td><td>string</td><td>trustVault账户ID</td></tr>
+<tr><td><code>cusAccountId</code></td><td>number</td><td>商户账户ID</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种ID</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>网络</td></tr>
+<tr><td><code>series</code> †</td><td>string</td><td>系列</td></tr>
+<tr><td><code>addressIndex</code></td><td>number</td><td>地址索引</td></tr>
+<tr><td><code>alias</code> †</td><td>string</td><td>别名</td></tr>
+<tr><td><code>isSmart</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>isContract</code></td><td>number</td><td>是smart账户地址,是否部署地址合约:1.是,0.否</td></tr>
+<tr><td><code>status</code></td><td>number</td><td>地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>账户类型</td></tr>
+<tr><td><code>available</code></td><td>number</td><td>是否可用:1.可用,0.不可用</td></tr>
+<tr><td><code>holdAmount</code></td><td>number</td><td>该地址当前被隔离(hold)的合计金额，&gt;0 时禁止归集</td></tr>
+<tr><td><code>holdFrozen</code></td><td>number</td><td>是否因存在隔离资金而禁止归集:1.禁止,0.允许</td></tr>
+<tr><td><code>riskLevel</code> †</td><td>string</td><td>风险等级</td></tr>
+<tr><td><code>riskScore</code></td><td>string</td><td>风险评分</td></tr>
+<tr><td><code>riskCheckTime</code> †</td><td>string</td><td>风险校验时间</td></tr>
+<tr><td><code>expireTime</code> †</td><td>number</td><td>有效时间,单位:小时</td></tr>
+<tr><td><code>userId</code> †</td><td>string</td><td>关联用户ID</td></tr>
+<tr><td><code>lastUsedTime</code> †</td><td>string</td><td>最后使用时间</td></tr>
+<tr><td><code>coolingEndTime</code> †</td><td>string</td><td>冷静期结束时间</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>创建时间</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
+<p><strong>记录字段</strong></p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td><td>number</td><td>地址记录 ID</td>
+</tr>
+<tr>
+<td><code>ecode</code> / <code>vaultCode</code> / <code>projectId</code></td><td>string / string / number</td><td>企业 code / 金库 code / 账户组 code</td>
+</tr>
+<tr>
+<td><code>address</code></td><td>string</td><td>地址</td>
+</tr>
+<tr>
+<td><code>vaultAccountId</code></td><td>string</td><td>TrustVault 账户 ID</td>
+</tr>
+<tr>
+<td><code>cusAccountId</code></td><td>number</td><td>商户账户 ID</td>
+</tr>
+<tr>
+<td><code>treasuryUnitId</code></td><td>number</td><td>财务单元 ID</td>
+</tr>
+<tr>
+<td><code>coinId</code> / <code>network</code></td><td>string</td><td>币种 / 网络</td>
+</tr>
+<tr>
+<td><code>series</code></td><td>string</td><td>链系列：<code>EVM</code> / <code>BTC</code> / <code>TRON</code> / <code>BRC20</code> / <code>SOL</code> / <code>POLKA</code> / <code>SUI</code> / <code>COSMOS</code> / <code>TON</code></td>
+</tr>
+<tr>
+<td><code>addressIndex</code></td><td>number</td><td>地址索引</td>
+</tr>
+<tr>
+<td><code>alias</code></td><td>string</td><td>别名</td>
+</tr>
+<tr>
+<td><code>isSmart</code> / <code>isContract</code></td><td>number</td><td>是否 smart 地址 / 是否已部署合约（1 是 / 0 否）</td>
+</tr>
+<tr>
+<td><code>status</code></td><td>number</td><td><strong>地址状态：1 待部署合约，2 部署合约中，3 部署成功可用，4 冻结</strong></td>
+</tr>
+<tr>
+<td><code>accountType</code></td><td>string</td><td>账户类型：<code>FREEZE</code> / <code>PRIMARY</code> / <code>PAYOUT</code> / <code>PAYIN</code> / <code>GENERAL_GAS</code> / <code>QUARANTINE</code></td>
+</tr>
+<tr>
+<td><code>available</code></td><td>number</td><td>是否可用：1 可用 / 0 不可用</td>
+</tr>
+<tr>
+<td><code>holdAmount</code></td><td>number</td><td>该地址当前被隔离（hold）的合计金额，&gt; 0 时禁止归集</td>
+</tr>
+<tr>
+<td><code>holdFrozen</code></td><td>number</td><td>是否因存在隔离资金而禁止归集：1 禁止 / 0 允许</td>
+</tr>
+<tr>
+<td><code>riskLevel</code> / <code>riskScore</code></td><td>string</td><td>风险等级（<code>LOW</code> / <code>MEDIUM</code> / <code>HIGH</code>）与评分</td>
+</tr>
+<tr>
+<td><code>riskCheckTime</code></td><td>string</td><td>风险校验时间</td>
+</tr>
+<tr>
+<td><code>expireTime</code></td><td>number</td><td>有效时间，单位：小时</td>
+</tr>
+<tr>
+<td><code>userId</code></td><td>string</td><td>关联用户 ID（Individual Custody 场景）</td>
+</tr>
+<tr>
+<td><code>lastUsedTime</code> / <code>coolingEndTime</code></td><td>string</td><td>最后使用时间 / 冷静期结束时间</td>
+</tr>
+<tr>
+<td><code>createTime</code> / <code>updateTime</code></td><td>string</td><td>创建 / 更新时间</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>status</code> 与 <code>available</code> 是两个独立字段：<code>status</code> 描述地址（合约）生命周期，<code>available</code> 描述当前是否可用于收款/归集。归集前建议同时检查 <code>status === 3</code>、<code>available === 1</code> 且 <code>holdFrozen === 0</code>。</p>
+<p>上表为上游 schema 全量字段；SIT 实测中 <code>series</code>、<code>alias</code>、<code>riskLevel</code>、<code>riskCheckTime</code>、<code>expireTime</code>、<code>userId</code>、<code>lastUsedTime</code>、<code>coolingEndTime</code> 可能缺失，请按可选字段处理。</p>
+</blockquote>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>。以 2xx 返回时由 custody 产生、网关透传；缺少 <code>accountType</code> 时返回的是<strong>网关生成的</strong> <code>500</code> <code>{ code, message }</code> 响应体（上游非 2xx，网关丢弃上游响应体），原因在上游。</p>
 <h3 id="s-8-2">8.2 查询财务单元地址（按账户 ID）</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/address-by-account/{cusAccountId}</code> · 鉴权：Resource 签名</p>
@@ -2741,7 +2994,7 @@ public class SignatureDemo {
   "message": "SUCCESS",
   "data": {
     "records": [
-      { "id": 9001, "address": "TXYZ...", "addressIndex": 1, "accountType": "PAYIN", "coinId": "USDT", "network": "TRC20", "cusAccountId": 101, "treasuryUnitId": 80, "status": 1, "createTime": "2026-10-19 10:00:00", "updateTime": "2026-10-19 10:00:00" }
+      { "id": 9001, "ecode": "EC0000000001", "vaultCode": "VAULT001", "projectId": 10, "address": "TXYZ...", "vaultAccountId": "tv-acc-001", "cusAccountId": 101, "treasuryUnitId": 80, "coinId": "USDT", "network": "TRC20", "series": "TRON", "addressIndex": 1, "alias": "", "isSmart": 0, "isContract": 0, "status": 3, "accountType": "PAYIN", "available": 1, "holdAmount": 0, "holdFrozen": 0, "riskLevel": "LOW", "riskScore": "0", "riskCheckTime": "2026-10-19 09:59:00", "expireTime": 24, "userId": "", "lastUsedTime": "2026-10-19 10:00:00", "coolingEndTime": "", "createTime": "2026-10-19 10:00:00", "updateTime": "2026-10-19 10:00:00" }
     ],
     "total": 1,
     "current": 1,
@@ -2750,6 +3003,46 @@ public class SignatureDemo {
   }
 }
 </code></pre>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnitAccountAddress</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>address</code></td><td>string</td><td>地址</td></tr>
+<tr><td><code>vaultAccountId</code></td><td>string</td><td>trustVault账户ID</td></tr>
+<tr><td><code>cusAccountId</code></td><td>number</td><td>商户账户ID</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种ID</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>网络</td></tr>
+<tr><td><code>series</code> †</td><td>string</td><td>系列</td></tr>
+<tr><td><code>addressIndex</code></td><td>number</td><td>地址索引</td></tr>
+<tr><td><code>alias</code> †</td><td>string</td><td>别名</td></tr>
+<tr><td><code>isSmart</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>isContract</code></td><td>number</td><td>是smart账户地址,是否部署地址合约:1.是,0.否</td></tr>
+<tr><td><code>status</code></td><td>number</td><td>地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>账户类型</td></tr>
+<tr><td><code>available</code></td><td>number</td><td>是否可用:1.可用,0.不可用</td></tr>
+<tr><td><code>holdAmount</code></td><td>number</td><td>该地址当前被隔离(hold)的合计金额，&gt;0 时禁止归集</td></tr>
+<tr><td><code>holdFrozen</code></td><td>number</td><td>是否因存在隔离资金而禁止归集:1.禁止,0.允许</td></tr>
+<tr><td><code>riskLevel</code> †</td><td>string</td><td>风险等级</td></tr>
+<tr><td><code>riskScore</code></td><td>string</td><td>风险评分</td></tr>
+<tr><td><code>riskCheckTime</code> †</td><td>string</td><td>风险校验时间</td></tr>
+<tr><td><code>expireTime</code> †</td><td>number</td><td>有效时间,单位:小时</td></tr>
+<tr><td><code>userId</code> †</td><td>string</td><td>关联用户ID</td></tr>
+<tr><td><code>lastUsedTime</code> †</td><td>string</td><td>最后使用时间</td></tr>
+<tr><td><code>coolingEndTime</code> †</td><td>string</td><td>冷静期结束时间</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>创建时间</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h3 id="s-8-3">8.3 按账户类型批量创建地址</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number}</code> · 鉴权：Resource 签名</p>
@@ -2759,44 +3052,30 @@ public class SignatureDemo {
 <p><strong>路径参数</strong></p>
 <table>
 <thead>
-<tr>
-<th>参数</th>
-<th>类型</th>
-<th>必填</th>
-<th>说明</th>
-</tr>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
 </thead>
 <tbody>
-<tr>
-<td><code>unitId</code></td>
-<td>number</td>
-<td>是</td>
-<td>财务单元 ID</td>
-</tr>
-<tr>
-<td><code>accountType</code></td>
-<td>string</td>
-<td>是</td>
-<td>账户类型，取值见本章开头</td>
-</tr>
-<tr>
-<td><code>network</code></td>
-<td>string</td>
-<td>是</td>
-<td>网络</td>
-</tr>
-<tr>
-<td><code>coinId</code></td>
-<td>string</td>
-<td>是</td>
-<td>币种 ID</td>
-</tr>
-<tr>
-<td><code>number</code></td>
-<td>number</td>
-<td>是</td>
-<td>生成数量；单次上限由后端定义，文档未给出</td>
-</tr>
+<tr><td><code>id</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>address</code></td><td>string</td><td>地址</td></tr>
+<tr><td><code>alias</code> †</td><td>string</td><td>别名</td></tr>
+<tr><td><code>accountId</code> †</td><td>string</td><td>trustVault账户ID</td></tr>
+<tr><td><code>cusAccountId</code></td><td>number</td><td>商户账户ID</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种ID</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>网络</td></tr>
+<tr><td><code>isSmart</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>isContract</code></td><td>number</td><td>是smart账户地址,是否部署地址合约:1.是,0.否</td></tr>
+<tr><td><code>status</code></td><td>number</td><td>地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结</td></tr>
+<tr><td><code>holdAmount</code></td><td>number</td><td>该地址当前被隔离(hold)的合计金额，&gt;0 时禁止归集</td></tr>
+<tr><td><code>riskLevel</code> †</td><td>string</td><td>风险等级</td></tr>
+<tr><td><code>riskScore</code></td><td>string</td><td>风险评分</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>账户类型</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>更新时间</td></tr>
+<tr><td><code>balance</code></td><td>string</td><td>—</td></tr>
 </tbody>
 </table>
 <p><strong>请求参数（business）</strong></p>
@@ -2813,9 +3092,74 @@ public class SignatureDemo {
 </code></pre>
 <p><strong>响应示例</strong></p>
 <pre class="codehilite"><code class="language-json">
-{ "code": 200, "message": "SUCCESS", "data": null }
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": [
+    { "id": 9003, "ecode": "EC0000000001", "vaultCode": "VAULT001", "projectId": 10, "address": "TABC...", "alias": "", "accountId": "tv-acc-001", "cusAccountId": 101, "treasuryUnitId": 80, "coinId": "USDT", "network": "TRC20", "isSmart": 0, "isContract": 0, "status": 1, "holdAmount": 0, "riskLevel": "LOW", "riskScore": "0", "accountType": "PAYIN", "createTime": "2026-10-19 10:05:00", "updateTime": "2026-10-19 10:05:00", "balance": "0" }
+  ]
+}
 </code></pre>
-<p>该接口不返回新建的地址；需要地址时请调用 8.1 查询。<code>coinId</code> / <code>network</code> 必须是该财务单元已配置的币种与网络。</p>
+<p><strong>响应字段</strong>（上游 <code>AccountAddressVO</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>address</code></td><td>string</td><td>地址</td></tr>
+<tr><td><code>alias</code> †</td><td>string</td><td>别名</td></tr>
+<tr><td><code>accountId</code> †</td><td>string</td><td>trustVault账户ID</td></tr>
+<tr><td><code>cusAccountId</code></td><td>number</td><td>商户账户ID</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种ID</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>网络</td></tr>
+<tr><td><code>isSmart</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>isContract</code></td><td>number</td><td>是smart账户地址,是否部署地址合约:1.是,0.否</td></tr>
+<tr><td><code>status</code></td><td>number</td><td>地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结</td></tr>
+<tr><td><code>holdAmount</code></td><td>number</td><td>该地址当前被隔离(hold)的合计金额，&gt;0 时禁止归集</td></tr>
+<tr><td><code>riskLevel</code> †</td><td>string</td><td>风险等级</td></tr>
+<tr><td><code>riskScore</code></td><td>string</td><td>风险评分</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>账户类型</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>更新时间</td></tr>
+<tr><td><code>balance</code></td><td>string</td><td>—</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
+<p><strong>记录字段</strong>（<code>AccountAddressVO</code>）</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>地址记录 ID</td></tr>
+<tr><td><code>ecode</code> / <code>vaultCode</code> / <code>projectId</code></td><td>string / string / number</td><td>企业 code / 金库 code / 账户组 code</td></tr>
+<tr><td><code>address</code></td><td>string</td><td>地址</td></tr>
+<tr><td><code>alias</code></td><td>string</td><td>别名</td></tr>
+<tr><td><code>accountId</code></td><td>string</td><td>TrustVault 账户 ID</td></tr>
+<tr><td><code>cusAccountId</code> / <code>treasuryUnitId</code></td><td>number</td><td>商户账户 ID / 财务单元 ID</td></tr>
+<tr><td><code>coinId</code> / <code>network</code></td><td>string</td><td>币种 / 网络</td></tr>
+<tr><td><code>isSmart</code> / <code>isContract</code></td><td>number</td><td>是否 smart 地址 / 是否已部署合约（1 是 / 0 否）</td></tr>
+<tr><td><code>status</code></td><td>number</td><td>地址状态：1 待部署合约，2 部署合约中，3 部署成功可用，4 冻结</td></tr>
+<tr><td><code>holdAmount</code></td><td>number</td><td>被隔离（hold）的合计金额，&gt; 0 时禁止归集</td></tr>
+<tr><td><code>riskLevel</code> / <code>riskScore</code></td><td>string</td><td>风险等级 / 评分</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>账户类型</td></tr>
+<tr><td><code>createTime</code> / <code>updateTime</code></td><td>string</td><td>创建 / 更新时间</td></tr>
+<tr><td><code>balance</code></td><td>string</td><td>地址余额</td></tr>
+</tbody>
+</table>
+<p>新建的 smart 地址通常以 <code>status: 1</code>（待部署合约）返回，需等合约部署完成（<code>status: 3</code>）后才可用于收款；部署进度可轮询 8.1 / 8.2 获取。</p><p>SIT 实测中 <code>alias</code>、<code>accountId</code>、<code>riskLevel</code> 可能缺失。</p>
+<p>Node SDK <code>createUnitAddress</code> / <code>createUnitAddressByAccount</code> 自 1.4.0 起返回 <code>AccountAddressVO[]</code>；Java SDK 自 1.2.6 起返回 <code>AccountAddressResponse[]</code> / <code>List&lt;AccountAddressResponse&gt;</code>。</p>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数；币种 / 网络未在单元下配置时由 custody 拒绝）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h3 id="s-8-4">8.4 按账户 ID 批量创建地址</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number}</code> · 鉴权：Resource 签名</p>
@@ -2859,17 +3203,49 @@ public class SignatureDemo {
   "business": {}
 }
 </code></pre>
-<p><strong>响应示例</strong>（<code>data</code> 为本次新建的地址数组）</p>
+<p><strong>响应示例</strong>（<code>data</code> 为本次新建的地址数组，字段见 8.3 的 <code>AccountAddressVO</code>）</p>
 <pre class="codehilite"><code class="language-json">
 {
   "code": 200,
   "message": "SUCCESS",
   "data": [
-    { "id": 9002, "address": "TABC...", "addressIndex": 2, "accountType": "PAYIN", "coinId": "USDT", "network": "TRC20", "cusAccountId": 101, "treasuryUnitId": 80, "status": 1, "createTime": "2026-10-19 10:05:00", "updateTime": "2026-10-19 10:05:00" }
+    { "id": 9002, "ecode": "EC0000000001", "vaultCode": "VAULT001", "projectId": 10, "address": "TABC...", "alias": "", "accountId": "tv-acc-001", "cusAccountId": 101, "treasuryUnitId": 80, "coinId": "USDT", "network": "TRC20", "isSmart": 0, "isContract": 0, "status": 1, "holdAmount": 0, "riskLevel": "LOW", "riskScore": "0", "accountType": "PAYIN", "createTime": "2026-10-19 10:05:00", "updateTime": "2026-10-19 10:05:00", "balance": "0" }
   ]
 }
 </code></pre>
-<p>Node SDK <code>createUnitAddressByAccount</code> 自 1.1.0 起返回 <code>UnitAddress[]</code>；Java SDK 自 1.2.0 起返回 <code>List&lt;UnitAddressResponse&gt;</code>（此前为 <code>void</code>）。</p>
+<p><strong>响应字段</strong>（上游 <code>AccountAddressVO</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>address</code></td><td>string</td><td>地址</td></tr>
+<tr><td><code>alias</code> †</td><td>string</td><td>别名</td></tr>
+<tr><td><code>accountId</code> †</td><td>string</td><td>trustVault账户ID</td></tr>
+<tr><td><code>cusAccountId</code></td><td>number</td><td>商户账户ID</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种ID</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>网络</td></tr>
+<tr><td><code>isSmart</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>isContract</code></td><td>number</td><td>是smart账户地址,是否部署地址合约:1.是,0.否</td></tr>
+<tr><td><code>status</code></td><td>number</td><td>地址状态:1:待部署合约,2:部署合约中;3:部署成功可用;4:冻结</td></tr>
+<tr><td><code>holdAmount</code></td><td>number</td><td>该地址当前被隔离(hold)的合计金额，&gt;0 时禁止归集</td></tr>
+<tr><td><code>riskLevel</code> †</td><td>string</td><td>风险等级</td></tr>
+<tr><td><code>riskScore</code></td><td>string</td><td>风险评分</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>账户类型</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>更新时间</td></tr>
+<tr><td><code>balance</code></td><td>string</td><td>—</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
+<p>Node SDK <code>createUnitAddressByAccount</code> 自 1.4.0 起返回 <code>AccountAddressVO[]</code>；Java SDK 自 1.2.6 起返回 <code>List&lt;AccountAddressResponse&gt;</code>（字段同 8.3 的 <code>AccountAddressVO</code>）。</p>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <hr>
 <h2 id="ch-9">9. 币种、资金控制与白名单</h2>
@@ -2941,6 +3317,47 @@ public class SignatureDemo {
 }
 </code></pre>
 <p>返回的 <code>taskId</code> 可用于 11.1 提交审批。</p>
+<p><strong>响应字段</strong>（上游 <code>WCCIPCmdAuditTask</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>id</td></tr>
+<tr><td><code>taskId</code></td><td>string</td><td>任务ID</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>accountId</code></td><td>string</td><td>金库的账户ID</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>金库的账户类型</td></tr>
+<tr><td><code>submitter</code></td><td>string</td><td>提交人:在三方模式时是customer code/两方模式时是guard squad id</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>cmdType</code></td><td>string</td><td>命令类型</td></tr>
+<tr><td><code>cmdBasic</code></td><td><code>MapObject</code></td><td>命令</td></tr>
+<tr><td><code>cmdForm</code></td><td><code>MapObject</code></td><td>命令参数</td></tr>
+<tr><td><code>businessId</code></td><td>string</td><td>业务id:主要是订单id</td></tr>
+<tr><td><code>state</code></td><td>string</td><td>任务状态</td></tr>
+<tr><td><code>businessType</code></td><td>string</td><td>业务类型:SYSTEM/BTC_TRANSFER等等</td></tr>
+<tr><td><code>taskType</code></td><td>string</td><td>任务类型,用于前端判断是资金还是系统操作:orders/issues</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>任务创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>任务更新时间</td></tr>
+<tr><td><code>signContent</code></td><td>string</td><td>签名内容</td></tr>
+<tr><td><code>signContentKeyMapping</code></td><td>string</td><td>签名内容的映射</td></tr>
+<tr><td><code>total</code></td><td>number</td><td>总参与审批数量</td></tr>
+<tr><td><code>threshold</code></td><td>number</td><td>门限</td></tr>
+<tr><td><code>signers</code></td><td>string[]</td><td>任务参与者、审核人、审批人等</td></tr>
+<tr><td><code>algoType</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>initiator</code></td><td>string</td><td>任务发起人</td></tr>
+<tr><td><code>taskOperation</code></td><td>string</td><td>任务操作,如转账,设置board等等</td></tr>
+<tr><td><code>signersLevel</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>unitName</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>accountName</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>includes</code></td><td>string[]</td><td>—</td></tr>
+<tr><td><code>sponsored</code></td><td>boolean</td><td>—</td></tr>
+<tr><td><code>remark</code></td><td>string</td><td>—</td></tr>
+</tbody>
+</table>
+
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h3 id="s-9-2">9.2 更新资金流控制规则</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/fund-control-update</code> · 鉴权：Resource 签名</p>
@@ -2962,19 +3379,19 @@ public class SignatureDemo {
 <td><code>treasuryUnitId</code></td>
 <td>number</td>
 <td>是</td>
-<td>财务单元 ID（SDK 类型必填）</td>
+<td>财务单元 ID</td>
+</tr>
+<tr>
+<td><code>cusAccountId</code></td>
+<td>number</td>
+<td>是</td>
+<td>账户 ID；规则按该账户更新</td>
 </tr>
 <tr>
 <td><code>fundControls</code></td>
 <td>FundControl[]</td>
 <td>是</td>
 <td>资金管理员规则，每项 <code>{ coinId, fundControlRules }</code></td>
-</tr>
-<tr>
-<td><code>cusAccountId</code></td>
-<td>number</td>
-<td>否</td>
-<td>指定账户 ID；传入时按该账户更新</td>
 </tr>
 <tr>
 <td><code>note</code></td>
@@ -2998,11 +3415,57 @@ public class SignatureDemo {
   }
 }
 </code></pre>
-<p><strong>响应示例</strong></p>
+<p><strong>响应示例</strong>（<code>data</code> 为生成的审批任务）</p>
 <pre class="codehilite"><code class="language-json">
-{ "code": 200, "message": "SUCCESS", "data": null }
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": { "id": 5002, "taskId": "task-20261019-011", "taskOperation": "FUND_FLOW", "state": "AUDITING", "threshold": 1, "total": 1, "signers": ["guardian-1"], "createTime": "2026-10-19 10:20:00", "updateTime": "2026-10-19 10:20:00" }
+}
 </code></pre>
-<p>该变更的具体效果（是否需要 Board 审批、是否异步生成审批任务）<strong>未经验证</strong>：SDK 返回 <code>void</code>，上游 YAML 的响应为 <code>MessageResult?</code>，均未描述审批流程。</p>
+<p>规则变更走审批流程：返回的 <code>taskId</code> 可用于 11.1 提交审批，签名达到门限后规则才生效。</p>
+<p><strong>响应字段</strong>（上游 <code>WCCIPCmdAuditTask</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>id</td></tr>
+<tr><td><code>taskId</code></td><td>string</td><td>任务ID</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>accountId</code></td><td>string</td><td>金库的账户ID</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>金库的账户类型</td></tr>
+<tr><td><code>submitter</code></td><td>string</td><td>提交人:在三方模式时是customer code/两方模式时是guard squad id</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>cmdType</code></td><td>string</td><td>命令类型</td></tr>
+<tr><td><code>cmdBasic</code></td><td><code>MapObject</code></td><td>命令</td></tr>
+<tr><td><code>cmdForm</code></td><td><code>MapObject</code></td><td>命令参数</td></tr>
+<tr><td><code>businessId</code></td><td>string</td><td>业务id:主要是订单id</td></tr>
+<tr><td><code>state</code></td><td>string</td><td>任务状态</td></tr>
+<tr><td><code>businessType</code></td><td>string</td><td>业务类型:SYSTEM/BTC_TRANSFER等等</td></tr>
+<tr><td><code>taskType</code></td><td>string</td><td>任务类型,用于前端判断是资金还是系统操作:orders/issues</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>任务创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>任务更新时间</td></tr>
+<tr><td><code>signContent</code></td><td>string</td><td>签名内容</td></tr>
+<tr><td><code>signContentKeyMapping</code></td><td>string</td><td>签名内容的映射</td></tr>
+<tr><td><code>total</code></td><td>number</td><td>总参与审批数量</td></tr>
+<tr><td><code>threshold</code></td><td>number</td><td>门限</td></tr>
+<tr><td><code>signers</code></td><td>string[]</td><td>任务参与者、审核人、审批人等</td></tr>
+<tr><td><code>algoType</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>initiator</code></td><td>string</td><td>任务发起人</td></tr>
+<tr><td><code>taskOperation</code></td><td>string</td><td>任务操作,如转账,设置board等等</td></tr>
+<tr><td><code>signersLevel</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>unitName</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>accountName</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>includes</code></td><td>string[]</td><td>—</td></tr>
+<tr><td><code>sponsored</code></td><td>boolean</td><td>—</td></tr>
+<tr><td><code>remark</code></td><td>string</td><td>—</td></tr>
+</tbody>
+</table>
+
+<p>Node SDK <code>updateFundControl</code> 自 1.4.0 起返回 <code>WCCIPCmdAuditTask</code>；Java SDK <code>FundControlService.updateFundControl</code> 自 1.2.6 起返回 <code>AuditTaskResponse</code>（此前均为 <code>void</code>）。</p>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h3 id="s-9-3">9.3 更新白名单</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/whitelist-update</code> · 鉴权：Resource 签名</p>
@@ -3086,6 +3549,47 @@ public class SignatureDemo {
 }
 </code></pre>
 <p>返回的 <code>taskId</code> 可用于 11.1 提交审批。</p>
+<p><strong>响应字段</strong>（上游 <code>WCCIPCmdAuditTask</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>id</td></tr>
+<tr><td><code>taskId</code></td><td>string</td><td>任务ID</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>accountId</code></td><td>string</td><td>金库的账户ID</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>金库的账户类型</td></tr>
+<tr><td><code>submitter</code></td><td>string</td><td>提交人:在三方模式时是customer code/两方模式时是guard squad id</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>cmdType</code></td><td>string</td><td>命令类型</td></tr>
+<tr><td><code>cmdBasic</code></td><td><code>MapObject</code></td><td>命令</td></tr>
+<tr><td><code>cmdForm</code></td><td><code>MapObject</code></td><td>命令参数</td></tr>
+<tr><td><code>businessId</code></td><td>string</td><td>业务id:主要是订单id</td></tr>
+<tr><td><code>state</code></td><td>string</td><td>任务状态</td></tr>
+<tr><td><code>businessType</code></td><td>string</td><td>业务类型:SYSTEM/BTC_TRANSFER等等</td></tr>
+<tr><td><code>taskType</code></td><td>string</td><td>任务类型,用于前端判断是资金还是系统操作:orders/issues</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>任务创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>任务更新时间</td></tr>
+<tr><td><code>signContent</code></td><td>string</td><td>签名内容</td></tr>
+<tr><td><code>signContentKeyMapping</code></td><td>string</td><td>签名内容的映射</td></tr>
+<tr><td><code>total</code></td><td>number</td><td>总参与审批数量</td></tr>
+<tr><td><code>threshold</code></td><td>number</td><td>门限</td></tr>
+<tr><td><code>signers</code></td><td>string[]</td><td>任务参与者、审核人、审批人等</td></tr>
+<tr><td><code>algoType</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>initiator</code></td><td>string</td><td>任务发起人</td></tr>
+<tr><td><code>taskOperation</code></td><td>string</td><td>任务操作,如转账,设置board等等</td></tr>
+<tr><td><code>signersLevel</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>unitName</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>accountName</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>includes</code></td><td>string[]</td><td>—</td></tr>
+<tr><td><code>sponsored</code></td><td>boolean</td><td>—</td></tr>
+<tr><td><code>remark</code></td><td>string</td><td>—</td></tr>
+</tbody>
+</table>
+
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <hr>
 <h2 id="ch-10">10. 出金与归集</h2>
@@ -3241,6 +3745,47 @@ public class SignatureDemo {
 }
 </code></pre>
 <p>返回的是审核任务（<code>WCCIPCmdAuditTask</code>）。<code>data.taskId</code> 用于 11.1 提交审批；<code>state</code>、<code>signContent</code>、<code>signers</code> 等字段用于后续签名流程。</p>
+<p><strong>响应字段</strong>（上游 <code>WCCIPCmdAuditTask</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>id</td></tr>
+<tr><td><code>taskId</code></td><td>string</td><td>任务ID</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>accountId</code></td><td>string</td><td>金库的账户ID</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>金库的账户类型</td></tr>
+<tr><td><code>submitter</code></td><td>string</td><td>提交人:在三方模式时是customer code/两方模式时是guard squad id</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>cmdType</code></td><td>string</td><td>命令类型</td></tr>
+<tr><td><code>cmdBasic</code></td><td><code>MapObject</code></td><td>命令</td></tr>
+<tr><td><code>cmdForm</code></td><td><code>MapObject</code></td><td>命令参数</td></tr>
+<tr><td><code>businessId</code></td><td>string</td><td>业务id:主要是订单id</td></tr>
+<tr><td><code>state</code></td><td>string</td><td>任务状态</td></tr>
+<tr><td><code>businessType</code></td><td>string</td><td>业务类型:SYSTEM/BTC_TRANSFER等等</td></tr>
+<tr><td><code>taskType</code></td><td>string</td><td>任务类型,用于前端判断是资金还是系统操作:orders/issues</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>任务创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>任务更新时间</td></tr>
+<tr><td><code>signContent</code></td><td>string</td><td>签名内容</td></tr>
+<tr><td><code>signContentKeyMapping</code></td><td>string</td><td>签名内容的映射</td></tr>
+<tr><td><code>total</code></td><td>number</td><td>总参与审批数量</td></tr>
+<tr><td><code>threshold</code></td><td>number</td><td>门限</td></tr>
+<tr><td><code>signers</code></td><td>string[]</td><td>任务参与者、审核人、审批人等</td></tr>
+<tr><td><code>algoType</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>initiator</code></td><td>string</td><td>任务发起人</td></tr>
+<tr><td><code>taskOperation</code></td><td>string</td><td>任务操作,如转账,设置board等等</td></tr>
+<tr><td><code>signersLevel</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>unitName</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>accountName</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>includes</code></td><td>string[]</td><td>—</td></tr>
+<tr><td><code>sponsored</code></td><td>boolean</td><td>—</td></tr>
+<tr><td><code>remark</code></td><td>string</td><td>—</td></tr>
+</tbody>
+</table>
+
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>120xxx</code>（业务规则，如余额或政策不允许）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h3 id="s-10-2">10.2 发起归集</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/pooling</code> · 鉴权：Resource 签名</p>
@@ -3364,6 +3909,62 @@ public class SignatureDemo {
   }
 }
 </code></pre>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnitTransferOutOrder</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>金库code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>项目Id</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>财务单元ID</td></tr>
+<tr><td><code>ledgerId</code> †</td><td>number</td><td>账本id</td></tr>
+<tr><td><code>cusAccountId</code></td><td>number</td><td>账户id</td></tr>
+<tr><td><code>address</code> †</td><td>string</td><td>交易地址</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种ID</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>所在网络</td></tr>
+<tr><td><code>businessScope</code> †</td><td>string</td><td>托管业务类型</td></tr>
+<tr><td><code>travelRuleReferenceId</code> †</td><td>string</td><td>Travel Rule 引用ID</td></tr>
+<tr><td><code>travelRulePayload</code> †</td><td>string</td><td>Travel Rule 原始数据(JSON字符串)</td></tr>
+<tr><td><code>travelRuleStatus</code> †</td><td>string</td><td>Travel Rule 状态</td></tr>
+<tr><td><code>travelRuleCheckStatus</code> †</td><td>string</td><td>Travel Rule 合规状态</td></tr>
+<tr><td><code>travelRuleCheckPayload</code> †</td><td>string</td><td>Travel Rule 合规回执(JSON字符串)</td></tr>
+<tr><td><code>kytStatus</code> †</td><td>string</td><td>KYT 合规状态</td></tr>
+<tr><td><code>kytRiskScore</code> †</td><td>number</td><td>KYT 风险评分</td></tr>
+<tr><td><code>kytPayload</code> †</td><td>string</td><td>KYT 回执(JSON字符串)</td></tr>
+<tr><td><code>kyaRiskScore</code> †</td><td>number</td><td>KYA 地址风险最大评分</td></tr>
+<tr><td><code>complianceProvider</code> †</td><td>string</td><td>合规提供方</td></tr>
+<tr><td><code>orderId</code></td><td>string</td><td>业务订单ID</td></tr>
+<tr><td><code>txId</code> †</td><td>string</td><td>链上ID,一般情况下为一条记录，有时候会出现多条记录</td></tr>
+<tr><td><code>fee</code> †</td><td>string</td><td>付款手续费</td></tr>
+<tr><td><code>callbackStatus</code> †</td><td>string</td><td>回调状态</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>id</code></td><td>number</td><td>id</td></tr>
+<tr><td><code>taskId</code> †</td><td>string</td><td>审批任务ID</td></tr>
+<tr><td><code>inputAmount</code></td><td>string</td><td>可读金额</td></tr>
+<tr><td><code>totalAmount</code></td><td>number</td><td>付款链上金额</td></tr>
+<tr><td><code>fundFlowCode</code> †</td><td>string</td><td>资金流水号</td></tr>
+<tr><td><code>orderState</code></td><td>string</td><td>订单状态：初始化，审批中，已拒绝，交易中，交易成功，交易失败</td></tr>
+<tr><td><code>payToList</code></td><td><code>PayTo</code>[]</td><td>—</td></tr>
+<tr><td><code>note</code> †</td><td>string</td><td>付款备注</td></tr>
+<tr><td><code>businessId</code> †</td><td>string</td><td>第三方业务订单ID</td></tr>
+<tr><td><code>txCount</code></td><td>number</td><td>交易数</td></tr>
+<tr><td><code>failReason</code> †</td><td>string</td><td>失败原因</td></tr>
+<tr><td><code>taskInitiator</code> †</td><td>string</td><td>任务发起人(邮箱/名称)</td></tr>
+<tr><td><code>source</code> †</td><td>string</td><td>接口来源: INTERNAL/API/THIRD_PARTY</td></tr>
+<tr><td><code>taskOperation</code> †</td><td>string</td><td>任务操作类型: PAYOUT/WITHDRAW/ALLOCATE</td></tr>
+<tr><td><code>vaspDid</code> †</td><td>string</td><td>生效的对方 VASP DID（用户申报值与后端 discover 查到一致时即该值；admin 复核可修正）</td></tr>
+<tr><td><code>vaspName</code> †</td><td>string</td><td>生效的对方 VASP 机构名（仅展示/审计，不参与一致性判定）</td></tr>
+<tr><td><code>vaspReviewStatus</code> †</td><td>string</td><td>VASP 复核状态：MATCHED-申报与查到一致 / MISMATCH-不一致待处理 / CONFIRMED-admin 强制放行</td></tr>
+<tr><td><code>vaspReviewedBy</code> †</td><td>string</td><td>VASP 复核操作人（admin）</td></tr>
+<tr><td><code>vaspReviewedAt</code> †</td><td>string</td><td>VASP 复核时间</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
 <p><strong>常见业务码</strong>：<code>120042 ONLY_ACQUIRING_ACCOUNT_ALLOWED</code>（来源账户不是 platform 创建的收款类账户）、<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <hr>
 <h2 id="ch-11">11. 任务审批</h2>
@@ -3433,6 +4034,8 @@ public class SignatureDemo {
 <pre class="codehilite"><code class="language-json">
 { "code": 200, "message": "SUCCESS", "data": null }
 </code></pre>
+<p><strong>响应</strong>：上游 YAML 将该接口声明为 <code>MessageResult?</code>，成功时 <code>data</code> 为 <code>null</code>，无响应字段。</p>
+<p><strong>响应</strong>：上游 YAML 将该接口声明为 <code>MessageResult?</code>，成功时 <code>data</code> 为 <code>null</code>，无响应字段。</p>
 <p>任务不存在或 <code>taskId</code> 无效时由 custody 返回错误（网关透传；<code>taskId</code> 还会先经过网关路径参数校验，非法字符返回 <code>40001</code>）。</p>
 <blockquote>
 <p>本接口是非幂等写操作：网关对上游 5xx / 超时会自动重试（实际次数可能远超 3 次，见第 7 章开头的转发说明），注意重复提交风险。</p>
@@ -3554,7 +4157,39 @@ public class SignatureDemo {
   }
 }
 </code></pre>
-<p>关键字段：<code>direction</code>（<code>IN</code> / <code>OUT</code>）、<code>status</code>（<code>SUBMITTING</code> / <code>APPROVED</code> / <code>REJECTED</code> / <code>FAILED</code> / <code>CONFIRMING</code> / <code>COMPLETED</code> / <code>EXPIRED</code> / <code>PENDING_COMPLIANCE</code> / <code>PENDING_CONFIRMATION</code> / <code>PENDING_REVIEW</code> / <code>REVIEW_ACCEPTED</code> / <code>REVIEW_REJECTED</code>）、<code>travelRuleStatus</code>（<code>NOT_REQUIRED</code> / <code>PENDING</code> / <code>PASSED</code> / <code>FAILED</code> / <code>REVIEW</code>）、<code>kytStatus</code> / <code>kyaStatus</code>（风险相关，取值以后端为准）。</p>
+<p>关键字段：<code>direction</code>（<code>IN</code> / <code>OUT</code>）、<code>status</code>（<code>SUBMITTING</code> / <code>APPROVED</code> / <code>REJECTED</code> / <code>FAILED</code> / <code>BROADCAST_SUCCESS</code> / <code>CONFIRMING</code> / <code>COMPLETED</code> / <code>EXPIRED</code> / <code>PENDING_COMPLIANCE</code> / <code>PENDING_CONFIRMATION</code> / <code>PENDING_REVIEW</code> / <code>REVIEW_ACCEPTED</code> / <code>REVIEW_REJECTED</code>）、<code>travelRuleStatus</code>（<code>NOT_REQUIRED</code> / <code>PENDING</code> / <code>PASSED</code> / <code>FAILED</code> / <code>REVIEW</code>）、<code>kytStatus</code> / <code>kyaStatus</code>（风险相关，取值以后端为准）。</p>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnitActivity</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>商户号</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>项目ID</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>账户单元ID</td></tr>
+<tr><td><code>ledgerId</code> †</td><td>number</td><td>账本ID</td></tr>
+<tr><td><code>cusAccountId</code></td><td>number</td><td>发生交易的账户ID,出金就是from账户id,入金就是to账户id,这里是TrustVault账户id</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>发生交易的账户名称出金就是from账户名,入金就是to账户名</td></tr>
+<tr><td><code>cpAccountId</code> †</td><td>number</td><td>对向账户ID,与accountId对应,这里是Custody账户id</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种ID</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>网络</td></tr>
+<tr><td><code>type</code></td><td>string</td><td>活动类型</td></tr>
+<tr><td><code>amount</code></td><td>number</td><td>活动金额</td></tr>
+<tr><td><code>direction</code></td><td>string</td><td>资金流转方向:IN/OUT</td></tr>
+<tr><td><code>orderId</code></td><td>string</td><td>活动所属订单号</td></tr>
+<tr><td><code>businessId</code> †</td><td>string</td><td>第三方业务订单ID</td></tr>
+<tr><td><code>status</code></td><td>string</td><td>状态</td></tr>
+<tr><td><code>travelRuleStatus</code></td><td>string</td><td>Travel Rule 状态</td></tr>
+<tr><td><code>kytStatus</code></td><td>string</td><td>KYT 状态</td></tr>
+<tr><td><code>kyaStatus</code> †</td><td>string</td><td>KYA 风险等级(HIGH/MEDIUM/LOW)</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>更新时间</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h3 id="s-12-2">12.2 查询出金订单</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/transfer-out-orders</code> · 鉴权：Resource 签名</p>
@@ -3585,7 +4220,63 @@ public class SignatureDemo {
   }
 }
 </code></pre>
-<p>关键字段：<code>orderState</code>（<code>AUDITING</code> / <code>SIGNING</code> / <code>SIGN_FAILED</code> / <code>SIGNING_REJECTED</code> / <code>TRANSITING</code> / <code>SUCCEED</code> / <code>FAILED</code> / <code>EXPIRED</code> / <code>SUBMIT_FAILED</code> / <code>CONFIRMING</code> / <code>COMPLIANCE_PENDING</code> / <code>TRAVEL_RULE_PENDING</code> / <code>MANUAL_REVIEW_PENDING</code> / <code>REJECTED</code> / <code>CANCELLED</code>）、<code>callbackStatus</code>（<code>TRANSITING</code> / <code>SUCCEED</code> / <code>FAILED</code>）、<code>taskId</code>、<code>txId</code>、<code>fee</code>、<code>payToList</code>；<code>travelRuleStatus</code> / <code>travelRuleCheckStatus</code> / <code>kytStatus</code> / <code>kyaRiskScore</code> 为合规与风险字段。</p>
+<p>关键字段：<code>orderState</code>（<code>AUDITING</code> / <code>SIGNING</code> / <code>SIGN_FAILED</code> / <code>SIGNING_REJECTED</code> / <code>TRANSITING</code> / <code>BROADCAST_SUCCESS</code> / <code>SUCCEED</code> / <code>FAILED</code> / <code>EXPIRED</code> / <code>SUBMIT_FAILED</code> / <code>CONFIRMING</code> / <code>COMPLIANCE_PENDING</code> / <code>TRAVEL_RULE_PENDING</code> / <code>MANUAL_REVIEW_PENDING</code> / <code>VASP_MISMATCH_PENDING</code> / <code>REJECTED</code> / <code>CANCELLED</code>）、<code>callbackStatus</code>（<code>TRANSITING</code> / <code>SUCCEED</code> / <code>FAILED</code>）、<code>taskId</code>、<code>txId</code>、<code>fee</code>、<code>payToList</code>；<code>travelRuleStatus</code> / <code>travelRuleCheckStatus</code> / <code>kytStatus</code> / <code>kyaRiskScore</code> 为合规与风险字段。</p>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnitTransferOutOrder</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>金库code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>项目Id</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>财务单元ID</td></tr>
+<tr><td><code>ledgerId</code> †</td><td>number</td><td>账本id</td></tr>
+<tr><td><code>cusAccountId</code></td><td>number</td><td>账户id</td></tr>
+<tr><td><code>address</code> †</td><td>string</td><td>交易地址</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种ID</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>所在网络</td></tr>
+<tr><td><code>businessScope</code> †</td><td>string</td><td>托管业务类型</td></tr>
+<tr><td><code>travelRuleReferenceId</code> †</td><td>string</td><td>Travel Rule 引用ID</td></tr>
+<tr><td><code>travelRulePayload</code> †</td><td>string</td><td>Travel Rule 原始数据(JSON字符串)</td></tr>
+<tr><td><code>travelRuleStatus</code> †</td><td>string</td><td>Travel Rule 状态</td></tr>
+<tr><td><code>travelRuleCheckStatus</code> †</td><td>string</td><td>Travel Rule 合规状态</td></tr>
+<tr><td><code>travelRuleCheckPayload</code> †</td><td>string</td><td>Travel Rule 合规回执(JSON字符串)</td></tr>
+<tr><td><code>kytStatus</code> †</td><td>string</td><td>KYT 合规状态</td></tr>
+<tr><td><code>kytRiskScore</code> †</td><td>number</td><td>KYT 风险评分</td></tr>
+<tr><td><code>kytPayload</code> †</td><td>string</td><td>KYT 回执(JSON字符串)</td></tr>
+<tr><td><code>kyaRiskScore</code> †</td><td>number</td><td>KYA 地址风险最大评分</td></tr>
+<tr><td><code>complianceProvider</code> †</td><td>string</td><td>合规提供方</td></tr>
+<tr><td><code>orderId</code></td><td>string</td><td>业务订单ID</td></tr>
+<tr><td><code>txId</code> †</td><td>string</td><td>链上ID,一般情况下为一条记录，有时候会出现多条记录</td></tr>
+<tr><td><code>fee</code> †</td><td>string</td><td>付款手续费</td></tr>
+<tr><td><code>callbackStatus</code> †</td><td>string</td><td>回调状态</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>id</code></td><td>number</td><td>id</td></tr>
+<tr><td><code>taskId</code> †</td><td>string</td><td>审批任务ID</td></tr>
+<tr><td><code>inputAmount</code></td><td>string</td><td>可读金额</td></tr>
+<tr><td><code>totalAmount</code></td><td>number</td><td>付款链上金额</td></tr>
+<tr><td><code>fundFlowCode</code> †</td><td>string</td><td>资金流水号</td></tr>
+<tr><td><code>orderState</code></td><td>string</td><td>订单状态：初始化，审批中，已拒绝，交易中，交易成功，交易失败</td></tr>
+<tr><td><code>payToList</code></td><td><code>PayTo</code>[]</td><td>—</td></tr>
+<tr><td><code>note</code> †</td><td>string</td><td>付款备注</td></tr>
+<tr><td><code>businessId</code> †</td><td>string</td><td>第三方业务订单ID</td></tr>
+<tr><td><code>txCount</code></td><td>number</td><td>交易数</td></tr>
+<tr><td><code>failReason</code> †</td><td>string</td><td>失败原因</td></tr>
+<tr><td><code>taskInitiator</code> †</td><td>string</td><td>任务发起人(邮箱/名称)</td></tr>
+<tr><td><code>source</code> †</td><td>string</td><td>接口来源: INTERNAL/API/THIRD_PARTY</td></tr>
+<tr><td><code>taskOperation</code> †</td><td>string</td><td>任务操作类型: PAYOUT/WITHDRAW/ALLOCATE</td></tr>
+<tr><td><code>vaspDid</code> †</td><td>string</td><td>生效的对方 VASP DID（用户申报值与后端 discover 查到一致时即该值；admin 复核可修正）</td></tr>
+<tr><td><code>vaspName</code> †</td><td>string</td><td>生效的对方 VASP 机构名（仅展示/审计，不参与一致性判定）</td></tr>
+<tr><td><code>vaspReviewStatus</code> †</td><td>string</td><td>VASP 复核状态：MATCHED-申报与查到一致 / MISMATCH-不一致待处理 / CONFIRMED-admin 强制放行</td></tr>
+<tr><td><code>vaspReviewedBy</code> †</td><td>string</td><td>VASP 复核操作人（admin）</td></tr>
+<tr><td><code>vaspReviewedAt</code> †</td><td>string</td><td>VASP 复核时间</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h3 id="s-12-3">12.3 查询入金订单</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/transfer-in-orders</code> · 鉴权：Resource 签名</p>
@@ -3617,6 +4308,50 @@ public class SignatureDemo {
 }
 </code></pre>
 <p>关键字段：<code>orderState</code>（<code>PROCESSING</code> / <code>CONFIRMING</code> / <code>SUCCEED</code> / <code>FAILED</code> / <code>MISMATCH</code> / <code>EXPIRED</code> / <code>COMPLIANCE_HOLD</code> / <code>PENDING_REVIEW</code> / <code>REVIEW_ACCEPTED</code> / <code>REVIEW_REJECTED</code>）、<code>type</code>（<code>1</code> 充值、<code>2</code> 收款）、<code>initiator</code>（<code>1</code> 商户、<code>2</code> 商户的用户）、<code>cpAddress</code>、<code>amount</code>、<code>txId</code>。</p>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnitTransferInOrder</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>金库code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>项目Id</td></tr>
+<tr><td><code>treasuryUnitId</code> †</td><td>number</td><td>财务单元ID</td></tr>
+<tr><td><code>ledgerId</code> †</td><td>number</td><td>账本id</td></tr>
+<tr><td><code>cusAccountId</code></td><td>number</td><td>账户id</td></tr>
+<tr><td><code>address</code></td><td>string</td><td>交易地址</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种ID</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>所在网络</td></tr>
+<tr><td><code>businessScope</code> †</td><td>string</td><td>托管业务类型</td></tr>
+<tr><td><code>travelRuleReferenceId</code> †</td><td>string</td><td>Travel Rule 引用ID</td></tr>
+<tr><td><code>travelRulePayload</code> †</td><td>string</td><td>Travel Rule 原始数据(JSON字符串)</td></tr>
+<tr><td><code>travelRuleStatus</code> †</td><td>string</td><td>Travel Rule 状态</td></tr>
+<tr><td><code>travelRuleCheckStatus</code> †</td><td>string</td><td>Travel Rule 合规状态</td></tr>
+<tr><td><code>travelRuleCheckPayload</code> †</td><td>string</td><td>Travel Rule 合规回执(JSON字符串)</td></tr>
+<tr><td><code>kytStatus</code> †</td><td>string</td><td>KYT 合规状态</td></tr>
+<tr><td><code>kytRiskScore</code> †</td><td>number</td><td>KYT 风险评分</td></tr>
+<tr><td><code>kytPayload</code> †</td><td>string</td><td>KYT 回执(JSON字符串)</td></tr>
+<tr><td><code>kyaRiskScore</code> †</td><td>number</td><td>KYA 地址风险最大评分</td></tr>
+<tr><td><code>complianceProvider</code> †</td><td>string</td><td>合规提供方</td></tr>
+<tr><td><code>orderId</code></td><td>string</td><td>业务订单ID</td></tr>
+<tr><td><code>txId</code></td><td>string</td><td>链上ID,一般情况下为一条记录，有时候会出现多条记录</td></tr>
+<tr><td><code>fee</code> †</td><td>string</td><td>付款手续费</td></tr>
+<tr><td><code>callbackStatus</code> †</td><td>string</td><td>回调状态</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>id</code></td><td>number</td><td>id</td></tr>
+<tr><td><code>cpAddress</code></td><td>string</td><td>付款地址</td></tr>
+<tr><td><code>amount</code></td><td>number</td><td>收款金额</td></tr>
+<tr><td><code>orderState</code></td><td>string</td><td>订单状态：交易中，交易成功，交易失败</td></tr>
+<tr><td><code>type</code></td><td>number</td><td>订单类型：1.充值，2.收款</td></tr>
+<tr><td><code>note</code> †</td><td>string</td><td>收款备注</td></tr>
+<tr><td><code>initiator</code></td><td>number</td><td>发起方:1.商户,2.商户的用户</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h3 id="s-12-4">12.4 查询账户资金流水</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/fund-records</code> · 鉴权：Resource 签名</p>
@@ -3638,7 +4373,7 @@ public class SignatureDemo {
   "message": "SUCCESS",
   "data": {
     "records": [
-      { "id": 4001, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "cusAccountId": 101, "txId": "0xdef...", "orderId": "ORDER-20261019-001", "coinId": "USDT", "network": "TRC20", "amount": 100, "preBalance": 900, "postBalance": 1000, "fee": "1", "txType": "TRANSFER_IN", "createTime": "2026-10-19 10:30:00" }
+      { "id": 4001, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "cusAccountId": 101, "txId": "0xdef...", "orderId": "ORDER-20261019-001", "coinId": "USDT", "network": "TRC20", "fromAddr": "TABC...", "toAddr": "TXYZ...", "direction": "IN", "amount": 100, "preBalance": 900, "postBalance": 1000, "fee": "1", "txType": "TRANSFER_IN", "createTime": "2026-10-19 10:30:00" }
     ],
     "total": 1,
     "current": 1,
@@ -3648,6 +4383,45 @@ public class SignatureDemo {
 }
 </code></pre>
 <p><code>txType</code> 取值：<code>TRANSFER_IN</code> / <code>TRANSFER_OUT</code> / <code>WITHDRAW</code> / <code>ALLOCATE_IN</code> / <code>ALLOCATE_OUT</code> / <code>POOL_IN</code> / <code>POOL_OUT</code> / <code>GAS_OUT</code> / <code>FEE_OUT</code> / <code>DEPLOY</code>。</p>
+<blockquote>
+<p><code>direction</code> 与 <code>txType</code> 互补：<code>txType</code> 描述业务动作（如 <code>ALLOCATE_IN</code> 是内部划转），<code>direction</code> 只描述对当前账户的资金进出方向，对账时以 <code>direction</code> 为准。<code>fromAddr</code> / <code>toAddr</code> 在内部划转中为平台内部地址，在链上充提中为链上地址。</p><p>注意：<code>fromAddr</code> / <code>toAddr</code> / <code>direction</code> 已列入上游 schema（2026-10 版 <code>ProjectUnitFundRecord</code>），但 SIT 实测的部分历史流水（如 <code>txType: TRANSFER_IN</code> 的早期记录）<strong>未返回这三个字段</strong>。请按可选字段处理，缺失时回退到 <code>txType</code> 判断方向。</p>
+</blockquote>
+<p><strong>记录字段</strong>（<code>ProjectUnitFundRecord</code>）</p>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnitFundRecord</code>）</p>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnitFundRecord</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>主键id</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>商户编码</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>账户组code</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>所属财务单元id</td></tr>
+<tr><td><code>cusAccountId</code></td><td>number</td><td>对应账户id</td></tr>
+<tr><td><code>txId</code></td><td>string</td><td>交易ID</td></tr>
+<tr><td><code>orderId</code></td><td>string</td><td>订单id</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>网络</td></tr>
+<tr><td><code>fromAddr</code> †</td><td>string</td><td>出金地址</td></tr>
+<tr><td><code>toAddr</code> †</td><td>string</td><td>入金地址</td></tr>
+<tr><td><code>direction</code> †</td><td>string</td><td>方向</td></tr>
+<tr><td><code>amount</code></td><td>number</td><td>金额</td></tr>
+<tr><td><code>preBalance</code></td><td>number</td><td>期初余额</td></tr>
+<tr><td><code>postBalance</code></td><td>number</td><td>期末余额</td></tr>
+<tr><td><code>fee</code></td><td>string</td><td>手续费</td></tr>
+<tr><td><code>txType</code></td><td>string</td><td>流水类型</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+</tbody>
+</table>
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
+
+<blockquote>
+<p>标 † 的字段在上游 schema 中已声明，但 SIT 实测响应未返回，请按可选字段处理。</p>
+</blockquote>
+
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h3 id="s-12-5">12.5 查询财务单元级资金流水</h3>
 <p><strong>POST</strong> <code>/api/thirdparty/treasury/unit-fund-records</code> · 鉴权：Resource 签名</p>
@@ -3669,7 +4443,7 @@ public class SignatureDemo {
   "message": "SUCCESS",
   "data": {
     "records": [
-      { "id": 4101, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "ledgerId": 20, "txId": "0xdef...", "orderId": "ORDER-20261019-001", "coinId": "USDT", "network": "TRC20", "amount": 100, "preBalance": 900, "postBalance": 1000, "fee": "1", "txType": "TRANSFER_IN", "createTime": "2026-10-19 10:30:00" }
+      { "id": 4101, "ecode": "EC0000000001", "projectId": 10, "treasuryUnitId": 80, "ledgerId": 20, "txId": "0xdef...", "orderId": "ORDER-20261019-001", "coinId": "USDT", "network": "TRC20", "fromAddr": "TABC...", "toAddr": "TXYZ...", "direction": "IN", "amount": 100, "preBalance": 900, "postBalance": 1000, "fee": "1", "txType": "TRANSFER_IN", "createTime": "2026-10-19 10:30:00" }
     ],
     "total": 1,
     "current": 1,
@@ -3678,7 +4452,30 @@ public class SignatureDemo {
   }
 }
 </code></pre>
-<p>与 12.4 的区别：本接口按财务单元（<code>ledgerId</code>）聚合流水，不返回 <code>cusAccountId</code>。</p>
+<p>与 12.4 的区别：本接口按财务单元（<code>ledgerId</code>）聚合流水，不返回 <code>cusAccountId</code>；其余字段（含 <code>fromAddr</code> / <code>toAddr</code> / <code>direction</code>）与 12.4 一致。</p>
+<p><strong>响应字段</strong>（上游 <code>ProjectUnitLedgerFundRecord</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>主键id</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>商户编码</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>账户组code</td></tr>
+<tr><td><code>treasuryUnitId</code></td><td>number</td><td>所属财务单元id</td></tr>
+<tr><td><code>ledgerId</code></td><td>number</td><td>对应账本id</td></tr>
+<tr><td><code>txId</code></td><td>string</td><td>交易ID</td></tr>
+<tr><td><code>orderId</code></td><td>string</td><td>订单id</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>币种</td></tr>
+<tr><td><code>network</code></td><td>string</td><td>网络</td></tr>
+<tr><td><code>amount</code></td><td>number</td><td>金额</td></tr>
+<tr><td><code>preBalance</code></td><td>number</td><td>期初余额</td></tr>
+<tr><td><code>postBalance</code></td><td>number</td><td>期末余额</td></tr>
+<tr><td><code>fee</code></td><td>string</td><td>手续费</td></tr>
+<tr><td><code>txType</code></td><td>string</td><td>流水类型</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+</tbody>
+</table>
 <p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <h2 id="ch-13">13. 商户、用户与 Board</h2>
 <p>本章 4 个接口用于把三方平台上的企业、企业用户和签名人（Board）登记到 Custody 侧。它们与其他业务接口一样由网关原样转发 <code>business</code>，约束均来自 Custody；其中 <code>merchant/register</code> 是唯一使用 <strong>Basic 签名</strong>的转发接口。</p>
@@ -3827,7 +4624,7 @@ public class SignatureDemo {
   }
 }
 </code></pre>
-<p>响应参数（data）：</p>
+<p><strong>响应字段</strong>（上游 <code>ThirdMerchantRegisterResult</code> + 网关补充的 <code>authorizedId</code>）</p>
 <table>
 <thead><tr><th>参数</th><th>类型</th><th>说明</th></tr></thead>
 <tbody>
@@ -3919,10 +4716,54 @@ public class SignatureDemo {
   }
 }
 </code></pre>
-<p><strong>响应示例</strong>（<code>MapObject</code>，字段名以 custody 实际返回为准）</p>
+<p><strong>响应示例</strong>（<code>ConsoleUser</code>）</p>
 <pre class="codehilite"><code class="language-json">
-{ "code": 200, "message": "SUCCESS", "data": { "userId": 99 } }
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "id": 99,
+    "username": "staff@example.com",
+    "password": "",
+    "email": "staff@example.com",
+    "phone": "",
+    "pk": "0x04...",
+    "state": "ACTIVE",
+    "apiFlag": false,
+    "ecode": "EC0000000001",
+    "isSetPassword": true,
+    "loginTime": "",
+    "logoutTime": "",
+    "createTime": "2026-10-19 10:40:00",
+    "updateTime": "2026-10-19 10:40:00"
+  }
+}
 </code></pre>
+<p><code>data</code> 为 <code>ConsoleUser</code>：<code>id</code>（用户 ID）、<code>username</code> / <code>email</code> / <code>phone</code>、<code>pk</code>（公钥）、<code>state</code>（<code>SUSPENDING</code> / <code>ACTIVE</code> / <code>INACTIVE</code>）、<code>apiFlag</code>、<code>ecode</code>、<code>isSetPassword</code>、<code>loginTime</code> / <code>logoutTime</code>、<code>createTime</code> / <code>updateTime</code>。响应中的 <code>password</code> 不保证回填，请勿依赖。</p>
+<p>Node SDK <code>addUser</code> 自 1.4.0 起返回 <code>ConsoleUser</code>；Java SDK <code>UserService.addUser</code> 自 1.2.6 起返回 <code>ConsoleUserResponse</code>（此前分别为 <code>Record&lt;string, unknown&gt;</code> / <code>Map&lt;String, Object&gt;</code>）。</p>
+<p><strong>响应字段</strong>（上游 <code>ConsoleUser</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>内部ID</td></tr>
+<tr><td><code>username</code></td><td>string</td><td>用户名</td></tr>
+<tr><td><code>password</code></td><td>string</td><td>密码</td></tr>
+<tr><td><code>email</code></td><td>string</td><td>邮箱</td></tr>
+<tr><td><code>phone</code></td><td>string</td><td>手机号</td></tr>
+<tr><td><code>pk</code></td><td>string</td><td>公钥</td></tr>
+<tr><td><code>state</code></td><td>string</td><td>用户状态</td></tr>
+<tr><td><code>apiFlag</code></td><td>boolean</td><td>是否启用了API设置，如果启用了，有审批任务给到该用户时，会调用回调接口进行通知</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>所属商户</td></tr>
+<tr><td><code>isSetPassword</code></td><td>boolean</td><td>—</td></tr>
+<tr><td><code>loginTime</code></td><td>string</td><td>登录时间</td></tr>
+<tr><td><code>logoutTime</code></td><td>string</td><td>登出时间</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>更新时间</td></tr>
+</tbody>
+</table>
+
 <blockquote>
 <p>新用户若需要登录 custody，仍需在 custody 侧绑定二次验证；仅作为 API 用户 / 签名人时无需登录。</p>
 </blockquote>
@@ -4007,6 +4848,23 @@ public class SignatureDemo {
   }
 }
 </code></pre>
+<p><strong>响应字段</strong>（上游 <code>MerchantBoard</code>）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>项目id</td></tr>
+<tr><td><code>userInfos</code></td><td><code>StaffDTO</code>[]</td><td>审批员工信息</td></tr>
+<tr><td><code>threshold</code></td><td>number</td><td>门限</td></tr>
+<tr><td><code>status</code></td><td>string</td><td>审批状态</td></tr>
+<tr><td><code>creatorUserId</code></td><td>number</td><td>创建人id</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>更新时间</td></tr>
+</tbody>
+</table>
 <blockquote>
 <p><strong>已观测错误 <code>400070</code>：</strong> 联调中，当 <code>guardians</code> 中的公钥在 custody 侧没有对应用户，或 <code>threshold</code> 大于有效签名人数量时，custody 返回业务码 <code>400070</code>（随 HTTP 2xx 响应体透传）。该码的精确语义由 custody 定义；请先通过 13.2 建好用户并绑定公钥，再初始化 board。</p>
 </blockquote>
@@ -4105,6 +4963,47 @@ public class SignatureDemo {
 }
 </code></pre>
 <p>关键说明：</p>
+<p><strong>响应字段</strong>（上游 <code>WCCIPCmdAuditTask</code>，同 10.1）</p>
+<table>
+<thead>
+<tr><th>字段</th><th>类型</th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>number</td><td>id</td></tr>
+<tr><td><code>taskId</code></td><td>string</td><td>任务ID</td></tr>
+<tr><td><code>vaultCode</code></td><td>string</td><td>vault code</td></tr>
+<tr><td><code>projectId</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>accountId</code></td><td>string</td><td>金库的账户ID</td></tr>
+<tr><td><code>accountType</code></td><td>string</td><td>金库的账户类型</td></tr>
+<tr><td><code>submitter</code></td><td>string</td><td>提交人:在三方模式时是customer code/两方模式时是guard squad id</td></tr>
+<tr><td><code>ecode</code></td><td>string</td><td>企业code</td></tr>
+<tr><td><code>cmdType</code></td><td>string</td><td>命令类型</td></tr>
+<tr><td><code>cmdBasic</code></td><td><code>MapObject</code></td><td>命令</td></tr>
+<tr><td><code>cmdForm</code></td><td><code>MapObject</code></td><td>命令参数</td></tr>
+<tr><td><code>businessId</code></td><td>string</td><td>业务id:主要是订单id</td></tr>
+<tr><td><code>state</code></td><td>string</td><td>任务状态</td></tr>
+<tr><td><code>businessType</code></td><td>string</td><td>业务类型:SYSTEM/BTC_TRANSFER等等</td></tr>
+<tr><td><code>taskType</code></td><td>string</td><td>任务类型,用于前端判断是资金还是系统操作:orders/issues</td></tr>
+<tr><td><code>createTime</code></td><td>string</td><td>任务创建时间</td></tr>
+<tr><td><code>updateTime</code></td><td>string</td><td>任务更新时间</td></tr>
+<tr><td><code>signContent</code></td><td>string</td><td>签名内容</td></tr>
+<tr><td><code>signContentKeyMapping</code></td><td>string</td><td>签名内容的映射</td></tr>
+<tr><td><code>total</code></td><td>number</td><td>总参与审批数量</td></tr>
+<tr><td><code>threshold</code></td><td>number</td><td>门限</td></tr>
+<tr><td><code>signers</code></td><td>string[]</td><td>任务参与者、审核人、审批人等</td></tr>
+<tr><td><code>algoType</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>initiator</code></td><td>string</td><td>任务发起人</td></tr>
+<tr><td><code>taskOperation</code></td><td>string</td><td>任务操作,如转账,设置board等等</td></tr>
+<tr><td><code>signersLevel</code></td><td>number</td><td>—</td></tr>
+<tr><td><code>coinId</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>unitName</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>accountName</code></td><td>string</td><td>—</td></tr>
+<tr><td><code>includes</code></td><td>string[]</td><td>—</td></tr>
+<tr><td><code>sponsored</code></td><td>boolean</td><td>—</td></tr>
+<tr><td><code>remark</code></td><td>string</td><td>—</td></tr>
+</tbody>
+</table>
+
 <ul>
 <li><strong>响应是审批任务，不是 board。</strong> 上游 OpenAPI 将该接口的响应定义为 <code>MessageResultWCCIPCmdAuditTask</code>，即变更会生成审批任务；任务状态流转、签名窗口如何计算<strong>未经验证</strong>，以 custody 实际返回与联调结果为准。
 </li>
@@ -4671,7 +5570,7 @@ HMAC-SHA256 = a5579ed42e4dd08de06b58be599b534b1141f70f353affdf292330501acd3ea4</
 HMAC-SHA256 = 27cb791bd95c41922058729f9801eea94de2753ef66662321db8cbd930e30885</code></pre>
 <h3 id="s-14-4">14.4 可运行的验签处理</h3>
 <h4>Node.js</h4>
-<p>使用 <code>@cregis-kit/openplatform-node@1.3.0</code> 的 <code>sdk.onCallback(req, handler)</code>。SDK 会依次校验：</p>
+<p>使用 <code>@cregis-kit/openplatform-node@1.4.0</code> 的 <code>sdk.onCallback(req, handler)</code>。SDK 会依次校验：</p>
 <ol>
 <li><code>x-app-id</code> / <code>x-timestamp</code> / <code>x-signature</code> 三个头是否存在
 </li>
@@ -4867,7 +5766,7 @@ public ResponseEntity&lt;?&gt; callback(HttpServletRequest request,
 <hr>
 <h2 id="ch-15">15. 错误码与排查</h2>
 <h3 id="s-15-1">15.1 平台业务码</h3>
-<p>下表来自 <code>openplatform-api-service/src/enums/business-codes.enum.ts</code>（仅列出该枚举中存在的值）。转发接口的最终响应形态见 15.2：上游 Custody 的业务码通常透传在 HTTP 2xx 的响应体中，网关自身的错误才使用下表中的码与非 200 状态。</p>
+<p>下表来自 <code>openplatform-api-service/src/enums/business-codes.enum.ts</code>（仅列出该枚举中存在的值）。转发接口的最终响应形态见 15.2：上游 Custody 的业务码通常透传在 HTTP 2xx 的响应体中，网关自身的错误才使用下表中的码与非 200 状态。<strong>Custody 侧的完整业务码（35 个）见 15.2。</strong></p>
 <table>
 <thead>
 <tr>
@@ -5058,63 +5957,104 @@ public ResponseEntity&lt;?&gt; callback(HttpServletRequest request,
 <li>判断业务成败以响应体 <code>code</code> 为准（成功为 <code>0</code> 或 <code>200</code>），不要只看 HTTP 状态码。
 </li>
 </ul>
-<h3 id="s-15-2">15.2 Custody 透传码</h3>
-<p>以下码由 Custody 产生，不在平台枚举中。它们出现的方式取决于上游的 HTTP 状态：</p>
+<h3 id="s-15-2">15.2 Custody 业务码</h3>
+<p>Custody 的业务码以 <code>{ "code": 400030, "message": "BOARD_NOT_EXIST", "data": null }</code> 的形式在 <strong>HTTP 200 的响应体</strong>中返回（网关原样透传）；<code>message</code> 是错误常量名，不是中文描述。完整清单与触发条件见 <a href="./third-party-api-error-codes.md">third-party-api-error-codes.md</a>。</p>
+<p><strong>出现方式</strong></p>
+<table>
+<thead>
+<tr><th>场景</th><th>HTTP</th><th>响应体 <code>code</code></th><th>说明</th></tr>
+</thead>
+<tbody>
+<tr><td>上游 2xx 且业务成功</td><td>200</td><td><code>0</code> / <code>200</code></td><td><code>data</code> 为业务数据</td></tr>
+<tr><td>上游 2xx 且业务失败</td><td>200</td><td>custody 业务码</td><td>网关透传上游 <code>code</code> / <code>message</code></td></tr>
+<tr><td>上游非 2xx（含 4xx）</td><td>500</td><td><code>500</code></td><td>网关<strong>丢弃</strong>上游响应体，只剩 <code>{ code, message }</code></td></tr>
+<tr><td>连接失败 / 超时</td><td>503 / 504</td><td><code>503</code> / <code>504</code></td><td>同上，只有 <code>code</code> / <code>message</code></td></tr>
+</tbody>
+</table>
+<p>因此：<strong>HTTP 200 ≠ 成功</strong>，必须判断响应体 <code>code</code>；看到 <code>500</code> 时真正原因在上游，请记录 <code>x-trace-id</code>。</p>
+<p><strong>业务码总表</strong>（分类与「可重试」为 SDK 侧约定；<code>300004</code> 是唯一的 3xxxx 业务码，不要用「4 开头」判断）</p>
 <table>
 <thead>
 <tr>
-<th>上游业务码</th>
-<th>出现方式</th>
-<th>含义</th>
+<th><code>code</code></th>
+<th>常量</th>
+<th>分类</th>
+<th>可重试</th>
+<th>含义 / 触发条件</th>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>400</code></td>
-<td>上游 HTTP 2xx，网关原样透传响应体，HTTP 200</td>
-<td>Custody 参数 / 请求格式错误（常见于 <code>treasury/create</code>）</td>
-</tr>
-<tr>
-<td><code>400001</code></td>
-<td>同上</td>
-<td>参数或业务校验失败（具体语义由 custody 定义）</td>
-</tr>
-<tr>
-<td><code>400006</code></td>
-<td>同上</td>
-<td>参数或业务校验失败（具体语义由 custody 定义）</td>
-</tr>
-<tr>
-<td><code>400042</code></td>
-<td>同上</td>
-<td>参数或业务校验失败（具体语义由 custody 定义）</td>
-</tr>
-<tr>
-<td><code>400070</code></td>
-<td>同上</td>
-<td>参数或业务校验失败；已观测到 <code>board/init</code> 护卫队签名人不足时返回（见 13.3）</td>
-</tr>
-<tr>
-<td><code>400103</code></td>
-<td>同上</td>
-<td><code>THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</code>：<code>resourceKey</code> 在 custody 侧不存在</td>
-</tr>
-<tr>
-<td><code>120042</code></td>
-<td>同上</td>
-<td><code>ONLY_ACQUIRING_ACCOUNT_ALLOWED</code>：归集来源账户不是 platform 创建的 acquiring 账户</td>
-</tr>
+<tr><td><code>120042</code></td><td><code>ONLY_ACQUIRING_ACCOUNT_ALLOWED</code></td><td>VALIDATION</td><td>否</td><td>归集来源账户不是 platform 创建的 acquiring 账户</td></tr>
+<tr><td><code>300004</code></td><td><code>ACCOUNT_BALANCE_NOT_ENOUGH</code></td><td>CAPACITY</td><td>否</td><td>出金账户余额不足；账户冻结行更新影响行数为 0；归集时无可用地址或预估金额不足</td></tr>
+<tr><td><code>400001</code></td><td><code>TASK_NOT_FOUND</code></td><td>STATE</td><td>否</td><td><code>taskId</code> 为空、按 taskId / 主键都查不到、或任务 ecode 与当前 key 不一致</td></tr>
+<tr><td><code>400005</code></td><td><code>INIT_BOARD_FAILED</code></td><td>STATE</td><td>否</td><td>初始化 Board 时门限非法（≤0 或 > 守护人数），或 TrustVault <code>initBoard</code> 非 200</td></tr>
+<tr><td><code>400006</code></td><td><code>ACCOUNT_NOT_EXIST</code></td><td>STATE</td><td>否</td><td>账户不存在或不属于当前企业：加币种引用外部账户、创建地址、出金、归集、修改资金流、修改白名单</td></tr>
+<tr><td><code>400008</code></td><td><code>BOARD_EXIST</code></td><td>STATE</td><td>否</td><td>企业已有 <code>AVAILABLE</code> 或 <code>PENDING</code> 的 Board，不允许重复初始化</td></tr>
+<tr><td><code>400011</code></td><td><code>OPERATION_NOT_SUPPORT</code></td><td>VALIDATION</td><td>否</td><td>添加用户时 ecode 与 key 所属企业不一致；地址查询的 accountType 非 PAYIN/PAYOUT/PRIMARY；出金 operation 非 payout/withdraw/allocate</td></tr>
+<tr><td><code>400012</code></td><td><code>CREATE_ADDRESS_FAILED</code></td><td>INFRA</td><td>是</td><td>加币种新增网络、或按账户创建地址时，TrustVault <code>getAddress</code> 非 200</td></tr>
+<tr><td><code>400013</code></td><td><code>UPDATE_ACCOUNT_FAILED</code></td><td>INFRA</td><td>是</td><td>出金、提交任务的兜底 catch：任何非 <code>SparkException</code> 的异常</td></tr>
+<tr><td><code>400026</code></td><td><code>MERCHANT_ACCOUNT_NOT_EXIST</code></td><td>STATE</td><td>否</td><td>CRM 错误码：白名单变更时账户不属于当前 ecode / unit</td></tr>
+<tr><td><code>400027</code></td><td><code>WHITELIST_UPDATE_IN_PROGRESS</code></td><td>STATE</td><td>否</td><td>同账户已有 <code>PENDING</code> 的白名单变更</td></tr>
+<tr><td><code>400030</code></td><td><code>BOARD_NOT_EXIST</code></td><td>STATE</td><td>否</td><td>修改 Board、资金流、白名单时企业没有 <code>AVAILABLE</code> 的 Board</td></tr>
+<tr><td><code>400036</code></td><td><code>CREATE_VAULT_FAILED</code></td><td>INFRA</td><td>是</td><td>三方注册企业时建项目返回 null，或 <code>ProjectInitHandler</code> 创建金库失败</td></tr>
+<tr><td><code>400042</code></td><td><code>ACCOUNT_UNIT_NOT_EXIST</code></td><td>STATE</td><td>否</td><td>unit 不存在、不属于当前企业，或不是当前开发者创建的</td></tr>
+<tr><td><code>400048</code></td><td><code>ACCOUNT_GROUP_NOT_ACTIVATED</code></td><td>STATE</td><td>否</td><td>出金账户 <code>status = 0</code>（未激活）</td></tr>
+<tr><td><code>400056</code></td><td><code>CONTRACT_FACTORY_DEPLOY_FAILED</code></td><td>INFRA</td><td>是</td><td>创建 unit、加币种时新网络的合约工厂部署失败</td></tr>
+<tr><td><code>400062</code></td><td><code>ACCOUNT_UNIT_NAME_EXIST</code></td><td>STATE</td><td>否</td><td>自定义 unit 名称在企业内已存在</td></tr>
+<tr><td><code>400067</code></td><td><code>PUBLIC_KEY_EXIST</code></td><td>STATE</td><td>否</td><td>公钥已被其他用户占用；或同一邮箱试图更换公钥</td></tr>
+<tr><td><code>400070</code></td><td><code>SIGNER_NOT_EXIST_OR_NOT_ENOUGH</code></td><td>STATE</td><td>否</td><td>初始化 Board 时 guardians 为空；加币种下发资金流任务时 TrustVault 未返回签名人</td></tr>
+<tr><td><code>400083</code></td><td><code>ACCOUNT_POOLING</code></td><td>STATE</td><td>否</td><td>该账户正在归集中（Redis 归集锁被占用）</td></tr>
+<tr><td><code>400099</code></td><td><code>PASSWORD_FORMAT_ERROR</code></td><td>VALIDATION</td><td>否</td><td>密码为空、长度不足 8 位，或大小写/数字/特殊字符不足 3 类</td></tr>
+<tr><td><code>400101</code></td><td><code>INVALID_PAYOUT_AMOUNT</code></td><td>VALIDATION</td><td>否</td><td>出金 payTo 按地址聚合后总金额 ≤ 0</td></tr>
+<tr><td><code>400102</code></td><td><code>ENERGY_PERIOD_NOT_START</code></td><td>INFRA</td><td>是</td><td>归集时 TRON 能量租赁失败</td></tr>
+<tr><td><code>400103</code></td><td><code>THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</code></td><td>AUTH</td><td>否</td><td><code>resourceAccessKey</code> 为空、不存在或状态非 <code>ACTIVE</code>（除注册企业外所有接口）</td></tr>
+<tr><td><code>400109</code></td><td><code>MERCHANT_NOT_EXIST</code></td><td>STATE</td><td>否</td><td>企业 ecode 为空或企业不存在（注册企业的入驻编排链路）</td></tr>
+<tr><td><code>400112</code></td><td><code>INIT_TREASURY_UNIT_FAILED</code></td><td>INFRA</td><td>是</td><td>TrustVault 初始化 unit 非 200，或返回账户数与请求不一致</td></tr>
+<tr><td><code>400119</code></td><td><code>BOARD_UPDATE_IN_PROGRESS</code></td><td>STATE</td><td>否</td><td>已有 <code>PENDING</code> 的 Board 变更</td></tr>
+<tr><td><code>400120</code></td><td><code>FUNDFLOW_UPDATE_IN_PROGRESS</code></td><td>STATE</td><td>否</td><td>同金库账户已有 <code>PENDING</code> 的资金流变更</td></tr>
+<tr><td><code>400127</code></td><td><code>MERCHANT_PROJECT_NOT_EXIST</code></td><td>STATE</td><td>否</td><td>按 key 的企业找不到项目；出金时按 unit 找不到项目</td></tr>
+<tr><td><code>400214</code></td><td><code>PAY_TO_ADDRESS_EXCEED_LIMIT</code></td><td>VALIDATION</td><td>否</td><td>出金付款地址数超过网络上限（默认 150）；Travel Rule 开启时一对多付款</td></tr>
+<tr><td><code>400215</code></td><td><code>COIN_ACCOUNT_ALREADY_EXISTS</code></td><td>STATE</td><td>否</td><td>加币种时该币种 + 网络已存在</td></tr>
+<tr><td><code>400216</code></td><td><code>NETWORK_NOT_SUPPORT</code></td><td>VALIDATION</td><td>否</td><td>加币种的新网络不在项目支持网络内</td></tr>
+<tr><td><code>400438</code></td><td><code>CREATE_MERCHANT_FAILED</code></td><td>INFRA</td><td>是</td><td>三方注册企业时企业落库返回 null</td></tr>
+<tr><td><code>400440</code></td><td><code>ADDRESS_BALANCE_NOT_ENOUGH</code></td><td>CAPACITY</td><td>否</td><td>出金来源地址为空；或地址可用额（扣除隔离资金与其他在途出金）不足以覆盖本单</td></tr>
+<tr><td><code>400441</code></td><td><code>ADDRESS_BALANCE_CHECK_FAILED</code></td><td>INFRA</td><td>是</td><td>出金地址锁获取失败、被其他请求持有，或 Redis 不可用（fail-closed）</td></tr>
 </tbody>
 </table>
-<p>当 Custody 返回<strong>非 2xx</strong>（包括 4xx）时，网关丢弃上游响应体，返回 HTTP <code>500</code> 与 <code>{ "code": 500, "message": "..." }</code>；连接失败返回 <code>503</code>，超时返回 <code>504</code>（响应体同样只有 <code>code</code> 与 <code>message</code>）。因此：</p>
-<ul>
-<li>看到 HTTP 200 + 业务码 ≠ 成功，需要判断响应体 <code>code</code>。
-</li>
-<li>看到 <code>500</code> 且响应体没有上游业务码时，真正原因在上游，网关侧看不到；请记录 <code>x-trace-id</code>。
-</li>
-<li>网关对上游 5xx / 超时会自动重试（且当前实现存在递归重试，实际次数可能远超 3 次），写操作重试可能导致重复提交（见 15.3、15.4）。
-</li>
-</ul>
+<p><strong>按接口归属</strong></p>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>可能返回的业务码</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>查询财务单元列表 <code>POST /api/thirdparty/treasury/list</code></td><td><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>查询账户列表 <code>POST /api/thirdparty/treasury/list-unit-account/{unitId}</code></td><td><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>查询地址 <code>POST /api/thirdparty/treasury/address-by-account/{cusAccountId}</code></td><td><code>400042</code> ACCOUNT_UNIT_NOT_EXIST<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>查询地址 <code>POST /api/thirdparty/treasury/address</code></td><td><code>400011</code> OPERATION_NOT_SUPPORT<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>查询活动记录 <code>POST /api/thirdparty/treasury/activities</code></td><td><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>查询出金订单 <code>POST /api/thirdparty/treasury/transfer-out-orders</code></td><td><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>查询入金订单 <code>POST /api/thirdparty/treasury/transfer-in-orders</code></td><td><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>查询账户资金流水 <code>POST /api/thirdparty/treasury/fund-records</code></td><td><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>查询单元资金流水 <code>POST /api/thirdparty/treasury/unit-fund-records</code></td><td><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>按账户创建地址 <code>POST /api/thirdparty/treasury/create-unit-address-by-account/...</code></td><td><code>400012</code> CREATE_ADDRESS_FAILED<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>按单元+类型创建地址 <code>POST /api/thirdparty/treasury/create-unit-address/...</code></td><td><code>400006</code> ACCOUNT_NOT_EXIST<br><code>400012</code> CREATE_ADDRESS_FAILED<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>创建财务单元 <code>POST /api/thirdparty/treasury/create</code></td><td><code>400056</code> CONTRACT_FACTORY_DEPLOY_FAILED<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br><code>400112</code> INIT_TREASURY_UNIT_FAILED<br><code>400127</code> MERCHANT_PROJECT_NOT_EXIST</td></tr>
+<tr><td>创建自定义结构 <code>POST /api/thirdparty/treasury/create-custom</code></td><td><code>400056</code> CONTRACT_FACTORY_DEPLOY_FAILED<br><code>400062</code> ACCOUNT_UNIT_NAME_EXIST<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br><code>400112</code> INIT_TREASURY_UNIT_FAILED<br><code>400127</code> MERCHANT_PROJECT_NOT_EXIST</td></tr>
+<tr><td>注册商户企业 <code>POST /api/thirdparty/merchant/register</code></td><td><code>400036</code> CREATE_VAULT_FAILED<br><code>400067</code> PUBLIC_KEY_EXIST<br><code>400099</code> PASSWORD_FORMAT_ERROR<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br><code>400109</code> MERCHANT_NOT_EXIST<br><code>400438</code> CREATE_MERCHANT_FAILED</td></tr>
+<tr><td>添加企业用户 <code>POST /api/thirdparty/user/add</code></td><td><code>400011</code> OPERATION_NOT_SUPPORT<br><code>400067</code> PUBLIC_KEY_EXIST<br><code>400099</code> PASSWORD_FORMAT_ERROR<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>初始化 Board <code>POST /api/thirdparty/board/init</code></td><td><code>400005</code> INIT_BOARD_FAILED<br><code>400008</code> BOARD_EXIST<br><code>400070</code> SIGNER_NOT_EXIST_OR_NOT_ENOUGH<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br><code>400127</code> MERCHANT_PROJECT_NOT_EXIST</td></tr>
+<tr><td>修改 Board <code>POST /api/thirdparty/board/update</code></td><td><code>400030</code> BOARD_NOT_EXIST<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br><code>400119</code> BOARD_UPDATE_IN_PROGRESS<br><code>400127</code> MERCHANT_PROJECT_NOT_EXIST</td></tr>
+<tr><td>添加币种 <code>POST /api/thirdparty/treasury/add-coins</code></td><td><code>400006</code> ACCOUNT_NOT_EXIST<br><code>400012</code> CREATE_ADDRESS_FAILED<br><code>400042</code> ACCOUNT_UNIT_NOT_EXIST<br><code>400056</code> CONTRACT_FACTORY_DEPLOY_FAILED<br><code>400070</code> SIGNER_NOT_EXIST_OR_NOT_ENOUGH<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br><code>400127</code> MERCHANT_PROJECT_NOT_EXIST<br><code>400215</code> COIN_ACCOUNT_ALREADY_EXISTS<br><code>400216</code> NETWORK_NOT_SUPPORT</td></tr>
+<tr><td>发起出金 <code>POST /api/thirdparty/treasury/payout</code></td><td><code>300004</code> ACCOUNT_BALANCE_NOT_ENOUGH<br><code>400006</code> ACCOUNT_NOT_EXIST<br><code>400011</code> OPERATION_NOT_SUPPORT<br><code>400013</code> UPDATE_ACCOUNT_FAILED<br><code>400042</code> ACCOUNT_UNIT_NOT_EXIST<br><code>400048</code> ACCOUNT_GROUP_NOT_ACTIVATED<br><code>400101</code> INVALID_PAYOUT_AMOUNT<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br><code>400127</code> MERCHANT_PROJECT_NOT_EXIST<br><code>400214</code> PAY_TO_ADDRESS_EXCEED_LIMIT<br><code>400440</code> ADDRESS_BALANCE_NOT_ENOUGH<br><code>400441</code> ADDRESS_BALANCE_CHECK_FAILED</td></tr>
+<tr><td>发起归集 <code>POST /api/thirdparty/treasury/pooling</code></td><td><code>300004</code> ACCOUNT_BALANCE_NOT_ENOUGH<br><code>400006</code> ACCOUNT_NOT_EXIST<br><code>400042</code> ACCOUNT_UNIT_NOT_EXIST<br><code>400083</code> ACCOUNT_POOLING<br><code>400102</code> ENERGY_PERIOD_NOT_START<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>提交审批 <code>POST /api/thirdparty/treasury/submit-task/{taskId}</code></td><td><code>400001</code> TASK_NOT_FOUND<br><code>400013</code> UPDATE_ACCOUNT_FAILED<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+<tr><td>更新资金流规则 <code>POST /api/thirdparty/treasury/fund-control-update</code></td><td><code>400006</code> ACCOUNT_NOT_EXIST<br><code>400030</code> BOARD_NOT_EXIST<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS<br><code>400120</code> FUNDFLOW_UPDATE_IN_PROGRESS</td></tr>
+<tr><td>更新白名单 <code>POST /api/thirdparty/treasury/whitelist-update</code></td><td><code>400026</code> MERCHANT_ACCOUNT_NOT_EXIST<br><code>400027</code> WHITELIST_UPDATE_IN_PROGRESS<br><code>400030</code> BOARD_NOT_EXIST<br><code>400103</code> THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS</td></tr>
+</tbody>
+</table>
 <h3 id="s-15-3">15.3 按现象排查</h3>
 <table>
 <thead>
@@ -5184,7 +6124,27 @@ public ResponseEntity&lt;?&gt; callback(HttpServletRequest request,
 <td><code>400070</code>（<code>board/init</code>）</td>
 <td>护卫队公钥没有对应用户，或 <code>threshold</code> 超过有效签名人数</td>
 <td>先用 13.2 建用户并绑定 <code>publicKey</code>，再初始化 board（13.3）</td>
+</tr><tr>
+<td><code>400030</code>（<code>resetBoard</code> / 资金流 / 白名单）</td>
+<td><code>BOARD_NOT_EXIST</code>：企业没有 <code>AVAILABLE</code> 的 Board</td>
+<td>先调用 13.3 <code>board/init</code></td>
 </tr>
+<tr>
+<td><code>400120</code> / <code>400119</code> / <code>400027</code></td>
+<td>同一账户 / Board 已有 <code>PENDING</code> 的变更</td>
+<td>等待上一笔审批完成（11.1 提交或拒绝）后再发起</td>
+</tr>
+<tr>
+<td><code>400083</code></td>
+<td><code>ACCOUNT_POOLING</code>：该账户正在归集中（Redis 锁）</td>
+<td>稍后重试；不要并发归集同一账户</td>
+</tr>
+<tr>
+<td><code>300004</code> / <code>400440</code></td>
+<td>余额不足 / 来源地址可用额不足（扣除隔离资金与在途出金）</td>
+<td>重新查询 7.4 账户余额与地址 <code>holdAmount</code> 后再发起</td>
+</tr>
+
 <tr>
 <td>收不到回调</td>
 <td>应用未配置 <code>callbackUrl</code>；生产使用 HTTP；载荷超过 64KB；4 次尝试全部失败（无持久化队列，不补投，见 14.5）</td>
@@ -5242,10 +6202,10 @@ public ResponseEntity&lt;?&gt; callback(HttpServletRequest request,
 <hr>
 <h2 id="ch-16">16. SDK 集成</h2>
 <p>官方 SDK 封装了签名、请求与错误处理，推荐在服务端直接使用。三端版本与本指南的对应关系见 16.4。</p>
-<h3 id="s-16-1">16.1 Node.js SDK 1.3.0</h3>
+<h3 id="s-16-1">16.1 Node.js SDK 1.4.0</h3>
 <p><strong>安装</strong>（要求 Node.js &gt;= 18）</p>
 <pre class="codehilite"><code class="language-bash">
-npm install @cregis-kit/openplatform-node@1.3.0
+npm install @cregis-kit/openplatform-node@1.4.0
 </code></pre>
 <p><strong>构造与最小端到端示例</strong></p>
 <pre class="codehilite"><code class="language-ts">
@@ -5314,7 +6274,7 @@ await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 <td>商户 / 用户 / Board</td>
 <td><code>addUser(authorizationId, request)</code></td>
 <td>Resource</td>
-<td><code>Record&lt;string, unknown&gt;</code>（如 <code>{ userId }</code>）</td>
+<td><code>ConsoleUser</code></td>
 </tr>
 <tr>
 <td>商户 / 用户 / Board</td>
@@ -5356,25 +6316,25 @@ await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 <td>地址</td>
 <td><code>getTreasuryUnitAddress(authorizationId, request)</code></td>
 <td>Resource</td>
-<td><code>PaginatedResponse&lt;UnitAddress&gt;</code></td>
+<td><code>PaginatedResponse&lt;ProjectUnitAccountAddress&gt;</code></td>
 </tr>
 <tr>
 <td>地址</td>
 <td><code>getUnitAddressByAccount(authorizationId, cusAccountId, request?)</code></td>
 <td>Resource</td>
-<td><code>PaginatedResponse&lt;UnitAddress&gt;</code></td>
+<td><code>PaginatedResponse&lt;ProjectUnitAccountAddress&gt;</code></td>
 </tr>
 <tr>
 <td>地址</td>
 <td><code>createUnitAddress(authorizationId, request)</code></td>
 <td>Resource</td>
-<td><code>void</code></td>
+<td><code>AccountAddressVO[]</code></td>
 </tr>
 <tr>
 <td>地址</td>
 <td><code>createUnitAddressByAccount(authorizationId, cusAccountId, number)</code></td>
 <td>Resource</td>
-<td><code>UnitAddress[]</code></td>
+<td><code>AccountAddressVO[]</code></td>
 </tr>
 <tr>
 <td>币种 / 规则 / 白名单</td>
@@ -5386,7 +6346,7 @@ await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 <td>币种 / 规则 / 白名单</td>
 <td><code>updateFundControl(authorizationId, request)</code></td>
 <td>Resource</td>
-<td><code>void</code></td>
+<td><code>WCCIPCmdAuditTask</code></td>
 </tr>
 <tr>
 <td>币种 / 规则 / 白名单</td>
@@ -5464,7 +6424,7 @@ try {
 <blockquote>
 <p><strong>OAuth 说明：</strong> Node SDK 只封装 <code>getAuthorizationUrl</code>。<code>authorizeId</code> 由授权页在 Custody 内部完成 <code>verify</code> 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。<code>registerMerchant</code> / <code>addUser</code> / <code>initBoard</code> / <code>updateBoard</code> 其余字段与网关一致。</p>
 </blockquote>
-<h3 id="s-16-2">16.2 Java SDK 1.2.5（JitPack）</h3>
+<h3 id="s-16-2">16.2 Java SDK 1.2.6（JitPack）</h3>
 <p><strong>环境要求</strong>：JDK 17+、Maven 3.8+。</p>
 <p><strong>仓库配置</strong></p>
 <pre class="codehilite"><code class="language-xml">
@@ -5480,10 +6440,10 @@ try {
 &lt;dependency&gt;
     &lt;groupId&gt;com.github.ZoranWong.custody-openplatfrom&lt;/groupId&gt;
     &lt;artifactId&gt;cregis-sdk-core&lt;/artifactId&gt;
-    &lt;version&gt;java-sdk-v1.2.5&lt;/version&gt;
+    &lt;version&gt;java-sdk-v1.2.6&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
-<p><code>java-sdk-v1.2.5</code> 是仓库中的 Git tag；JitPack 按该 tag 构建。<code>CregisClient</code> 的服务入口：</p>
+<p><code>java-sdk-v1.2.6</code> 是仓库中的 Git tag；JitPack 按该 tag 构建。<code>CregisClient</code> 的服务入口：</p>
 <table>
 <thead>
 <tr>
@@ -5727,15 +6687,15 @@ if (result.status === 'success') {
 <tbody>
 <tr>
 <td>Node.js</td>
-<td><strong>1.3.0</strong></td>
-<td><code>npm install @cregis-kit/openplatform-node@1.3.0</code></td>
+<td><strong>1.4.0</strong></td>
+<td><code>npm install @cregis-kit/openplatform-node@1.4.0</code></td>
 <td>服务端调用全部业务接口、回调验签</td>
 <td>签名（递归排序、Unix 秒）与网关一致</td>
 </tr>
 <tr>
 <td>Java</td>
-<td><strong>1.2.5</strong></td>
-<td><code>com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.5</code>（JitPack）</td>
+<td><strong>1.2.6</strong></td>
+<td><code>com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.6</code>（JitPack）</td>
 <td>服务端 Java 接入，全部业务接口、回调验签</td>
 <td>同上</td>
 </tr>
@@ -5751,7 +6711,7 @@ if (result.status === 'success') {
 <ul>
 <li>更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 <code>coinIds</code> / <code>primaryManager</code> / <code>payTo</code> 的请求会返回 <code>40102</code>，不要使用。
 </li>
-<li><strong>发布状态提醒</strong>：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java SDK 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.5</code>。若 <code>npm install</code> 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
+<li><strong>发布状态提醒</strong>：本表版本号对应本仓库源码。截至本指南编写时，npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java SDK 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.6</code>。若 <code>npm install</code> 找不到对应版本，请改用 npm 上的最新版本，或从仓库源码构建。
 </li>
 <li>三个 SDK 版本必须与网关的接口路径前缀 <code>/api/thirdparty/</code> 配套；<code>baseUrl</code> 不要包含该前缀，也不要带尾斜杠。
 </li>
@@ -5903,26 +6863,196 @@ interface UnitAccount {
   updateTime: string;
 }
 </code></pre>
-<p><strong>UnitAddress</strong></p>
+<p><strong>ProjectUnitAccountAddress</strong>（地址列表，8.1 / 8.2；<code>UnitAddress</code> 为兼容别名）</p>
 <pre class="codehilite"><code class="language-ts">
-interface UnitAddress {
+interface ProjectUnitAccountAddress {
   id: number;
+  ecode: string;
+  vaultCode: string;
+  projectId: number;
   address: string;
-  addressIndex: number;
-  accountType: AccountType;
-  coinId: string;
-  network: string;
+  vaultAccountId: string;
   cusAccountId: number;
   treasuryUnitId: number;
-  available: number;
+  coinId: string;
+  network: string;
+  series: 'EVM' | 'BTC' | 'TRON' | 'BRC20' | 'SOL' | 'POLKA' | 'SUI' | 'COSMOS' | 'TON' | string;
+  addressIndex: number;
+  alias: string;
+  isSmart: number;
+  isContract: number;
+  status: 1 | 2 | 3 | 4;      // 1 待部署合约 / 2 部署中 / 3 可用 / 4 冻结
+  accountType: AccountType;
+  available: number;          // 1 可用 / 0 不可用
   holdAmount: number;
-  holdFrozen: number;
-  status: number;
+  holdFrozen: number;         // 1 禁止归集 / 0 允许
+  riskLevel: RiskLevel | string;
+  riskScore: string;
+  riskCheckTime: string;
+  expireTime: number;         // 小时
+  userId: string;
+  lastUsedTime: string;
+  coolingEndTime: string;
   createTime: string;
   updateTime: string;
 }
 </code></pre>
-<h3 id="s-17-3">17.3 FAQ</h3>
+<p><strong>AccountAddressVO</strong>（创建地址返回，8.3 / 8.4）</p>
+<pre class="codehilite"><code class="language-ts">
+interface AccountAddressVO {
+  id: number;
+  ecode: string;
+  vaultCode: string;
+  projectId: number;
+  address: string;
+  alias: string;
+  accountId: string;          // TrustVault 账户 ID
+  cusAccountId: number;
+  treasuryUnitId: number;
+  coinId: string;
+  network: string;
+  isSmart: number;
+  isContract: number;
+  status: 1 | 2 | 3 | 4;
+  holdAmount: number;
+  riskLevel: RiskLevel | string;
+  riskScore: string;
+  accountType: AccountType;
+  createTime: string;
+  updateTime: string;
+  balance: string;
+}
+</code></pre>
+<p><strong>ProjectUnitFundRecord</strong>（账户级资金流水，12.4）</p>
+<pre class="codehilite"><code class="language-ts">
+interface ProjectUnitFundRecord {
+  id: number;
+  ecode: string;
+  projectId: number;
+  treasuryUnitId: number;
+  cusAccountId: number;
+  txId: string;
+  orderId: string;
+  coinId: string;
+  network: string;
+  fromAddr?: string;          // 出金地址（部分流水不返回）
+  toAddr?: string;            // 入金地址（部分流水不返回）
+  direction?: 'IN' | 'OUT' | string;   // 部分流水不返回，缺失时回退到 txType
+  amount: number;
+  preBalance: number;
+  postBalance: number;
+  fee: string;
+  txType: TxType | string;
+  createTime: string;
+}
+</code></pre>
+<p><strong>ConsoleUser</strong>（添加用户返回，13.2）</p>
+<pre class="codehilite"><code class="language-ts">
+interface ConsoleUser {
+  id: number;
+  username: string;
+  password: string;
+  email: string;
+  phone: string;
+  pk: string;                 // 公钥
+  state: 'SUSPENDING' | 'ACTIVE' | 'INACTIVE' | string;
+  apiFlag: boolean;
+  ecode: string;
+  isSetPassword: boolean;
+  loginTime: string;
+  logoutTime: string;
+  createTime: string;
+  updateTime: string;
+}
+</code></pre>
+<h3 id="s-17-3">17.3 接口参数索引</h3>
+<p>下表列出全部开发者接口及其参数／请求体，字段级说明见对应章节。<strong>鉴权</strong>列为 <code>Basic</code>（<code>basic</code> 中不含 <code>authorizationId</code>）或 <code>Resource</code>（<code>basic</code> 必须含 <code>authorizationId</code>）。</p>
+<p><strong>OAuth 与回调</strong></p>
+<table>
+<thead>
+<tr><th>接口</th><th>方法 / 路径</th><th>鉴权</th><th>参数 / 请求体</th></tr>
+</thead>
+<tbody>
+<tr><td>获取授权地址</td><td><code>POST /api/thirdparty/oauth/authorizeUrl</code></td><td>Basic</td><td><code>permissions[]</code>、<code>state</code>、<code>token</code>、<code>callback?</code>（5.2）</td></tr>
+<tr><td>授权校验（内部）</td><td><code>POST /api/thirdparty/oauth/verify</code></td><td>内部</td><td><code>resourceKey</code>、<code>oauthToken</code>；由 Custody 调用（5.4）</td></tr>
+<tr><td>授权回调</td><td><code>POST /api/thirdparty/custody/callback</code></td><td>内部</td><td>由 Custody 调用的回调通知（5.6）</td></tr>
+<tr><td>刷新令牌</td><td><code>POST /api/oauth/appToken/refresh</code></td><td>Basic</td><td><code>refreshToken</code></td></tr>
+<tr><td>撤销授权</td><td><code>POST /api/oauth/revoke</code></td><td>Basic</td><td><code>token</code></td></tr>
+<tr><td>校验令牌</td><td><code>POST /api/oauth/appToken/validate</code></td><td>Basic</td><td><code>token</code></td></tr>
+</tbody>
+</table>
+<p><strong>财务单元</strong></p>
+<table>
+<thead>
+<tr><th>接口</th><th>方法 / 路径</th><th>鉴权</th><th>参数 / 请求体</th></tr>
+</thead>
+<tbody>
+<tr><td>创建财务单元</td><td><code>POST /api/thirdparty/treasury/create</code></td><td>Resource</td><td><code>unitName</code>、<code>businessScope</code>、<code>topology</code>、<code>coinIds[]</code>、<code>primaryManager[]</code>、<code>payoutManager[]</code>、<code>primaryWhiteList[]?</code>、<code>primaryAnycallRules[]?</code>、<code>payoutAnycallRules[]?</code>、<code>payinAnycallRules[]?</code>、<code>autoSignUrl?</code>、<code>thirdPartyEcode?</code>、<code>remark?</code>（7.1）</td></tr>
+<tr><td>创建自定义结构</td><td><code>POST /api/thirdparty/treasury/create-custom</code></td><td>Resource</td><td><code>unitName</code>、<code>coinIds[]</code>、<code>customUnitDTOs[]</code>、<code>fundControls[][]</code>、<code>topology?</code>、<code>businessScope?</code>、<code>isSmart?</code>、<code>businessPurpose?</code>、<code>whitelistRules[]?</code>、<code>thirdPartyEcode?</code>、<code>remark?</code>（7.2）</td></tr>
+<tr><td>查询财务单元列表</td><td><code>POST /api/thirdparty/treasury/list</code></td><td>Resource</td><td><code>pageNum?</code>、<code>pageSize?</code>、<code>sortFields?</code>（7.3）</td></tr>
+<tr><td>查询账户列表</td><td><code>POST /api/thirdparty/treasury/list-unit-account/{unitId}</code></td><td>Resource</td><td>路径 <code>unitId</code>；无业务字段（7.4）</td></tr>
+</tbody>
+</table>
+<p><strong>地址</strong></p>
+<table>
+<thead>
+<tr><th>接口</th><th>方法 / 路径</th><th>鉴权</th><th>参数 / 请求体</th></tr>
+</thead>
+<tbody>
+<tr><td>查询地址（按单元+类型）</td><td><code>POST /api/thirdparty/treasury/address</code></td><td>Resource</td><td><code>unitId</code>、<code>accountType</code>、<code>coinId</code>、<code>network</code>、<code>pageNum?</code>、<code>pageSize?</code>（8.1）</td></tr>
+<tr><td>查询地址（按账户）</td><td><code>POST /api/thirdparty/treasury/address-by-account/{cusAccountId}</code></td><td>Resource</td><td>路径 <code>cusAccountId</code>；<code>unitId</code>、<code>coinId</code>、<code>network</code>、<code>pageSize?</code>、<code>pageNum?</code>（8.2）</td></tr>
+<tr><td>创建地址（按单元+类型）</td><td><code>POST /api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number}</code></td><td>Resource</td><td>全部在路径中（8.3）</td></tr>
+<tr><td>创建地址（按账户）</td><td><code>POST /api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number}</code></td><td>Resource</td><td>全部在路径中（8.4）</td></tr>
+</tbody>
+</table>
+<p><strong>币种 / 资金控制 / 白名单</strong></p>
+<table>
+<thead>
+<tr><th>接口</th><th>方法 / 路径</th><th>鉴权</th><th>参数 / 请求体</th></tr>
+</thead>
+<tbody>
+<tr><td>添加币种</td><td><code>POST /api/thirdparty/treasury/add-coins</code></td><td>Resource</td><td><code>treasuryUnitId</code>、<code>coinIds[]</code>、<code>accountFundControls[]?</code>、<code>note?</code>（9.1）</td></tr>
+<tr><td>更新资金流规则</td><td><code>POST /api/thirdparty/treasury/fund-control-update</code></td><td>Resource</td><td><code>treasuryUnitId</code>、<code>cusAccountId</code>、<code>fundControls[]</code>、<code>note?</code>（9.2）</td></tr>
+<tr><td>更新白名单</td><td><code>POST /api/thirdparty/treasury/whitelist-update</code></td><td>Resource</td><td><code>treasuryUnitId</code>、<code>cusAccountId</code>、<code>addItems[]?</code>、<code>removeItems[]?</code>、<code>allowListEnabled?</code>、<code>lang?</code>、<code>note?</code>（9.3）</td></tr>
+</tbody>
+</table>
+<p><strong>出金 / 归集 / 审批</strong></p>
+<table>
+<thead>
+<tr><th>接口</th><th>方法 / 路径</th><th>鉴权</th><th>参数 / 请求体</th></tr>
+</thead>
+<tbody>
+<tr><td>发起出金</td><td><code>POST /api/thirdparty/treasury/payout</code></td><td>Resource</td><td><code>payTo[]</code>、<code>fromAccountId</code>、<code>unitId</code>、<code>coinId</code>、<code>network</code>、<code>fromAddress</code>、<code>orderId</code>、<code>operation?</code>、<code>toCusAccountId?</code>、<code>username?</code>、<code>userId?</code>、<code>note?</code>、<code>lang?</code>、<code>initiator?</code>、<code>merchantType</code>、<code>travelRule?</code>（10.1）</td></tr>
+<tr><td>发起归集</td><td><code>POST /api/thirdparty/treasury/pooling</code></td><td>Resource</td><td><code>unitId</code>、<code>fromAccountId</code>、<code>address</code>、<code>amount</code>、<code>coinId</code>、<code>network</code>、<code>lang?</code>、<code>note?</code>、<code>includes[]?</code>、<code>excludes[]?</code>（10.2）</td></tr>
+<tr><td>提交审批</td><td><code>POST /api/thirdparty/treasury/submit-task/{taskId}</code></td><td>Resource</td><td>路径 <code>taskId</code>；<code>signatures?</code>、<code>confirmed</code>（11.1）</td></tr>
+</tbody>
+</table>
+<p><strong>交易查询</strong>（<code>business</code> 均为 <code>PaginationQuery</code>：<code>pageIndex?</code>、<code>pageSize?</code>、<code>sortFields?</code>、<code>queryList[]?</code>）</p>
+<table>
+<thead>
+<tr><th>接口</th><th>方法 / 路径</th><th>鉴权</th><th>参数 / 请求体</th></tr>
+</thead>
+<tbody>
+<tr><td>查询活动记录</td><td><code>POST /api/thirdparty/treasury/activities</code></td><td>Resource</td><td><code>PaginationQuery</code>（12.1）</td></tr>
+<tr><td>查询出金订单</td><td><code>POST /api/thirdparty/treasury/transfer-out-orders</code></td><td>Resource</td><td><code>PaginationQuery</code>（12.2）</td></tr>
+<tr><td>查询入金订单</td><td><code>POST /api/thirdparty/treasury/transfer-in-orders</code></td><td>Resource</td><td><code>PaginationQuery</code>（12.3）</td></tr>
+<tr><td>查询账户资金流水</td><td><code>POST /api/thirdparty/treasury/fund-records</code></td><td>Resource</td><td><code>PaginationQuery</code>（12.4）</td></tr>
+<tr><td>查询单元资金流水</td><td><code>POST /api/thirdparty/treasury/unit-fund-records</code></td><td>Resource</td><td><code>PaginationQuery</code>（12.5）</td></tr>
+</tbody>
+</table>
+<p><strong>商户 / 用户 / Board</strong></p>
+<table>
+<thead>
+<tr><th>接口</th><th>方法 / 路径</th><th>鉴权</th><th>参数 / 请求体</th></tr>
+</thead>
+<tbody>
+<tr><td>注册商户企业</td><td><code>POST /api/thirdparty/merchant/register</code></td><td>Basic</td><td><code>legalName</code>、<code>appId</code>、<code>owner</code>、<code>alias?</code>、<code>email?</code>、<code>dbaName?</code>、<code>jurisdiction?</code>、<code>registrationNumber?</code>、<code>dateOfIncorporation?</code>（13.1）</td></tr>
+<tr><td>添加企业用户</td><td><code>POST /api/thirdparty/user/add</code></td><td>Resource</td><td><code>email</code>、<code>password</code>、<code>publicKey?</code>、<code>ecode?</code>、<code>role?</code>（13.2）</td></tr>
+<tr><td>初始化 Board</td><td><code>POST /api/thirdparty/board/init</code></td><td>Resource</td><td><code>guardians[]</code>、<code>threshold</code>、<code>lang?</code>、<code>note?</code>（13.3）</td></tr>
+<tr><td>修改 Board</td><td><code>POST /api/thirdparty/board/update</code></td><td>Resource</td><td><code>guardians[]</code>、<code>threshold</code>、<code>validUntilTime?</code>、<code>lang?</code>、<code>note?</code>（13.4）</td></tr>
+</tbody>
+</table>
+<h3 id="s-17-4">17.4 FAQ</h3>
 <p><strong>Q：<code>coinId</code> / <code>network</code> 从哪里获取？</strong></p>
 <p>从 <code>POST /api/thirdparty/treasury/list-unit-account/{unitId}</code>（7.4）的账户列表取 <code>coinId</code> 与 <code>network</code>。地址查询、出金、归集都应使用与该账户一致的值；不要从币种名称或链名自行拼接。</p>
 <p><strong>Q：地址列表为什么是空的？</strong></p>
