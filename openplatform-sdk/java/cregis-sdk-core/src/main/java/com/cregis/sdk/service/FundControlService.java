@@ -4,6 +4,7 @@ import com.cregis.sdk.core.config.SdkConfig;
 import com.cregis.sdk.core.http.HttpClient;
 import com.cregis.sdk.core.sign.Signer;
 import com.cregis.sdk.dto.request.FundControlUpdateRequest;
+import com.cregis.sdk.dto.response.AuditTaskResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,10 +28,11 @@ public class FundControlService {
     }
 
     /**
-     * Update fund control rules (修改资金流控制规则).
+     * Update fund control rules (修改资金流控制规则). The change goes through the
+     * approval flow: custody returns the resulting audit task.
      * POST /api/thirdparty/treasury/fund-control-update
      */
-    public void updateFundControl(String authorizationId, FundControlUpdateRequest request) {
+    public AuditTaskResponse updateFundControl(String authorizationId, FundControlUpdateRequest request) {
         Map<String, Object> business = objectMapper.convertValue(request, Map.class);
         Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
                 config.getAppId(), config.getAppSecret(), authorizationId, business);
@@ -39,16 +41,16 @@ public class FundControlService {
         String url = config.getBaseUrl() + "/api/thirdparty/treasury/fund-control-update";
         log.debug("POST {}", url);
 
-        httpClient.post(url, jsonBody, Void.class);
+        return httpClient.post(url, jsonBody, AuditTaskResponse.class);
     }
 
-    public CompletableFuture<Void> updateFundControlAsync(String authorizationId, FundControlUpdateRequest request) {
+    public CompletableFuture<AuditTaskResponse> updateFundControlAsync(String authorizationId, FundControlUpdateRequest request) {
         Map<String, Object> business = objectMapper.convertValue(request, Map.class);
         Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
                 config.getAppId(), config.getAppSecret(), authorizationId, business);
         String jsonBody = Signer.buildSignatureBody(basic, business);
 
         String url = config.getBaseUrl() + "/api/thirdparty/treasury/fund-control-update";
-        return httpClient.postAsync(url, jsonBody, Void.class);
+        return httpClient.postAsync(url, jsonBody, AuditTaskResponse.class);
     }
 }

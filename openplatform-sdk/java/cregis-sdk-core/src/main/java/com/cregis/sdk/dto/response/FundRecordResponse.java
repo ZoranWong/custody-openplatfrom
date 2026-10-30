@@ -19,6 +19,12 @@ public class FundRecordResponse {
     private String orderId;
     private String coinId;
     private String network;
+    /** 出金地址 */
+    private String fromAddr;
+    /** 入金地址 */
+    private String toAddr;
+    /** 方向: IN/OUT */
+    private String direction;
     private Long amount;
     private Long preBalance;
     private Long postBalance;

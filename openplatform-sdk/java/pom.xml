@@ -6,7 +6,7 @@
 
     <groupId>com.cregis</groupId>
     <artifactId>cregis-sdk</artifactId>
-    <version>1.2.5</version>
+    <version>1.2.6</version>
     <packaging>pom</packaging>
 
     <name>Cregis OpenPlatform SDK</name>

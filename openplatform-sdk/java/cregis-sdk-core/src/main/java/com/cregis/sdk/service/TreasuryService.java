@@ -10,6 +10,7 @@ import com.cregis.sdk.dto.request.CreateUnitAddressRequest;
 import com.cregis.sdk.dto.request.GetUnitAddressRequest;
 import com.cregis.sdk.dto.request.ListTreasuryUnitsRequest;
 import com.cregis.sdk.dto.request.PoolingRequest;
+import com.cregis.sdk.dto.response.AccountAddressResponse;
 import com.cregis.sdk.dto.response.AuditTaskResponse;
 import com.cregis.sdk.dto.response.PageResponse;
 import com.cregis.sdk.dto.response.PayoutResponse;
@@ -166,7 +167,7 @@ public class TreasuryService {
      * Create unit address by account type (创建地址).
      * POST /api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number}
      */
-    public void createUnitAddress(String authorizationId, CreateUnitAddressRequest request) {
+    public AccountAddressResponse[] createUnitAddress(String authorizationId, CreateUnitAddressRequest request) {
         Map<String, Object> business = new LinkedHashMap<>();
         Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
                 config.getAppId(), config.getAppSecret(), authorizationId, business);
@@ -177,10 +178,10 @@ public class TreasuryService {
                 + request.getNetwork() + "/" + request.getCoinId() + "/" + request.getNumber();
         log.debug("POST {}", url);
 
-        httpClient.post(url, jsonBody, Void.class);
+        return httpClient.post(url, jsonBody, AccountAddressResponse[].class);
     }
 
-    public CompletableFuture<Void> createUnitAddressAsync(String authorizationId, CreateUnitAddressRequest request) {
+    public CompletableFuture<AccountAddressResponse[]> createUnitAddressAsync(String authorizationId, CreateUnitAddressRequest request) {
         Map<String, Object> business = new LinkedHashMap<>();
         Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
                 config.getAppId(), config.getAppSecret(), authorizationId, business);
@@ -189,14 +190,14 @@ public class TreasuryService {
         String url = config.getBaseUrl() + "/api/thirdparty/treasury/create-unit-address/"
                 + request.getUnitId() + "/" + request.getAccountType() + "/"
                 + request.getNetwork() + "/" + request.getCoinId() + "/" + request.getNumber();
-        return httpClient.postAsync(url, jsonBody, Void.class);
+        return httpClient.postAsync(url, jsonBody, AccountAddressResponse[].class);
     }
 
     /**
      * Create unit address by account id (根据账户id创建地址).
      * POST /api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number}
      */
-    public List<UnitAddressResponse> createUnitAddressByAccount(String authorizationId, Long cusAccountId, Integer number) {
+    public List<AccountAddressResponse> createUnitAddressByAccount(String authorizationId, Long cusAccountId, Integer number) {
         Map<String, Object> business = new LinkedHashMap<>();
         Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
                 config.getAppId(), config.getAppSecret(), authorizationId, business);
@@ -206,10 +207,10 @@ public class TreasuryService {
                 + cusAccountId + "/" + number;
         log.debug("POST {}", url);
 
-        return httpClient.post(url, jsonBody, new TypeReference<List<UnitAddressResponse>>() {});
+        return httpClient.post(url, jsonBody, new TypeReference<List<AccountAddressResponse>>() {});
     }
 
-    public CompletableFuture<List<UnitAddressResponse>> createUnitAddressByAccountAsync(String authorizationId, Long cusAccountId, Integer number) {
+    public CompletableFuture<List<AccountAddressResponse>> createUnitAddressByAccountAsync(String authorizationId, Long cusAccountId, Integer number) {
         Map<String, Object> business = new LinkedHashMap<>();
         Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
                 config.getAppId(), config.getAppSecret(), authorizationId, business);
@@ -218,7 +219,7 @@ public class TreasuryService {
         String url = config.getBaseUrl() + "/api/thirdparty/treasury/create-unit-address-by-account/"
                 + cusAccountId + "/" + number;
 
-        return httpClient.postAsync(url, jsonBody, new TypeReference<List<UnitAddressResponse>>() {});
+        return httpClient.postAsync(url, jsonBody, new TypeReference<List<AccountAddressResponse>>() {});
     }
 
     /**

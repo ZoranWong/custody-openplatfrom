@@ -53,4 +53,10 @@ public class PayoutResponse {
     private String taskInitiator;
     private String source;
     private String taskOperation;
+    // Travel Rule / VASP counterparty info (2026-10 API revision)
+    private String vaspDid;
+    private String vaspName;
+    private String vaspReviewStatus;
+    private String vaspReviewedBy;
+    private String vaspReviewedAt;
 }

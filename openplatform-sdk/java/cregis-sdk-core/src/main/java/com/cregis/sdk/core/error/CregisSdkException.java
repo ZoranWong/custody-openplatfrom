@@ -73,31 +73,52 @@ public class CregisSdkException extends RuntimeException {
     }
 
     /**
-     * Creates an exception from an API error response.
+     * Creates an exception from an API error response (gateway or custody code).
      */
     public static CregisSdkException fromApiResponse(int serverCode, String message,
                                                       Integer httpStatusCode, String traceId) {
-        SdkErrorCode sdkCode = mapServerErrorCode(serverCode);
-        String fullMessage = "API error [" + serverCode + "]: " + message;
+        SdkErrorCode sdkCode = SdkErrorCode.fromServerCode(serverCode);
+        CustodyErrorCodes custody = CustodyErrorCodes.fromCode(serverCode);
+        String fullMessage = custody != null
+                ? "Custody error [" + serverCode + "] " + custody.name() + ": " + message
+                : "API error [" + serverCode + "]: " + message;
         return new CregisSdkException(sdkCode, fullMessage, serverCode, traceId, httpStatusCode);
     }
 
-    /**
-     * Maps server error codes to SDK error codes.
-     */
-    private static SdkErrorCode mapServerErrorCode(int serverCode) {
-        // Code 0 means SUCCESS - return API_ERROR so caller can check serverCode == 0
-        if (serverCode == 0) {
-            return SdkErrorCode.API_ERROR;
+    /** Custody error constant for {@link #getServerErrorCode()}, or {@code null}. */
+    public CustodyErrorCodes getCustodyError() {
+        return serverErrorCode == null ? null : CustodyErrorCodes.fromCode(serverErrorCode);
+    }
+
+    /** Symbolic name (e.g. {@code BOARD_NOT_EXIST}) for custody codes, else {@code null}. */
+    public String getCustodyErrorName() {
+        CustodyErrorCodes custody = getCustodyError();
+        return custody == null ? null : custody.name();
+    }
+
+    /** Human-readable meaning of the custody code, or {@code null}. */
+    public String getCustodyErrorMeaning() {
+        CustodyErrorCodes custody = getCustodyError();
+        return custody == null ? null : custody.getMeaning();
+    }
+
+    /** Whether a plain retry can help for this custody code ({@code false} otherwise). */
+    public boolean isCustodyErrorRetryable() {
+        CustodyErrorCodes custody = getCustodyError();
+        return custody != null && custody.isRetryable();
+    }
+
+    /** HTTP-status based retry heuristic, used for non-custody errors. */
+    public boolean isHttpRetryable() {
+        return httpStatusCode != null && (httpStatusCode >= 500 || httpStatusCode == 0);
+    }
+
+    /** True when the error looks retryable (custody flag takes precedence). */
+    public boolean isRetryable() {
+        CustodyErrorCodes custody = getCustodyError();
+        if (custody != null) {
+            return custody.isRetryable();
         }
-        return switch (serverCode / 1000) {
-            case 400, 401 -> SdkErrorCode.API_ERROR;
-            case 403 -> SdkErrorCode.API_ERROR;
-            case 404 -> SdkErrorCode.API_ERROR;
-            case 409 -> SdkErrorCode.API_ERROR;
-            case 429 -> SdkErrorCode.API_ERROR;
-            case 500 -> SdkErrorCode.API_ERROR;
-            default -> SdkErrorCode.API_ERROR;
-        };
+        return errorCode.isRetryableCode() || isHttpRetryable();
     }
 }

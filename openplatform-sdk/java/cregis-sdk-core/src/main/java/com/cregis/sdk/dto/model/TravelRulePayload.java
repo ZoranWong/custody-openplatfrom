@@ -24,4 +24,6 @@ public class TravelRulePayload {
     private String beneficiaryLegalName;
     private String beneficiaryLegalRegistrationNo;
     private String beneficiaryLegalCountry;
+    private String beneficiaryVaspDid;
+    private String beneficiaryVaspName;
 }
