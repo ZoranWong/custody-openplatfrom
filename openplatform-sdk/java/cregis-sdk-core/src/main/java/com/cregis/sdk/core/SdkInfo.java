@@ -11,7 +11,7 @@ public final class SdkInfo {
     public static final String SDK_NAME = "com.cregis:cregis-sdk-core";
 
     /** SDK version — bump together with pom.xml */
-    public static final String SDK_VERSION = "1.2.5";
+    public static final String SDK_VERSION = "1.2.6";
 
     /** Implementation language reported to the gateway */
     public static final String SDK_LANGUAGE = "java";
