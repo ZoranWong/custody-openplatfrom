@@ -18,7 +18,8 @@
 
 - 后端命令都在 `openplatform-api-service/` 下执行；前端在 `openplatform-web/developer-portal-v2/` 下执行。
 - 单测一律用 `vi.mock('../../src/repositories/repository.factory', ...)` 替换仓库，不连真实 DB（参考 `tests/unit/api-log-detail.test.ts`）。
-- 所有涉及日期的计算必须显式传入"当前时间"或使用 `Asia/Shanghai` 口径，测试里不要依赖机器时区。
+- 所有涉及日期的计算必须显式传入"当前时间"，测试里不要依赖机器时区。
+- **切天口径已修正为 UTC**：`api_logs.created_at` 实测存的是 UTC 墙钟，Prisma 也按 UTC 序列化 `Date` 参数，故 `startOfDay(D)` 即 `D 00:00:00Z`。本文档 Task 2/5/8 代码片段里若出现 `Asia/Shanghai` 默认值，以 `src/utils/api-log-dates.ts` 的实际实现（`LOG_TIMEZONE = 'UTC'`、时区可注入）为准。
 - 每个 Task 结束都提交一次。
 
 ---

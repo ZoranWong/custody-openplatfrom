@@ -85,7 +85,8 @@
 
 ## 口径
 
-- **切天 / 切月按 DB 时区（CST, UTC+8）**，与现有 `DATE(created_at)` 一致，避免两个接口对同一条日志算出不同日期。
+- **切天 / 切月按 UTC 日**。实测确认 `api_logs.created_at` 存的是 **UTC 墙钟**（服务器 `NOW()` 比最新日志超前 8 小时，且每秒都有新行写入），Prisma 的 MariaDB adapter 也按 `getUTC*` 序列化 `Date` 参数，因此 `DATE(created_at)` 得到的就是 UTC 日。切天基准必须与之一致，否则每条日志会被算进相邻日期（00:00–08:00 UTC 的调用会落到前一天的快照里），日粒度与月粒度也对不上。时区参数仍保留可注入，便于测试。
+  - 初始设计写的是按 CST（UTC+8）切天，前提是"DB 时区为 CST"；该前提与 `created_at` 的实际存储值不符，已按 UTC 修正。
 - `total_bytes = request_bytes + response_bytes`；按 `JSON.stringify` 的 UTF-8 字节数计，不含 HTTP 头。
 - 历史行字节数为 `NULL`，统计按 0 处理；页面标注流量自上线日起统计。
 - `developer_id IS NULL` 的日志（beta 上约 0.6%）照常写原始表，但不进入任何开发者维度聚合。
