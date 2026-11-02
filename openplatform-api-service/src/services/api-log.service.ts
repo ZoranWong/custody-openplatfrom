@@ -4,6 +4,7 @@
  */
 
 import { getApiLogRepository } from '../repositories/repository.factory';
+import { byteLength } from '../utils/byte-size';
 
 export interface ApiLogEntry {
   appId?: string;
@@ -23,6 +24,8 @@ export interface ApiLogEntry {
   sdkName?: string;
   sdkVersion?: string;
   sdkLanguage?: string;
+  requestBytes?: number;
+  responseBytes?: number;
   isError?: boolean;
 }
 
@@ -52,6 +55,8 @@ export async function createApiLog(entry: ApiLogEntry): Promise<void> {
         traceId: entry.traceId,
         requestHeaders: entry.requestHeaders as any,
         requestBody: entry.requestBody as any,
+        requestBytes: entry.requestBytes ?? byteLength(entry.requestBody),
+        responseBytes: entry.responseBytes ?? byteLength(entry.responseBody),
         responseStatus: entry.responseStatus,
         responseBody: entry.responseBody as any,
         responseTime: entry.responseTime,
