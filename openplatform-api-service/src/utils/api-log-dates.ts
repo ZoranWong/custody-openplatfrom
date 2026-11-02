@@ -1,12 +1,14 @@
 /**
  * Day/month helpers for API log rollups.
  *
- * All rollup boundaries follow the database timezone (Asia/Shanghai by default)
- * so raw queries (`DATE(created_at)`) and precomputed snapshots agree on which
- * day a call belongs to.
+ * All rollup boundaries follow the UTC wall clock stored in `created_at`, not
+ * the database session timezone: the MariaDB adapter serializes `Date`
+ * parameters with `getUTC*`, so raw queries (`DATE(created_at)`) yield the UTC
+ * calendar day. Rollups and the `@db.Date` snapshot labels must use that same
+ * day. The timezone stays injectable for tests.
  */
 
-export const LOG_TIMEZONE = process.env.API_LOG_TIMEZONE || 'Asia/Shanghai';
+export const LOG_TIMEZONE = process.env.API_LOG_TIMEZONE || 'UTC';
 
 interface Parts {
   year: string;
@@ -51,6 +53,7 @@ export function todayKey(timeZone: string = LOG_TIMEZONE, now: Date = new Date()
 
 /** Local midnight of `day` (YYYY-MM-DD) expressed as a UTC instant. */
 export function startOfDay(day: string, timeZone: string = LOG_TIMEZONE): Date {
+  assertDayKey(day);
   // Compute the timezone offset at local midnight by formatting a probe instant.
   const [y, m, d] = day.split('-').map(Number);
   const probe = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
@@ -69,6 +72,7 @@ export function startOfDay(day: string, timeZone: string = LOG_TIMEZONE): Date {
 
 /** Shift a YYYY-MM-DD key by N days. */
 export function addDays(day: string, days: number): string {
+  assertDayKey(day);
   const [y, m, d] = day.split('-').map(Number);
   const t = new Date(Date.UTC(y, m - 1, d));
   t.setUTCDate(t.getUTCDate() + days);
@@ -77,7 +81,35 @@ export function addDays(day: string, days: number): string {
 
 /** Shift a YYYY-MM key by N months. */
 export function addMonths(month: string, months: number): string {
+  assertMonthKey(month);
   const [y, m] = month.split('-').map(Number);
   const t = new Date(Date.UTC(y, m - 1 + months, 1));
   return t.toISOString().slice(0, 7);
 }
+
+const DAY_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH_KEY_PATTERN = /^\d{4}-\d{2}$/;
+const MIN_YEAR = 1970;
+const MAX_YEAR = 9999;
+
+/**
+ * Reject malformed or impossible day keys before they reach raw SQL date
+ * parameters or snapshot writes. The round-trip catches normalization such as
+ * `2026-13-01` or `2026-11-31`.
+ */
+function assertDayKey(day: string): void {
+  if (!DAY_KEY_PATTERN.test(day)) throw new Error(`Invalid day key: ${day}`);
+  const [y, m, d] = day.split('-').map(Number);
+  if (y < MIN_YEAR || y > MAX_YEAR) throw new Error(`Invalid day key: ${day}`);
+  const t = new Date(Date.UTC(y, m - 1, d));
+  if (t.toISOString().slice(0, 10) !== day) throw new Error(`Invalid day key: ${day}`);
+}
+
+function assertMonthKey(month: string): void {
+  if (!MONTH_KEY_PATTERN.test(month)) throw new Error(`Invalid month key: ${month}`);
+  const [y, m] = month.split('-').map(Number);
+  if (y < MIN_YEAR || y > MAX_YEAR) throw new Error(`Invalid month key: ${month}`);
+  const t = new Date(Date.UTC(y, m - 1, 1));
+  if (t.toISOString().slice(0, 7) !== month) throw new Error(`Invalid month key: ${month}`);
+}
+
