@@ -40,6 +40,16 @@ function getRetentionDays(): number {
 }
 
 /**
+ * Use a valid explicit byte count when given; otherwise derive it from the payload.
+ * Invalid explicit values (NaN, Infinity, non-integer, negative) would make the
+ * whole row insert fail, losing the log entry and its traffic metric.
+ */
+function explicitBytes(value: number | undefined, payload: unknown): number {
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return value;
+  return byteLength(payload);
+}
+
+/**
  * Create API log entry (fire-and-forget, never throws)
  */
 export async function createApiLog(entry: ApiLogEntry): Promise<void> {
@@ -55,8 +65,8 @@ export async function createApiLog(entry: ApiLogEntry): Promise<void> {
         traceId: entry.traceId,
         requestHeaders: entry.requestHeaders as any,
         requestBody: entry.requestBody as any,
-        requestBytes: entry.requestBytes ?? byteLength(entry.requestBody),
-        responseBytes: entry.responseBytes ?? byteLength(entry.responseBody),
+        requestBytes: explicitBytes(entry.requestBytes, entry.requestBody),
+        responseBytes: explicitBytes(entry.responseBytes, entry.responseBody),
         responseStatus: entry.responseStatus,
         responseBody: entry.responseBody as any,
         responseTime: entry.responseTime,

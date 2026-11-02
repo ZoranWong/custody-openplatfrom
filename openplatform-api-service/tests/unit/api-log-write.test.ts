@@ -45,4 +45,16 @@ describe('createApiLog byte accounting', () => {
     });
     expect(created[0].requestBytes).toBe(999);
   });
+
+  it('honours an explicit 0 instead of recomputing', async () => {
+    await createApiLog({ endpoint: '/api/x', method: 'POST', requestBody: { a: 1 }, requestBytes: 0 });
+    expect(created[0].requestBytes).toBe(0); // `||` would yield 7
+  });
+
+  it('rejects invalid explicit byte counts and derives them instead', async () => {
+    await createApiLog({ endpoint: '/api/x', method: 'POST', requestBody: { a: 1 }, requestBytes: -1 });
+    await createApiLog({ endpoint: '/api/x', method: 'POST', requestBody: { a: 1 }, requestBytes: Number.NaN });
+    expect(created[0].requestBytes).toBe(7);
+    expect(created[1].requestBytes).toBe(7);
+  });
 });
