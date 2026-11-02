@@ -25,7 +25,7 @@ CREATE TABLE `api_log_endpoint_daily` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_dev_date_endpoint` (`developer_id`,`date`,`endpoint`,`method`),
   KEY `api_log_endpoint_daily_dev_date_idx` (`developer_id`,`date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Monthly rollup (5 year retention)
 CREATE TABLE `api_log_monthly_snapshots` (
@@ -39,4 +39,4 @@ CREATE TABLE `api_log_monthly_snapshots` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_dev_month` (`developer_id`,`month`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
