@@ -161,6 +161,10 @@ model ApiLog {
   sdkVersion      String?  @map("sdk_version")
   /// SDK 实现语言（来自 X-SDK-Language 请求头）
   sdkLanguage     String?  @map("sdk_language")
+  /// 请求体字节数 (UTF-8 JSON)
+  requestBytes    Int?     @map("request_bytes")
+  /// 响应体字节数 (UTF-8 JSON)
+  responseBytes   Int?     @map("response_bytes")
   /// 是否为异常调用
   isError         Boolean  @default(false) @map("is_error")
   /// 创建时间
@@ -170,6 +174,8 @@ model ApiLog {
 
   @@index([appId, createdAt])
   @@index([traceId])
+  @@index([developerId, createdAt])
+  @@index([createdAt])
   @@map("api_logs")
 }
 
@@ -190,6 +196,8 @@ model ApiLogSnapshot {
   avgResponseTime   Int      @default(0) @map("avg_response_time")
   /// P95 响应时间 (ms)
   p95ResponseTime   Int      @default(0) @map("p95_response_time")
+  /// 当日请求+响应字节合计
+  totalBytes        BigInt   @default(0) @map("total_bytes")
   /// Top 5 endpoints by call volume (JSON array)
   topEndpoints      Json?    @map("top_endpoints")
   /// 快照创建时间
@@ -610,4 +618,42 @@ model TicketReply {
 
   @@index([ticketId])
   @@map("ticket_replies")
+}
+
+// ============================================
+// ApiLogEndpointDaily - 端点维度的日聚合
+// ============================================
+model ApiLogEndpointDaily {
+  id              BigInt   @id @default(autoincrement())
+  developerId     String   @map("developer_id")
+  date            DateTime @map("date") @db.Date
+  endpoint        String   @db.VarChar(255)
+  method          String   @db.VarChar(16)
+  calls           Int      @default(0)
+  errorCalls      Int      @default(0) @map("error_calls")
+  totalBytes      BigInt   @default(0) @map("total_bytes")
+  avgResponseTime Int      @default(0) @map("avg_response_time")
+  maxResponseTime Int      @default(0) @map("max_response_time")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([developerId, date, endpoint, method], name: "uq_dev_date_endpoint")
+  @@index([developerId, date])
+  @@map("api_log_endpoint_daily")
+}
+
+// ============================================
+// ApiLogMonthlySnapshot - 月聚合（保留5年）
+// ============================================
+model ApiLogMonthlySnapshot {
+  id              BigInt   @id @default(autoincrement())
+  developerId     String   @map("developer_id")
+  month           DateTime @map("month") @db.Date
+  totalCalls      Int      @default(0) @map("total_calls")
+  errorCalls      Int      @default(0) @map("error_calls")
+  totalBytes      BigInt   @default(0) @map("total_bytes")
+  avgResponseTime Int      @default(0) @map("avg_response_time")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([developerId, month], name: "uq_dev_month")
+  @@map("api_log_monthly_snapshots")
 }
