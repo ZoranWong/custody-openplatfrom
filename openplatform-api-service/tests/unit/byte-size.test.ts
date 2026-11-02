@@ -9,7 +9,17 @@ describe('byte-size', () => {
 
   it('serializes objects before counting', () => {
     expect(byteLength({ a: 1 })).toBe(7); // {"a":1}
-    expect(byteLength({ 名称: '充值' })).toBeGreaterThan(6);
+    expect(byteLength({ 名称: '充值' })).toBe(19); // {"名称":"充值"}
+  });
+
+  it('uses raw byte length for a top-level Buffer', () => {
+    expect(byteLength(Buffer.from('abc'))).toBe(3);
+  });
+
+  it('serializes primitives and arrays as JSON', () => {
+    expect(byteLength(123)).toBe(3);
+    expect(byteLength(true)).toBe(4);
+    expect(byteLength([1, 2, 3])).toBe(7);
   });
 
   it('returns 0 for null / undefined', () => {
