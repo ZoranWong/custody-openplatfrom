@@ -118,10 +118,32 @@ export function fetchApiLogs(params?: {
   pageSize?: number
   isError?: string
   apiName?: string
+  traceId?: string
   startDate?: string
   endDate?: string
 }) {
   return request.get<any>({ url: '/api-logs', params })
+}
+
+/**
+ * 获取开发者告警设置
+ */
+export function fetchAlertSettings() {
+  return request.get<any>({ url: '/isv/alert-settings' })
+}
+
+/**
+ * 更新开发者告警设置
+ */
+export function updateAlertSettings(data: any) {
+  return request.put<any>({ url: '/isv/alert-settings', data })
+}
+
+/**
+ * 获取告警事件历史
+ */
+export function fetchAlertEvents(params?: { page?: number; pageSize?: number }) {
+  return request.get<any>({ url: '/isv/alert-events', params })
 }
 
 /**

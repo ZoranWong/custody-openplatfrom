@@ -333,7 +333,28 @@
       "account": "Account",
       "profile": "Profile",
       "apiKeys": "API Keys",
-      "settings": "Settings",
+      "settings": {
+        "title": "Account Settings",
+        "alertTitle": "Error Alert Settings",
+        "alertEnabled": "Enable Alerts",
+        "alertEmail": "Alert Email",
+        "windowSeconds": "Window",
+        "windowHint": "seconds — errors counted in this window",
+        "errorThreshold": "Error Threshold",
+        "cooldownSeconds": "Cooldown",
+        "cooldownHint": "seconds between alerts",
+        "alertHistory": "Alert History",
+        "save": "Save",
+        "saved": "Settings saved",
+        "invalidEmail": "Invalid email format",
+        "windowEnd": "Window End",
+        "errorCount": "Errors",
+        "totalCount": "Total Calls",
+        "sent": "Sent",
+        "yes": "Yes",
+        "no": "No",
+        "createdAt": "Created"
+      },
       "orderManagement": "Orders",
       "subscriptionHistory": "History",
       "subscriptionManagement": "Subscription"
@@ -587,7 +608,12 @@
       "range180d": "Last 6 months",
       "detailHint": "Details are kept for 3 days; statistics for 6 months.",
       "trafficSince": "Traffic tracked since {date}",
-      "noTrafficData": "No traffic data yet"
+      "noTrafficData": "No traffic data yet",
+      "traceId": "Trace ID",
+      "autoRefresh": "Auto Refresh",
+      "autoRefreshOff": "Auto Refresh",
+      "startDate": "Start Date",
+      "endDate": "End Date"
     },
     "invoiceGeneration": {
       "title": "Invoice Generation",

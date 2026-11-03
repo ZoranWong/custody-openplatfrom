@@ -333,7 +333,28 @@
       "account": "账户管理",
       "profile": "个人资料",
       "apiKeys": "API 密钥",
-      "settings": "账户设置",
+      "settings": {
+        "title": "账户设置",
+        "alertTitle": "错误预警设置",
+        "alertEnabled": "启用预警",
+        "alertEmail": "接收邮箱",
+        "windowSeconds": "时间窗口",
+        "windowHint": "秒，检查此窗口内的错误数",
+        "errorThreshold": "错误阈值",
+        "cooldownSeconds": "冷却期",
+        "cooldownHint": "秒，两次告警之间的最小间隔",
+        "alertHistory": "告警历史",
+        "save": "保存",
+        "saved": "设置已保存",
+        "invalidEmail": "邮箱格式不正确",
+        "windowEnd": "窗口结束",
+        "errorCount": "错误数",
+        "totalCount": "总调用",
+        "sent": "已发送",
+        "yes": "是",
+        "no": "否",
+        "createdAt": "创建时间"
+      },
       "orderManagement": "订单管理",
       "subscriptionHistory": "订阅记录",
       "subscriptionManagement": "订阅管理"
@@ -587,7 +608,12 @@
       "range180d": "近6个月",
       "detailHint": "明细仅保留 3 天，统计数据保留 6 个月",
       "trafficSince": "流量自 {date} 起统计",
-      "noTrafficData": "暂未采集流量数据"
+      "noTrafficData": "暂未采集流量数据",
+      "traceId": "Trace ID",
+      "autoRefresh": "自动刷新",
+      "autoRefreshOff": "自动刷新",
+      "startDate": "开始日期",
+      "endDate": "结束日期"
     },
     "invoiceGeneration": {
       "title": "发票生成",
