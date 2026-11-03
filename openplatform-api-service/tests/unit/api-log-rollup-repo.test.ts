@@ -139,10 +139,13 @@ describe('ApiLogRepositoryImpl rollups', () => {
     await repo.rollupDay('dev-1', '2026-11-01');
 
     expect(state.endpointDeletes).toHaveLength(1);
+    // The unique key is (developerId, date, endpoint, method): the keep set is
+    // the endpoint+method pair, so a stale `/a GET` is removed while `/a POST`
+    // survives.
     expect(state.endpointDeletes[0].where).toEqual({
       developerId: 'dev-1',
       date: DAY_LABEL,
-      endpoint: { notIn: ['/a'] },
+      NOT: { OR: [{ endpoint: '/a', method: 'GET' }] },
     });
   });
 

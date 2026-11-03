@@ -150,8 +150,13 @@ export class ApiLogRepositoryImpl
 
   /** Read a precomputed snapshot's `top_endpoints` column. */
   private static normalizeTopEndpoints(value: unknown): ApiLogDailySnapshot['topEndpoints'] {
-    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
-    return Array.isArray(parsed) ? parsed : [];
+    try {
+      const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      // A corrupted JSON column must not break a rollup run.
+      return [];
+    }
   }
 
   /**
@@ -279,12 +284,19 @@ export class ApiLogRepositoryImpl
 
       // Drop endpoint rows that no longer appear in the recomputation (for
       // example after a partial raw delete) so daily totals cannot drift.
+      // The unique key is (developerId, date, endpoint, method), so the keep
+      // set is the endpoint+method pair — matching on endpoint alone would
+      // leave e.g. a stale `/x GET` row behind while `/x POST` still exists.
       if (endpointRows.length > 0) {
+        const keep = endpointRows.map((r) => ({
+          endpoint: r.endpoint,
+          method: r.method,
+        }));
         await tx.apiLogEndpointDaily.deleteMany({
           where: {
             developerId,
             date: dayLabel,
-            endpoint: { notIn: endpointRows.map((r) => r.endpoint) },
+            NOT: { OR: keep },
           },
         });
       }
@@ -563,12 +575,15 @@ export class ApiLogRepositoryImpl
     return rows.map((r) => r.developer_id);
   }
 
-  /** Delete daily snapshots / endpoint rows older than `day`; returns deleted counts. */
+  /** Delete daily snapshots / endpoint rows older than `day` atomically; returns deleted counts. */
   async pruneDailyOlderThan(day: string): Promise<{ snapshots: number; endpoints: number }> {
     const cutoff = startOfDay(day);
-    const snaps = await this.client.apiLogSnapshot.deleteMany({ where: { date: { lt: cutoff } } });
-    const eps = await this.client.apiLogEndpointDaily.deleteMany({ where: { date: { lt: cutoff } } });
-    return { snapshots: snaps.count, endpoints: eps.count };
+    const result = await this.client.$transaction(async (tx) => {
+      const snaps = await tx.apiLogSnapshot.deleteMany({ where: { date: { lt: cutoff } } });
+      const eps = await tx.apiLogEndpointDaily.deleteMany({ where: { date: { lt: cutoff } } });
+      return { snapshots: snaps.count, endpoints: eps.count };
+    });
+    return result;
   }
 
   /** Delete monthly snapshots older than the given month. */
