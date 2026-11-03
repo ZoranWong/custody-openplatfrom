@@ -5,6 +5,7 @@
  */
 
 import { getSubscriptionRepository } from '../repositories/repository.factory';
+import { isRollupInstance } from '../utils/single-instance';
 
 /**
  * Check if developer has remaining daily quota and atomically increment usage.
@@ -51,6 +52,10 @@ export async function resetDailyUsage(): Promise<number> {
  * Uses setTimeout to trigger precisely at midnight, then reschedules.
  */
 export function startDailyResetScheduler(): void {
+  if (!isRollupInstance()) {
+    console.log('[Quota] Daily reset scheduler skipped on non-primary instance');
+    return;
+  }
   const scheduleNext = () => {
     const now = new Date();
     const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);

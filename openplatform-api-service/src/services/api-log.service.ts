@@ -1,6 +1,9 @@
 /**
  * API Log Service
  * Records third-party API calls to ApiLog table
+ *
+ * Tiered retention (raw → daily → monthly) lives in
+ * `api-log-rollup.service.ts`.
  */
 
 import { getApiLogRepository } from '../repositories/repository.factory';
@@ -27,16 +30,6 @@ export interface ApiLogEntry {
   requestBytes?: number;
   responseBytes?: number;
   isError?: boolean;
-}
-
-/** Default log retention in days. Read from env at boot. */
-const DEFAULT_RETENTION_DAYS = 30;
-
-function getRetentionDays(): number {
-  const raw = process.env.API_LOG_RETENTION_DAYS;
-  if (!raw) return DEFAULT_RETENTION_DAYS;
-  const n = parseInt(raw, 10);
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_RETENTION_DAYS;
 }
 
 /**
@@ -83,60 +76,6 @@ export async function createApiLog(entry: ApiLogEntry): Promise<void> {
   }
 }
 
-/** Default: physically delete entire rows after this many days. */
-const DEFAULT_DELETE_DAYS = 180;
-
-/**
- * Hard-delete API logs older than `deleteDays`.
- *
- * Tiered retention (raw → daily → monthly) is owned by the rollup pipeline
- * (`api-log-rollup.service`). Until that pipeline is wired up, this legacy
- * helper only performs the physical delete; the `slimDays` parameter is kept
- * for call-site compatibility.
- */
-export async function cleanupOldLogs(
-  _slimDays?: number,
-  deleteDays?: number,
-): Promise<void> {
-  const del = deleteDays ?? DEFAULT_DELETE_DAYS;
-  try {
-    const repo = getApiLogRepository();
-
-    // Delete — remove rows beyond the hard retention window
-    const deleted = await repo.cleanup(del);
-    if (deleted.count > 0) {
-      console.log(`[ApiLog] Deleted ${deleted.count} logs older than ${del} days`);
-    }
-  } catch (error) {
-    console.error('[ApiLog] Cleanup failed:', (error as Error).message);
-  }
-}
-
-/**
- * Start a periodic cleanup timer that fires daily at a jittered off-peak hour.
- * Returns a cleanup function that stops the timer.
- */
-export function startCleanupScheduler(): () => void {
-  let stopped = false;
-  let timer: ReturnType<typeof setTimeout>;
-
-  const scheduleNext = () => {
-    // Random offset within the next 24 h (18–22 UTC off-peak window)
-    const now = new Date();
-    const nextRun = new Date(now);
-    nextRun.setUTCHours(18 + Math.floor(Math.random() * 4), Math.floor(Math.random() * 60), 0, 0);
-    if (nextRun <= now) nextRun.setUTCDate(nextRun.getUTCDate() + 1);
-    timer = setTimeout(() => {
-      if (stopped) return;
-      cleanupOldLogs();
-      scheduleNext();
-    }, nextRun.getTime() - now.getTime());
-  };
-
-  scheduleNext();
-  return () => { stopped = true; clearTimeout(timer); };
-}
-
 /**
  * Get recent API errors for dashboard display
  */
@@ -148,5 +87,3 @@ export async function getRecentErrors(developerId: string, limit: number = 5): P
     return [];
   }
 }
-
-export { getRetentionDays };
