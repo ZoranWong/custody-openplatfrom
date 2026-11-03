@@ -131,6 +131,64 @@
   const userStore = useUserStore()
   const router = useRouter()
   const route = useRoute()
+
+  /**
+   * 计算登录成功后的回跳地址。
+   *
+   * redirect 只接受站内绝对路径（/xxx），拒绝外部 URL、协议相对地址
+   * （//evil.com）以及循环指回登录/注册页的目标。历史上 redirect 可能被
+   * 嵌套成 /auth/login?redirect=/auth/login?redirect=...，这里取最内层一次
+   * 以自愈，同时对任何认证页目标直接丢弃，回落到首页。
+   */
+  const isAuthTarget = (p: string): boolean =>
+    p === '/auth/login' ||
+    p.startsWith('/auth/') ||
+    p === '/login' ||
+    p === '/register' ||
+    p === '/forget-password' ||
+    p === '/reset-password'
+
+  const resolveRedirect = (raw: unknown): string | undefined => {
+    if (typeof raw !== 'string' || raw.length === 0) return undefined
+
+    let target = raw
+    // Unwrap nested redirect chains (self-heal old links), bounded to avoid
+    // pathological input.
+    for (let i = 0; i < 5; i++) {
+      const nestedMatch = target.match(/^\/auth\/login[^?]*\?redirect=(.*)$/)
+      if (!nestedMatch) break
+      try {
+        target = decodeURIComponent(nestedMatch[1])
+      } catch {
+        return undefined
+      }
+    }
+
+    // Only same-origin absolute paths. Rejects http(s)://, //host, and
+    // anything that is not rooted at '/'.
+    if (!target.startsWith('/') || target.startsWith('//') || target.startsWith('/\\')) {
+      return undefined
+    }
+    // Never bounce back to an auth page.
+    if (isAuthTarget(target)) {
+      return undefined
+    }
+    return target
+  }
+
+  // Normalize a stale/nested or unsafe redirect in the address bar on mount
+  // (e.g. old bookmarks like /auth/login?redirect=/auth/login?redirect=/login).
+  // Replaces the history entry so the URL shown to the user is clean.
+  onMounted(() => {
+    const raw = route.query.redirect
+    if (raw === undefined) return
+    const resolved = resolveRedirect(raw)
+    if (resolved === raw) return
+    router.replace({
+      name: 'Login',
+      query: resolved ? { redirect: resolved } : undefined
+    })
+  })
   const isPassing = ref(false)
   const isClickPass = ref(false)
 
@@ -203,8 +261,7 @@
       showLoginSuccessNotice()
 
       // 获取 redirect 参数，如果存在则跳转到指定页面，否则跳转到首页
-      const redirect = route.query.redirect as string
-      router.push(redirect || '/dashboard')
+      router.push(resolveRedirect(route.query.redirect) || '/dashboard')
     } catch (error) {
       // 处理 HttpError
       if (error instanceof HttpError) {

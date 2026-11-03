@@ -217,20 +217,24 @@ function handleLoginStatus(
   }
 
   // 未登录（或会话失效）且访问需要权限的页面，跳转到登录页并携带 redirect 参数
-  userStore.logOut()
+  // 守卫自己负责导航，因此让 logOut 只清空状态，避免它再 push 一次造成重复导航。
+  userStore.logOut({ noRedirect: true })
 
-  // 只保留一个 redirect 参数，避免嵌套
-  const redirectPath = to.path + (to.hash || '')
-  const cleanQuery = { ...to.query }
-  delete cleanQuery.redirect
+  // 只保留一个 redirect：优先沿用进入本页前已有的 redirect（例如在登录页
+  // 被重放一次），否则用当前地址。绝不能把登录页自身当作回跳目标，否则会
+  // 生成 /auth/login?redirect=/auth/login?redirect=... 的嵌套。
+  const isAuthPath =
+    to.path === RoutesAlias.Login ||
+    to.path.startsWith('/auth/') ||
+    to.path === '/login' ||
+    to.path === '/register'
+  const existingRedirect = typeof to.query.redirect === 'string' ? to.query.redirect : undefined
+  const candidate = existingRedirect ?? to.fullPath
+  const cleanTarget = isAuthPath || candidate === '/' ? undefined : candidate
 
   next({
     name: 'Login',
-    query: {
-      redirect: Object.keys(cleanQuery).length > 0
-        ? redirectPath + '?' + new URLSearchParams(cleanQuery as Record<string, string>).toString()
-        : redirectPath
-    }
+    query: cleanTarget ? { redirect: cleanTarget } : undefined
   })
   return false
 }

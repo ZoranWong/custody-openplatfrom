@@ -42,6 +42,7 @@ import { setPageTitle } from '@/utils/router'
 import { resetRouterState } from '@/router/guards/beforeEach'
 import { useMenuStore } from './menu'
 import { StorageConfig } from '@/utils/storage/storage-config'
+import { RoutesAlias } from '@/router/routesAlias'
 
 /**
  * 用户状态管理
@@ -143,8 +144,12 @@ export const useUserStore = defineStore(
      * 退出登录
      * 清空所有用户相关状态并跳转到登录页
      * 如果是同一账号重新登录，保留工作台标签页
+     *
+     * @param options.noRedirect 由路由守卫自动登出时使用：守卫会自行 next()，
+     *   这里只清空状态，不再额外触发一次 router.push（否则会产生重复导航，
+     *   且可能把登录页的完整 query 再次套进 redirect）。
      */
-    const logOut = () => {
+    const logOut = (options: { noRedirect?: boolean } = {}) => {
       // 保存当前用户 ID，用于下次登录时判断是否为同一用户
       const currentUserId = info.value.userId
       if (currentUserId) {
@@ -170,9 +175,20 @@ export const useUserStore = defineStore(
       useMenuStore().setHomePath('')
       // 重置路由状态
       resetRouterState(500)
-      // 跳转到登录页，携带当前路由作为 redirect 参数
+
+      if (options.noRedirect) return
+
+      // 跳转到登录页，携带当前路由作为 redirect 参数。
+      // 只回跳业务页面：登录/注册等认证页本身不能作为 redirect 目标，
+      // 否则会出现 /auth/login?redirect=/auth/login?redirect=... 的嵌套。
       const currentRoute = router.currentRoute.value
-      const redirect = currentRoute.path !== '/login' ? currentRoute.fullPath : undefined
+      const currentPath = currentRoute.path
+      const isAuthPage =
+        currentPath === RoutesAlias.Login ||
+        currentPath.startsWith('/auth/') ||
+        !currentPath ||
+        currentPath === '/'
+      const redirect = isAuthPage ? undefined : currentRoute.fullPath
       router.push({
         name: 'Login',
         query: redirect ? { redirect } : undefined

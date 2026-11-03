@@ -84,14 +84,14 @@ const changeLanguage = (lang: LanguageEnum) => {
         <!-- Auth Buttons -->
         <div class="hidden md:flex items-center space-x-4">
           <button
-            @click="navigateTo('/login')"
+            @click="navigateTo('/auth/login')"
             class="text-gray-600 hover:text-brand transition-colors duration-200"
             aria-label="Sign In"
           >
             {{ $t('landing.header.signIn') }}
           </button>
           <button
-            @click="navigateTo('/register')"
+            @click="navigateTo('/auth/register')"
             class="btn-primary"
             aria-label="Get Started"
           >
@@ -159,7 +159,7 @@ const changeLanguage = (lang: LanguageEnum) => {
 
           <hr class="border-gray-200" />
           <button
-            @click="navigateTo('/login')"
+            @click="navigateTo('/auth/login')"
             class="text-left text-gray-600 hover:text-brand transition-colors duration-200"
             role="menuitem"
             aria-label="Sign In"
@@ -167,7 +167,7 @@ const changeLanguage = (lang: LanguageEnum) => {
             {{ $t('landing.header.signIn') }}
           </button>
           <button
-            @click="navigateTo('/register')"
+            @click="navigateTo('/auth/register')"
             class="btn-primary text-center"
             role="menuitem"
             aria-label="Get Started"
