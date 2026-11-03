@@ -657,3 +657,60 @@ model ApiLogMonthlySnapshot {
   @@unique([developerId, month], name: "uq_dev_month")
   @@map("api_log_monthly_snapshots")
 }
+
+// ============================================
+// DeveloperAlertSetting — error alert config per developer
+// ============================================
+model DeveloperAlertSetting {
+  id              String   @id @default(uuid())
+  developerId     String   @map("developer_id")
+
+  /// Alert email recipient
+  alertEmail      String?  @map("alert_email")
+
+  /// Whether alerts are enabled
+  enabled         Boolean  @default(false)
+
+  /// Sliding window in seconds (default 5 min)
+  windowSeconds   Int      @default(300) @map("window_seconds")
+
+  /// Error-count threshold within window to trigger an alert
+  errorThreshold  Int      @default(10) @map("error_threshold")
+
+  /// Cooldown in seconds between alerts (default 1 hour)
+  cooldownSeconds Int      @default(3600) @map("cooldown_seconds")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([developerId])
+  @@map("developer_alert_settings")
+}
+
+// ============================================
+// DeveloperAlertEvent — alert firing history
+// ============================================
+model DeveloperAlertEvent {
+  id              String   @id @default(uuid())
+  developerId     String   @map("developer_id")
+
+  /// Window end time
+  windowEnd       DateTime @map("window_end")
+
+  /// Error count in the window
+  errorCount      Int      @map("error_count")
+
+  /// Total call count in the window
+  totalCount      Int      @map("total_count")
+
+  /// Recent 5 error log summaries (JSON)
+  sampleErrors    Json?    @map("sample_errors")
+
+  /// Whether the alert email was sent successfully
+  sent            Boolean  @default(false)
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([developerId, windowEnd])
+  @@map("developer_alert_events")
+}
