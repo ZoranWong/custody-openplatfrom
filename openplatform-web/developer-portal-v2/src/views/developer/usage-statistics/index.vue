@@ -1,5 +1,12 @@
 <template>
   <div class="api-log-page art-full-height">
+    <ApiLogStatsPanel
+      :stats="stats"
+      :loading="statsLoading"
+      class="mb-4"
+      @range-change="handleRangeChange"
+    />
+
     <ElCard class="art-table-card">
       <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
         <template #left>
@@ -45,14 +52,30 @@
   import { useTable } from '@/hooks/core/useTable'
   import { ElButton, ElTag } from 'element-plus'
   import { formatDate } from '@/utils/date'
-  import { fetchApiLogs } from '@/api/billing'
+  import { fetchApiLogs, fetchUsageStats } from '@/api/billing'
   import ApiLogDetailDrawer from './modules/api-log-detail-drawer.vue'
+  import ApiLogStatsPanel from './modules/api-log-stats-panel.vue'
 
   const { t, locale } = useI18n()
 
   const searchForm = ref({ isError: undefined as string | undefined })
   const detailVisible = ref(false)
   const selectedLogId = ref<string | undefined>()
+  const stats = ref<Record<string, any> | null>(null)
+  const statsLoading = ref(false)
+
+  const loadStats = async (period = '30days') => {
+    statsLoading.value = true
+    try {
+      stats.value = await fetchUsageStats(period)
+    } finally {
+      statsLoading.value = false
+    }
+  }
+
+  const handleRangeChange = (value: string) => loadStats(value)
+
+  onMounted(() => loadStats())
 
   const openDetail = (row: any) => {
     selectedLogId.value = row.id

@@ -576,7 +576,18 @@
       "endpointBreakdown": "接口分布",
       "avgResponse": "平均响应",
       "todayCalls": "今日调用",
-      "remainingCalls": "剩余调用"
+      "remainingCalls": "剩余调用",
+      "statsTitle": "调用统计",
+      "traffic": "流量",
+      "successRate": "成功率",
+      "totalCalls": "调用次数",
+      "range7d": "近7天",
+      "range30d": "近30天",
+      "range90d": "近90天",
+      "range180d": "近6个月",
+      "detailHint": "明细仅保留 3 天，统计数据保留 6 个月",
+      "trafficSince": "流量自 {date} 起统计",
+      "noTrafficData": "暂未采集流量数据"
     },
     "invoiceGeneration": {
       "title": "发票生成",

@@ -576,7 +576,18 @@
       "endpointBreakdown": "Endpoint Breakdown",
       "avgResponse": "Avg Response",
       "todayCalls": "Today Calls",
-      "remainingCalls": "Remaining"
+      "remainingCalls": "Remaining",
+      "statsTitle": "Call Statistics",
+      "traffic": "Traffic",
+      "successRate": "Success Rate",
+      "totalCalls": "Total Calls",
+      "range7d": "Last 7 days",
+      "range30d": "Last 30 days",
+      "range90d": "Last 90 days",
+      "range180d": "Last 6 months",
+      "detailHint": "Details are kept for 3 days; statistics for 6 months.",
+      "trafficSince": "Traffic tracked since {date}",
+      "noTrafficData": "No traffic data yet"
     },
     "invoiceGeneration": {
       "title": "Invoice Generation",
