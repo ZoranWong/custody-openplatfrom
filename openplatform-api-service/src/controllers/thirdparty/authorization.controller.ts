@@ -227,6 +227,7 @@ export async function createAuthorization(req: Request, res: Response): Promise<
         resourceKey,
         expiresAt: authorization.expiresAt,
       },
+      traceId: (req as any).context?.traceId,
     }).catch((err) => logger.error('Callback push failed:', err));
 
   } catch (error) {

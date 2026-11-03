@@ -225,6 +225,7 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
                     },
                     event: 'authorization.created',
                     data: eventData,
+                    traceId: (req as any).context?.traceId,
                   })
                   .catch((err) =>
                     logger.error(
@@ -242,6 +243,7 @@ export async function verifyOauthToken(req: Request, res: Response): Promise<voi
                         },
                         event: 'authorization.created',
                         data: eventData,
+                        traceId: (req as any).context?.traceId,
                     }).catch((err) => logger.error('Authorization callback (app) failed:', err))
                 }
         } catch (err) {
@@ -299,6 +301,7 @@ export function logOAuthCall(req: Request, res: Response, next: NextFunction): v
             appId,
             developerId,
             apiName,
+            traceId: (req.headers['x-trace-id'] as string) || undefined,
             endpoint: req.baseUrl + req.path,
             method: req.method,
             requestBody: req.body?.business,

@@ -87,6 +87,7 @@ router.post('/custody/callback', async (req: Request, res: Response) => {
       },
       event: eventType,
       data: payload,
+      traceId: (req as any).context?.traceId,
     });
 
     res.json({

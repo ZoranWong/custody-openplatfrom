@@ -22,12 +22,14 @@ router.get('/', isvAuth, async (req: any, res: any) => {
     const pageSize = parseInt(req.query.pageSize as string) || 20;
     const isError = req.query.isError !== undefined ? req.query.isError === '1' : undefined;
     const apiName = req.query.apiName as string | undefined;
+    const traceId = req.query.traceId as string | undefined;
     const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
     const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
 
     const result = await repo.findByDeveloper(isvUser.isvId, page, pageSize, {
       isError,
       apiName,
+      traceId,
       startDate,
       endDate,
     });
@@ -38,6 +40,7 @@ router.get('/', isvAuth, async (req: any, res: any) => {
       data: {
         list: result.list.map((log: any) => ({
           id: log.id,
+          traceId: log.traceId,
           apiName: log.apiName || log.endpoint,
           endpoint: log.endpoint,
           method: log.method,

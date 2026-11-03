@@ -162,6 +162,7 @@ export class ApplicationCallbackService {
     };
     event?: CallbackEventType | '';
     data: Record<string, unknown>;
+    traceId?: string;
   }): Promise<PushResult> {
     const { application, event, data } = params;
 
@@ -188,6 +189,7 @@ export class ApplicationCallbackService {
         createApiLog({
           appId: application.id,
           apiName: 'callback.push',
+          traceId: params.traceId,
           endpoint: callbackUrl,
           method: 'POST',
           requestBody: { event: event || '', data },

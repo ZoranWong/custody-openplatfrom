@@ -16,10 +16,13 @@ export async function getApiLogs(req: Request, res: Response): Promise<void> {
     const developerId = req.query.developerId as string | undefined;
     const isError = req.query.isError !== undefined ? req.query.isError === '1' : undefined;
     const apiName = req.query.apiName as string | undefined;
+    const traceId = req.query.traceId as string | undefined;
 
     const result = await repo.findByDeveloper('__admin__', page, pageSize, {
       isError,
       apiName,
+      traceId,
+      developerId,
     });
 
     res.json({
