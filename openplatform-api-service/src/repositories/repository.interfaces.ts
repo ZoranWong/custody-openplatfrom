@@ -168,7 +168,7 @@ export interface ApiLogEndpointBreakdown {
 
 /**
  * Daily snapshot row — compact aggregate of one day's API logs.
- * Built before logs are slimmed/deleted so that long-period trends remain queryable.
+ * Built before raw logs are deleted so that long-period trends remain queryable.
  */
 export interface ApiLogDailySnapshot {
   date: string          // YYYY-MM-DD
@@ -177,8 +177,39 @@ export interface ApiLogDailySnapshot {
   errorCalls: number
   avgResponseTime: number
   p95ResponseTime: number
+  totalBytes: number
   topEndpoints: Array<{ endpoint: string; calls: number; errorRate: number }>
   createdAt: string
+}
+
+/** Endpoint-level daily aggregate row. */
+export interface ApiLogEndpointDailyRow {
+  date: string          // YYYY-MM-DD
+  endpoint: string
+  method: string
+  calls: number
+  errorCalls: number
+  totalBytes: number
+  avgResponseTime: number
+  maxResponseTime: number
+}
+
+/** Monthly snapshot row — compact aggregate of one month's API logs. */
+export interface ApiLogMonthlySnapshot {
+  month: string         // YYYY-MM
+  totalCalls: number
+  errorCalls: number
+  totalBytes: number
+  avgResponseTime: number
+}
+
+/** Per-day aggregate computed directly from raw logs (day not yet snapshotted). */
+export interface ApiLogRawDayAggregate {
+  date: string          // YYYY-MM-DD
+  calls: number
+  errorCalls: number
+  totalBytes: number
+  avgResponseTime: number
 }
 
 export interface ApiLogRepository {
@@ -210,13 +241,33 @@ export interface ApiLogRepository {
   getStats(developerId: string, startDate: Date): Promise<ApiLogStats>
   getDailyBreakdown(developerId: string, startDate: Date): Promise<ApiLogDailyBreakdown[]>
   getEndpointBreakdown(developerId: string, startDate: Date, totalCalls: number): Promise<ApiLogEndpointBreakdown[]>
-  /** Null out large payload fields for logs older than N days (keeps stats fields). */
-  slimOlderThan(days: number): Promise<{ count: number }>
-  /** Build daily aggregate snapshots for a date range, deduplicating by (date, developerId). */
-  buildDailySnapshot(startDate: Date, endDate: Date): Promise<number>
-  /** Read pre-built snapshots for dashboard trend charts. */
-  getDailySnapshots(developerId: string, startDate: Date, endDate: Date): Promise<ApiLogDailySnapshot[]>
   cleanup(retentionDays?: number): Promise<{ count: number }>
+  /** Aggregate one day of raw logs for a developer into the daily snapshot + endpoint daily table. */
+  rollupDay(developerId: string, date: string): Promise<{ calls: number; errors: number }>
+  /** Insert-or-update a precomputed daily snapshot (used by tests and backfills). */
+  upsertDailySnapshot(snapshot: ApiLogDailySnapshot): Promise<void>
+  /** Read daily snapshots in [startDay, endDay] inclusive. */
+  getDailySnapshotsBetween(developerId: string, startDay: string, endDay: string): Promise<ApiLogDailySnapshot[]>
+  /** Read endpoint-daily rows in [startDay, endDay] inclusive. */
+  getEndpointDailyBetween(developerId: string, startDay: string, endDay: string): Promise<ApiLogEndpointDailyRow[]>
+  /** Aggregate raw logs for one developer over a day range (today's slice). */
+  aggregateRawRange(developerId: string, startIso: Date, endIso: Date): Promise<{ calls: number; errorCalls: number; totalBytes: number; avgResponseTime: number; byEndpoint: ApiLogEndpointDailyRow[]; byDay: ApiLogRawDayAggregate[] }>
+  /** Roll daily snapshots of a month into the monthly table, then delete those daily rows. */
+  rollupMonth(developerId: string, month: string): Promise<number>
+  /** Read monthly snapshots in [startMonth, endMonth] inclusive. */
+  getMonthlySnapshotsBetween(developerId: string, startMonth: string, endMonth: string): Promise<ApiLogMonthlySnapshot[]>
+  /** Delete raw rows older than `day` (YYYY-MM-DD, exclusive). */
+  deleteRawBefore(day: string): Promise<{ count: number }>
+  /** Whether any daily snapshot exists for the developer+day. */
+  hasDailySnapshot(developerId: string, date: string): Promise<boolean>
+  /** List developer ids that have raw rows in the given day. */
+  listDevelopersWithRawLogs(date: string): Promise<string[]>
+  /** List developer ids that still have daily snapshots in the given month (YYYY-MM). */
+  listDevelopersWithDailySnapshots(month: string): Promise<string[]>
+  /** Retain only the last N days of daily snapshots / endpoint rows; returns deleted counts. */
+  pruneDailyOlderThan(day: string): Promise<{ snapshots: number; endpoints: number }>
+  /** Delete monthly snapshots older than the given month. */
+  pruneMonthlyOlderThan(month: string): Promise<number>
   /** Paginated API log query */
   findByDeveloper(developerId: string, page: number, pageSize: number, filters?: { isError?: boolean; apiName?: string; startDate?: Date; endDate?: Date }): Promise<{ list: ApiLog[]; total: number; page: number; pageSize: number }>
   /** Single API log by id */
