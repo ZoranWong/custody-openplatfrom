@@ -7,6 +7,8 @@
 import { Invoice, InvoiceHistoryItem, PaymentHistoryItem, UsageStatistics, UsageTrend } from '../types/billing.types';
 import { getOrderRepository, getApiLogRepository, getSubscriptionRepository } from '../repositories/repository.factory';
 import { getRecentErrors } from './api-log.service';
+import { loadUsageWindow } from './api-log-stats.service';
+import { addDays, todayKey } from '../utils/api-log-dates';
 
 /**
  * Billing Service
@@ -74,12 +76,9 @@ export class BillingService {
   async getUsageStatistics(
     enterpriseId: string, periodStart?: string, periodEnd?: string
   ): Promise<UsageStatistics> {
-    const apiLogRepo = getApiLogRepository();
     const subRepo = getSubscriptionRepository();
 
-    const now = new Date();
-
-    // Parse periodStart: accept '30days', '7d', '90d' or a date string
+    // Parse periodStart: accept '30days', '7d', '90d', '180days' or a date string
     let days = 30;
     if (periodStart) {
       const match = periodStart.match(/^(\d+)d(?:ays)?$/);
@@ -87,52 +86,47 @@ export class BillingService {
         days = parseInt(match[1], 10);
       }
     }
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
-    const stats = await apiLogRepo.getStats(enterpriseId, startDate);
-    const dailyBreakdown = await apiLogRepo.getDailyBreakdown(enterpriseId, startDate);
-    const endpointBreakdown = await apiLogRepo.getEndpointBreakdown(enterpriseId, startDate, stats.totalCalls);
+    // Segmented read: monthly snapshots → daily snapshots → live raw days.
+    const endDay = todayKey();
+    const startDay = addDays(endDay, -(days - 1));
+    const window = await loadUsageWindow(enterpriseId, startDay);
     const activeSub = await subRepo.findActiveWithPackage(enterpriseId);
 
-    const successRate = stats.totalCalls > 0
-      ? ((stats.totalCalls - stats.errorCalls) / stats.totalCalls) * 100
+    const successRate = window.totalCalls > 0
+      ? ((window.totalCalls - window.errorCalls) / window.totalCalls) * 100
       : 100;
 
     return {
       period: {
-        start: startDate.toISOString().split('T')[0],
-        end: now.toISOString().split('T')[0],
+        start: startDay,
+        end: endDay,
       },
-      totalApiCalls: stats.totalCalls,
-      totalBandwidth: 0,
+      totalApiCalls: window.totalCalls,
+      totalBandwidth: window.totalBytes,
       totalStorage: 0,
       apiCallCost: 0,
       bandwidthCost: 0,
       storageCost: 0,
       totalCost: 0,
       currency: 'USD',
-      totalCalls: stats.totalCalls,
+      totalCalls: window.totalCalls,
+      totalBytes: window.totalBytes,
+      bytesTrackedSince: window.bytesTrackedSince,
+      partial: window.partial,
       successRate,
-      avgResponseTimeMs: stats.avgResponseTime,
+      avgResponseTimeMs: window.avgResponseTime,
       todayCalls: Number(activeSub?.dailyApiUsage) || 0,
       dailyLimit: activeSub?.package?.dailyApiLimit ?? 0,
       recentErrors: await getRecentErrors(enterpriseId, 10),
-      dailyBreakdown: dailyBreakdown.map((d) => ({
+      dailyBreakdown: window.series.map((d) => ({
         date: d.date,
         calls: d.calls,
-        successCount: d.successCount,
+        successCount: d.calls - d.errorCalls,
         avgResponseTime: d.avgResponseTime,
+        bytes: d.totalBytes,
       })),
-      endpointBreakdown: endpointBreakdown.map((e) => ({
-        endpoint: e.endpoint,
-        method: e.method,
-        calls: e.calls,
-        successCount: e.successCount,
-        successRate: e.successRate,
-        percentage: e.percentage,
-        avgResponseTime: e.avgResponseTime,
-        maxResponseTime: e.maxResponseTime,
-      })),
+      endpointBreakdown: window.endpoints,
     };
   }
 

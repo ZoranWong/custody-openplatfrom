@@ -107,6 +107,9 @@ export interface UsageStatistics {
   currency: string;
   successRate?: number;
   totalCalls?: number;
+  totalBytes?: number;
+  bytesTrackedSince?: string | null;
+  partial?: boolean;
   avgResponseTimeMs?: number;
   todayCalls?: number;
   dailyLimit?: number;
@@ -121,12 +124,18 @@ export interface UsageStatistics {
     calls: number;
     successCount: number;
     avgResponseTime: number;
+    bytes?: number;
   }>;
   endpointBreakdown?: Array<{
     endpoint: string;
     method: string;
     calls: number;
+    successCount: number;
+    successRate: number;
     percentage: number;
+    avgResponseTime: number;
+    maxResponseTime: number;
+    totalBytes: number;
   }>;
 }
 

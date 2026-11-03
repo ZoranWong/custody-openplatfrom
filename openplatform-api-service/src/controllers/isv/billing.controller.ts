@@ -221,14 +221,23 @@ export function createBillingController(billingService: BillingService = createB
           message: 'success',
           data: {
             total_calls: stats.totalCalls || stats.totalApiCalls || 0,
+            total_bytes: stats.totalBytes || 0,
+            bytes_tracked_since: stats.bytesTrackedSince ?? null,
+            partial: stats.partial ?? false,
             success_rate: stats.successRate ?? 99.5,
             avg_response_time_ms: stats.avgResponseTimeMs || 0,
             today_calls: stats.todayCalls || 0,
             daily_limit: stats.dailyLimit || 0,
             recent_errors: stats.recentErrors || [],
             period: period as string || '30days',
-            daily_breakdown: stats.dailyBreakdown?.length ? stats.dailyBreakdown : [
-              { date: new Date().toISOString().split('T')[0], calls: 0, success_count: 0, avg_response_time: 0 },
+            daily_breakdown: stats.dailyBreakdown?.length ? stats.dailyBreakdown.map((d) => ({
+              date: d.date,
+              calls: d.calls,
+              success_count: d.successCount,
+              avg_response_time: d.avgResponseTime,
+              bytes: d.bytes ?? 0,
+            })) : [
+              { date: new Date().toISOString().split('T')[0], calls: 0, success_count: 0, avg_response_time: 0, bytes: 0 },
             ],
             endpoint_breakdown: stats.endpointBreakdown?.length ? stats.endpointBreakdown : [],
           },
