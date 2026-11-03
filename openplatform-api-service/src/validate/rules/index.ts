@@ -19,3 +19,5 @@ export {
   validateISVLogin,
   validateCreateApplication,
 } from './isv.rules'
+
+export { validateAlertSettings } from './alert.rules'

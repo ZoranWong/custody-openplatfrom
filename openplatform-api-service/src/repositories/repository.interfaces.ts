@@ -269,9 +269,25 @@ export interface ApiLogRepository {
   /** Delete monthly snapshots older than the given month. */
   pruneMonthlyOlderThan(month: string): Promise<number>
   /** Paginated API log query */
-  findByDeveloper(developerId: string, page: number, pageSize: number, filters?: { isError?: boolean; apiName?: string; startDate?: Date; endDate?: Date }): Promise<{ list: ApiLog[]; total: number; page: number; pageSize: number }>
+  findByDeveloper(developerId: string, page: number, pageSize: number, filters?: { isError?: boolean; apiName?: string; startDate?: Date; endDate?: Date; traceId?: string; developerId?: string }): Promise<{ list: ApiLog[]; total: number; page: number; pageSize: number }>
   /** Single API log by id */
   findById(id: string): Promise<ApiLog | null>
+  /** Upsert alert settings for a developer. */
+  upsertAlertSetting(data: { developerId: string; alertEmail: string | null; enabled: boolean; windowSeconds: number; errorThreshold: number; cooldownSeconds: number }): Promise<void>
+  /** Paginated alert events for a developer. */
+  getAlertEvents(developerId: string, page: number, pageSize: number): Promise<{ list: any[]; total: number; page: number; pageSize: number }>
+  /** List alert settings — all, or only enabled ones. */
+  listAlertSettings(enabledOnly?: boolean): Promise<Array<{ developerId: string; alertEmail: string | null; enabled: boolean; windowSeconds: number; errorThreshold: number; cooldownSeconds: number }>>
+  /** Get the cooldown end time for a developer (from latest alert event). */
+  getAlertCooldownEnd(developerId: string): Promise<Date>
+  /** Count errors and total calls in a time window. */
+  countErrorsInWindow(developerId: string, start: Date, end: Date): Promise<Array<{ errorCount: number; totalCount: number }>>
+  /** Find recent errors in a time window. */
+  findRecentErrorsInWindow(developerId: string, start: Date, end: Date, limit: number): Promise<any[]>
+  /** Create an alert event record. */
+  createAlertEvent(data: { developerId: string; windowEnd: Date; errorCount: number; totalCount: number; sampleErrors: unknown[]; sent: boolean }): Promise<void>
+  /** Mark an alert event as sent. */
+  markAlertSent(developerId: string, windowEnd: Date): Promise<void>
 }
 
 // ---------------------------------------------------------------------------

@@ -28,6 +28,7 @@ import isvRoutes from './routes/v1/isv.routes'
 import billingRoutes from './routes/v1/billing.routes'
 import usageRoutes from './routes/v1/usage.routes'
 import apiLogRoutes from './routes/v1/api-log.routes'
+import alertRoutes from './routes/v1/alert.routes'
 import captchaRoutes from './routes/v1/captcha.routes'
 import oauthRoutes from './routes/oauth.routes'
 import authorizationRoutes from './routes/v1/authorization.routes'
@@ -48,6 +49,7 @@ import metricsRoutes from './routes/metrics.routes'
 import { getMetricsCollector } from './services/metrics-collector.service'
 import { startDailyResetScheduler } from './services/quota.service'
 import { startRollupScheduler } from './services/api-log-rollup.service'
+import { startAlertScheduler } from './services/api-log-alert.service'
 
 // Import trace modules
 import { createTraceMiddleware } from './middleware/trace.middleware'
@@ -132,6 +134,7 @@ app.use('/api/v1/isv', isvRoutes)
 app.use('/api/v1/billing', billingRoutes)
 app.use('/api/v1/usage', usageRoutes)
 app.use('/api/v1/api-logs', apiLogRoutes)
+app.use('/api/v1/isv', alertRoutes)
 app.use('/api/v1/captcha', captchaRoutes)
 
 // Static file serving for uploads
@@ -219,6 +222,11 @@ async function startServer() {
         const stopLogRollup = startRollupScheduler()
         process.on('SIGTERM', () => stopLogRollup())
         process.on('SIGINT', () => stopLogRollup())
+
+        // Start the periodic API log error alert scanner
+        const stopAlert = startAlertScheduler()
+        process.on('SIGTERM', () => stopAlert())
+        process.on('SIGINT', () => stopAlert())
     })
 }
 

@@ -605,12 +605,18 @@ export class ApiLogRepositoryImpl
     developerId: string,
     page: number,
     pageSize: number,
-    filters?: { isError?: boolean; apiName?: string; startDate?: Date; endDate?: Date },
+    filters?: { isError?: boolean; apiName?: string; startDate?: Date; endDate?: Date; traceId?: string; developerId?: string },
   ) {
     const where: any = {};
     if (developerId && developerId !== '__admin__') where.developerId = developerId;
+    // Allow admin to filter by a specific developerId even when developerId param is '__admin__'.
+    if (filters?.developerId) where.developerId = filters.developerId;
     if (filters?.isError !== undefined) where.isError = filters.isError;
-    if (filters?.apiName) where.apiName = { contains: filters.apiName };
+    if (filters?.apiName) where.OR = [
+      { apiName: { contains: filters.apiName } },
+      { endpoint: { contains: filters.apiName } },
+    ];
+    if (filters?.traceId) where.traceId = filters.traceId;
     if (filters?.startDate || filters?.endDate) {
       where.createdAt = {};
       if (filters.startDate) where.createdAt.gte = filters.startDate;
@@ -621,6 +627,136 @@ export class ApiLogRepositoryImpl
       page,
       pageSize,
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Alert settings / events
+  // ---------------------------------------------------------------------------
+
+  async listAlertSettings(enabledOnly?: boolean) {
+    const where: any = {};
+    if (enabledOnly) where.enabled = true;
+    const rows = await this.client.developerAlertSetting.findMany({
+      where,
+      select: {
+        developerId: true,
+        alertEmail: true,
+        enabled: true,
+        windowSeconds: true,
+        errorThreshold: true,
+        cooldownSeconds: true,
+      },
+    });
+    return rows.map((r: any) => ({
+      developerId: r.developerId,
+      alertEmail: r.alertEmail,
+      enabled: r.enabled,
+      windowSeconds: r.windowSeconds,
+      errorThreshold: r.errorThreshold,
+      cooldownSeconds: r.cooldownSeconds,
+    }));
+  }
+
+  async upsertAlertSetting(data: { developerId: string; alertEmail: string | null; enabled: boolean; windowSeconds: number; errorThreshold: number; cooldownSeconds: number }) {
+    await this.client.developerAlertSetting.upsert({
+      where: { developerId: data.developerId },
+      create: {
+        developerId: data.developerId,
+        alertEmail: data.alertEmail,
+        enabled: data.enabled,
+        windowSeconds: data.windowSeconds,
+        errorThreshold: data.errorThreshold,
+        cooldownSeconds: data.cooldownSeconds,
+      },
+      update: {
+        alertEmail: data.alertEmail,
+        enabled: data.enabled,
+        windowSeconds: data.windowSeconds,
+        errorThreshold: data.errorThreshold,
+        cooldownSeconds: data.cooldownSeconds,
+      },
+    });
+  }
+
+  async getAlertEvents(developerId: string, page: number, pageSize: number) {
+    const skip = (page - 1) * pageSize;
+    const [list, total] = await Promise.all([
+      this.client.developerAlertEvent.findMany({
+        where: { developerId },
+        orderBy: { windowEnd: 'desc' },
+        skip,
+        take: pageSize,
+        select: { windowEnd: true, errorCount: true, totalCount: true, sent: true, createdAt: true },
+      }),
+      this.client.developerAlertEvent.count({ where: { developerId } }),
+    ]);
+    return { list, total, page, pageSize };
+  }
+
+  async getAlertCooldownEnd(developerId: string): Promise<Date> {
+    const last = await this.client.developerAlertEvent.findFirst({
+      where: { developerId },
+      orderBy: { windowEnd: 'desc' },
+      select: { windowEnd: true },
+    });
+    if (!last) return new Date(0);
+    const setting = await this.client.developerAlertSetting.findUnique({
+      where: { developerId },
+      select: { cooldownSeconds: true },
+    });
+    const cooldownMs = (setting?.cooldownSeconds ?? 3600) * 1000;
+    return new Date(last.windowEnd.getTime() + cooldownMs);
+  }
+
+  async countErrorsInWindow(developerId: string, start: Date, end: Date) {
+    // Raw SQL: the window bounds must serialize exactly like the rollup queries
+    // (UTC wall clock). The Prisma query engine's Date handling for this table
+    // differs from $queryRaw and would shift the window.
+    const rows = await this.queryRaw<{ error_count: bigint | number; total_count: bigint | number }>`
+      SELECT
+        SUM(CASE WHEN is_error = 1 THEN 1 ELSE 0 END) AS error_count,
+        COUNT(*) AS total_count
+      FROM api_logs
+      WHERE developer_id = ${developerId}
+        AND created_at >= ${start} AND created_at <= ${end}
+    `;
+    const row = rows[0];
+    return [{
+      errorCount: Number(row?.error_count || 0),
+      totalCount: Number(row?.total_count || 0),
+    }];
+  }
+
+  async findRecentErrorsInWindow(developerId: string, start: Date, end: Date, limit: number) {
+    return this.queryRaw<any[]>`
+      SELECT endpoint, method, trace_id, response_status, created_at
+      FROM api_logs
+      WHERE developer_id = ${developerId}
+        AND is_error = 1
+        AND created_at >= ${start} AND created_at <= ${end}
+      ORDER BY created_at DESC
+      LIMIT ${limit}
+    `;
+  }
+
+  async createAlertEvent(data: { developerId: string; windowEnd: Date; errorCount: number; totalCount: number; sampleErrors: unknown[]; sent: boolean }) {
+    await this.client.developerAlertEvent.create({
+      data: {
+        developerId: data.developerId,
+        windowEnd: data.windowEnd,
+        errorCount: data.errorCount,
+        totalCount: data.totalCount,
+        sampleErrors: data.sampleErrors as any,
+        sent: data.sent,
+      },
+    });
+  }
+
+  async markAlertSent(developerId: string, windowEnd: Date) {
+    await this.client.developerAlertEvent.updateMany({
+      where: { developerId, windowEnd },
+      data: { sent: true },
     });
   }
 }
