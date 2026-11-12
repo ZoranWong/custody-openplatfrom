@@ -2,7 +2,7 @@
 
 Cregis 托管开放平台官方 Java SDK，覆盖 **OAuth 授权、财务单元、地址、币种/资金控制/白名单、出金/归集、审批、商户与企业用户、Board、交易记录、回调验签** 全部业务接口。所有接口均提供同步与异步（`CompletableFuture`）两种调用方式。
 
-**当前版本：1.2.6**
+**当前版本：1.2.7**
 
 ---
 
@@ -43,7 +43,7 @@ Cregis 托管开放平台官方 Java SDK，覆盖 **OAuth 授权、财务单元�
 <dependency>
     <groupId>com.cregis</groupId>
     <artifactId>cregis-sdk-core</artifactId>
-    <version>1.2.6</version>
+    <version>1.2.7</version>
 </dependency>
 ```
 
@@ -210,10 +210,12 @@ client.transaction().submitTask(authorizationId, task.getTaskId(),
 | `PageResponse<PayoutResponse> listTransferOutOrders(String, QueryRequest)` | 出金订单 | `PageResponse<PayoutResponse>`：`orderState` / `payToList` / `txId` | `400103` |
 | `PageResponse<TransferInOrderResponse> listTransferInOrders(String, QueryRequest)` | 入金订单 | `PageResponse<TransferInOrderResponse>`：`orderState` / `cpAddress` / `amount` | `400103` |
 | `void submitTask(String, String taskId, SubmitTaskRequest)` | 提交审批 | `void`（成功时 `data` 为 `null`） | `400001`、`400013`、`400103` |
+| `PageResponse<AuditTaskResponse> listTasks(String, TaskListRequest)` | 查询任务列表（1.2.7 新增，另有 `listTasksAsync`） | `PageResponse<AuditTaskResponse>`：`records` / `total` / `current` / `size`（上游无 `pages`） | `400103` |
 | `PayoutResponse pooling(String, PoolingRequest)` | 发起归集 | `PayoutResponse`：`orderId` / `orderState` / `taskId` | `300004`、`400006`、`400042`、`400083`、`400102`、`400103` |
 
 `CreatePayoutRequest` 必填 `payTo`、`fromAccountId`、`unitId`、`coinId`、`network`、`fromAddress`、`orderId`、`merchantType`（前 7 项为上游 `ThirdPayoutRequest` 的必填字段）。
 `SubmitTaskRequest`：`confirmed: boolean`，可选 `signatures: Map<String, List<String>>`。
+`TaskListRequest`：全部可选，`pageNum`（从 1 开始）、`pageSize`、`businessId`、`taskType`（`orders` / `issues`）、`taskId`、`state`。
 
 > 归集仅允许 platform 创建的 acquiring 账户作为来源，否则 custody 返回 `120042 ONLY_ACQUIRING_ACCOUNT_ALLOWED`。
 
@@ -343,13 +345,18 @@ try {
 发布到 Maven Central 通过仓库脚本完成（需要本地 GPG 私钥与 Central Token）：
 
 ```bash
-./release.sh 1.2.6          # 上传到 Central Portal 并停在 Validated 状态，人工确认后点 Publish
-./release.sh 1.2.6 --auto   # 上传后自动发布
+./release.sh 1.2.7          # 上传到 Central Portal 并停在 Validated 状态，人工确认后点 Publish
+./release.sh 1.2.7 --auto   # 上传后自动发布
 ```
 
 CI 发布：GitHub Actions → **Release Java SDK** → 输入版本号（需先配置仓库 Secrets，见 `RELEASE.md`）。
 
 ## 版本与变更
+
+### 1.2.7
+
+- 新增 `TransactionService.listTasks` / `listTasksAsync`（`TaskListRequest` → `PageResponse<AuditTaskResponse>`），对应网关 `POST /api/thirdparty/treasury/tasks`，上游为 `GET /api/third-party/list/task/{resourceAccessKey}`（网关把 `business` 转为 query 参数）。
+- `SdkInfo.SDK_VERSION` 同步为 `1.2.7`。
 
 ### 1.2.6
 

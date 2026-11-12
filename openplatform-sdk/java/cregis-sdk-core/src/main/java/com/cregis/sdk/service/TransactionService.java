@@ -5,6 +5,8 @@ import com.cregis.sdk.core.http.HttpClient;
 import com.cregis.sdk.core.sign.Signer;
 import com.cregis.sdk.dto.request.QueryRequest;
 import com.cregis.sdk.dto.request.SubmitTaskRequest;
+import com.cregis.sdk.dto.request.TaskListRequest;
+import com.cregis.sdk.dto.response.AuditTaskResponse;
 import com.cregis.sdk.dto.response.FundRecordResponse;
 import com.cregis.sdk.dto.response.PageResponse;
 import com.cregis.sdk.dto.response.TransactionResponse;
@@ -136,6 +138,44 @@ public class TransactionService {
 
         String url = config.getBaseUrl() + "/api/thirdparty/treasury/submit-task/" + taskId;
         return httpClient.postAsync(url, jsonBody, Void.class);
+    }
+
+    /**
+     * List audit tasks (查询任务列表) with pagination.
+     * POST /api/thirdparty/treasury/tasks (gateway forwards to custody GET /api/third-party/list/task/{resourceKey})
+     */
+    public PageResponse<AuditTaskResponse> listTasks(String authorizationId, TaskListRequest request) {
+        Map<String, Object> business = toTaskListBusinessMap(request);
+        Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
+                config.getAppId(), config.getAppSecret(), authorizationId, business);
+        String jsonBody = Signer.buildSignatureBody(basic, business);
+
+        String url = config.getBaseUrl() + "/api/thirdparty/treasury/tasks";
+        log.debug("POST {}", url);
+
+        return httpClient.post(url, jsonBody, new TypeReference<PageResponse<AuditTaskResponse>>() {});
+    }
+
+    public CompletableFuture<PageResponse<AuditTaskResponse>> listTasksAsync(String authorizationId, TaskListRequest request) {
+        Map<String, Object> business = toTaskListBusinessMap(request);
+        Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
+                config.getAppId(), config.getAppSecret(), authorizationId, business);
+        String jsonBody = Signer.buildSignatureBody(basic, business);
+
+        String url = config.getBaseUrl() + "/api/thirdparty/treasury/tasks";
+        return httpClient.postAsync(url, jsonBody, new TypeReference<PageResponse<AuditTaskResponse>>() {});
+    }
+
+    private Map<String, Object> toTaskListBusinessMap(TaskListRequest request) {
+        Map<String, Object> business = new LinkedHashMap<>();
+        if (request == null) return business;
+        if (request.getPageNum() != null) business.put("pageNum", request.getPageNum());
+        if (request.getPageSize() != null) business.put("pageSize", request.getPageSize());
+        if (request.getBusinessId() != null) business.put("businessId", request.getBusinessId());
+        if (request.getTaskType() != null) business.put("taskType", request.getTaskType());
+        if (request.getTaskId() != null) business.put("taskId", request.getTaskId());
+        if (request.getState() != null) business.put("state", request.getState());
+        return business;
     }
 
     private Map<String, Object> toBusinessMap(QueryRequest request) {

@@ -185,4 +185,27 @@ class ServiceFunctionalTest {
         RecordedRequest req = server.takeRequest();
         assertEquals("/api/thirdparty/treasury/whitelist-update", req.getPath());
     }
+
+    @Test
+    @DisplayName("listTasks hits /treasury/tasks and parses a paged audit-task response")
+    void listTasks() throws Exception {
+        enqueueSuccess("{\"records\":[{\"id\":1,\"taskId\":\"T-1\",\"state\":\"AUDITING\"}],"
+                + "\"total\":1,\"current\":1,\"size\":10,\"orders\":[]}");
+        TransactionService svc = new TransactionService(config, http);
+
+        PageResponse<AuditTaskResponse> result = svc.listTasks(RAK, TaskListRequest.builder()
+                .pageNum(1).pageSize(10).taskType("orders").state("AUDITING").build());
+
+        assertNotNull(result);
+        assertEquals(1, result.getRecords().size());
+        assertEquals("T-1", result.getRecords().get(0).getTaskId());
+
+        RecordedRequest req = server.takeRequest();
+        assertEquals("POST", req.getMethod());
+        assertEquals("/api/thirdparty/treasury/tasks", req.getPath());
+        String body = req.getBody().readUtf8();
+        assertTrue(body.contains("\"pageNum\":1"));
+        assertTrue(body.contains("\"state\":\"AUDITING\""));
+        assertTrue(body.contains("\"authorizationId\":\"" + RAK + "\""));
+    }
 }
