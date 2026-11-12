@@ -1,0 +1,51 @@
+类别,配置项,S档-小型（试点/灰度）,M档-中型（正式上线）,L档-大型（规模化运营）,代码依据与说明,运维动作
+业务量,开发者（ISV）数量,50,500,3000,聚合与告警按开发者逐条循环（api-log-rollup.service.ts / api-log-alert.service.ts）,按签约量选档并预留 2× 余量
+业务量,应用（appId）总数,150（体验版 150 个）,1500（体验版 500 + 基础版 1000）,9000（体验版 3000 + 各档混合）,套餐 maxApplications 限制：体验版 1/应用、基础版 3/应用、企业版 999/应用（seed-packages.ts）,—
+业务量,日 API 调用量,10 万次,100 万次,500 万次,按 50 开发者 × 2000 次/日 / 500 × 2000 / 3000 × 1667 估算；峰值按日均 × 8–10 倍,按实际签约量选档
+业务量,峰值 QPS,~10,~100,~600,日调用量 ÷ 86400 × 8–10 倍不均匀系数,域名按峰值压测验收
+业务量,单开发者日均调用,2000 次,2000 次,1667 次,#NAME?,—
+业务量,单开发者峰值 QPS,≤10,≤50,≤100,体验版日限 1000（seed-packages.ts），日均 2000 需体验版 + 基础版组合；峰值按 5–10 倍估算,—
+业务量,原始日志表峰值行数（3 天保留）,30 万行,300 万行,1500 万行,RAW_RETENTION_DAYS=3（config/api-log-retention.ts）；可上调至 30 天,—
+业务量,原始日志峰值容量,约 1.5 GB（5 KB/行）,约 15 GB,约 75 GB,api_logs 全量存 request_body/response_body（api-log.service.ts）,报文大的按实测值重算磁盘
+业务量,日聚合 00:05 耗时,约 1 分钟,约 10 分钟,约 30 分钟,每个 开发者×天 3 次全表扫描 + endpoint upsert（rollupDay）,确认 00:05–04:00 不与备份窗口重叠
+业务量,告警扫描频率,5 分钟/轮,5 分钟/轮,5 分钟/轮,startAlertScheduler 默认 300 秒（api-log-alert.service.ts）,—
+业务量,告警扫描查询量,约 50 次/轮（50 开发者全启用）,约 500 次/轮,约 3000 次/轮,每个启用开发者 1 次 count + 5 条样本，走 developer_id+created_at 索引,开发者超 3000 需评估扫描时长
+业务量,单开发者单日安全行上限,100 万行,100 万行,100 万行,P95 把当日全部 response_time 载入 Node 内存排序（api-log.repository.ts），超限内存不可控,超限需改为近似 P95
+业务量→磁盘,数据库数据盘,200 GB SSD,1 TB NVMe,2 TB NVMe,= 原始日志峰值 + 聚合表 + binlog(7 天) + 30% 余量,磁盘使用率 80% 告警
+业务量→磁盘,数据库 IOPS 下限,3000,10000,20000,夜间聚合 + 日志写入为 IO 密集型,云盘选 gp3/ESSD
+业务量→带宽,公网带宽,5 Mbps,10 Mbps,50 Mbps,= 日调用 × 5 KB × 2 ÷ 86400 × 峰值系数,按峰值实测调整
+硬件,服务器总数,1 台,3 台,9 台,S 无冗余；M 应用×2+DB×1；L LB×2+应用×3+DB主从+Redis主从+监控,—
+硬件,应用节点数量,1,2,3,应用层无状态可横向扩展,—
+硬件,应用节点 vCPU,4C,8C,8C,单进程约 300–500 QPS（含 2 次 DB 查询 + 日志写入 + 上游转发）,—
+硬件,应用节点内存,8 GB,16 GB,16 GB,Node 堆 + 日志缓冲；pm2 max_memory_restart 相应设置,—
+硬件,应用节点系统盘,100 GB SSD,100 GB SSD,100 GB SSD,仅放代码/日志/uploads 索引,—
+硬件,数据库 vCPU,与应用共用,8C,16C,quota 自增 + 日志写入 + 聚合扫描全落主库,—
+硬件,数据库内存,与应用共用,32 GB,64 GB,innodb_buffer_pool_size 取 60–70% 物理内存,—
+硬件,数据库系统盘,与应用共用 100 GB,100 GB SSD,200 GB SSD,—,—
+硬件,数据库数据盘,200 GB SSD,1 TB NVMe,2 TB NVMe,—,—
+硬件,数据库磁盘 IOPS,3000,10000,20000,—,—
+硬件,Redis 节点,不需要,1 台 4C/8G（多实例时必需）,主从 2 台 4C/16G,CACHE_DRIVER=memory 时 nonce 缓存仅单进程内有效,多实例必须启用 Redis
+硬件,监控节点,与应用共用,与应用共用或独立,1 台 4C/16G/500GB,Prometheus 抓 /metrics；node_exporter 抓主机,—
+硬件,负载均衡,无（Nginx 单机）,Nginx upstream（应用双节点）,LB/VIP 双活 + 健康检查,deploy/nginx.conf 的 upstream 可直连,—
+硬件,上传持久盘,50 GB,100 GB,独立盘或 NAS/对象存储,uploads/proofs 单文件 ≤10 MB（upload.controller.ts）,纳入每日备份
+硬件,公网 IP / 域名,1 个 + 公网,1 个 + VPC,1 个 + VPC + 内网 ≥10 Gbps,应用与 DB 同 VPC 内网延迟 <1 ms,—
+软件,操作系统,Ubuntu 22.04/24.04 LTS x86_64,同左,同左,与现有 beta/testing 一致,统一镜像
+软件,Node.js,22.12 LTS,22.12 LTS,22.12 LTS,Prisma 7 要求 ^20.19 || ^22.12 || >=24；beta 曾因 v22.7 失败,禁止使用 22.7 以下
+软件,npm,随 Node 22.12,随 Node 22.12,随 Node 22.12,api-service 使用 package-lock.json,—
+软件,pnpm,≥8.8,≥8.8,≥8.8,两个门户为 pnpm-lock.yaml,—
+软件,PM2,5.x,5.x,5.x,deploy/ecosystem.config.js,系统级安装 + pm2 startup
+软件,MySQL,8.0.36+,8.0.36+,8.0.36+,@prisma/adapter-mariadb 驱动,—
+软件,MySQL 字符集/时区,utf8mb4 / +00:00,utf8mb4 / +00:00,utf8mb4 / +00:00,api_logs.created_at 存 UTC 墙钟；聚合按 UTC 切天,—
+软件,MySQL innodb_buffer_pool_size,1–2 GB,20 GB,40 GB,物理内存 60–70%,—
+软件,MySQL max_connections,100,300,800,mariadb 默认 pool=10/进程（pool-options.js）；DB_POOL_SIZE 代码未读取,按 实例数×10+余量
+软件,MySQL binlog,开启 / 保留 7 天,开启 / 保留 7 天,开启 / 保留 7 天,备份恢复必需,每日全备 + binlog
+软件,MySQL 慢查询,开启 / 阈值 1s,开启 / 阈值 1s,开启 / 阈值 1s,日志统计走日期范围扫描,每周复查
+软件,Redis,不启用,7.x（多实例时必需）,7.x 主从,需 requirepass 且仅内网监听,—
+软件,Nginx,1.24+,1.24+,1.24+,SPA fallback + /openplatform/api/ 反代,—
+软件,Nginx client_max_body_size,12m,12m,12m,支付凭证上传上限 10 MB,仓库自带 nginx.conf 未配此项
+软件,Nginx HTTPS/HSTS,必须 TLS1.2+,必须 TLS1.2+,必须 TLS1.2+,仓库自带 nginx.conf 只有 80 端口,必须补 HTTPS
+软件,Nginx gzip/静态缓存,开启,开启,开启,assets 长缓存 30 天；index.html 不缓存,—
+软件,Nginx metrics/health 限内网,允许 10.0.0.0/8,允许 10.0.0.0/8,允许 10.0.0.0/8,禁止公网暴露 /metrics 与 /health,nginx allow/deny
+软件,服务器时区,UTC,UTC,UTC,聚合 00:05 按本地时间；日志按 UTC 切天,timedatectl set-timezone UTC
+软件,NTP 时间同步,开启,开启,开启,签名时间戳 + 日志时间依赖,timedatectl set-ntp true
+软件,防火墙/安全组,22/80/443 公网；1000/3306 内网,同左,同左,1000 端口禁止公网直连,/metrics 与 /health 仅内网

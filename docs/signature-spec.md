@@ -88,6 +88,7 @@ URL 路径参数（如 `unitId`、`taskId`、`cusAccountId`）不参与签名；
 - `POST /api/thirdparty/treasury/payout` - 发起出金
 - `POST /api/thirdparty/treasury/pooling` - 发起归集
 - `POST /api/thirdparty/treasury/submit-task/{taskId}` - 提交审批任务
+- `POST /api/thirdparty/treasury/tasks` - 查询任务列表（`business` 由网关转为上游 query 参数，仍按 Resource 签名）
 - `POST /api/thirdparty/treasury/activities` - 查询活动记录
 - `POST /api/thirdparty/treasury/transfer-out-orders` - 查询出金订单
 - `POST /api/thirdparty/treasury/transfer-in-orders` - 查询入金订单

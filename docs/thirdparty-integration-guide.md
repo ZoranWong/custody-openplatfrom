@@ -1,10 +1,10 @@
 # Cregis 开放平台 - 第三方开发者接入指南
 
-> **适用 SDK 版本：** Node SDK 1.4.0 / Java SDK 1.2.6 / Web SDK 1.0.5
+> **适用 SDK 版本：** Node SDK 1.5.0 / Java SDK 1.2.7 / Web SDK 1.0.5
 >
-> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.6`。文中「1.4.0 起 / 1.2.6 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
+> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.6`。文中「1.5.0 起 / 1.2.7 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
 >
-> **接口基数：** 网关对外 23 条转发接口 + 6 条本地接口，共 29 条
+> **接口基数：** 网关对外 24 条转发接口 + 6 条本地接口，共 30 条
 
 本指南面向接入 Cregis 托管能力的第三方平台开发者。第 1–6 章覆盖平台概述、端到端接入流程、开发者入驻、认证与签名、OAuth 授权和通用约定；第 7–12 章为业务接口参考；第 13–17 章覆盖商户 / 用户 / Board、回调、错误码与排查、SDK 集成和附录。
 
@@ -133,7 +133,7 @@ Cregis 开放平台为银行、支付机构和企业提供银行级的加密货�
 | --- | --- | --- |
 | 财务单元 | `POST /api/thirdparty/treasury/create`、`POST /api/thirdparty/treasury/create-custom`、`POST /api/thirdparty/treasury/list` | Resource |
 | 地址与账户 | `POST /api/thirdparty/treasury/address`、`POST /api/thirdparty/treasury/address-by-account/{cusAccountId}`、`POST /api/thirdparty/treasury/create-unit-address/{unitId}/{accountType}/{network}/{coinId}/{number}`、`POST /api/thirdparty/treasury/create-unit-address-by-account/{cusAccountId}/{number}`、`POST /api/thirdparty/treasury/list-unit-account/{unitId}` | Resource |
-| 出金 / 归集 / 审批 | `POST /api/thirdparty/treasury/payout`、`POST /api/thirdparty/treasury/pooling`、`POST /api/thirdparty/treasury/submit-task/{taskId}` | Resource |
+| 出金 / 归集 / 审批 | `POST /api/thirdparty/treasury/payout`、`POST /api/thirdparty/treasury/pooling`、`POST /api/thirdparty/treasury/submit-task/{taskId}`、`POST /api/thirdparty/treasury/tasks` | Resource |
 | 交易查询 | `POST /api/thirdparty/treasury/activities`、`POST /api/thirdparty/treasury/transfer-out-orders`、`POST /api/thirdparty/treasury/transfer-in-orders`、`POST /api/thirdparty/treasury/fund-records`、`POST /api/thirdparty/treasury/unit-fund-records` | Resource |
 | 币种 / 规则 / 白名单 | `POST /api/thirdparty/treasury/add-coins`、`POST /api/thirdparty/treasury/fund-control-update`、`POST /api/thirdparty/treasury/whitelist-update` | Resource |
 | 商户 / 用户 / Board | `POST /api/thirdparty/merchant/register`、`POST /api/thirdparty/user/add`、`POST /api/thirdparty/board/init`、`POST /api/thirdparty/board/update` | `merchant/register` 用 Basic，其余用 Resource |
@@ -762,12 +762,14 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 
 | 参数风格 | 参数 | 适用接口 |
 | --- | --- | --- |
-| 页码从 1 开始 | `pageSize`、`pageNum`、`sortFields` | `treasury/list`、`treasury/address`、`treasury/address-by-account/{cusAccountId}` |
+| 页码从 1 开始 | `pageSize`、`pageNum`、`sortFields` | `treasury/list`、`treasury/address`、`treasury/address-by-account/{cusAccountId}`、`treasury/tasks` |
 | 页索引从 0 开始 | `pageIndex`、`pageSize`、`sortFields`、`queryList` | `treasury/activities`、`treasury/transfer-out-orders`、`treasury/transfer-in-orders`、`treasury/fund-records`、`treasury/unit-fund-records` |
 
 `sortFields` 使用 SDK 与测试中一致的简写形式：字段名 + `_a`（升序）/ `_d`（降序），例如 `createTime_d` 表示按创建时间降序；请统一使用该形式，不要混用 `_asc` / `_desc`。`queryList` 为条件数组，每项形如 `{ "key": "unitId", "value": 80, "oper": "=", "join": "and" }`。
 
 > `treasury/list` 的响应**始终是数组**。网关会转发 `pageSize` / `pageNum`，但上游 YAML 未声明该接口的请求体，是否真正分页**未经验证**，请勿按分页对象解析。
+
+> `treasury/tasks` 上游返回 `{ records, total, current, size, orders }`，**不含 `pages`**；`orders` 为排序信息数组（MyBatis 透传），可忽略。
 
 ### 6.3 幂等
 
@@ -878,6 +880,8 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 ## 7. 财务单元
 
 本章至第 12 章描述网关转发到 Custody 的业务接口。所有接口均为 `POST`，请求体为 `{ "basic": {...}, "business": {...} }`，使用 **Resource 签名**（`basic.authorizationId` 必填，见第 4 章）。路径中以 `{...}` 表示的参数（如 `unitId`、`taskId`）不参与签名，其值必须匹配 `^[a-zA-Z0-9_-]{1,64}$`，否则网关在转发前返回 `40001`。
+
+> 例外：11.2「查询任务列表」的上游是 GET 接口，网关会把 `business` 转换为上游 query 参数转发，但**开发者侧仍然是 POST + `{basic, business}`**，签名方式不变。
 
 转发行为统一为：网关把 `business` **原样**作为上游请求体发送给 Custody（不增删字段）。**仅当上游返回 HTTP 2xx 时原样返回；上游非 2xx 时网关丢弃上游响应体并返回 `{ code, message }`（上游 4xx 也会被记为 500），且 5xx/超时会被网关自动重试（`maxRetries` 名义为 3，但当前实现存在递归重试，实际调用次数可能远超 3 次，实测在持续 5xx 下会长时间反复请求）——写操作（创建地址、出金、归集、提交审批）存在**重复提交**风险，务必使用业务幂等键并确认上游去重。** 因此：
 
@@ -2126,6 +2130,73 @@ Node SDK `updateFundControl` 自 1.4.0 起返回 `WCCIPCmdAuditTask`；Java SDK 
 
 **常见业务码**：`400xxx`（参数）、`120xxx`（业务规则，如任务状态不允许提交）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
 
+### 11.2 查询任务列表
+
+**POST** `/api/thirdparty/treasury/tasks` · 鉴权：Resource 签名
+> 网关转发至 custody：`GET /api/third-party/list/task/{resourceKey}`。这是唯一一个上游为 GET 的转发接口：网关把 `business` 字段转换为上游 query 参数，`basic` 照常参与 Resource 签名。
+
+按条件分页查询当前企业的审批 / 签名任务。
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `pageNum` | number | 否 | 页码，从 1 开始，默认 1 |
+| `pageSize` | number | 否 | 每页数量，默认 10 |
+| `businessId` | string | 否 | 订单 id |
+| `taskType` | string | 否 | 任务类型：资金 `orders` / 系统操作 `issues` |
+| `taskId` | string | 否 | 任务 ID |
+| `state` | string | 否 | 任务状态，见下 |
+
+**`state` 取值**：`AUDITING`、`REJECTED`、`AUDIT_REJECTED`、`AUDIT_PASSED`、`SIGNING`、`SIGN_FAILED`、`SIGN_SUCCEED`、`FAILED`、`VERIFY_SUCCEED`、`VERIFY_FAILED`、`WAITING`、`SIGN_REJECTED`、`EXPIRED`。
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": { "pageNum": 1, "pageSize": 10, "taskType": "orders", "state": "AUDITING" }
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "records": [
+      {
+        "id": 5001,
+        "taskId": "task-20261112-001",
+        "taskOperation": "PAYOUT",
+        "state": "AUDITING",
+        "businessId": "ORDER-1001",
+        "taskType": "orders",
+        "threshold": 2,
+        "total": 3,
+        "signers": ["guardian-1", "guardian-2", "guardian-3"],
+        "createTime": "2026-11-12 10:10:00",
+        "updateTime": "2026-11-12 10:10:00"
+      }
+    ],
+    "total": 1,
+    "current": 1,
+    "size": 10,
+    "orders": []
+  }
+}
+```
+
+**响应字段**：`records` 为上游 `WCCIPCmdAuditTask` 数组（字段说明同 11.1 中创建类接口返回的审批任务，如 `taskId` / `state` / `signers` / `threshold` / `signContent` 等）；分页字段为 `total` / `current` / `size`，**不含 `pages`**，`orders` 为排序信息数组，可忽略。
+
+`data.records[].taskId` 可用于 11.1 提交审批。
+
+> 本接口是只读查询，网关对上游 5xx / 超时的自动重试是安全的。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
 ---
 
 ## 12. 交易查询
@@ -3281,7 +3352,7 @@ HMAC-SHA256 = 27cb791bd95c41922058729f9801eea94de2753ef66662321db8cbd930e30885
 
 #### Node.js
 
-使用 `@cregis-kit/openplatform-node@1.4.0` 的 `sdk.onCallback(req, handler)`。SDK 会依次校验：
+使用 `@cregis-kit/openplatform-node@1.5.0` 的 `sdk.onCallback(req, handler)`。SDK 会依次校验：
 
 1. `x-app-id` / `x-timestamp` / `x-signature` 三个头是否存在
 2. `x-app-id` 是否与构造 SDK 时的 `appId` 一致
@@ -3589,12 +3660,12 @@ Custody 的业务码以 `{ "code": 400030, "message": "BOARD_NOT_EXIST", "data":
 
 官方 SDK 封装了签名、请求与错误处理，推荐在服务端直接使用。三端版本与本指南的对应关系见 16.4。
 
-### 16.1 Node.js SDK 1.4.0
+### 16.1 Node.js SDK 1.5.0
 
 **安装**（要求 Node.js >= 18）
 
 ```bash
-npm install @cregis-kit/openplatform-node@1.4.0
+npm install @cregis-kit/openplatform-node@1.5.0
 ```
 
 **构造与最小端到端示例**
@@ -3639,7 +3710,7 @@ const task = await sdk.createPayout(authorizeId, {
 await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 ```
 
-**完整方法表（24 个业务方法）**
+**完整方法表（25 个业务方法）**
 
 | 领域 | 方法 | 签名 | 返回类型 |
 |------|------|------|----------|
@@ -3662,6 +3733,7 @@ await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 | 出金 / 归集 | `createPayout(authorizationId, request)` | Resource | `WCCIPCmdAuditTask` |
 | 出金 / 归集 | `pooling(authorizationId, request)` | Resource | `ProjectUnitTransferOutOrder` |
 | 审批 | `submitTask(authorizationId, taskId, request)` | Resource | `void` |
+| 审批 | `listTasks(authorizationId, options?)` | Resource | `PaginatedResponse<WCCIPCmdAuditTask>` |
 | 交易查询 | `listTransferOutOrders(authorizationId, options?)` | Resource | `PaginatedResponse<ProjectUnitTransferOutOrder>` |
 | 交易查询 | `listTransferInOrders(authorizationId, options?)` | Resource | `PaginatedResponse<ProjectUnitTransferInOrder>` |
 | 交易查询 | `listActivities(authorizationId, options?)` | Resource | `PaginatedResponse<ProjectUnitActivity>` |
@@ -3691,7 +3763,7 @@ try {
 
 > **OAuth 说明：** Node SDK 只封装 `getAuthorizationUrl`。`authorizeId` 由授权页在 Custody 内部完成 `verify` 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。`registerMerchant` / `addUser` / `initBoard` / `updateBoard` 其余字段与网关一致。
 
-### 16.2 Java SDK 1.2.6（JitPack）
+### 16.2 Java SDK 1.2.7（JitPack）
 
 **环境要求**：JDK 17+、Maven 3.8+。
 
@@ -3712,18 +3784,18 @@ try {
 <dependency>
     <groupId>com.github.ZoranWong.custody-openplatfrom</groupId>
     <artifactId>cregis-sdk-core</artifactId>
-    <version>java-sdk-v1.2.6</version>
+    <version>java-sdk-v1.2.7</version>
 </dependency>
 ```
 
-`java-sdk-v1.2.6` 是仓库中的 Git tag；JitPack 按该 tag 构建。`CregisClient` 的服务入口：
+`java-sdk-v1.2.7` 是仓库中的 Git tag；JitPack 按该 tag 构建。`CregisClient` 的服务入口：
 
 | 入口 | 覆盖 |
 |------|------|
 | `oauth()` | `getAuthorizationUrl` |
 | `treasury()` | 创建 / 自定义创建 / 列表 / 账户列表 |
 | `payout()` | 出金、出金订单、归集 |
-| `transaction()` | 入金订单、活动 / 流水、`submitTask` |
+| `transaction()` | 入金订单、活动 / 流水、`submitTask`、`listTasks` |
 | `merchant()` | `registerMerchant` |
 | `user()` | `addUser` |
 | `board()` | `initBoard` / `updateBoard` |
@@ -3741,6 +3813,7 @@ try {
 | `client.user().addUser(authorizationId, request)` | `client.user().addUserAsync(authorizationId, request)` |
 | `client.board().initBoard(authorizationId, request)` | `client.board().initBoardAsync(authorizationId, request)` |
 | `client.board().updateBoard(authorizationId, request)` | `client.board().updateBoardAsync(authorizationId, request)` |
+| `client.transaction().listTasks(authorizationId, request)` | `client.transaction().listTasksAsync(authorizationId, request)` |
 
 **最小示例**
 
@@ -3847,8 +3920,8 @@ if (result.status === 'success') {
 
 | SDK | 版本 | 坐标 / 安装 | 适用场景 | 与网关的已核对结论 |
 |-----|------|-------------|----------|--------------------|
-| Node.js | **1.4.0** | `npm install @cregis-kit/openplatform-node@1.4.0`（仓库版本；npm 尚未发布时从源码构建） | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致 |
-| Java | **1.2.6** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.6`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
+| Node.js | **1.5.0** | `npm install @cregis-kit/openplatform-node@1.5.0`（仓库版本；npm 尚未发布时从源码构建） | 服务端调用全部业务接口、回调验签 | 签名（递归排序、Unix 秒）与网关一致 |
+| Java | **1.2.7** | `com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.7`（JitPack） | 服务端 Java 接入，全部业务接口、回调验签 | 同上 |
 | Web | **1.0.5** | `npm install @cregis-kit/openplatform-webkit@1.0.5` | 浏览器嵌入授权页 | 只返回 `authorizationId`（即 Custody 内部 `verify` 生成的 `authorizeId`） |
 
 - 更早版本（Node 1.0.x、Java 1.0.0）不支持对象数组递归排序，含 `coinIds` / `primaryManager` / `payTo` 的请求会返回 `40102`，不要使用。
@@ -4199,6 +4272,7 @@ interface ConsoleUser {
 | 发起出金 | `POST /api/thirdparty/treasury/payout` | Resource | `payTo[]`、`fromAccountId`、`unitId`、`coinId`、`network`、`fromAddress`、`orderId`、`operation?`、`toCusAccountId?`、`username?`、`userId?`、`note?`、`lang?`、`initiator?`、`merchantType`、`travelRule?`（10.1） |
 | 发起归集 | `POST /api/thirdparty/treasury/pooling` | Resource | `unitId`、`fromAccountId`、`address`、`amount`、`coinId`、`network`、`lang?`、`note?`、`includes[]?`、`excludes[]?`（10.2） |
 | 提交审批 | `POST /api/thirdparty/treasury/submit-task/{taskId}` | Resource | 路径 `taskId`；`signatures?`、`confirmed`（11.1） |
+| 查询任务列表 | `POST /api/thirdparty/treasury/tasks` | Resource | `pageNum?`、`pageSize?`、`businessId?`、`taskType?`、`taskId?`、`state?`（11.2） |
 
 **交易查询**（`business` 均为 `PaginationQuery`：`pageIndex?`、`pageSize?`、`sortFields?`、`queryList[]?`）
 

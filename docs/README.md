@@ -26,6 +26,6 @@
 
 文档以代码为准。修改网关路由后必须运行 `node docs/scripts/verify-integration-guide.mjs`，并同步更新 `thirdparty-integration-guide.md` 与 `thirdparty-integration-guide.html`。
 
-新增/删除网关路由时，同步更新 [scripts/verify-integration-guide.mjs](./scripts/verify-integration-guide.mjs) 中的 `EXPECTED_FORWARDED_ROUTES` 与 `LOCAL_ROUTES`，并确保脚本输出 `forwarded=23 local=6 total=29` 且 md/html 均为 `all 29 routes documented`（本仓库当前基数）。
+新增/删除网关路由时，同步更新 [scripts/verify-integration-guide.mjs](./scripts/verify-integration-guide.mjs) 中的 `EXPECTED_FORWARDED_ROUTES` 与 `LOCAL_ROUTES`，并确保脚本输出 `forwarded=24 local=6 total=30` 且 md/html 均为 `all 30 routes documented`（本仓库当前基数）。
 
 修改 [third-party-api-error-codes.md](./third-party-api-error-codes.md) 后必须运行 `node docs/scripts/generate-error-codes.mjs`，再同步接入指南 15.2 与两份 SDK README 中的错误码表。已知文档缺陷记录在 [code-defects-from-doc-review.md](../openplatform-api-service/docs/code-defects-from-doc-review.md)。

@@ -841,6 +841,81 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResultWCCIPCmdAuditTask'
       security: []
+  /api/third-party/list/task/{resourceAccessKey}:
+    get:
+      summary: 获取任务列表
+      deprecated: false
+      description: |-
+        获取任务列表
+        按QueryParam分页查询当前用户待审批任务
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+        - name: pageNum
+          in: query
+          description: ''
+          required: false
+          example: 1
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          description: ''
+          required: false
+          example: 10
+          schema:
+            type: integer
+        - name: businessId
+          in: query
+          description: 订单id
+          required: false
+          schema:
+            type: string
+        - name: taskType
+          in: query
+          description: 任务类型,用于判断是资金(orders)还是系统操作(issues):orders/issues
+          required: false
+          schema:
+            type: string
+        - name: taskId
+          in: query
+          description: ''
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: |2-
+             AUDITING :AUDITING
+            REJECTED :REJECTED
+            AUDIT_REJECTED :AUDIT_REJECTED
+            AUDIT_PASSED :AUDIT_PASSED
+            SIGNING :SIGNING
+            SIGN_FAILED :SIGN_FAILED
+            SIGN_SUCCEED :SIGN_SUCCEED
+            FAILED :FAILED
+            VERIFY_SUCCEED :VERIFY_SUCCEED
+            VERIFY_FAILED :VERIFY_FAILED
+            WAITING :WAITING
+            SIGN_REJECTED :SIGN_REJECTED
+            EXPIRED :过期
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResultPageWCCIPCmdAuditTask'
+          headers: {}
+      security: []
 components:
   schemas:
     CoinDto:
@@ -920,6 +995,11 @@ components:
           type: string
           description: 更新时间
           default: '##default'
+    MapObject:
+      type: object
+      properties:
+        key:
+          $ref: '#/components/schemas/key'
     AccountData:
       type: object
       properties:
@@ -1045,6 +1125,169 @@ components:
         data:
           $ref: '#/components/schemas/ProjectUnit'
           description: ''
+    WCCIPCmdAuditTask:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: id
+          format: int64
+        taskId:
+          type: string
+          description: 任务ID
+          default: '##default'
+        vaultCode:
+          type: string
+          description: vault code
+          default: '##default'
+        projectId:
+          type: integer
+          description: ''
+          format: int64
+        accountId:
+          type: string
+          description: 金库的账户ID
+          default: '##default'
+        accountType:
+          type: string
+          description: 金库的账户类型
+          enum:
+            - GENERAL_ACQUIRING
+            - SMART_ACQUIRING
+            - SMART
+            - GENERAL
+            - GMA
+          default: '##default'
+        submitter:
+          type: string
+          description: 提交人:在三方模式时是customer code/两方模式时是guard squad id
+          default: '##default'
+        ecode:
+          type: string
+          description: 企业code
+          default: '##default'
+        cmdType:
+          type: string
+          description: 命令类型
+          default: '##default'
+        cmdBasic:
+          $ref: '#/components/schemas/MapObject'
+          description: 命令
+          default: '##default'
+        cmdForm:
+          $ref: '#/components/schemas/MapObject'
+          description: 命令参数
+          default: '##default'
+        businessId:
+          type: string
+          description: 业务id:主要是订单id
+          default: '##default'
+        state:
+          type: string
+          description: 任务状态
+          enum:
+            - AUDITING
+            - REJECTED
+            - AUDIT_REJECTED
+            - AUDIT_PASSED
+            - SIGNING
+            - SIGN_FAILED
+            - SIGN_SUCCEED
+            - FAILED
+            - VERIFY_SUCCEED
+            - VERIFY_FAILED
+            - WAITING
+            - SIGN_REJECTED
+            - EXPIRED
+          default: '##default'
+        businessType:
+          type: string
+          description: 业务类型:SYSTEM/BTC_TRANSFER等等
+          default: '##default'
+        taskType:
+          type: string
+          description: 任务类型,用于前端判断是资金还是系统操作:orders/issues
+          default: '##default'
+        createTime:
+          type: string
+          description: 任务创建时间
+          default: '##default'
+        updateTime:
+          type: string
+          description: 任务更新时间
+          default: '##default'
+        signContent:
+          type: string
+          description: 签名内容
+          default: '##default'
+        signContentKeyMapping:
+          type: string
+          description: 签名内容的映射
+          default: '##default'
+        total:
+          type: integer
+          description: 总参与审批数量
+        threshold:
+          type: integer
+          description: 门限
+        signers:
+          type: array
+          items:
+            type: string
+          description: 任务参与者、审核人、审批人等
+          default: '##default'
+        algoType:
+          type: string
+          description: ''
+          enum:
+            - ECDSA
+            - EC_SCHNORR
+            - ED_DSA
+            - UNASSIGNED
+            - ED25519
+        initiator:
+          type: string
+          description: 任务发起人
+          default: '##default'
+        taskOperation:
+          type: string
+          description: 任务操作,如转账,设置board等等
+          enum:
+            - DEPLOY_SMART_CONTRACT
+            - PAYOUT
+            - WITHDRAW
+            - ALLOCATE
+            - SET_WHITE_LIST
+            - BOARD
+            - FUND_FLOW
+          default: '##default'
+        signersLevel:
+          type: integer
+          description: ''
+        coinId:
+          type: string
+          description: ''
+        unitName:
+          type: string
+          description: ''
+        accountName:
+          type: string
+          description: ''
+        cold:
+          type: boolean
+          description: ''
+        includes:
+          type: array
+          items:
+            type: string
+          description: ''
+        sponsored:
+          type: boolean
+          description: ''
+          default: false
+        remark:
+          type: string
+          description: ''
     FundControlRule:
       type: object
       properties:
@@ -1099,6 +1342,49 @@ components:
       required:
         - coinId
         - fundControlRules
+    PageWCCIPCmdAuditTask:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/WCCIPCmdAuditTask'
+            description: com.cregis.custody.common.entity.task.WCCIPCmdAuditTask
+          description: ''
+        total:
+          type: integer
+          description: ''
+          format: int64
+        size:
+          type: integer
+          description: ''
+          format: int64
+        current:
+          type: integer
+          description: ''
+          format: int64
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+            description: com.baomidou.mybatisplus.core.metadata.OrderItem
+          description: ''
+        optimizeCountSql:
+          type: boolean
+          description: ''
+        searchCount:
+          type: boolean
+          description: ''
+        optimizeJoinOfCountSql:
+          type: boolean
+          description: ''
+        maxLimit:
+          type: integer
+          description: ''
+          format: int64
+        countId:
+          type: string
+          description: ''
     WhiteListCreateRequest:
       type: object
       properties:
@@ -1117,6 +1403,18 @@ components:
       required:
         - network
         - address
+    MessageResultPageWCCIPCmdAuditTask:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: ''
+        message:
+          type: string
+          description: ''
+        data:
+          $ref: '#/components/schemas/PageWCCIPCmdAuditTask'
+          description: ''
     AnyCallRule:
       type: object
       properties:
@@ -1490,6 +1788,9 @@ components:
           $ref: '#/components/schemas/Merchant'
           description: 企业信息
           default: '##default'
+    key:
+      type: object
+      properties: {}
     MessageResultThirdMerchantRegisterResult:
       type: object
       properties:
@@ -1589,11 +1890,6 @@ components:
         - legalName
         - appId
         - owner
-    MapObject:
-      type: object
-      properties:
-        key:
-          $ref: '#/components/schemas/key'
     AllowListItem:
       type: object
       properties:
@@ -1829,9 +2125,6 @@ components:
         data:
           $ref: '#/components/schemas/PageProjectUnitActivity'
           description: ''
-    key:
-      type: object
-      properties: {}
     QueryCondition:
       type: object
       properties:
@@ -1848,169 +2141,6 @@ components:
         join:
           type: string
           description: 连接的方式：and或者or
-    WCCIPCmdAuditTask:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: id
-          format: int64
-        taskId:
-          type: string
-          description: 任务ID
-          default: '##default'
-        vaultCode:
-          type: string
-          description: vault code
-          default: '##default'
-        projectId:
-          type: integer
-          description: ''
-          format: int64
-        accountId:
-          type: string
-          description: 金库的账户ID
-          default: '##default'
-        accountType:
-          type: string
-          description: 金库的账户类型
-          enum:
-            - GENERAL_ACQUIRING
-            - SMART_ACQUIRING
-            - SMART
-            - GENERAL
-            - GMA
-          default: '##default'
-        submitter:
-          type: string
-          description: 提交人:在三方模式时是customer code/两方模式时是guard squad id
-          default: '##default'
-        ecode:
-          type: string
-          description: 企业code
-          default: '##default'
-        cmdType:
-          type: string
-          description: 命令类型
-          default: '##default'
-        cmdBasic:
-          $ref: '#/components/schemas/MapObject'
-          description: 命令
-          default: '##default'
-        cmdForm:
-          $ref: '#/components/schemas/MapObject'
-          description: 命令参数
-          default: '##default'
-        businessId:
-          type: string
-          description: 业务id:主要是订单id
-          default: '##default'
-        state:
-          type: string
-          description: 任务状态
-          enum:
-            - AUDITING
-            - REJECTED
-            - AUDIT_REJECTED
-            - AUDIT_PASSED
-            - SIGNING
-            - SIGN_FAILED
-            - SIGN_SUCCEED
-            - FAILED
-            - WAITING
-            - SIGN_REJECTED
-            - ALL_BROADCAST_SUCCEED
-            - PARTIALLY_BROADCAST_SUCCEED
-            - ALL_BROADCAST_FAILED
-            - BROADCAST_FAILED
-            - BROADCAST_EXCEPTION
-            - EXPIRED
-          default: '##default'
-        businessType:
-          type: string
-          description: 业务类型:SYSTEM/BTC_TRANSFER等等
-          default: '##default'
-        taskType:
-          type: string
-          description: 任务类型,用于前端判断是资金还是系统操作:orders/issues
-          default: '##default'
-        createTime:
-          type: string
-          description: 任务创建时间
-          default: '##default'
-        updateTime:
-          type: string
-          description: 任务更新时间
-          default: '##default'
-        signContent:
-          type: string
-          description: 签名内容
-          default: '##default'
-        signContentKeyMapping:
-          type: string
-          description: 签名内容的映射
-          default: '##default'
-        total:
-          type: integer
-          description: 总参与审批数量
-        threshold:
-          type: integer
-          description: 门限
-        signers:
-          type: array
-          items:
-            type: string
-          description: 任务参与者、审核人、审批人等
-          default: '##default'
-        algoType:
-          type: string
-          description: ''
-          enum:
-            - ECDSA
-            - EC_SCHNORR
-            - ED_DSA
-            - UNASSIGNED
-            - ED25519
-        initiator:
-          type: string
-          description: 任务发起人
-          default: '##default'
-        taskOperation:
-          type: string
-          description: 任务操作,如转账,设置board等等
-          enum:
-            - DEPLOY_SMART_CONTRACT
-            - PAYOUT
-            - WITHDRAW
-            - ALLOCATE
-            - SET_WHITE_LIST
-            - BOARD
-            - FUND_FLOW
-          default: '##default'
-        signersLevel:
-          type: integer
-          description: ''
-        coinId:
-          type: string
-          description: ''
-        unitName:
-          type: string
-          description: ''
-        accountName:
-          type: string
-          description: ''
-        includes:
-          type: array
-          items:
-            type: string
-          description: ''
-        sponsored:
-          type: boolean
-          description: ''
-          default: false
-        remark:
-          type: string
-          description: ''
     QueryParamProjectUnitActivity: &ref_0
       type: object
       properties:

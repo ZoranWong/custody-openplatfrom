@@ -186,6 +186,7 @@
         <a href="#s-10-2" class="nav-sub">10.2 发起归集</a>
         <a href="#ch-11" class="nav-item">11. 任务审批</a>
         <a href="#s-11-1" class="nav-sub">11.1 提交审批任务</a>
+        <a href="#s-11-2" class="nav-sub">11.2 查询任务列表</a>
         <a href="#ch-12" class="nav-item">12. 交易查询</a>
         <a href="#s-12-query-params" class="nav-sub">查询参数（PaginationQuery / QueryCondition）</a>
         <a href="#s-12-1" class="nav-sub">12.1 查询活动记录</a>
@@ -211,8 +212,8 @@
         <a href="#s-15-3" class="nav-sub">15.3 按现象排查</a>
         <a href="#s-15-4" class="nav-sub">15.4 已知实现限制</a>
         <a href="#ch-16" class="nav-item">16. SDK 集成</a>
-        <a href="#s-16-1" class="nav-sub">16.1 Node.js SDK 1.4.0</a>
-        <a href="#s-16-2" class="nav-sub">16.2 Java SDK 1.2.6（JitPack）</a>
+        <a href="#s-16-1" class="nav-sub">16.1 Node.js SDK 1.5.0</a>
+        <a href="#s-16-2" class="nav-sub">16.2 Java SDK 1.2.7（JitPack）</a>
         <a href="#s-16-3" class="nav-sub">16.3 Web SDK 1.0.5</a>
         <a href="#s-16-4" class="nav-sub">16.4 版本兼容表</a>
         <a href="#ch-17" class="nav-item">17. 附录</a>
@@ -225,9 +226,9 @@
         <h1>Cregis 开放平台 - 第三方开发者接入指南</h1>
 <p><strong>Last Updated:</strong> 2026-10-19</p>
 <blockquote>
-<p><strong>适用 SDK 版本：</strong> Node SDK 1.4.0 / Java SDK 1.2.6 / Web SDK 1.0.5</p>
-<p><strong>发布状态：</strong> 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.6</code>。文中「1.4.0 起 / 1.2.6 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。</p>
-<p><strong>接口基数：</strong> 网关对外 23 条转发接口 + 6 条本地接口，共 29 条</p>
+<p><strong>适用 SDK 版本：</strong> Node SDK 1.5.0 / Java SDK 1.2.7 / Web SDK 1.0.5</p>
+<p><strong>发布状态：</strong> 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 <code>1.0.1</code>、Web SDK 最新为 <code>1.1.3</code>；Java 最新可用的 JitPack tag 为 <code>java-sdk-v1.2.6</code>。文中「1.5.0 起 / 1.2.7 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。</p>
+<p><strong>接口基数：</strong> 网关对外 24 条转发接口 + 6 条本地接口，共 30 条</p>
 </blockquote>
 <p>本指南面向接入 Cregis 托管能力的第三方平台开发者。第 1–6 章覆盖平台概述、端到端接入流程、开发者入驻、认证与签名、OAuth 授权和通用约定；第 7–12 章为业务接口参考；第 13–17 章覆盖商户 / 用户 / Board、回调、错误码与排查、SDK 集成和附录。</p>
 <hr>
@@ -416,7 +417,7 @@
 </tr>
 <tr>
 <td>出金 / 归集 / 审批</td>
-<td><code>POST /api/thirdparty/treasury/payout</code>、<code>POST /api/thirdparty/treasury/pooling</code>、<code>POST /api/thirdparty/treasury/submit-task/{taskId}</code></td>
+<td><code>POST /api/thirdparty/treasury/payout</code>、<code>POST /api/thirdparty/treasury/pooling</code>、<code>POST /api/thirdparty/treasury/submit-task/{taskId}</code>、<code>POST /api/thirdparty/treasury/tasks</code></td>
 <td>Resource</td>
 </tr>
 <tr>
@@ -1806,7 +1807,7 @@ public class SignatureDemo {
 <tr>
 <td>页码从 1 开始</td>
 <td><code>pageSize</code>、<code>pageNum</code>、<code>sortFields</code></td>
-<td><code>treasury/list</code>、<code>treasury/address</code>、<code>treasury/address-by-account/{cusAccountId}</code></td>
+<td><code>treasury/list</code>、<code>treasury/address</code>、<code>treasury/address-by-account/{cusAccountId}</code>、<code>treasury/tasks</code></td>
 </tr>
 <tr>
 <td>页索引从 0 开始</td>
@@ -1818,6 +1819,9 @@ public class SignatureDemo {
 <p><code>sortFields</code> 使用 SDK 与测试中一致的简写形式：字段名 + <code>_a</code>（升序）/ <code>_d</code>（降序），例如 <code>createTime_d</code> 表示按创建时间降序；请统一使用该形式，不要混用 <code>_asc</code> / <code>_desc</code>。<code>queryList</code> 为条件数组，每项形如 <code>{ "key": "unitId", "value": 80, "oper": "=", "join": "and" }</code>。</p>
 <blockquote>
 <p><code>treasury/list</code> 的响应<strong>始终是数组</strong>。网关会转发 <code>pageSize</code> / <code>pageNum</code>，但上游 YAML 未声明该接口的请求体，是否真正分页<strong>未经验证</strong>，请勿按分页对象解析。</p>
+<blockquote>
+<p><code>treasury/tasks</code> 上游返回 <code>{ records, total, current, size, orders }</code>，<strong>不含 <code>pages</code></strong>；<code>orders</code> 为排序信息数组（MyBatis 透传），可忽略。</p>
+</blockquote>
 </blockquote>
 <h3 id="s-6-3">6.3 幂等</h3>
 <p>平台不提供统一的 <code>Idempotency-Key</code> 请求头，幂等由业务字段保证：</p>
@@ -2167,6 +2171,9 @@ public class SignatureDemo {
 </table>
 <h2 id="ch-7">7. 财务单元</h2>
 <p>本章至第 12 章描述网关转发到 Custody 的业务接口。所有接口均为 <code>POST</code>，请求体为 <code>{ "basic": {...}, "business": {...} }</code>，使用 <strong>Resource 签名</strong>（<code>basic.authorizationId</code> 必填，见第 4 章）。路径中以 <code>{...}</code> 表示的参数（如 <code>unitId</code>、<code>taskId</code>）不参与签名，其值必须匹配 <code>^[a-zA-Z0-9_-]{1,64}$</code>，否则网关在转发前返回 <code>40001</code>。</p>
+<blockquote>
+<p>例外：11.2「查询任务列表」的上游是 GET 接口，网关会把 <code>business</code> 转换为上游 query 参数转发，但<strong>开发者侧仍然是 POST + <code>{basic, business}</code></strong>，签名方式不变。</p>
+</blockquote>
 <p>转发行为统一为：网关把 <code>business</code> <strong>原样</strong>作为上游请求体发送给 Custody（不增删字段）。<strong>仅当上游返回 HTTP 2xx 时原样返回；上游非 2xx 时网关丢弃上游响应体并返回 <code>{ code, message }</code>（上游 4xx 也会被记为 500），且 5xx/超时会被网关自动重试（<code>maxRetries</code> 名义为 3，但当前实现存在递归重试，实际调用次数可能远超 3 次，实测在持续 5xx 下会长时间反复请求）——写操作（创建地址、出金、归集、提交审批）存在</strong>重复提交<strong>风险，务必使用业务幂等键并确认上游去重。</strong> 因此：</p>
 <ul>
 <li>上游返回 2xx 时，HTTP 状态通常为 <code>200</code>；成功以响应体 <code>code</code> 为 <code>0</code> 或 <code>200</code> 判断。
@@ -4040,7 +4047,101 @@ public class SignatureDemo {
 <blockquote>
 <p>本接口是非幂等写操作：网关对上游 5xx / 超时会自动重试（实际次数可能远超 3 次，见第 7 章开头的转发说明），注意重复提交风险。</p>
 </blockquote>
-<p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>120xxx</code>（业务规则，如任务状态不允许提交）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
+<h3 id="s-11-2">11.2 查询任务列表</h3>
+<p><strong>POST</strong> <code>/api/thirdparty/treasury/tasks</code> · 鉴权：Resource 签名</p>
+<blockquote>
+<p>网关转发至 custody：<code>GET /api/third-party/list/task/{resourceKey}</code>。这是唯一一个上游为 GET 的转发接口：网关把 <code>business</code> 字段转换为上游 query 参数，<code>basic</code> 照常参与 Resource 签名。</p>
+</blockquote>
+<p>按条件分页查询当前企业的审批 / 签名任务。</p>
+<p><strong>请求参数（business）</strong></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pageNum</code></td>
+<td>number</td>
+<td>否</td>
+<td>页码，从 1 开始，默认 1</td>
+</tr>
+<tr>
+<td><code>pageSize</code></td>
+<td>number</td>
+<td>否</td>
+<td>每页数量，默认 10</td>
+</tr>
+<tr>
+<td><code>businessId</code></td>
+<td>string</td>
+<td>否</td>
+<td>订单 id</td>
+</tr>
+<tr>
+<td><code>taskType</code></td>
+<td>string</td>
+<td>否</td>
+<td>任务类型：资金 <code>orders</code> / 系统操作 <code>issues</code></td>
+</tr>
+<tr>
+<td><code>taskId</code></td>
+<td>string</td>
+<td>否</td>
+<td>任务 ID</td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td>string</td>
+<td>否</td>
+<td>任务状态，见下</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>state</code> 取值</strong>：<code>AUDITING</code>、<code>REJECTED</code>、<code>AUDIT_REJECTED</code>、<code>AUDIT_PASSED</code>、<code>SIGNING</code>、<code>SIGN_FAILED</code>、<code>SIGN_SUCCEED</code>、<code>FAILED</code>、<code>VERIFY_SUCCEED</code>、<code>VERIFY_FAILED</code>、<code>WAITING</code>、<code>SIGN_REJECTED</code>、<code>EXPIRED</code>。</p>
+<p><strong>请求示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": { "pageNum": 1, "pageSize": 10, "taskType": "orders", "state": "AUDITING" }
+}
+</code></pre>
+<p><strong>响应示例</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": {
+    "records": [
+      {
+        "id": 5001,
+        "taskId": "task-20261112-001",
+        "taskOperation": "PAYOUT",
+        "state": "AUDITING",
+        "businessId": "ORDER-1001",
+        "taskType": "orders",
+        "threshold": 2,
+        "total": 3,
+        "signers": ["guardian-1", "guardian-2", "guardian-3"],
+        "createTime": "2026-11-12 10:10:00",
+        "updateTime": "2026-11-12 10:10:00"
+      }
+    ],
+    "total": 1,
+    "current": 1,
+    "size": 10,
+    "orders": []
+  }
+}
+</code></pre>
+<p><strong>响应字段</strong>：<code>records</code> 为上游 <code>WCCIPCmdAuditTask</code> 数组（字段说明同 11.1 中创建类接口返回的审批任务，如 <code>taskId</code> / <code>state</code> / <code>signers</code> / <code>threshold</code> / <code>signContent</code> 等）；分页字段为 <code>total</code> / <code>current</code> / <code>size</code>，<strong>不含 <code>pages</code></strong>，<code>orders</code> 为排序信息数组，可忽略。</p>
+<p><code>data.records[].taskId</code> 可用于 11.1 提交审批。</p>
+<blockquote>
+<p>本接口是只读查询，网关对上游 5xx / 超时的自动重试是安全的。</p>
+</blockquote>
+<p><strong>常见业务码</strong>：<code>400xxx</code>（参数）、<code>400103</code>（<code>resourceKey</code> 未开通）、<code>401xxx</code> / <code>403xxx</code>——由 custody 返回，网关透传。</p>
 <hr>
 <h2 id="ch-12">12. 交易查询</h2>
 <p>本章 5 个查询接口共用一个查询参数结构。分页对象为 <code>{ records, total, current, size, pages }</code>（见 6.2）。<code>pages</code> 由 SDK 类型声明（Java 中为必填），上游 YAML 未声明，以实际响应为准。</p>
@@ -5570,7 +5671,7 @@ HMAC-SHA256 = a5579ed42e4dd08de06b58be599b534b1141f70f353affdf292330501acd3ea4</
 HMAC-SHA256 = 27cb791bd95c41922058729f9801eea94de2753ef66662321db8cbd930e30885</code></pre>
 <h3 id="s-14-4">14.4 可运行的验签处理</h3>
 <h4>Node.js</h4>
-<p>使用 <code>@cregis-kit/openplatform-node@1.4.0</code> 的 <code>sdk.onCallback(req, handler)</code>。SDK 会依次校验：</p>
+<p>使用 <code>@cregis-kit/openplatform-node@1.5.0</code> 的 <code>sdk.onCallback(req, handler)</code>。SDK 会依次校验：</p>
 <ol>
 <li><code>x-app-id</code> / <code>x-timestamp</code> / <code>x-signature</code> 三个头是否存在
 </li>
@@ -6202,10 +6303,10 @@ public ResponseEntity&lt;?&gt; callback(HttpServletRequest request,
 <hr>
 <h2 id="ch-16">16. SDK 集成</h2>
 <p>官方 SDK 封装了签名、请求与错误处理，推荐在服务端直接使用。三端版本与本指南的对应关系见 16.4。</p>
-<h3 id="s-16-1">16.1 Node.js SDK 1.4.0</h3>
+<h3 id="s-16-1">16.1 Node.js SDK 1.5.0</h3>
 <p><strong>安装</strong>（要求 Node.js &gt;= 18）</p>
 <pre class="codehilite"><code class="language-bash">
-npm install @cregis-kit/openplatform-node@1.4.0
+npm install @cregis-kit/openplatform-node@1.5.0
 </code></pre>
 <p><strong>构造与最小端到端示例</strong></p>
 <pre class="codehilite"><code class="language-ts">
@@ -6247,7 +6348,7 @@ const task = await sdk.createPayout(authorizeId, {
 
 await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 </code></pre>
-<p><strong>完整方法表（24 个业务方法）</strong></p>
+<p><strong>完整方法表（25 个业务方法）</strong></p>
 <table>
 <thead>
 <tr>
@@ -6373,6 +6474,12 @@ await sdk.submitTask(authorizeId, task.taskId, { confirmed: true });
 <td><code>void</code></td>
 </tr>
 <tr>
+<td>审批</td>
+<td><code>listTasks(authorizationId, options?)</code></td>
+<td>Resource</td>
+<td><code>PaginatedResponse&lt;WCCIPCmdAuditTask&gt;</code></td>
+</tr>
+<tr>
 <td>交易查询</td>
 <td><code>listTransferOutOrders(authorizationId, options?)</code></td>
 <td>Resource</td>
@@ -6424,7 +6531,7 @@ try {
 <blockquote>
 <p><strong>OAuth 说明：</strong> Node SDK 只封装 <code>getAuthorizationUrl</code>。<code>authorizeId</code> 由授权页在 Custody 内部完成 <code>verify</code> 后通过 postMessage 返回（见 5.3、16.3），SDK 不提供 verify 方法。<code>registerMerchant</code> / <code>addUser</code> / <code>initBoard</code> / <code>updateBoard</code> 其余字段与网关一致。</p>
 </blockquote>
-<h3 id="s-16-2">16.2 Java SDK 1.2.6（JitPack）</h3>
+<h3 id="s-16-2">16.2 Java SDK 1.2.7（JitPack）</h3>
 <p><strong>环境要求</strong>：JDK 17+、Maven 3.8+。</p>
 <p><strong>仓库配置</strong></p>
 <pre class="codehilite"><code class="language-xml">
@@ -6440,10 +6547,10 @@ try {
 &lt;dependency&gt;
     &lt;groupId&gt;com.github.ZoranWong.custody-openplatfrom&lt;/groupId&gt;
     &lt;artifactId&gt;cregis-sdk-core&lt;/artifactId&gt;
-    &lt;version&gt;java-sdk-v1.2.6&lt;/version&gt;
+    &lt;version&gt;java-sdk-v1.2.7&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
-<p><code>java-sdk-v1.2.6</code> 是仓库中的 Git tag；JitPack 按该 tag 构建。<code>CregisClient</code> 的服务入口：</p>
+<p><code>java-sdk-v1.2.7</code> 是仓库中的 Git tag；JitPack 按该 tag 构建。<code>CregisClient</code> 的服务入口：</p>
 <table>
 <thead>
 <tr>
@@ -6466,7 +6573,7 @@ try {
 </tr>
 <tr>
 <td><code>transaction()</code></td>
-<td>入金订单、活动 / 流水、<code>submitTask</code></td>
+<td>入金订单、活动 / 流水、<code>submitTask</code>、<code>listTasks</code></td>
 </tr>
 <tr>
 <td><code>merchant()</code></td>
@@ -6687,15 +6794,15 @@ if (result.status === 'success') {
 <tbody>
 <tr>
 <td>Node.js</td>
-<td><strong>1.4.0</strong></td>
-<td><code>npm install @cregis-kit/openplatform-node@1.4.0</code></td>
+<td><strong>1.5.0</strong></td>
+<td><code>npm install @cregis-kit/openplatform-node@1.5.0</code></td>
 <td>服务端调用全部业务接口、回调验签</td>
 <td>签名（递归排序、Unix 秒）与网关一致</td>
 </tr>
 <tr>
 <td>Java</td>
-<td><strong>1.2.6</strong></td>
-<td><code>com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.6</code>（JitPack）</td>
+<td><strong>1.2.7</strong></td>
+<td><code>com.github.ZoranWong.custody-openplatfrom:cregis-sdk-core:java-sdk-v1.2.7</code>（JitPack）</td>
 <td>服务端 Java 接入，全部业务接口、回调验签</td>
 <td>同上</td>
 </tr>
@@ -7025,6 +7132,7 @@ interface ConsoleUser {
 <tr><td>发起出金</td><td><code>POST /api/thirdparty/treasury/payout</code></td><td>Resource</td><td><code>payTo[]</code>、<code>fromAccountId</code>、<code>unitId</code>、<code>coinId</code>、<code>network</code>、<code>fromAddress</code>、<code>orderId</code>、<code>operation?</code>、<code>toCusAccountId?</code>、<code>username?</code>、<code>userId?</code>、<code>note?</code>、<code>lang?</code>、<code>initiator?</code>、<code>merchantType</code>、<code>travelRule?</code>（10.1）</td></tr>
 <tr><td>发起归集</td><td><code>POST /api/thirdparty/treasury/pooling</code></td><td>Resource</td><td><code>unitId</code>、<code>fromAccountId</code>、<code>address</code>、<code>amount</code>、<code>coinId</code>、<code>network</code>、<code>lang?</code>、<code>note?</code>、<code>includes[]?</code>、<code>excludes[]?</code>（10.2）</td></tr>
 <tr><td>提交审批</td><td><code>POST /api/thirdparty/treasury/submit-task/{taskId}</code></td><td>Resource</td><td>路径 <code>taskId</code>；<code>signatures?</code>、<code>confirmed</code>（11.1）</td></tr>
+<tr><td>查询任务列表</td><td><code>POST /api/thirdparty/treasury/tasks</code></td><td>Resource</td><td><code>pageNum?</code>、<code>pageSize?</code>、<code>businessId?</code>、<code>taskType?</code>、<code>taskId?</code>、<code>state?</code>（11.2）</td></tr>
 </tbody>
 </table>
 <p><strong>交易查询</strong>（<code>business</code> 均为 <code>PaginationQuery</code>：<code>pageIndex?</code>、<code>pageSize?</code>、<code>sortFields?</code>、<code>queryList[]?</code>）</p>
