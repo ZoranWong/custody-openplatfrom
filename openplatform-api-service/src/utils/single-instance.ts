@@ -7,40 +7,68 @@
  * job twice.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { openDedicatedConnection } from '../database/prisma-client';
 
 export function isRollupInstance(env: NodeJS.ProcessEnv = process.env): boolean {
   const idx = env.NODE_APP_INSTANCE;
   return idx === undefined || idx === '0';
 }
 
+type GuardedClient = Pick<any, '$queryRaw' | '$executeRaw'>;
+
 /**
  * Run `fn` while holding a MySQL advisory lock. Returns false when another
  * instance already holds it. The lock is always released, even on error —
  * a release failure is logged but never masks the work's own result.
  *
- * `GET_LOCK`/`RELEASE_LOCK` are session-scoped, so `client` must be a single
- * connection (Prisma's non-transaction client, e.g. from `getClient()`), not
- * a transaction or a connection pool that may switch sessions.
+ * `GET_LOCK`/`RELEASE_LOCK` are session-scoped: both statements must run on
+ * the same connection, and the job must NOT be wrapped in a transaction —
+ * a long rollup would exceed the interactive-transaction timeout (5s by
+ * default) and abort mid-way.
+ *
+ * Without a client argument a dedicated connection is opened for the duration
+ * of the call and closed afterwards. A `client` may be injected for tests or
+ * callers that already own a single session; those callers manage its
+ * lifetime themselves.
  */
 export async function withAdvisoryLock(
-  client: Pick<PrismaClient, '$queryRaw' | '$executeRaw'>,
-  lockName: string,
-  fn: () => Promise<void>,
+  clientOrLock: GuardedClient | string | null | undefined,
+  lockNameOrFn: string | (() => Promise<void>),
+  maybeFn?: () => Promise<void>,
 ): Promise<boolean> {
-  const rows = await client.$queryRaw<Array<{ got: number | bigint }>>`
-    SELECT GET_LOCK(${lockName}, 0) AS got
-  `;
-  const got = Number(rows?.[0]?.got ?? 0);
-  if (got !== 1) return false;
+  const ownsConnection = typeof clientOrLock !== 'object' || clientOrLock === null;
+  const lockName = (ownsConnection ? clientOrLock : lockNameOrFn) as string;
+  const fn = (ownsConnection ? lockNameOrFn : maybeFn) as () => Promise<void>;
+  const connection: any = ownsConnection ? await openDedicatedConnection() : null;
+  const client: GuardedClient = connection
+    ? {
+        $queryRaw: (strings: TemplateStringsArray, ...values: unknown[]) =>
+          connection.query(strings.join('?'), values),
+        $executeRaw: (strings: TemplateStringsArray, ...values: unknown[]) =>
+          connection.query(strings.join('?'), values),
+      }
+    : (clientOrLock as GuardedClient);
+
   try {
-    await fn();
-  } finally {
+    const rows = await client.$queryRaw`
+      SELECT GET_LOCK(${lockName}, 0) AS got
+    `;
+    const got = Number(rows?.[0]?.got ?? 0);
+    if (got !== 1) return false;
     try {
-      await client.$executeRaw`SELECT RELEASE_LOCK(${lockName})`;
-    } catch (releaseError) {
-      console.warn('[ApiLog] Failed to release advisory lock:', releaseError);
+      await fn();
+    } finally {
+      try {
+        await client.$executeRaw`SELECT RELEASE_LOCK(${lockName})`;
+      } catch (releaseError) {
+        console.warn('[ApiLog] Failed to release advisory lock:', releaseError);
+      }
+    }
+    return true;
+  } finally {
+    if (connection) {
+      // Closing the session also drops any lock that failed to release.
+      await connection.end().catch(() => {});
     }
   }
-  return true;
 }

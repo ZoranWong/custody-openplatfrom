@@ -31,6 +31,10 @@ const AlertSettingsRule: Rule = {
       { validator: 'isInt', message: 'cooldownSeconds must be an integer', optional: true },
       { validator: 'minValue', options: { min: 60 }, message: 'Cooldown must be at least 60 seconds', optional: true },
     ],
+    logRetentionDays: [
+      { validator: 'isInt', message: 'logRetentionDays must be an integer', optional: true },
+      { validator: 'minValue', options: { min: 1 }, message: 'Retention must be at least 1 day', optional: true },
+    ],
   },
 };
 

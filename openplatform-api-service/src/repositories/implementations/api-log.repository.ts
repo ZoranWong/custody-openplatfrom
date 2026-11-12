@@ -12,6 +12,11 @@ import {
 } from '../repository.interfaces';
 import { addDays, startOfDay } from '../../utils/api-log-dates';
 import { calculatePercentiles } from '../../utils/percentile-calculator';
+import { CALLBACK_API_NAME_PREFIX } from '../../utils/api-log-category';
+import { RAW_RETENTION_DAYS } from '../../config/api-log-retention';
+
+/** SQL LIKE pattern matching every callback-push row (apiName `callback.push*`). */
+const CALLBACK_LIKE = `${CALLBACK_API_NAME_PREFIX}%`;
 
 export class ApiLogRepositoryImpl
   extends BaseRepository<Prisma.ApiLogDelegate>
@@ -23,7 +28,13 @@ export class ApiLogRepositoryImpl
 
   async findRecentErrors(developerId: string, limit: number = 5) {
     const logs = await this.model.findMany({
-      where: { developerId, isError: true },
+      // Callback delivery failures are logged in the same table but are not API
+      // errors; keep the dashboard list focused on inbound calls.
+      where: {
+        developerId,
+        isError: true,
+        NOT: { apiName: { startsWith: CALLBACK_API_NAME_PREFIX } },
+      },
       orderBy: { createdAt: 'desc' },
       take: limit,
       select: {
@@ -187,6 +198,7 @@ export class ApiLogRepositoryImpl
       FROM api_logs
       WHERE developer_id = ${developerId}
         AND created_at >= ${start} AND created_at < ${end}
+        AND (api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE})
     `;
 
     const calls = Number(summary?.calls || 0);
@@ -206,6 +218,7 @@ export class ApiLogRepositoryImpl
       FROM api_logs
       WHERE developer_id = ${developerId}
         AND created_at >= ${start} AND created_at < ${end}
+        AND (api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE})
       GROUP BY endpoint, method
       ORDER BY calls DESC
     `;
@@ -215,6 +228,7 @@ export class ApiLogRepositoryImpl
       FROM api_logs
       WHERE developer_id = ${developerId}
         AND created_at >= ${start} AND created_at < ${end}
+        AND (api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE})
         AND response_time IS NOT NULL
     `;
     const p95 = calculatePercentiles(samples.map((s) => Number(s.rt))).p95;
@@ -381,6 +395,22 @@ export class ApiLogRepositoryImpl
     }));
   }
 
+  /**
+   * Count outbound callback-push rows for a developer in a date range.
+   * Callback pushes are split out of the API-call totals, so the usage window
+   * reports them from here instead of folding them into the raw aggregate.
+   */
+  async countCallbackLogsBetween(developerId: string, startIso: Date, endIso: Date): Promise<number> {
+    const [row]: any[] = await this.queryRaw`
+      SELECT COUNT(*) AS callbacks
+      FROM api_logs
+      WHERE developer_id = ${developerId}
+        AND created_at >= ${startIso} AND created_at < ${endIso}
+        AND api_name LIKE ${CALLBACK_LIKE}
+    `;
+    return Number(row?.callbacks || 0);
+  }
+
   /** Format a `@db.Date` value (Date or driver string) as YYYY-MM-DD in UTC. */
   private dayLabelOf(value: unknown): string {
     return value instanceof Date
@@ -388,20 +418,32 @@ export class ApiLogRepositoryImpl
       : String(value).slice(0, 10);
   }
 
-  /** Aggregate raw logs for one developer over a day range (today's slice). */
+  /**
+   * Aggregate raw logs for one developer over a day range (today's slice).
+   *
+   * `calls` counts inbound API calls only; outbound callback pushes are counted
+   * separately in `callbackCalls`. Both are derived in a single pass with
+   * conditional aggregation, so `calls + callbackCalls` is the raw row total.
+   * Byte/latency metrics follow `calls` (API only) to stay comparable with
+   * snapshots written by `rollupDay`.
+   */
   async aggregateRawRange(
     developerId: string,
     startIso: Date,
     endIso: Date,
   ): Promise<{
     calls: number; errorCalls: number; totalBytes: number; avgResponseTime: number;
-    byEndpoint: ApiLogEndpointDailyRow[]; byDay: ApiLogRawDayAggregate[];
+    callbackCalls: number; byEndpoint: ApiLogEndpointDailyRow[]; byDay: ApiLogRawDayAggregate[];
   }> {
     const [summary]: any[] = await this.queryRaw`
-      SELECT COUNT(*) AS calls,
-             SUM(CASE WHEN is_error = 1 THEN 1 ELSE 0 END) AS errors,
-             SUM(COALESCE(request_bytes, 0) + COALESCE(response_bytes, 0)) AS total_bytes,
-             ROUND(AVG(response_time), 0) AS avg_rt
+      SELECT
+        SUM(CASE WHEN api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE} THEN 1 ELSE 0 END) AS calls,
+        SUM(CASE WHEN api_name LIKE ${CALLBACK_LIKE} THEN 1 ELSE 0 END) AS callback_calls,
+        SUM(CASE WHEN (api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE}) AND is_error = 1 THEN 1 ELSE 0 END) AS errors,
+        SUM(CASE WHEN api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE}
+                 THEN COALESCE(request_bytes, 0) + COALESCE(response_bytes, 0) ELSE 0 END) AS total_bytes,
+        ROUND(AVG(CASE WHEN api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE}
+                       THEN response_time END), 0) AS avg_rt
       FROM api_logs
       WHERE developer_id = ${developerId}
         AND created_at >= ${startIso} AND created_at < ${endIso}
@@ -416,6 +458,7 @@ export class ApiLogRepositoryImpl
       FROM api_logs
       WHERE developer_id = ${developerId}
         AND created_at >= ${startIso} AND created_at < ${endIso}
+        AND (api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE})
       GROUP BY endpoint, method
       ORDER BY calls DESC
     `;
@@ -428,6 +471,7 @@ export class ApiLogRepositoryImpl
       FROM api_logs
       WHERE developer_id = ${developerId}
         AND created_at >= ${startIso} AND created_at < ${endIso}
+        AND (api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE})
       GROUP BY DATE(created_at)
       ORDER BY d ASC
     `;
@@ -436,6 +480,7 @@ export class ApiLogRepositoryImpl
       errorCalls: Number(summary?.errors || 0),
       totalBytes: Number(summary?.total_bytes || 0),
       avgResponseTime: Number(summary?.avg_rt || 0),
+      callbackCalls: Number(summary?.callback_calls || 0),
       byEndpoint: byEndpointRows.map((r) => ({
         // Caller fills the date; the range may span several days.
         date: '',
@@ -536,10 +581,21 @@ export class ApiLogRepositoryImpl
     }));
   }
 
-  /** Delete raw rows older than `day` (YYYY-MM-DD, exclusive). */
-  async deleteRawBefore(day: string): Promise<{ count: number }> {
+  /** Delete raw rows with no developer id older than `day` (YYYY-MM-DD, exclusive). */
+  async deleteUnassignedRawBefore(day: string): Promise<{ count: number }> {
     const cutoff = startOfDay(day);
-    const result = await this.model.deleteMany({ where: { createdAt: { lt: cutoff } } });
+    const result = await this.model.deleteMany({
+      where: { createdAt: { lt: cutoff }, developerId: null },
+    });
+    return { count: result.count };
+  }
+
+  /** Delete one developer's raw rows older than `day` (YYYY-MM-DD, exclusive). */
+  async deleteRawBeforeForDeveloper(developerId: string, day: string): Promise<{ count: number }> {
+    const cutoff = startOfDay(day);
+    const result = await this.model.deleteMany({
+      where: { developerId, createdAt: { lt: cutoff } },
+    });
     return { count: result.count };
   }
 
@@ -563,6 +619,19 @@ export class ApiLogRepositoryImpl
         AND developer_id IS NOT NULL
     `;
     return rows.map((r) => r.developer_id);
+  }
+
+  /** Number of raw rows one developer holds on the given day. */
+  async countRawForDeveloper(developerId: string, date: string): Promise<number> {
+    const start = startOfDay(date);
+    const end = startOfDay(addDays(date, 1));
+    const rows: any[] = await this.queryRaw`
+      SELECT COUNT(*) AS cnt
+      FROM api_logs
+      WHERE developer_id = ${developerId}
+        AND created_at >= ${start} AND created_at < ${end}
+    `;
+    return Number(rows[0]?.cnt || 0);
   }
 
   /** List developer ids that still have daily snapshots in the given month (YYYY-MM). */
@@ -605,13 +674,24 @@ export class ApiLogRepositoryImpl
     developerId: string,
     page: number,
     pageSize: number,
-    filters?: { isError?: boolean; apiName?: string; startDate?: Date; endDate?: Date; traceId?: string; developerId?: string },
+    filters?: { isError?: boolean; apiName?: string; startDate?: Date; endDate?: Date; traceId?: string; developerId?: string; category?: 'api' | 'callback' },
   ) {
     const where: any = {};
     if (developerId && developerId !== '__admin__') where.developerId = developerId;
     // Allow admin to filter by a specific developerId even when developerId param is '__admin__'.
     if (filters?.developerId) where.developerId = filters.developerId;
     if (filters?.isError !== undefined) where.isError = filters.isError;
+    // Callback pushes are logged as apiName=callback.push[.summary]; splitting on
+    // the apiName prefix lets the portal show outbound callbacks in the same
+    // trace list without mixing them into API-call views.
+    const callbackFilter = { apiName: { startsWith: CALLBACK_API_NAME_PREFIX } };
+    if (filters?.category === 'callback') {
+      where.apiName = callbackFilter.apiName;
+    } else if (filters?.category === 'api') {
+      // api_name is nullable; a plain NOT would drop NULL rows in Prisma, which
+      // are API calls, so keep them explicitly.
+      where.AND = [{ OR: [{ apiName: null }, { NOT: callbackFilter }] }];
+    }
     if (filters?.apiName) where.OR = [
       { apiName: { contains: filters.apiName } },
       { endpoint: { contains: filters.apiName } },
@@ -646,6 +726,7 @@ export class ApiLogRepositoryImpl
         windowSeconds: true,
         errorThreshold: true,
         cooldownSeconds: true,
+        logRetentionDays: true,
       },
     });
     return rows.map((r: any) => ({
@@ -655,10 +736,26 @@ export class ApiLogRepositoryImpl
       windowSeconds: r.windowSeconds,
       errorThreshold: r.errorThreshold,
       cooldownSeconds: r.cooldownSeconds,
+      logRetentionDays: r.logRetentionDays,
     }));
   }
 
-  async upsertAlertSetting(data: { developerId: string; alertEmail: string | null; enabled: boolean; windowSeconds: number; errorThreshold: number; cooldownSeconds: number }) {
+  async listAlertSettingDevelopers(): Promise<string[]> {
+    const rows = await this.client.developerAlertSetting.findMany({
+      select: { developerId: true },
+    });
+    return rows.map((r: any) => r.developerId);
+  }
+
+  async getLogRetentionDays(developerId: string): Promise<number> {
+    const row = await this.client.developerAlertSetting.findUnique({
+      where: { developerId },
+      select: { logRetentionDays: true },
+    });
+    return row?.logRetentionDays ?? RAW_RETENTION_DAYS;
+  }
+
+  async upsertAlertSetting(data: { developerId: string; alertEmail: string | null; enabled: boolean; windowSeconds: number; errorThreshold: number; cooldownSeconds: number; logRetentionDays: number }) {
     await this.client.developerAlertSetting.upsert({
       where: { developerId: data.developerId },
       create: {
@@ -668,6 +765,7 @@ export class ApiLogRepositoryImpl
         windowSeconds: data.windowSeconds,
         errorThreshold: data.errorThreshold,
         cooldownSeconds: data.cooldownSeconds,
+        logRetentionDays: data.logRetentionDays,
       },
       update: {
         alertEmail: data.alertEmail,
@@ -675,6 +773,7 @@ export class ApiLogRepositoryImpl
         windowSeconds: data.windowSeconds,
         errorThreshold: data.errorThreshold,
         cooldownSeconds: data.cooldownSeconds,
+        logRetentionDays: data.logRetentionDays,
       },
     });
   }
@@ -713,6 +812,8 @@ export class ApiLogRepositoryImpl
     // Raw SQL: the window bounds must serialize exactly like the rollup queries
     // (UTC wall clock). The Prisma query engine's Date handling for this table
     // differs from $queryRaw and would shift the window.
+    // Callback pushes are excluded: this count drives the API error-rate alert,
+    // which should not fire on webhook delivery failures.
     const rows = await this.queryRaw<{ error_count: bigint | number; total_count: bigint | number }>`
       SELECT
         SUM(CASE WHEN is_error = 1 THEN 1 ELSE 0 END) AS error_count,
@@ -720,6 +821,7 @@ export class ApiLogRepositoryImpl
       FROM api_logs
       WHERE developer_id = ${developerId}
         AND created_at >= ${start} AND created_at <= ${end}
+        AND (api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE})
     `;
     const row = rows[0];
     return [{
@@ -735,6 +837,7 @@ export class ApiLogRepositoryImpl
       WHERE developer_id = ${developerId}
         AND is_error = 1
         AND created_at >= ${start} AND created_at <= ${end}
+        AND (api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE})
       ORDER BY created_at DESC
       LIMIT ${limit}
     `;

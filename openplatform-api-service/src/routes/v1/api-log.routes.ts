@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { isvAuth } from '../../middleware/isv-auth.middleware';
 import { getApiLogRepository } from '../../repositories/repository.factory';
+import { isCallbackApiName } from '../../utils/api-log-category';
 
 const router = Router();
 
@@ -23,6 +24,11 @@ router.get('/', isvAuth, async (req: any, res: any) => {
     const isError = req.query.isError !== undefined ? req.query.isError === '1' : undefined;
     const apiName = req.query.apiName as string | undefined;
     const traceId = req.query.traceId as string | undefined;
+    // 'callback' shows outbound webhook pushes; 'api' hides them; undefined keeps
+    // the historical "everything" view.
+    const category = req.query.category === 'callback' || req.query.category === 'api'
+      ? req.query.category
+      : undefined;
     const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
     const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
 
@@ -30,6 +36,7 @@ router.get('/', isvAuth, async (req: any, res: any) => {
       isError,
       apiName,
       traceId,
+      category,
       startDate,
       endDate,
     });
@@ -48,6 +55,7 @@ router.get('/', isvAuth, async (req: any, res: any) => {
           responseTime: log.responseTime,
           ipAddress: log.ipAddress,
           isError: log.isError,
+          isCallback: isCallbackApiName(log.apiName),
           createdAt: log.createdAt?.toISOString?.() || log.createdAt,
         })),
         total: result.total,
@@ -97,6 +105,7 @@ router.get('/:id', isvAuth, async (req: any, res: any) => {
         sdkVersion: log.sdkVersion,
         sdkLanguage: log.sdkLanguage,
         isError: log.isError,
+        isCallback: isCallbackApiName(log.apiName),
         createdAt: log.createdAt?.toISOString?.() || log.createdAt,
       },
     });

@@ -8,6 +8,7 @@ import { Invoice, InvoiceHistoryItem, PaymentHistoryItem, UsageStatistics, Usage
 import { getOrderRepository, getApiLogRepository, getSubscriptionRepository } from '../repositories/repository.factory';
 import { getRecentErrors } from './api-log.service';
 import { loadUsageWindow } from './api-log-stats.service';
+import { getRetentionInfo } from './api-log-retention.service';
 import { addDays, todayKey } from '../utils/api-log-dates';
 
 /**
@@ -90,8 +91,15 @@ export class BillingService {
     // Segmented read: monthly snapshots → daily snapshots → live raw days.
     const endDay = todayKey();
     const startDay = addDays(endDay, -(days - 1));
-    const window = await loadUsageWindow(enterpriseId, startDay);
     const activeSub = await subRepo.findActiveWithPackage(enterpriseId);
+    const retention = await getRetentionInfo(enterpriseId, activeSub?.package?.logRetention ?? null);
+    const window = await loadUsageWindow(
+      enterpriseId,
+      startDay,
+      undefined,
+      new Date(),
+      retention.effectiveDays,
+    );
 
     const successRate = window.totalCalls > 0
       ? ((window.totalCalls - window.errorCalls) / window.totalCalls) * 100
@@ -111,9 +119,12 @@ export class BillingService {
       totalCost: 0,
       currency: 'USD',
       totalCalls: window.totalCalls,
+      apiCalls: window.apiCalls,
+      callbackCalls: window.callbackCalls,
       totalBytes: window.totalBytes,
       bytesTrackedSince: window.bytesTrackedSince,
       partial: window.partial,
+      retentionDays: window.retentionDays,
       successRate,
       avgResponseTimeMs: window.avgResponseTime,
       todayCalls: Number(activeSub?.dailyApiUsage) || 0,

@@ -40,6 +40,15 @@ export type CallbackEventType =
   // | 'task.approved'
   // | 'task.rejected'
 
+/** Per-attempt log data emitted after each HTTP attempt (success or failure). */
+export interface CallbackAttemptLog {
+    attempt: number;
+    url: string;
+    status: number | undefined;
+    responseTime: number;
+    error: string | undefined;
+}
+
 // Callback metadata — carried in request headers (body carries only business data).
 export interface CallbackMeta {
     appId: string
@@ -147,6 +156,36 @@ export class ApplicationCallbackService {
   }
 
   /**
+   * Write a single API log entry for a callback push attempt.
+   */
+  private logAttempt(params: {
+    application: { id: string; isvDeveloperId?: string | null; callbackUrl?: string | null };
+    event: CallbackEventType | '';
+    data: Record<string, unknown>;
+    traceId?: string;
+    attempt: CallbackAttemptLog;
+  }): void {
+    const { application, event, data, traceId, attempt } = params;
+    const isError = !attempt.status || attempt.status < 200 || attempt.status >= 300;
+    createApiLog({
+      appId: application.id,
+      // Callback rows are only visible in the developer portal (which filters
+      // by developerId) when the owning developer is recorded.
+      developerId: application.isvDeveloperId || undefined,
+      apiName: 'callback.push',
+      traceId,
+      endpoint: attempt.url,
+      method: 'POST',
+      requestBody: { event: event || '', data },
+      responseStatus: attempt.status,
+      responseBody: attempt.error ? { error: attempt.error, attempt: attempt.attempt } : undefined,
+      responseTime: Math.round(attempt.responseTime),
+      userAgent: 'cregis-gateway/callback-pusher',
+      isError,
+    }).catch(() => {});
+  }
+
+  /**
    * Push event to callback URL
    * This is async and non-blocking - errors are logged but don't affect main flow
    *
@@ -159,6 +198,8 @@ export class ApplicationCallbackService {
       id: string;
       appSecret: string;
       callbackUrl?: string | null;
+      /** Owning developer; stamped onto the API log so the portal can list it. */
+      isvDeveloperId?: string | null;
     };
     event?: CallbackEventType | '';
     data: Record<string, unknown>;
@@ -184,23 +225,6 @@ export class ApplicationCallbackService {
 
       const callbackUrl = application.callbackUrl;
 
-      // Record every callback push attempt in the API log (fire-and-forget)
-      const logCallback = (status: number | undefined, error: string | undefined, attempts: number) => {
-        createApiLog({
-          appId: application.id,
-          apiName: 'callback.push',
-          traceId: params.traceId,
-          endpoint: callbackUrl,
-          method: 'POST',
-          requestBody: { event: event || '', data },
-          responseStatus: status,
-          responseBody: error ? { error } : undefined,
-          userAgent: 'cregis-gateway/callback-pusher',
-          isError: !status || status < 200 || status >= 300,
-        }).catch(() => {});
-        void attempts;
-      };
-
       // Validate URL security
       const urlValidation = this.validateUrl(callbackUrl);
       if (!urlValidation.valid) {
@@ -210,7 +234,8 @@ export class ApplicationCallbackService {
         return { success: false, error: urlValidation.error };
       }
 
-      // Send with retry
+      // Send with retry — each attempt is logged individually
+      const attempts: CallbackAttemptLog[] = [];
       const meta: CallbackMeta = {
         appId: application.id,
         timestamp: Date.now().toString(),
@@ -218,18 +243,33 @@ export class ApplicationCallbackService {
       if (event) {
         meta.event = event;
       }
-      let lastStatus: number | undefined;
-      let lastError: string | undefined;
       try {
-        await this.sendWithRetry(callbackUrl, meta, data, application.appSecret, (status, error) => {
-          lastStatus = status;
-          lastError = error;
+        await this.sendWithRetry(callbackUrl, meta, data, application.appSecret, (attemptLog) => {
+          attempts.push(attemptLog);
+          this.logAttempt({ application, event: event || '', data, traceId: params.traceId, attempt: attemptLog });
         });
       } finally {
-        logCallback(lastStatus, lastError, 1);
+        // Log a summary entry reflecting the overall result
+        const final = attempts[attempts.length - 1];
+        createApiLog({
+          appId: application.id,
+          developerId: application.isvDeveloperId || undefined,
+          apiName: 'callback.push.summary',
+          traceId: params.traceId,
+          endpoint: callbackUrl,
+          method: 'POST',
+          requestBody: { event: event || '', data },
+          responseStatus: final?.status,
+          responseBody: final?.error
+            ? { error: final.error, totalAttempts: attempts.length }
+            : { totalAttempts: attempts.length },
+          responseTime: final ? Math.round(final.responseTime) : undefined,
+          userAgent: 'cregis-gateway/callback-pusher',
+          isError: !final?.status || final.status < 200 || final.status >= 300,
+        }).catch(() => {});
       }
 
-      logger.info(`Callback pushed successfully: ${event} to ${callbackUrl}`);
+      logger.info(`Callback pushed successfully: ${event} to ${callbackUrl} (${attempts.length} attempt(s))`);
       return { success: true };
     } catch (error) {
       const errorMessage =
@@ -252,17 +292,21 @@ export class ApplicationCallbackService {
    *
    * A total of maxRetries + 1 attempts are made (initial + retries), waiting
    * CALLBACK_CONFIG.retryDelays[attempt - 1] before each retry.
+   *
+   * `onAttempt` is called after each HTTP attempt (successful or failed) with
+   * per-attempt details including response time for API log tracking.
    */
   private async sendWithRetry(
     url: string,
     meta: CallbackMeta,
     data: CallbackBody,
     appSecret: string,
-    onSettled?: (status: number | undefined, error: string | undefined) => void,
+    onAttempt?: (log: CallbackAttemptLog) => void,
   ): Promise<void> {
     const maxAttempts = CALLBACK_CONFIG.maxRetries + 1; // initial + retries
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const attemptStart = Date.now();
       // Fresh timestamp per attempt, so receivers can validate freshness
       // (and the signature depends on it).
       meta.timestamp = Date.now().toString();
@@ -279,10 +323,11 @@ export class ApplicationCallbackService {
       try {
         // Use shared HTTP client (connection pooling) (F3)
         const response = await httpClient.post(url, data, { headers });
+        const responseTime = Date.now() - attemptStart;
 
         // 2xx is success (F1)
         if (response.status >= 200 && response.status < 300) {
-          onSettled?.(response.status, undefined);
+          onAttempt?.({ attempt, url, status: response.status, responseTime, error: undefined });
           return;
         }
 
@@ -292,19 +337,23 @@ export class ApplicationCallbackService {
           logger.info(
             `Callback retry: attempt ${attempt + 1}/${maxAttempts}, delay ${delay}ms, status ${response.status}`,
           );
+          onAttempt?.({ attempt, url, status: response.status, responseTime, error: `retryable ${response.status}` });
           await this.delay(delay);
           continue;
         }
 
-        onSettled?.(response.status, `Callback failed with status ${response.status}`);
+        onAttempt?.({ attempt, url, status: response.status, responseTime, error: `Callback failed with status ${response.status}` });
         throw new Error(`Callback failed with status ${response.status}`);
       } catch (error) {
+        const responseTime = Date.now() - attemptStart;
         const retryable = this.isRetryableNetworkError(error);
         if (retryable && attempt < maxAttempts) {
           const delay = this.retryDelay(attempt);
+          const msg = error instanceof Error ? error.message : String(error);
           logger.info(
             `Callback retry: attempt ${attempt + 1}/${maxAttempts}, delay ${delay}ms (network error)`,
           );
+          onAttempt?.({ attempt, url, status: undefined, responseTime, error: msg });
           await this.delay(delay);
           continue;
         }
@@ -320,12 +369,12 @@ export class ApplicationCallbackService {
         logger.error(
           `Callback push failed after ${attempt} attempt(s) to ${url} (appId: ${meta.appId}): ${message}`,
         );
-        onSettled?.(undefined, message);
+        onAttempt?.({ attempt, url, status: undefined, responseTime, error: message });
         throw error;
       }
     }
 
-    onSettled?.(undefined, `Callback push failed after ${maxAttempts} attempts`);
+    onAttempt?.({ attempt: maxAttempts + 1, url, status: undefined, responseTime: 0, error: `Callback push failed after ${maxAttempts} attempts` });
     throw new Error(
       `Callback push failed after ${maxAttempts} attempts to ${url}`,
     );

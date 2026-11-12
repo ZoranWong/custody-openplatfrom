@@ -107,9 +107,15 @@ export interface UsageStatistics {
   currency: string;
   successRate?: number;
   totalCalls?: number;
+  /** Inbound API calls (excludes outbound callback pushes unless requested). */
+  apiCalls?: number;
+  /** Outbound callback push logs in the window. */
+  callbackCalls?: number;
   totalBytes?: number;
   bytesTrackedSince?: string | null;
   partial?: boolean;
+  /** Days of raw detail kept for this developer. */
+  retentionDays?: number;
   avgResponseTimeMs?: number;
   todayCalls?: number;
   dailyLimit?: number;

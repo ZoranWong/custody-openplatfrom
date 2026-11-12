@@ -128,7 +128,9 @@ export interface QuotaResult {
 export interface SubscriptionRepository {
   findById(id: string): Promise<Subscription | null>
   findByDeveloperId(developerId: string): Promise<Subscription | null>
-  findActiveWithPackage(developerId: string): Promise<(Subscription & { package: { dailyApiLimit: number } }) | null>
+  findActiveWithPackage(developerId: string): Promise<(Subscription & { package: { dailyApiLimit: number; logRetention: number } }) | null>
+  /** Active package log_retention_days per developer, for the given ids only. */
+  findActiveLogRetention(developerIds: string[]): Promise<Map<string, number>>
   findByFilters(where: Prisma.SubscriptionWhereInput, page: number, pageSize: number): Promise<{ list: Subscription[]; total: number }>
   create(data: Prisma.SubscriptionCreateInput): Promise<Subscription>
   update(id: string, data: Prisma.SubscriptionUpdateInput): Promise<Subscription>
@@ -251,17 +253,23 @@ export interface ApiLogRepository {
   /** Read endpoint-daily rows in [startDay, endDay] inclusive. */
   getEndpointDailyBetween(developerId: string, startDay: string, endDay: string): Promise<ApiLogEndpointDailyRow[]>
   /** Aggregate raw logs for one developer over a day range (today's slice). */
-  aggregateRawRange(developerId: string, startIso: Date, endIso: Date): Promise<{ calls: number; errorCalls: number; totalBytes: number; avgResponseTime: number; byEndpoint: ApiLogEndpointDailyRow[]; byDay: ApiLogRawDayAggregate[] }>
+  aggregateRawRange(developerId: string, startIso: Date, endIso: Date): Promise<{ calls: number; errorCalls: number; totalBytes: number; avgResponseTime: number; callbackCalls: number; byEndpoint: ApiLogEndpointDailyRow[]; byDay: ApiLogRawDayAggregate[] }>
+  /** Count outbound callback-push rows in [startIso, endIso). */
+  countCallbackLogsBetween(developerId: string, startIso: Date, endIso: Date): Promise<number>
   /** Roll daily snapshots of a month into the monthly table, then delete those daily rows. */
   rollupMonth(developerId: string, month: string): Promise<number>
   /** Read monthly snapshots in [startMonth, endMonth] inclusive. */
   getMonthlySnapshotsBetween(developerId: string, startMonth: string, endMonth: string): Promise<ApiLogMonthlySnapshot[]>
-  /** Delete raw rows older than `day` (YYYY-MM-DD, exclusive). */
-  deleteRawBefore(day: string): Promise<{ count: number }>
+  /** Delete raw rows with no developer id older than `day` (YYYY-MM-DD, exclusive). */
+  deleteUnassignedRawBefore(day: string): Promise<{ count: number }>
+  /** Delete raw rows of one developer older than `day` (YYYY-MM-DD, exclusive). */
+  deleteRawBeforeForDeveloper(developerId: string, day: string): Promise<{ count: number }>
   /** Whether any daily snapshot exists for the developer+day. */
   hasDailySnapshot(developerId: string, date: string): Promise<boolean>
   /** List developer ids that have raw rows in the given day. */
   listDevelopersWithRawLogs(date: string): Promise<string[]>
+  /** Number of raw rows one developer holds on the given day. */
+  countRawForDeveloper(developerId: string, date: string): Promise<number>
   /** List developer ids that still have daily snapshots in the given month (YYYY-MM). */
   listDevelopersWithDailySnapshots(month: string): Promise<string[]>
   /** Retain only the last N days of daily snapshots / endpoint rows; returns deleted counts. */
@@ -269,15 +277,19 @@ export interface ApiLogRepository {
   /** Delete monthly snapshots older than the given month. */
   pruneMonthlyOlderThan(month: string): Promise<number>
   /** Paginated API log query */
-  findByDeveloper(developerId: string, page: number, pageSize: number, filters?: { isError?: boolean; apiName?: string; startDate?: Date; endDate?: Date; traceId?: string; developerId?: string }): Promise<{ list: ApiLog[]; total: number; page: number; pageSize: number }>
+  findByDeveloper(developerId: string, page: number, pageSize: number, filters?: { isError?: boolean; apiName?: string; startDate?: Date; endDate?: Date; traceId?: string; developerId?: string; category?: 'api' | 'callback' }): Promise<{ list: ApiLog[]; total: number; page: number; pageSize: number }>
   /** Single API log by id */
   findById(id: string): Promise<ApiLog | null>
   /** Upsert alert settings for a developer. */
-  upsertAlertSetting(data: { developerId: string; alertEmail: string | null; enabled: boolean; windowSeconds: number; errorThreshold: number; cooldownSeconds: number }): Promise<void>
+  upsertAlertSetting(data: { developerId: string; alertEmail: string | null; enabled: boolean; windowSeconds: number; errorThreshold: number; cooldownSeconds: number; logRetentionDays: number }): Promise<void>
   /** Paginated alert events for a developer. */
   getAlertEvents(developerId: string, page: number, pageSize: number): Promise<{ list: any[]; total: number; page: number; pageSize: number }>
   /** List alert settings — all, or only enabled ones. */
-  listAlertSettings(enabledOnly?: boolean): Promise<Array<{ developerId: string; alertEmail: string | null; enabled: boolean; windowSeconds: number; errorThreshold: number; cooldownSeconds: number }>>
+  listAlertSettings(enabledOnly?: boolean): Promise<Array<{ developerId: string; alertEmail: string | null; enabled: boolean; windowSeconds: number; errorThreshold: number; cooldownSeconds: number; logRetentionDays: number }>>
+  /** Developer ids of every stored alert setting. */
+  listAlertSettingDevelopers(): Promise<string[]>
+  /** Raw log retention days for one developer (defaults to the platform default). */
+  getLogRetentionDays(developerId: string): Promise<number>
   /** Get the cooldown end time for a developer (from latest alert event). */
   getAlertCooldownEnd(developerId: string): Promise<Date>
   /** Count errors and total calls in a time window. */

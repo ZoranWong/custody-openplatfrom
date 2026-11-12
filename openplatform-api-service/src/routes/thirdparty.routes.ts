@@ -84,6 +84,7 @@ router.post('/custody/callback', async (req: Request, res: Response) => {
         id: app.id,
         appSecret: app.appSecret || '',
         callbackUrl: app.callbackUrl,
+        isvDeveloperId: app.isvDeveloperId,
       },
       event: eventType,
       data: payload,

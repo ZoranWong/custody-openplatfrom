@@ -86,4 +86,25 @@ describe('ApiLogRepositoryImpl findByDeveloper filters', () => {
     expect(where.isError).toBe(true);
     expect(where.createdAt).toEqual({ gte: startDate, lte: endDate });
   });
+
+  it('selects only callback-push rows for category=callback', async () => {
+    await repo.findByDeveloper('dev-1', 1, 20, { category: 'callback' });
+    expect(state.findManyArgs[0].where.apiName).toEqual({ startsWith: 'callback.push' });
+    expect(state.findManyArgs[0].where.AND).toBeUndefined();
+  });
+
+  it('excludes callback-push rows for category=api but keeps null apiName', async () => {
+    await repo.findByDeveloper('dev-1', 1, 20, { category: 'api' });
+    expect(state.findManyArgs[0].where.apiName).toBeUndefined();
+    // NULL apiName rows are inbound calls and must not be dropped.
+    expect(state.findManyArgs[0].where.AND).toEqual([
+      { OR: [{ apiName: null }, { NOT: { apiName: { startsWith: 'callback.push' } } }] },
+    ]);
+  });
+
+  it('keeps both kinds when no category is given', async () => {
+    await repo.findByDeveloper('dev-1', 1, 20, {});
+    expect(state.findManyArgs[0].where.apiName).toBeUndefined();
+    expect(state.findManyArgs[0].where.AND).toBeUndefined();
+  });
 });

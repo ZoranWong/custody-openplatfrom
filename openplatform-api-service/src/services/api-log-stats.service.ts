@@ -95,6 +95,12 @@ export interface UsageWindow {
   endpoints: ReturnType<typeof buildBreakdown>;
   bytesTrackedSince: string | null;
   partial: boolean;
+  /** Days of raw detail this developer keeps (the stats read them live). */
+  retentionDays: number;
+  /** Outbound callback pushes in the window, split out of the API-call totals. */
+  callbackCalls: number;
+  /** Inbound API calls in the window. */
+  apiCalls: number;
 }
 
 /** Weighted mean of per-point averages, weighted by call count. */
@@ -132,6 +138,7 @@ export async function loadUsageWindow(
   startDay: string,
   timeZone: string = LOG_TIMEZONE,
   now: Date = new Date(),
+  retentionDays: number = RAW_RETENTION_DAYS,
 ): Promise<UsageWindow> {
   const repo = getApiLogRepository();
   const today = dayKey(now, timeZone);
@@ -146,6 +153,7 @@ export async function loadUsageWindow(
   let monthly: SeriesPoint[] = [];
   let daily: SeriesPoint[] = [];
   let endpoints: EndpointRow[] = [];
+  let callbackCalls = 0;
 
   // --- monthly tier: older than the daily window ---
   const requestedStartMonth = startDay.slice(0, 7);
@@ -180,7 +188,7 @@ export async function loadUsageWindow(
     // A day may have raw rows but no snapshot (rollup has not run yet, or the
     // day is still today). Read those live so the newest data is never missing.
     const snapDays = new Set(daily.map((d) => d.date));
-    const rawFloor = addDays(today, -(RAW_RETENTION_DAYS - 1));
+    const rawFloor = addDays(today, -(retentionDays - 1));
     const rawStart = dailyStart > rawFloor ? dailyStart : rawFloor;
     for (let d = rawStart; d <= today; d = addDays(d, 1)) {
       if (snapDays.has(d)) continue;
@@ -195,19 +203,37 @@ export async function loadUsageWindow(
       });
       endpoints.push(...agg.byEndpoint.map((e) => ({ ...e, date: d })));
     }
+    // Callback pushes are reported for the whole raw window in one query; they
+    // are never folded into the snapshot's API total, so this stays correct on
+    // both snapshot and live days.
+    callbackCalls = await repo.countCallbackLogsBetween(
+      developerId,
+      startOfDay(rawStart),
+      startOfDay(addDays(today, 1)),
+    );
   } catch (err) {
     partial = true;
     console.error('[ApiLog] daily/raw read failed:', (err as Error).message);
   }
 
   const series = mergeTimeSeries(daily, monthly);
-  const totalCalls = series.reduce((s, p) => s + p.calls, 0);
-  const errorCalls = series.reduce((s, p) => s + p.errorCalls, 0);
-  const totalBytes = series.reduce((s, p) => s + p.totalBytes, 0);
+  // Parse once so a day is never double-counted when monthly and daily overlap.
+  let totalCalls = 0;
+  let errorCalls = 0;
+  let totalBytes = 0;
+  for (const p of series) {
+    totalCalls += p.calls;
+    errorCalls += p.errorCalls;
+    totalBytes += p.totalBytes;
+  }
   const bytesTrackedSince = series.find((p) => p.totalBytes > 0)?.date ?? null;
 
   return {
+    // API-call totals stay API-only (snapshot-compatible); callback pushes are
+    // reported alongside instead of inflating them.
     totalCalls,
+    apiCalls: totalCalls,
+    callbackCalls,
     errorCalls,
     totalBytes,
     avgResponseTime: weightedAvg(series),
@@ -215,5 +241,6 @@ export async function loadUsageWindow(
     endpoints: buildBreakdown(mergeEndpoints(endpoints)),
     bytesTrackedSince,
     partial,
+    retentionDays,
   };
 }

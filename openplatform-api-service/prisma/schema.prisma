@@ -680,6 +680,9 @@ model DeveloperAlertSetting {
   /// Cooldown in seconds between alerts (default 1 hour)
   cooldownSeconds Int      @default(3600) @map("cooldown_seconds")
 
+  /// Raw log retention in days (default 3); capped by the package log_retention_days
+  logRetentionDays Int     @default(3) @map("log_retention_days")
+
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 

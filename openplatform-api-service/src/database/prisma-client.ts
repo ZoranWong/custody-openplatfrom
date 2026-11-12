@@ -5,21 +5,39 @@
 
 import { PrismaClient } from '@prisma/client'
 import { PrismaMariaDb } from '@prisma/adapter-mariadb'
+import mariadb from 'mariadb'
 import { logger } from '../utils/logger'
 
 // Global Prisma client instance
 let prisma: PrismaClient | null = null
 
-function createDatabaseUrl(): string {
-  const host = process.env.DB_HOST || 'localhost'
-  const port = process.env.DB_PORT || '3306'
-  const database = process.env.DB_NAME || 'cregis-openplatform'
-  const username = process.env.DB_USER || 'root'
-  const password = process.env.DB_PASSWORD || ''
-  if (password) {
-    return `mysql://${username}:${encodeURIComponent(password)}@${host}:${port}/${database}`
+function dbConfig() {
+  return {
+    host: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT || '3306'),
+    database: process.env.DB_NAME || 'cregis-openplatform',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
   }
-  return `mysql://${username}@${host}:${port}/${database}`
+}
+
+function createDatabaseUrl(): string {
+  const { host, port, database, user, password } = dbConfig()
+  if (password) {
+    return `mysql://${user}:${encodeURIComponent(password)}@${host}:${port}/${database}`
+  }
+  return `mysql://${user}@${host}:${port}/${database}`
+}
+
+/**
+ * Open a dedicated single-connection client outside Prisma's pool.
+ *
+ * Session-scoped MySQL state (GET_LOCK, temp tables) must live on one
+ * connection; a pooled Prisma client may hand each statement a different
+ * session. Callers own the returned connection and must `end()` it.
+ */
+export async function openDedicatedConnection() {
+  return mariadb.createConnection(dbConfig())
 }
 
 /**

@@ -7,6 +7,7 @@ import { Request, Response } from 'express';
 import { HttpCodes } from '../../enums/http-codes.enum';
 import { BusinessCodes } from '../../enums/business-codes.enum';
 import { getApiLogRepository } from '../../repositories/repository.factory';
+import { getRetentionInfo } from '../../services/api-log-retention.service';
 
 export async function getAlertSettings(req: Request, res: Response): Promise<void> {
   try {
@@ -16,7 +17,10 @@ export async function getAlertSettings(req: Request, res: Response): Promise<voi
       return;
     }
     const repo = getApiLogRepository();
-    const settings = await repo.listAlertSettings(false);
+    const [settings, retention] = await Promise.all([
+      repo.listAlertSettings(false),
+      getRetentionInfo(isvUser.isvId),
+    ]);
     const mySetting = settings.find((s) => s.developerId === isvUser.isvId);
 
     res.json({
@@ -28,6 +32,11 @@ export async function getAlertSettings(req: Request, res: Response): Promise<voi
         windowSeconds: mySetting?.windowSeconds ?? 300,
         errorThreshold: mySetting?.errorThreshold ?? 10,
         cooldownSeconds: mySetting?.cooldownSeconds ?? 3600,
+        // Raw log retention: configured value, the package ceiling, and what
+        // the rollup actually applies (min of the two).
+        logRetentionDays: retention.configuredDays,
+        maxLogRetentionDays: retention.maxDays,
+        effectiveLogRetentionDays: retention.effectiveDays,
       },
     });
   } catch (error) {
@@ -43,7 +52,31 @@ export async function updateAlertSettings(req: Request, res: Response): Promise<
       res.status(HttpCodes.UNAUTHORIZED).json({ code: BusinessCodes.AUTH_MISSING_HEADERS, message: 'Unauthorized' });
       return;
     }
-    const { alertEmail, enabled, windowSeconds, errorThreshold, cooldownSeconds } = req.body;
+    const { alertEmail, enabled, windowSeconds, errorThreshold, cooldownSeconds, logRetentionDays } = req.body;
+
+    // The package value is a ceiling: reject rather than silently persist a
+    // value the rollup would then clamp, so the UI never shows a lie.
+    const retention = await getRetentionInfo(isvUser.isvId);
+    let nextRetention = retention.configuredDays;
+    if (logRetentionDays !== undefined && logRetentionDays !== null) {
+      const requested = Number(logRetentionDays);
+      if (!Number.isInteger(requested) || requested < retention.minDays) {
+        res.status(HttpCodes.BAD_REQUEST).json({
+          code: BusinessCodes.PARAM_INVALID_FORMAT,
+          message: `logRetentionDays must be an integer >= ${retention.minDays}`,
+        });
+        return;
+      }
+      if (requested > retention.maxDays) {
+        res.status(HttpCodes.BAD_REQUEST).json({
+          code: BusinessCodes.PARAM_BUSINESS_RULE,
+          message: `logRetentionDays must be <= ${retention.maxDays} for the active package`,
+        });
+        return;
+      }
+      nextRetention = requested;
+    }
+
     const repo = getApiLogRepository();
     await repo.upsertAlertSetting({
       developerId: isvUser.isvId,
@@ -52,6 +85,7 @@ export async function updateAlertSettings(req: Request, res: Response): Promise<
       windowSeconds: windowSeconds ?? 300,
       errorThreshold: errorThreshold ?? 10,
       cooldownSeconds: cooldownSeconds ?? 3600,
+      logRetentionDays: nextRetention,
     });
     res.json({ code: 0, message: 'Alert settings updated' });
   } catch (error) {

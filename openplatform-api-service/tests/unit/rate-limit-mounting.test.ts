@@ -19,6 +19,12 @@ describe('Rate Limit Middleware Mounting', () => {
     let app: express.Application;
 
     beforeAll(async () => {
+        // main.ts mounts these middlewares behind ENABLE_RATE_LIMIT, and the
+        // local .env sets it to false. dotenv never overrides an existing
+        // process.env value, so this must be set before main.ts is imported —
+        // otherwise these assertions only pass where the limiter is enabled.
+        process.env.ENABLE_RATE_LIMIT = 'true';
+
         // Import the app from main.ts
         // Note: main.ts has side effects (starts listening, connects to DB),
         // so we import the default export which is the Express app

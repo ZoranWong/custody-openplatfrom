@@ -39,10 +39,24 @@ export class SubscriptionRepositoryImpl extends BaseRepository<Prisma.Subscripti
     return this.model.findFirst({
       where: { developerId, status: 'active' },
       include: {
-        package: { select: { dailyApiLimit: true } },
+        package: { select: { dailyApiLimit: true, logRetention: true } },
       },
       orderBy: { startDate: 'asc' },
-    }) as Promise<(Subscription & { package: { dailyApiLimit: number } }) | null>
+    }) as Promise<(Subscription & { package: { dailyApiLimit: number; logRetention: number } }) | null>
+  }
+
+  async findActiveLogRetention(developerIds: string[]): Promise<Map<string, number>> {
+    const result = new Map<string, number>()
+    if (developerIds.length === 0) return result
+    const subs = await this.model.findMany({
+      where: { developerId: { in: developerIds }, status: 'active' },
+      select: { developerId: true, package: { select: { logRetention: true } } },
+    })
+    for (const sub of subs as Array<{ developerId: string; package: { logRetention: number } | null }>) {
+      const days = sub.package?.logRetention
+      if (days != null) result.set(sub.developerId, days)
+    }
+    return result
   }
 
   /**

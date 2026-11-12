@@ -212,7 +212,7 @@ export function createBillingController(billingService: BillingService = createB
         const stats = await billingService.getUsageStatistics(
           isvUser.isvId,
           period as string | undefined,
-          undefined
+          undefined,
         );
 
         // Return data in format expected by frontend
@@ -221,9 +221,12 @@ export function createBillingController(billingService: BillingService = createB
           message: 'success',
           data: {
             total_calls: stats.totalCalls || stats.totalApiCalls || 0,
+            api_calls: stats.apiCalls ?? stats.totalApiCalls ?? 0,
+            callback_calls: stats.callbackCalls ?? 0,
             total_bytes: stats.totalBytes || 0,
             bytes_tracked_since: stats.bytesTrackedSince ?? null,
             partial: stats.partial ?? false,
+            retention_days: stats.retentionDays ?? null,
             success_rate: stats.successRate ?? 99.5,
             avg_response_time_ms: stats.avgResponseTimeMs || 0,
             today_calls: stats.todayCalls || 0,

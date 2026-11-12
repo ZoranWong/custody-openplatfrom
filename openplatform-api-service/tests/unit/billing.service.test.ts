@@ -1,203 +1,207 @@
 /**
  * Billing Service Tests
+ *
+ * Data access is mocked: these exercise the service's mapping/contract logic,
+ * not a live database. Invoice generation is still a documented placeholder in
+ * BillingService, so those cases pin the placeholder behaviour instead of
+ * asserting an invoice that does not exist yet.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { BillingService, createBillingService } from '../../src/services/billing.service';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  loadUsageWindow: vi.fn(),
+  getRetentionInfo: vi.fn(),
+  getRecentErrors: vi.fn(),
+  getDailyBreakdown: vi.fn(),
+  findActiveWithPackage: vi.fn(),
+  findByFilters: vi.fn(),
+  getLogRetentionDays: vi.fn(),
+}));
+
+vi.mock('../../src/services/api-log-stats.service', () => ({
+  loadUsageWindow: mocks.loadUsageWindow,
+}));
+
+vi.mock('../../src/services/api-log-retention.service', () => ({
+  getRetentionInfo: mocks.getRetentionInfo,
+}));
+
+vi.mock('../../src/services/api-log.service', () => ({
+  getRecentErrors: mocks.getRecentErrors,
+}));
+
+vi.mock('../../src/repositories/repository.factory', () => ({
+  getApiLogRepository: () => ({
+    getDailyBreakdown: mocks.getDailyBreakdown,
+    getLogRetentionDays: mocks.getLogRetentionDays,
+  }),
+  getSubscriptionRepository: () => ({
+    findActiveWithPackage: mocks.findActiveWithPackage,
+  }),
+  getOrderRepository: () => ({
+    findByFilters: mocks.findByFilters,
+  }),
+  getTicketRepository: () => ({}),
+}));
+
+const { createBillingService } = await import('../../src/services/billing.service');
+
+const USAGE_WINDOW = {
+  totalCalls: 100,
+  apiCalls: 100,
+  callbackCalls: 4,
+  errorCalls: 2,
+  totalBytes: 2048,
+  avgResponseTime: 40,
+  series: [
+    { date: '2026-11-01', calls: 100, errorCalls: 2, totalBytes: 2048, avgResponseTime: 40 },
+  ],
+  endpoints: [
+    {
+      endpoint: '/a',
+      method: 'POST',
+      calls: 100,
+      successCount: 98,
+      successRate: 98,
+      percentage: 100,
+      totalBytes: 2048,
+      avgResponseTime: 40,
+      maxResponseTime: 90,
+    },
+  ],
+  bytesTrackedSince: '2026-11-01',
+  partial: false,
+  retentionDays: 3,
+};
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  mocks.findActiveWithPackage.mockResolvedValue(null);
+  mocks.getRetentionInfo.mockResolvedValue({ effectiveDays: 3 });
+  mocks.getRecentErrors.mockResolvedValue([]);
+  mocks.loadUsageWindow.mockResolvedValue(USAGE_WINDOW);
+  mocks.getDailyBreakdown.mockResolvedValue([]);
+  mocks.findByFilters.mockResolvedValue({ list: [], total: 0 });
+});
 
 describe('BillingService', () => {
-  let service: BillingService;
-
-  beforeEach(() => {
-    service = createBillingService();
-  });
-
-  describe('generateInvoice', () => {
-    it('should generate an invoice for the given period', async () => {
-      const invoice = await service.generateInvoice(
-        'isv_123',
-        '2026-01-01',
-        '2026-01-31'
-      );
-
-      expect(invoice.invoiceId).toBeDefined();
-      expect(invoice.invoiceId).toMatch(/^INV-\d{4}-\d{4}$/);
-      expect(invoice.companyInfo).toBeDefined();
-      expect(invoice.companyInfo.name).toBe('Tech Corp');
-      expect(invoice.billingPeriod.start).toBe('2026-01-01');
-      expect(invoice.billingPeriod.end).toBe('2026-01-31');
-      expect(invoice.status).toBe('generated');
-      expect(invoice.currency).toBe('USD');
+  describe('invoice placeholder', () => {
+    // TODO(invoices): replace with real assertions once generateInvoice is implemented.
+    it('rejects generateInvoice because invoice generation is not implemented', async () => {
+      const service = createBillingService();
+      await expect(
+        service.generateInvoice('dev-1', '2026-01-01', '2026-01-31'),
+      ).rejects.toThrow(/not yet implemented/);
     });
 
-    it('should include usage breakdown', async () => {
-      const invoice = await service.generateInvoice(
-        'isv_123',
-        '2026-02-01',
-        '2026-02-28'
-      );
-
-      expect(invoice.usageBreakdown).toBeDefined();
-      expect(invoice.usageBreakdown.length).toBeGreaterThan(0);
-      expect(invoice.usageBreakdown[0].item).toBe('API Calls');
-      expect(invoice.usageBreakdown[0].currency).toBe('USD');
-    });
-  });
-
-  describe('getInvoice', () => {
-    it('should return invoice by ID', async () => {
-      const invoice = await service.getInvoice('INV-2026-0001');
-
-      expect(invoice).toBeDefined();
-      expect(invoice?.invoiceId).toBe('INV-2026-0001');
-      expect(invoice?.companyInfo.name).toBe('Tech Corp');
+    it('returns null for an unknown invoice', async () => {
+      const service = createBillingService();
+      expect(await service.getInvoice('INV-2026-0001')).toBeNull();
     });
 
-    it('should return null for non-existent invoice', async () => {
-      const invoice = await service.getInvoice('INVALID');
-      expect(invoice).toBeNull();
-    });
-  });
-
-  describe('getInvoiceHistory', () => {
-    it('should return paginated invoice history', async () => {
-      const result = await service.getInvoiceHistory('isv_123', 1, 10);
-
-      expect(result.list).toBeDefined();
-      expect(result.total).toBeGreaterThan(0);
-      expect(result.page).toBe(1);
-      expect(result.pageSize).toBe(10);
-    });
-
-    it('should respect pagination parameters', async () => {
-      const result = await service.getInvoiceHistory('isv_123', 2, 1);
-
+    it('returns an empty invoice history page', async () => {
+      const service = createBillingService();
+      const result = await service.getInvoiceHistory('dev-1', 2, 1);
+      expect(result.list).toEqual([]);
+      expect(result.total).toBe(0);
       expect(result.page).toBe(2);
       expect(result.pageSize).toBe(1);
-      expect(result.list.length).toBeLessThanOrEqual(1);
-    });
-
-    it('should return lightweight invoice history items', async () => {
-      const result = await service.getInvoiceHistory('isv_123', 1, 10);
-
-      // History items should not have full usage breakdown
-      if (result.list.length > 0) {
-        expect(result.list[0]).not.toHaveProperty('usageBreakdown');
-        expect(result.list[0]).toHaveProperty('invoiceId');
-        expect(result.list[0]).toHaveProperty('billingPeriod');
-        expect(result.list[0]).toHaveProperty('totalAmount');
-      }
     });
   });
 
   describe('getPaymentHistory', () => {
-    it('should return paginated payment history', async () => {
-      const result = await service.getPaymentHistory('isv_123', 1, 10);
+    it('maps repository orders and forwards pagination', async () => {
+      mocks.findByFilters.mockResolvedValue({
+        list: [
+          {
+            id: 'ord-1',
+            externalPaymentId: 'ext-1',
+            amount: '49.00',
+            currency: 'CNY',
+            paymentMethod: 'bank_transfer',
+            status: 'pending',
+            createdAt: new Date('2026-11-01T00:00:00Z'),
+          },
+        ],
+        total: 1,
+      });
+      const service = createBillingService();
+      const result = await service.getPaymentHistory('dev-1', 2, 5);
 
-      expect(result.list).toBeDefined();
-      expect(result.total).toBeGreaterThanOrEqual(0);
-      expect(result.page).toBe(1);
-      expect(result.pageSize).toBe(10);
+      expect(mocks.findByFilters).toHaveBeenCalledWith({ developerId: 'dev-1' }, 2, 5);
+      expect(result.total).toBe(1);
+      expect(result.list[0]).toMatchObject({
+        id: 'ord-1',
+        amount: 49,
+        currency: 'CNY',
+        status: 'pending',
+        createdAt: '2026-11-01T00:00:00.000Z',
+      });
     });
 
-    it('should have correct payment structure', async () => {
-      const result = await service.getPaymentHistory('isv_123', 1, 10);
-
-      if (result.list.length > 0) {
-        expect(result.list[0]).toHaveProperty('paymentId');
-        expect(result.list[0]).toHaveProperty('invoiceId');
-        expect(result.list[0]).toHaveProperty('amount');
-        expect(result.list[0]).toHaveProperty('currency');
-        expect(result.list[0]).toHaveProperty('status');
-      }
+    it('returns an empty page when the repository throws', async () => {
+      mocks.findByFilters.mockRejectedValue(new Error('db down'));
+      const service = createBillingService();
+      const result = await service.getPaymentHistory('dev-1', 1, 10);
+      expect(result).toMatchObject({ list: [], total: 0, page: 1, pageSize: 10 });
     });
   });
 
   describe('getUsageStatistics', () => {
-    it('should return usage statistics', async () => {
-      const stats = await service.getUsageStatistics('isv_123');
+    it('maps the usage window into the portal contract', async () => {
+      const service = createBillingService();
+      const stats = await service.getUsageStatistics('dev-1', '30days');
 
-      expect(stats.totalApiCalls).toBeGreaterThan(0);
-      expect(stats.totalBandwidth).toBeGreaterThan(0);
-      expect(stats.totalCost).toBeGreaterThan(0);
+      expect(stats.totalApiCalls).toBe(100);
+      expect(stats.apiCalls).toBe(100);
+      expect(stats.callbackCalls).toBe(4);
+      expect(stats.totalCalls).toBe(100);
+      expect(stats.totalBandwidth).toBe(2048);
+      expect(stats.successRate).toBe(98);
       expect(stats.currency).toBe('USD');
+      expect(stats.dailyBreakdown?.[0]).toMatchObject({ calls: 100, successCount: 98 });
+      expect(stats.endpointBreakdown?.[0]).toMatchObject({ endpoint: '/a', totalBytes: 2048 });
+
+      const [developerId, startDay, , , retentionDays] = mocks.loadUsageWindow.mock.calls[0];
+      expect(developerId).toBe('dev-1');
+      expect(typeof startDay).toBe('string'); // 30-day window, inclusive of today
+      expect(retentionDays).toBe(3);
     });
 
-    it('should include cost breakdown', async () => {
-      const stats = await service.getUsageStatistics('isv_123');
-
-      expect(stats.apiCallCost).toBeGreaterThanOrEqual(0);
-      expect(stats.bandwidthCost).toBeGreaterThanOrEqual(0);
-      expect(stats.storageCost).toBeGreaterThanOrEqual(0);
+    it('keeps costs at zero until pricing is implemented', async () => {
+      const service = createBillingService();
+      const stats = await service.getUsageStatistics('dev-1');
+      expect(stats.apiCallCost).toBe(0);
+      expect(stats.bandwidthCost).toBe(0);
+      expect(stats.storageCost).toBe(0);
+      expect(stats.totalCost).toBe(0);
     });
   });
 
   describe('getUsageTrend', () => {
-    it('should return usage trend for 7 days', async () => {
-      const trend = await service.getUsageTrend('isv_123', '7d');
-
-      expect(trend).toBeDefined();
-      expect(trend.length).toBeLessThanOrEqual(7);
-    });
-
-    it('should return usage trend for 30 days', async () => {
-      const trend = await service.getUsageTrend('isv_123', '30d');
-
-      expect(trend).toBeDefined();
-      expect(trend.length).toBeLessThanOrEqual(30);
-    });
-
-    it('should return usage trend data points', async () => {
-      const trend = await service.getUsageTrend('isv_123', '7d');
-
-      if (trend.length > 0) {
-        expect(trend[0]).toHaveProperty('date');
-        expect(trend[0]).toHaveProperty('apiCalls');
-        expect(trend[0]).toHaveProperty('bandwidth');
-      }
-    });
-
-    it('should default to 7 days if no period specified', async () => {
-      const trend = await service.getUsageTrend('isv_123');
-
-      expect(trend.length).toBeLessThanOrEqual(7);
-    });
-  });
-});
-
-describe('Billing Types', () => {
-  describe('Invoice', () => {
-    it('should have correct structure', async () => {
+    it('maps daily breakdown rows for the requested period', async () => {
+      mocks.getDailyBreakdown.mockResolvedValue([
+        { date: '2026-11-10', calls: 3, successCount: 3, avgResponseTime: 10 },
+        { date: '2026-11-11', calls: 4, successCount: 4, avgResponseTime: 12 },
+      ]);
       const service = createBillingService();
-      const invoice = await service.generateInvoice('isv_123', '2026-01-01', '2026-01-31');
+      const trend = await service.getUsageTrend('dev-1', '7d');
 
-      expect(invoice.invoiceId).toBeDefined();
-      expect(invoice.companyInfo).toBeDefined();
-      expect(invoice.companyInfo.name).toBeDefined();
-      expect(invoice.companyInfo.taxId).toBeDefined();
-      expect(invoice.billingPeriod).toBeDefined();
-      expect(invoice.usageBreakdown).toBeDefined();
-      expect(invoice.subtotal).toBeDefined();
-      expect(invoice.taxRate).toBeDefined();
-      expect(invoice.taxAmount).toBeDefined();
-      expect(invoice.totalAmount).toBeDefined();
-      expect(invoice.currency).toBe('USD');
+      expect(trend).toHaveLength(2);
+      expect(trend[0]).toEqual({ date: '2026-11-10', apiCalls: 3, bandwidth: 0 });
+      expect(mocks.getDailyBreakdown).toHaveBeenCalledTimes(1);
     });
-  });
 
-  describe('PaymentHistoryItem', () => {
-    it('should have correct structure', async () => {
+    it('defaults to the 7-day window', async () => {
       const service = createBillingService();
-      const result = await service.getPaymentHistory('isv_123');
+      await service.getUsageTrend('dev-1');
 
-      if (result.list.length > 0) {
-        const payment = result.list[0];
-        expect(payment.paymentId).toBeDefined();
-        expect(payment.invoiceId).toBeDefined();
-        expect(payment.amount).toBeGreaterThan(0);
-        expect(payment.status).toMatch(/^(pending|processing|completed|failed|refunded)$/);
-        expect(payment.paymentMethod).toMatch(/^(bank_transfer|credit_card|debit_card|crypto)$/);
-      }
+      const [, startDate] = mocks.getDailyBreakdown.mock.calls[0];
+      const days = Math.round(
+        (Date.now() - (startDate as Date).getTime()) / (24 * 60 * 60 * 1000),
+      );
+      expect(days).toBe(7);
     });
   });
 });

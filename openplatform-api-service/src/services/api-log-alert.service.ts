@@ -11,7 +11,6 @@
  */
 
 import { getApiLogRepository } from '../repositories/repository.factory';
-import { getClient } from '../repositories/db-client';
 import { isRollupInstance, withAdvisoryLock } from '../utils/single-instance';
 import { sendAlertEmail } from './email.service';
 
@@ -47,7 +46,6 @@ export function createApiLogAlertService(config: ApiLogAlertConfig = {}) {
    */
   async function runCheck(): Promise<void> {
     const repo = getApiLogRepository();
-    const client = getClient();
     const settings = await repo.listAlertSettings(true);
     if (settings.length === 0) return;
 
@@ -141,7 +139,7 @@ export function createApiLogAlertService(config: ApiLogAlertConfig = {}) {
       timer = setTimeout(async () => {
         if (stopped) return;
         try {
-          await withAdvisoryLock(getClient(), 'api_log_alert', runCheck);
+          await withAdvisoryLock('api_log_alert', runCheck);
         } catch (err) {
           console.error('[ApiLogAlert] Scanner failed:', (err as Error).message);
         }

@@ -118,12 +118,14 @@ app.get('/health', async (_req: Request, res: Response) => {
 
 // Rate limiting middleware
 // Global rate limiting for all API routes
-app.use('/api', defaultRateLimitMiddleware)
-
-// Strict rate limit for sensitive auth endpoints
-app.use('/api/v1/admin/auth/login', strictRateLimit)
-app.use('/api/v1/admin/auth/refresh', strictRateLimit)
-app.use('/api/v1/admin/auth/change-password', strictRateLimit)
+const ENABLE_RATE_LIMIT = process.env.ENABLE_RATE_LIMIT !== 'false'
+if (ENABLE_RATE_LIMIT) {
+  app.use('/api', defaultRateLimitMiddleware)
+  // Strict rate limit for sensitive auth endpoints
+  app.use('/api/v1/admin/auth/login', strictRateLimit)
+  app.use('/api/v1/admin/auth/refresh', strictRateLimit)
+  app.use('/api/v1/admin/auth/change-password', strictRateLimit)
+}
 
 // API Routes
 app.use('/api/v1/admin', adminAuthRoutes)

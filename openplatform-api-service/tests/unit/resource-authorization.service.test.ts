@@ -4,14 +4,20 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-// Mock prisma client
-const mockOauthResource = {
-  findUnique: vi.fn()
-}
+// Mock prisma client. `vi.hoisted` keeps the mock object available when the
+// `vi.mock` factory is hoisted above the imports (a plain `const` throws
+// "Cannot access 'mockPrisma' before initialization").
+const { mockOauthResource, mockPrisma } = vi.hoisted(() => {
+  const mockOauthResource = {
+    findUnique: vi.fn()
+  }
 
-const mockPrisma = {
-  oauthResource: mockOauthResource
-}
+  const mockPrisma = {
+    oauthResource: mockOauthResource
+  }
+
+  return { mockOauthResource, mockPrisma }
+})
 
 vi.mock('../../src/database/prisma-client', () => ({
   getPrismaClient: vi.fn(() => mockPrisma)

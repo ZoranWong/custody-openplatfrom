@@ -5,7 +5,7 @@ const loadUsageWindow = vi.fn();
 vi.mock('../../src/services/api-log-stats.service', () => ({ loadUsageWindow }));
 
 vi.mock('../../src/repositories/repository.factory', () => ({
-  getApiLogRepository: () => ({ findRecentErrors: async () => [] }),
+  getApiLogRepository: () => ({ findRecentErrors: async () => [], getLogRetentionDays: async () => 3 }),
   getSubscriptionRepository: () => ({ findActiveWithPackage: async () => null }),
   getOrderRepository: () => ({}),
   getTicketRepository: () => ({}),
@@ -24,6 +24,7 @@ describe('getUsageStatistics', () => {
       endpoints: [{ endpoint: '/a', method: 'POST', calls: 120, successCount: 114, successRate: 95, percentage: 100, totalBytes: 2400, avgResponseTime: 88, maxResponseTime: 300 }],
       bytesTrackedSince: '2026-11-01',
       partial: false,
+      retentionDays: 3,
     });
     const svc = createBillingService();
     const stats = await svc.getUsageStatistics('dev-1', '30days');
@@ -41,6 +42,27 @@ describe('getUsageStatistics', () => {
     expect(typeof startDay).toBe('string');
   });
 
+  it('surfaces the callback split from the usage window', async () => {
+    loadUsageWindow.mockResolvedValue({
+      totalCalls: 130,
+      apiCalls: 120,
+      callbackCalls: 10,
+      errorCalls: 6,
+      totalBytes: 2400,
+      avgResponseTime: 88,
+      series: [],
+      endpoints: [],
+      bytesTrackedSince: null,
+      partial: false,
+      retentionDays: 3,
+    });
+    const svc = createBillingService();
+    const stats = await svc.getUsageStatistics('dev-1', '30days');
+    expect(stats.totalCalls).toBe(130);
+    expect(stats.apiCalls).toBe(120);
+    expect(stats.callbackCalls).toBe(10);
+  });
+
   it('reports partial data and a null traffic start when no bytes are tracked', async () => {
     loadUsageWindow.mockResolvedValue({
       totalCalls: 0,
@@ -51,6 +73,7 @@ describe('getUsageStatistics', () => {
       endpoints: [],
       bytesTrackedSince: null,
       partial: true,
+      retentionDays: 3,
     });
     const svc = createBillingService();
     const stats = await svc.getUsageStatistics('dev-1', '7d');
