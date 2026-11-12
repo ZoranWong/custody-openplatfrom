@@ -41,6 +41,12 @@ export interface ForwardRouteConfig {
    * to pass the original through).
    */
   responseHandler?: (response: any, req: any) => Promise<any>;
+  /**
+   * Forward `business` as query-string parameters instead of a JSON body.
+   * Inbound stays POST + Resource signature; used for upstream endpoints that
+   * are GET-shaped (e.g. `/api/third-party/list/task/{resourceKey}`).
+   */
+  businessAsQuery?: boolean;
 }
 
 export interface BackendClientConfig {
@@ -122,6 +128,20 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
     method: 'POST',
     clientName: 'custodyService',
     paramMapping: { resourceKey: 'context', taskId: 'url' },
+  },
+
+  // Query tasks (任务列表) — custody only declares GET for this endpoint, so the
+  // outbound leg must be GET; business is promoted to query params (inbound is
+  // still POST + Resource signature).
+  {
+    routeId: 'treasury-tasks',
+    name: 'List Tasks',
+    inboundPath: '/api/thirdparty/treasury/tasks',
+    route: '/api/third-party/list/task/{resourceKey}',
+    method: 'GET',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+    businessAsQuery: true,
   },
 
   // Query activities

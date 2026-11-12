@@ -231,11 +231,24 @@ export async function forwardRequest(req: Request, res: Response): Promise<void>
       return fail(ctx, req, res, HttpCodes.BAD_REQUEST, BusinessCodes.PARAM_INVALID_FORMAT, businessError, startTime);
     }
 
+    // Most custody endpoints take the business payload as a POST body. A few
+    // upstream endpoints are GET-shaped, so their business filters are promoted
+    // to query params and no body is sent (axios drops `data` on a GET).
+    let requestData: unknown = req.body?.business;
+    let requestParams: Record<string, unknown> = req.query as Record<string, string>;
+    if (config.businessAsQuery) {
+      const business = (req.body?.business ?? {}) as Record<string, unknown>;
+      requestParams = Object.fromEntries(
+        Object.entries(business).filter(([, value]) => value !== undefined && value !== null),
+      );
+      requestData = undefined;
+    }
+
     const response = await client.request({
       method: config.method as any,
       url: backendPath,
-      data: req.body?.business,
-      params: req.query as Record<string, string>,
+      data: requestData,
+      params: requestParams,
       headers: { 'x-trace-id': traceId },
     });
 
