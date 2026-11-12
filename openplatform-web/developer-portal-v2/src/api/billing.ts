@@ -118,6 +118,7 @@ export function fetchApiLogs(params?: {
   pageSize?: number
   isError?: string
   apiName?: string
+  category?: 'api' | 'callback'
   traceId?: string
   startDate?: string
   endDate?: string

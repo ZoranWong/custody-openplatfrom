@@ -1,19 +1,16 @@
+<!--
+  API 日志追踪页：按 traceId / 状态 / 日期检索单次调用，点开查看请求体与响应体。
+  原始日志只保留数天（右上角“日志设置”可调），统计报表在“调用统计”页。
+-->
 <template>
   <div class="api-log-page art-full-height">
-    <ApiLogStatsPanel
-      :stats="stats"
-      :loading="statsLoading"
-      class="mb-4"
-      @range-change="handleRangeChange"
-    />
-
     <ElCard class="art-table-card">
       <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
         <template #left>
           <ElSpace wrap>
             <ElInput
               v-model="searchForm.traceId"
-              :placeholder="$t('developer.usageStatistics.traceId')"
+              :placeholder="$t('developer.apiLogTrace.traceId')"
               clearable
               class="w-52"
               @keyup.enter="handleSearch"
@@ -23,8 +20,18 @@
               </template>
             </ElInput>
             <ElSelect
+              v-model="searchForm.category"
+              :placeholder="$t('developer.apiLogTrace.logType')"
+              clearable
+              class="w-32"
+              @change="handleSearch"
+            >
+              <ElOption :label="$t('developer.apiLogTrace.categoryApi')" value="api" />
+              <ElOption :label="$t('developer.apiLogTrace.categoryCallback')" value="callback" />
+            </ElSelect>
+            <ElSelect
               v-model="searchForm.isError"
-              :placeholder="$t('developer.billing.payment.status')"
+              :placeholder="$t('developer.apiLogTrace.status')"
               clearable
               class="w-32"
               @change="handleSearch"
@@ -35,7 +42,7 @@
             <ElDatePicker
               v-model="searchForm.startDate"
               type="date"
-              :placeholder="$t('developer.usageStatistics.startDate')"
+              :placeholder="$t('developer.apiLogTrace.startDate')"
               clearable
               class="w-36"
               value-format="YYYY-MM-DD"
@@ -44,7 +51,7 @@
             <ElDatePicker
               v-model="searchForm.endDate"
               type="date"
-              :placeholder="$t('developer.usageStatistics.endDate')"
+              :placeholder="$t('developer.apiLogTrace.endDate')"
               clearable
               class="w-36"
               value-format="YYYY-MM-DD"
@@ -57,6 +64,12 @@
               @change="onAutoRefreshChange"
             />
           </ElSpace>
+        </template>
+        <template #right>
+          <ElButton text bg @click="settingsVisible = true">
+            <ElIcon class="mr-1"><Setting /></ElIcon>
+            {{ $t('developer.apiLogTrace.settings') }}
+          </ElButton>
         </template>
       </ArtTableHeader>
 
@@ -76,25 +89,28 @@
       :log-id="selectedLogId"
       @closed="selectedLogId = undefined"
     />
+
+    <ApiLogSettingsDrawer v-model="settingsVisible" @saved="handleSettingsSaved" />
   </div>
 </template>
 
 <script setup lang="ts">
-  defineOptions({ name: 'ApiLog' })
+  defineOptions({ name: 'ApiLogTrace' })
 
   import { h, onBeforeUnmount } from 'vue'
   import { useI18n } from 'vue-i18n'
   import { useTable } from '@/hooks/core/useTable'
   import { ElButton, ElTag, ElIcon, ElInput, ElSelect, ElOption, ElDatePicker, ElSwitch, ElTooltip } from 'element-plus'
-  import { Search, CopyDocument } from '@element-plus/icons-vue'
+  import { Search, Setting } from '@element-plus/icons-vue'
   import { formatDate } from '@/utils/date'
-  import { fetchApiLogs, fetchUsageStats } from '@/api/billing'
+  import { fetchApiLogs } from '@/api/billing'
   import ApiLogDetailDrawer from './modules/api-log-detail-drawer.vue'
-  import ApiLogStatsPanel from './modules/api-log-stats-panel.vue'
+  import ApiLogSettingsDrawer from './modules/api-log-settings-drawer.vue'
 
   const { t, locale } = useI18n()
 
   const searchForm = ref({
+    category: undefined as 'api' | 'callback' | undefined,
     isError: undefined as string | undefined,
     traceId: undefined as string | undefined,
     startDate: undefined as string | undefined,
@@ -104,19 +120,7 @@
   let refreshTimer: ReturnType<typeof setInterval> | undefined
   const detailVisible = ref(false)
   const selectedLogId = ref<string | undefined>()
-  const stats = ref<Record<string, any> | null>(null)
-  const statsLoading = ref(false)
-
-  const loadStats = async (period = '30days') => {
-    statsLoading.value = true
-    try {
-      stats.value = await fetchUsageStats(period)
-    } finally {
-      statsLoading.value = false
-    }
-  }
-
-  const handleRangeChange = (value: string) => loadStats(value)
+  const settingsVisible = ref(false)
 
   const onAutoRefreshChange = (val: string | number | boolean) => {
     if (val) {
@@ -132,7 +136,6 @@
   })
 
   onMounted(() => {
-    loadStats()
     // If the URL had an autoRefresh query, activate it
     const auto = (window as any).location?.search?.includes('autoRefresh')
     if (auto) {
@@ -140,6 +143,12 @@
       refreshTimer = setInterval(() => getData(), 15000)
     }
   })
+
+  const handleSettingsSaved = () => {
+    // A shorter retention only affects future prunes, but refresh so the
+    // developer sees the new window immediately.
+    getData()
+  }
 
   const openDetail = (row: any) => {
     selectedLogId.value = row.id
@@ -168,6 +177,7 @@
         const result = await fetchApiLogs({
           page: params.page,
           pageSize: params.pageSize,
+          category: params.category,
           isError: params.isError,
           traceId: params.traceId,
           startDate: params.startDate,
@@ -180,7 +190,7 @@
       columnsFactory: () =>
         [
           { type: 'index' as const, width: 60, label: '#' },
-          { prop: 'traceId', label: t('developer.usageStatistics.traceId'), width: 180,
+          { prop: 'traceId', label: t('developer.apiLogTrace.traceId'), width: 180,
             formatter: (row: any) => row.traceId
               ? h(ElTooltip, { content: 'Copy' }, () =>
                   h('span', { style: 'cursor:pointer; font-family:monospace; color:var(--el-color-primary)', onClick: () => copyTraceId(row.traceId) }, row.traceId.slice(0, 8) + '…')
@@ -198,7 +208,7 @@
           },
           {
             prop: 'responseStatus',
-            label: t('developer.billing.payment.status'),
+            label: t('developer.apiLogTrace.status'),
             width: 100,
             formatter: (row: any) => {
               const isError = row.responseStatus >= 400

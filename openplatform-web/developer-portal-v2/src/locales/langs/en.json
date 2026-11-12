@@ -45,7 +45,8 @@
     "noData": "No Data",
     "noDataDesc": "No data available",
     "comingSoon": "Coming Soon",
-    "optional": "Optional"
+    "optional": "Optional",
+    "saveFailed": "Failed to save"
   },
   "search": {
     "placeholder": "Search page",
@@ -325,7 +326,8 @@
       "applicationsCreate": "Create App",
       "applicationsDetail": "App Detail",
       "applicationsEdit": "Edit App",
-      "usageStatistics": "API Log",
+      "usageStatistics": "Usage Statistics",
+      "logTracking": "Log Tracking",
       "billing": "Billing",
       "invoiceGeneration": "Invoices",
       "paymentHistory": "Orders",
@@ -333,28 +335,7 @@
       "account": "Account",
       "profile": "Profile",
       "apiKeys": "API Keys",
-      "settings": {
-        "title": "Account Settings",
-        "alertTitle": "Error Alert Settings",
-        "alertEnabled": "Enable Alerts",
-        "alertEmail": "Alert Email",
-        "windowSeconds": "Window",
-        "windowHint": "seconds — errors counted in this window",
-        "errorThreshold": "Error Threshold",
-        "cooldownSeconds": "Cooldown",
-        "cooldownHint": "seconds between alerts",
-        "alertHistory": "Alert History",
-        "save": "Save",
-        "saved": "Settings saved",
-        "invalidEmail": "Invalid email format",
-        "windowEnd": "Window End",
-        "errorCount": "Errors",
-        "totalCount": "Total Calls",
-        "sent": "Sent",
-        "yes": "Yes",
-        "no": "No",
-        "createdAt": "Created"
-      },
+      "settings": "Settings",
       "orderManagement": "Orders",
       "subscriptionHistory": "History",
       "subscriptionManagement": "Subscription"
@@ -559,7 +540,8 @@
         "notFound": "Application not found",
         "permissionDenied": "Permission denied",
         "title": "Delete Application",
-        "warning": "This action cannot be undone. All associated API keys will be invalidated immediately"
+        "warning": "This action cannot be undone. All associated API keys will be invalidated immediately",
+        "appIdNote": "App ID: {appId}"
       },
       "types": {
         "corporate": {
@@ -585,6 +567,25 @@
         }
       }
     },
+    "apiLogTrace": {
+      "title": "Log Tracking",
+      "traceId": "Trace ID",
+      "status": "Status",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "settings": "Log Settings",
+      "logType": "Log type",
+      "categoryApi": "API call",
+      "categoryCallback": "Callback push"
+    },
+    "apiLogSettings": {
+      "title": "Log Settings",
+      "retentionTitle": "Raw Log Retention",
+      "retentionHint": "Raw call details (request/response bodies, traceId) are deleted after the retention period. Daily statistics are kept for 6 months.",
+      "retentionDays": "Retention Days",
+      "retentionRange": "1 - {max} days, capped by your current package",
+      "capped": "Your package caps retention at {effective} days; {configured} is stored but the rollup applies {effective}."
+    },
     "usageStatistics": {
       "title": "Usage Statistics",
       "accountBalance": "Account Balance",
@@ -599,6 +600,7 @@
       "todayCalls": "Today Calls",
       "remainingCalls": "Remaining",
       "statsTitle": "Call Statistics",
+      "callbackPushes": "Callback pushes",
       "traffic": "Traffic",
       "successRate": "Success Rate",
       "totalCalls": "Total Calls",
@@ -613,7 +615,30 @@
       "autoRefresh": "Auto Refresh",
       "autoRefreshOff": "Auto Refresh",
       "startDate": "Start Date",
-      "endDate": "End Date"
+      "endDate": "End Date",
+      "detailHintDynamic": "Raw details are kept for {days} days; statistics for 6 months."
+    },
+    "settings": {
+      "title": "Account Settings",
+      "alertTitle": "Error Alert Settings",
+      "alertEnabled": "Enable Alerts",
+      "alertEmail": "Alert Email",
+      "windowSeconds": "Window",
+      "windowHint": "seconds — errors counted in this window",
+      "errorThreshold": "Error Threshold",
+      "cooldownSeconds": "Cooldown",
+      "cooldownHint": "seconds between alerts",
+      "alertHistory": "Alert History",
+      "save": "Save",
+      "saved": "Settings saved",
+      "invalidEmail": "Invalid email format",
+      "windowEnd": "Window End",
+      "errorCount": "Errors",
+      "totalCount": "Total Calls",
+      "sent": "Sent",
+      "yes": "Yes",
+      "no": "No",
+      "createdAt": "Created"
     },
     "invoiceGeneration": {
       "title": "Invoice Generation",

@@ -45,7 +45,8 @@
     "noData": "暂无数据",
     "noDataDesc": "暂无数据",
     "comingSoon": "即将上线",
-    "optional": "选填"
+    "optional": "选填",
+    "saveFailed": "保存失败"
   },
   "search": {
     "placeholder": "搜索页面",
@@ -325,7 +326,8 @@
       "applicationsCreate": "创建应用",
       "applicationsDetail": "应用详情",
       "applicationsEdit": "编辑应用",
-      "usageStatistics": "API日志",
+      "usageStatistics": "调用统计",
+      "logTracking": "日志追踪",
       "billing": "账单管理",
       "invoiceGeneration": "发票生成",
       "paymentHistory": "订单管理",
@@ -333,28 +335,7 @@
       "account": "账户管理",
       "profile": "个人资料",
       "apiKeys": "API 密钥",
-      "settings": {
-        "title": "账户设置",
-        "alertTitle": "错误预警设置",
-        "alertEnabled": "启用预警",
-        "alertEmail": "接收邮箱",
-        "windowSeconds": "时间窗口",
-        "windowHint": "秒，检查此窗口内的错误数",
-        "errorThreshold": "错误阈值",
-        "cooldownSeconds": "冷却期",
-        "cooldownHint": "秒，两次告警之间的最小间隔",
-        "alertHistory": "告警历史",
-        "save": "保存",
-        "saved": "设置已保存",
-        "invalidEmail": "邮箱格式不正确",
-        "windowEnd": "窗口结束",
-        "errorCount": "错误数",
-        "totalCount": "总调用",
-        "sent": "已发送",
-        "yes": "是",
-        "no": "否",
-        "createdAt": "创建时间"
-      },
+      "settings": "账户设置",
       "orderManagement": "订单管理",
       "subscriptionHistory": "订阅记录",
       "subscriptionManagement": "订阅管理"
@@ -559,7 +540,8 @@
         "notFound": "应用未找到",
         "permissionDenied": "没有权限",
         "title": "删除应用",
-        "warning": "此操作不可撤销。删除后所有关联的 API 密钥将立即失效"
+        "warning": "此操作不可撤销。删除后所有关联的 API 密钥将立即失效",
+        "appIdNote": "应用 ID: {appId}"
       },
       "types": {
         "corporate": {
@@ -585,8 +567,27 @@
         }
       }
     },
+    "apiLogTrace": {
+      "title": "日志追踪",
+      "traceId": "Trace ID",
+      "status": "状态",
+      "startDate": "开始日期",
+      "endDate": "结束日期",
+      "settings": "日志设置",
+      "logType": "日志类型",
+      "categoryApi": "API 调用",
+      "categoryCallback": "回调推送"
+    },
+    "apiLogSettings": {
+      "title": "日志设置",
+      "retentionTitle": "原始日志保留",
+      "retentionHint": "原始调用明细（请求体、响应体、traceId）超过保留天数后会被删除，按天聚合的统计数据仍保留 6 个月。",
+      "retentionDays": "保留天数",
+      "retentionRange": "1 ~ {max} 天，上限由当前套餐决定",
+      "capped": "当前套餐最多保留 {effective} 天，超出部分按 {effective} 天执行。"
+    },
     "usageStatistics": {
-      "title": "用量统计",
+      "title": "调用统计",
       "accountBalance": "账户余额",
       "recharge": "充值",
       "treasuryUnits": "资金单元",
@@ -599,6 +600,7 @@
       "todayCalls": "今日调用",
       "remainingCalls": "剩余调用",
       "statsTitle": "调用统计",
+      "callbackPushes": "回调推送",
       "traffic": "流量",
       "successRate": "成功率",
       "totalCalls": "调用次数",
@@ -613,7 +615,30 @@
       "autoRefresh": "自动刷新",
       "autoRefreshOff": "自动刷新",
       "startDate": "开始日期",
-      "endDate": "结束日期"
+      "endDate": "结束日期",
+      "detailHintDynamic": "原始明细保留 {days} 天，统计数据保留 6 个月"
+    },
+    "settings": {
+      "title": "账户设置",
+      "alertTitle": "错误预警设置",
+      "alertEnabled": "启用预警",
+      "alertEmail": "接收邮箱",
+      "windowSeconds": "时间窗口",
+      "windowHint": "秒，检查此窗口内的错误数",
+      "errorThreshold": "错误阈值",
+      "cooldownSeconds": "冷却期",
+      "cooldownHint": "秒，两次告警之间的最小间隔",
+      "alertHistory": "告警历史",
+      "save": "保存",
+      "saved": "设置已保存",
+      "invalidEmail": "邮箱格式不正确",
+      "windowEnd": "窗口结束",
+      "errorCount": "错误数",
+      "totalCount": "总调用",
+      "sent": "已发送",
+      "yes": "是",
+      "no": "否",
+      "createdAt": "创建时间"
     },
     "invoiceGeneration": {
       "title": "发票生成",

@@ -21,7 +21,7 @@
       <div class="art-card-header mb-2 flex items-center justify-between">
         <div class="title">
           <h4>{{ $t('developer.usageStatistics.usageTrend') }}</h4>
-          <p class="text-xs text-gray-400">{{ $t('developer.usageStatistics.detailHint') }}</p>
+          <p class="text-xs text-gray-400">{{ detailHint }}</p>
         </div>
         <ElRadioGroup v-model="range" size="small" @change="emit('range-change', range)">
           <ElRadioButton value="7days">{{ $t('developer.usageStatistics.range7d') }}</ElRadioButton>
@@ -119,6 +119,13 @@
     return since ? t('developer.usageStatistics.trafficSince', { date: since }) : ''
   })
 
+  const detailHint = computed(() => {
+    const days = props.stats?.retention_days
+    return days
+      ? t('developer.usageStatistics.detailHintDynamic', { days })
+      : t('developer.usageStatistics.detailHint')
+  })
+
   const cards = computed(() => {
     const s = props.stats ?? {}
     const hasBytes = (s.total_bytes ?? 0) > 0
@@ -129,7 +136,9 @@
         iconStyle: 'bg-blue-500',
         title: t('developer.usageStatistics.totalCalls'),
         subtitle: s.total_calls ?? 0,
-        description: t('developer.usageStatistics.statsTitle')
+        description: s.callback_calls
+          ? t('developer.usageStatistics.callbackPushes') + ` ${s.callback_calls}`
+          : t('developer.usageStatistics.statsTitle')
       },
       {
         key: 'traffic',

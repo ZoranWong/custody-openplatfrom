@@ -87,7 +87,7 @@ export const staticRoutes: AppRouteRecordRaw[] = [
   },
   {
     path: '/settings',
-    redirect: '/account/settings'
+    redirect: '/log-tracking'
   },
   {
     path: '/api-keys',

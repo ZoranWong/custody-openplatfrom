@@ -80,7 +80,7 @@ const applicationsRoute: AppRouteRecord = {
   ]
 }
 
-// 用量统计
+// 调用统计（按天聚合的报表，不含原始明细）
 const usageStatsRoute: AppRouteRecord = {
   name: 'DeveloperUsageStatistics',
   path: '/usage-statistics',
@@ -94,9 +94,32 @@ const usageStatsRoute: AppRouteRecord = {
     {
       path: '',
       name: 'UsageStatisticsConsole',
-      component: '/developer/usage-statistics',
+      component: '/developer/usage-statistics/report',
       meta: {
         title: 'menus.developer.usageStatistics',
+        keepAlive: false
+      }
+    }
+  ]
+}
+
+// 日志追踪（原始调用明细，保留天数可配置）
+const logTrackingRoute: AppRouteRecord = {
+  name: 'DeveloperLogTracking',
+  path: '/log-tracking',
+  component: '/index/index',
+  meta: {
+    title: 'menus.developer.logTracking',
+    icon: 'ri:route-line',
+    roles: ['R_SUPER', 'R_ADMIN']
+  },
+  children: [
+    {
+      path: '',
+      name: 'ApiLogTrace',
+      component: '/developer/usage-statistics/trace',
+      meta: {
+        title: 'menus.developer.logTracking',
         keepAlive: false
       }
     }
@@ -205,11 +228,10 @@ const accountRoute: AppRouteRecord = {
     },
     {
       path: 'settings',
-      name: 'DeveloperSettings',
-      component: '/developer/settings',
+      redirect: '/log-tracking',
       meta: {
         title: 'menus.developer.settings',
-        keepAlive: false
+        isHide: true
       }
     }
   ]
@@ -219,6 +241,7 @@ export const developerPortalRoutes: AppRouteRecord[] = [
   dashboardRoute,
   applicationsRoute,
   usageStatsRoute,
+  logTrackingRoute,
   billingRoute,
   subscriptionRoute,
   accountRoute
