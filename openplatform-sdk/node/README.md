@@ -1,10 +1,10 @@
 # Cregis OpenPlatform Node.js SDK
 
-Cregis 托管开放平台官方 Node.js SDK（服务端），覆盖 **OAuth 授权、财务单元（Treasury Unit）、出金/归集、审批、商户与企业用户管理、交易记录查询、回调验签** 全部 25 个业务接口。
+Cregis 托管开放平台官方 Node.js SDK（服务端），覆盖 **OAuth 授权、财务单元（Treasury Unit）、出金/归集、审批、商户与企业用户管理、交易记录查询、回调验签** 全部 26 个业务接口。
 
-**当前版本：1.4.0**
+**当前版本：1.5.0**
 
-> 1.4.0 变更摘要见文末 [版本与变更](#版本与变更)。
+> 1.5.0 变更摘要见文末 [版本与变更](#版本与变更)。
 
 **技术特性**
 
@@ -680,6 +680,30 @@ sdk.submitTask(authorizationId, taskId: string, request: {
 
 `taskId` 来自 `createPayout` / `pooling` / `addCoins` / `updateWhitelist` 的返回值。
 
+#### `listTasks(authorizationId, options?)`
+
+```typescript
+sdk.listTasks(authorizationId, options?: {
+  pageNum?: number;        // 页码，从 1 开始
+  pageSize?: number;       // 每页数量
+  businessId?: string;     // 订单 id
+  taskType?: 'orders' | 'issues' | string;  // 资金 / 系统操作
+  taskId?: string;
+  state?: AuditTaskStatus | string;
+}): Promise<PaginatedResponse<WCCIPCmdAuditTask>>
+```
+
+转发至 `POST /api/thirdparty/treasury/tasks`（上游 `GET /api/third-party/list/task/{resourceAccessKey}`，网关把 `business` 转为 query 参数）。`state` 取值：`AUDITING` / `REJECTED` / `AUDIT_REJECTED` / `AUDIT_PASSED` / `SIGNING` / `SIGN_FAILED` / `SIGN_SUCCEED` / `FAILED` / `VERIFY_SUCCEED` / `VERIFY_FAILED` / `WAITING` / `SIGN_REJECTED` / `EXPIRED`。
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `PaginatedResponse<WCCIPCmdAuditTask>` | `records` / `total` / `current` / `size`（上游不返回 `pages`） |
+| 可能业务码 | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+`data.records[].taskId` 可继续传给 `submitTask` 提交审批。
+
 ---
 
 ### 交易记录
@@ -1161,6 +1185,12 @@ SDK 会自行拼接 `/api/thirdparty/...` 路径，`baseUrl` 不要带尾斜杠�
 ---
 
 ## 版本与变更
+
+### 1.5.0
+
+**新增接口**
+
+- `listTasks(authorizationId, options?)` — 查询任务列表，转发至 `POST /api/thirdparty/treasury/tasks`（上游 `GET /api/third-party/list/task/{resourceAccessKey}`）。返回 `PaginatedResponse<WCCIPCmdAuditTask>`；新增 `TaskListQuery` 类型（`pageNum` / `pageSize` / `businessId` / `taskType` / `taskId` / `state`）。
 
 ### 1.4.0
 

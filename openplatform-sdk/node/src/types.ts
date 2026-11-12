@@ -441,6 +441,22 @@ export interface SubmitTaskRequest {
   confirmed: boolean;
 }
 
+/** Query filters for the task list (查询任务列表). */
+export interface TaskListQuery {
+  /** 页码，从 1 开始 */
+  pageNum?: number;
+  /** 每页数量 */
+  pageSize?: number;
+  /** 订单 id */
+  businessId?: string;
+  /** 任务类型：资金 orders / 系统操作 issues */
+  taskType?: 'orders' | 'issues' | string;
+  /** 任务 id */
+  taskId?: string;
+  /** 任务状态 */
+  state?: AuditTaskStatus | string;
+}
+
 export type AuditTaskStatus =
   | 'AUDITING' | 'REJECTED' | 'AUDIT_REJECTED' | 'AUDIT_PASSED'
   | 'SIGNING' | 'SIGN_FAILED' | 'SIGN_SUCCEED' | 'FAILED' | 'WAITING'

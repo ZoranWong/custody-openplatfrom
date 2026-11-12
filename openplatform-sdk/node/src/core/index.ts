@@ -13,7 +13,7 @@ import {
   ProjectUnitAccountAddress, AccountAddressVO,
   PoolingRequest,
   CreatePayoutRequest, WCCIPCmdAuditTask,
-  SubmitTaskRequest, PaginationQuery, ProjectUnitActivity,
+  SubmitTaskRequest, TaskListQuery, PaginationQuery, ProjectUnitActivity,
   ProjectUnitTransferOutOrder, ProjectUnitTransferInOrder,
   ProjectUnitFundRecord, ProjectUnitLedgerFundRecord,
   MerchantRegisterRequest, MerchantRegisterResult,
@@ -408,6 +408,29 @@ export class CregisSDK {
     );
     await this.http.post<void>(
       `/api/thirdparty/treasury/submit-task/${taskId}`,
+      { basic, business },
+    );
+  }
+
+  /** List audit tasks. POST /api/thirdparty/treasury/tasks */
+  async listTasks(
+    authorizationId: string,
+    options: TaskListQuery = {},
+  ): Promise<PaginatedResponse<WCCIPCmdAuditTask>> {
+    const business: Record<string, unknown> = {};
+    for (const key of [
+      'pageNum',
+      'pageSize',
+      'businessId',
+      'taskType',
+      'taskId',
+      'state',
+    ] as const) {
+      if (options[key] !== undefined) business[key] = options[key];
+    }
+    const { basic } = this.buildResourceRequest(authorizationId, business);
+    return this.http.post<PaginatedResponse<WCCIPCmdAuditTask>>(
+      '/api/thirdparty/treasury/tasks',
       { basic, business },
     );
   }

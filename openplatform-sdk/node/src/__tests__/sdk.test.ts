@@ -199,6 +199,38 @@ describe('CregisSDK payout/transaction/submit endpoints', () => {
     expect(result).toBeUndefined();
   });
 
+  it('listTasks posts to /tasks with every filter', async () => {
+    const sdk = createSDK();
+    const spy = spyPost();
+    await sdk.listTasks(RAK, {
+      pageNum: 1,
+      pageSize: 10,
+      businessId: 'B-1',
+      taskType: 'orders',
+      taskId: 'T-1',
+      state: 'AUDITING',
+    });
+    const [url, body] = lastPost(spy as any);
+    expect(url).toBe('/api/thirdparty/treasury/tasks');
+    expect(body.business).toEqual({
+      pageNum: 1,
+      pageSize: 10,
+      businessId: 'B-1',
+      taskType: 'orders',
+      taskId: 'T-1',
+      state: 'AUDITING',
+    });
+    expect((body.basic as any).authorizationId).toBe(RAK);
+  });
+
+  it('listTasks sends an empty business when no filters are given', async () => {
+    const sdk = createSDK();
+    const spy = spyPost();
+    await sdk.listTasks(RAK);
+    const [, body] = lastPost(spy as any);
+    expect(body.business).toEqual({});
+  });
+
   it('listActivities posts to /activities', async () => {
     const sdk = createSDK();
     const spy = spyPost();
