@@ -6,9 +6,12 @@ const mocks = vi.hoisted(() => {
     listDevelopersWithDailySnapshots: vi.fn(async (_month: string) => ['dev-1'] as string[]),
     listAlertSettingDevelopers: vi.fn(async () => [] as string[]),
     countRawForDeveloper: vi.fn(async (_dev: string, _day: string) => 1),
+    countApiCallRawForDeveloper: vi.fn(async (_dev: string, _day: string) => 1),
     hasDailySnapshot: vi.fn(async (_dev: string, _day: string) => true),
     rollupDay: vi.fn(async (_dev: string, _day: string) => ({ calls: 1, errors: 0 })),
-    deleteRawBeforeForDeveloper: vi.fn(async (_dev: string, _day: string) => ({ count: 1 })),
+    listDaysWithRawLogs: vi.fn(async () => [] as string[]),
+    listRawDaysForDeveloper: vi.fn(async (_dev: string) => [] as string[]),
+    deleteRawForDay: vi.fn(async (_dev: string, _day: string) => ({ count: 1 })),
     deleteUnassignedRawBefore: vi.fn(async (_day: string) => ({ count: 1 })),
     pruneDailyOlderThan: vi.fn(async (_day: string) => ({ snapshots: 1, endpoints: 1 })),
     rollupMonth: vi.fn(async (_dev: string, _month: string) => 1),
@@ -49,9 +52,12 @@ function resetRepo() {
   repo.listDevelopersWithDailySnapshots.mockReset().mockResolvedValue(['dev-1']);
   repo.listAlertSettingDevelopers.mockReset().mockResolvedValue([]);
   repo.countRawForDeveloper.mockReset().mockResolvedValue(1);
+  repo.countApiCallRawForDeveloper.mockReset().mockResolvedValue(1);
   repo.hasDailySnapshot.mockReset().mockResolvedValue(true);
   repo.rollupDay.mockReset().mockResolvedValue({ calls: 1, errors: 0 });
-  repo.deleteRawBeforeForDeveloper.mockReset().mockResolvedValue({ count: 1 });
+  repo.listDaysWithRawLogs.mockReset().mockResolvedValue(['2026-11-01', '2026-10-31', '2026-10-30']);
+  repo.listRawDaysForDeveloper.mockReset().mockResolvedValue([]);
+  repo.deleteRawForDay.mockReset().mockResolvedValue({ count: 1 });
   repo.deleteUnassignedRawBefore.mockReset().mockResolvedValue({ count: 1 });
   repo.pruneDailyOlderThan.mockReset().mockResolvedValue({ snapshots: 1, endpoints: 1 });
   repo.rollupMonth.mockReset().mockResolvedValue(1);
@@ -64,49 +70,118 @@ describe('ApiLogRollupService', () => {
     resetRepo();
   });
 
-  it('rolls up D-1..D-3 then deletes raw rows older than D-2 for the default 3 days', async () => {
+  it('includes a developer whose only rows are older than 30 days, so they still get cleaned', async () => {
+    // 2026-09-01 is far outside any retention window; a fixed 30-day lookback
+    // would drop this developer entirely and leave the rows stranded.
+    repo.listDaysWithRawLogs.mockResolvedValue(['2026-09-01']);
+    repo.listDevelopersWithRawLogs.mockResolvedValue(['old-dev']);
+    repo.listRawDaysForDeveloper.mockResolvedValue(['2026-09-01']);
+
+    const svc = createApiLogRollupService({ now: () => NOW });
+    await svc.runOnce();
+
+    expect(repo.rollupDay).toHaveBeenCalledWith('old-dev', '2026-09-01');
+    expect(repo.deleteRawForDay).toHaveBeenCalledWith('old-dev', '2026-09-01');
+  });
+
+  it('rolls up every day that still has raw rows, then deletes rolled-up days before the cutoff', async () => {
+    // Any day holding raw rows is rolled up, however old — otherwise old rows
+    // can never earn a snapshot and can never be deleted.
+    repo.listDaysWithRawLogs.mockResolvedValue(['2026-10-20', '2026-10-29', '2026-10-31', '2026-11-01', '2026-11-02']);
+    // Default 3 days → cutoff D-2 (2026-10-31). Only days strictly before the
+    // cutoff whose snapshot exists are deleted.
+    repo.listRawDaysForDeveloper.mockResolvedValue(['2026-10-20', '2026-10-29', '2026-10-31', '2026-11-01']);
+
     const svc = createApiLogRollupService({ now: () => NOW });
     await svc.runOnce();
 
     const days = repo.rollupDay.mock.calls.map((c) => c[1]);
-    // Only the developer's own retention window is recomputed.
-    expect(days).toEqual(['2026-11-01', '2026-10-31', '2026-10-30']);
-    // Default 3 days → exclusive cutoff D-2: rows before 2026-10-31 go, so
-    // D-2, D-1 and today remain.
-    expect(repo.deleteRawBeforeForDeveloper).toHaveBeenCalledWith('dev-1', '2026-10-31');
+    // Today (2026-11-02) is rolled up the next morning, so it is skipped here.
+    expect(days).toEqual(['2026-10-20', '2026-10-29', '2026-10-31', '2026-11-01']);
+    expect(repo.listRawDaysForDeveloper).toHaveBeenCalledWith('dev-1');
+    expect(repo.deleteRawForDay.mock.calls).toEqual([
+      ['dev-1', '2026-10-20'],
+      ['dev-1', '2026-10-29'],
+    ]);
     expect(repo.deleteUnassignedRawBefore).toHaveBeenCalledWith('2026-10-31');
   });
 
-  it('keeps a longer retention for the developer that configured it', async () => {
+  it('a longer retention only widens the keep window, not which days get rolled up', async () => {
     retention.set('dev-1', 7);
+    repo.listDaysWithRawLogs.mockResolvedValue(['2026-10-20', '2026-10-26', '2026-10-27', '2026-10-31']);
+    repo.listRawDaysForDeveloper.mockResolvedValue(['2026-10-20', '2026-10-26', '2026-10-27', '2026-10-31']);
+
     const svc = createApiLogRollupService({ now: () => NOW });
     await svc.runOnce();
 
-    const days = repo.rollupDay.mock.calls.map((c) => c[1]);
-    expect(days).toHaveLength(7);
-    expect(days[6]).toBe('2026-10-26');
-    expect(repo.deleteRawBeforeForDeveloper).toHaveBeenCalledWith('dev-1', '2026-10-27');
+    // Every raw day is still rolled up.
+    expect(repo.rollupDay.mock.calls.map((c) => c[1])).toEqual([
+      '2026-10-20', '2026-10-26', '2026-10-27', '2026-10-31',
+    ]);
+    // Retention 7 → cutoff 2026-10-27. Days strictly before it are deleted:
+    // 10-20 and 10-26. 10-27 and 10-31 stay.
+    expect(repo.deleteRawForDay.mock.calls).toEqual([
+      ['dev-1', '2026-10-20'],
+      ['dev-1', '2026-10-26'],
+    ]);
     // Rows inside the unassigned slice are untouched by the developer delete.
     expect(repo.deleteUnassignedRawBefore).toHaveBeenCalledWith('2026-10-31');
   });
 
-  it('skips deleting a day whose snapshot is missing', async () => {
-    repo.hasDailySnapshot.mockResolvedValue(false);
+  it('skips deleting a day whose snapshot is missing, and still deletes the days that have one', async () => {
+    repo.listRawDaysForDeveloper.mockResolvedValue(['2026-10-20', '2026-10-21', '2026-10-22']);
+    repo.hasDailySnapshot.mockImplementation(async (_dev: string, day: string) => day !== '2026-10-21');
+
     const svc = createApiLogRollupService({ now: () => NOW });
     await svc.runOnce();
-    // Rows exist in the older span, so the per-developer delete must not run.
-    expect(repo.deleteRawBeforeForDeveloper).not.toHaveBeenCalled();
+
+    // 10-21 has no snapshot → its raw rows must survive; the other two go.
+    expect(repo.deleteRawForDay.mock.calls).toEqual([
+      ['dev-1', '2026-10-20'],
+      ['dev-1', '2026-10-22'],
+    ]);
     expect(repo.deleteUnassignedRawBefore).toHaveBeenCalled();
+  });
+
+  it('deletes a day that holds only callback pushes, which never get a snapshot', async () => {
+    repo.listRawDaysForDeveloper.mockResolvedValue(['2026-10-20']);
+    // Most recent rollup: the day has raw rows but rollupDay wrote no snapshot
+    // because every row is a callback push.
+    repo.hasDailySnapshot.mockResolvedValue(false);
+    repo.countApiCallRawForDeveloper.mockResolvedValue(0);
+
+    const svc = createApiLogRollupService({ now: () => NOW });
+    await svc.runOnce();
+
+    expect(repo.deleteRawForDay.mock.calls).toEqual([['dev-1', '2026-10-20']]);
+  });
+
+  it('never deletes a day whose snapshot check throws', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    repo.listRawDaysForDeveloper.mockResolvedValue(['2026-10-20', '2026-10-21']);
+    repo.hasDailySnapshot.mockImplementation(async (_dev: string, day: string) => {
+      if (day === '2026-10-20') throw new Error('db blip');
+      return true;
+    });
+
+    const svc = createApiLogRollupService({ now: () => NOW });
+    await svc.runOnce();
+
+    // Only the day whose check succeeded is deleted.
+    expect(repo.deleteRawForDay.mock.calls).toEqual([['dev-1', '2026-10-21']]);
+    expect(errorSpy.mock.calls.some((c) => String(c[0]).includes('Raw deletion failed for dev-1/2026-10-20'))).toBe(true);
+    errorSpy.mockRestore();
   });
 
   it('skips raw deletion when a day rollup throws', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     repo.rollupDay.mockRejectedValueOnce(new Error('boom'));
+    repo.listRawDaysForDeveloper.mockResolvedValue(['2026-10-20']);
 
     const svc = createApiLogRollupService({ now: () => NOW });
     await svc.runOnce();
 
-    expect(repo.deleteRawBeforeForDeveloper).not.toHaveBeenCalled();
+    expect(repo.deleteRawForDay).not.toHaveBeenCalled();
     // A global failure blocks unassigned pruning; it cannot be tied to a
     // developer and would otherwise be deleted before its snapshot exists.
     expect(repo.deleteUnassignedRawBefore).not.toHaveBeenCalled();

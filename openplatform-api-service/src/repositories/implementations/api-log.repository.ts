@@ -242,77 +242,64 @@ export class ApiLogRepositoryImpl
     const totalBytes = BigInt(Number(summary?.total_bytes || 0));
     const avgResponseTime = Number(summary?.avg_rt || 0);
 
+    // One statement per table instead of one round-trip per endpoint. With a
+    // busy developer (60+ endpoints) the per-row upserts used to blow past the
+    // 5s interactive-transaction timeout, which aborted the whole rollup and
+    // in turn blocked every downstream raw-log deletion.
+    const topEndpointsJson = JSON.stringify(topEndpoints);
+    const endpointValues = endpointRows.map((r) => Prisma.sql`(
+      ${developerId}, ${dayLabel}, ${r.endpoint}, ${r.method},
+      ${Number(r.calls)}, ${Number(r.errors)}, ${BigInt(Number(r.total_bytes || 0))},
+      ${Number(r.avg_rt || 0)}, ${Number(r.max_rt || 0)}
+    )`);
+
     await this.client.$transaction(async (tx) => {
-      await tx.apiLogSnapshot.upsert({
-        where: { uq_dev_date: { developerId, date: dayLabel } },
-        create: {
-          developerId,
-          date: dayLabel,
-          totalCalls: calls,
-          errorCalls: errors,
-          avgResponseTime,
-          p95ResponseTime: p95,
-          totalBytes,
-          topEndpoints: topEndpoints as any,
-        },
-        update: {
-          totalCalls: calls,
-          errorCalls: errors,
-          avgResponseTime,
-          p95ResponseTime: p95,
-          totalBytes,
-          topEndpoints: topEndpoints as any,
-        },
-      });
+      await tx.$executeRaw`
+        INSERT INTO api_log_snapshots
+          (developer_id, date, total_calls, error_calls, avg_response_time,
+           p95_response_time, total_bytes, top_endpoints)
+        VALUES (${developerId}, ${dayLabel}, ${calls}, ${errors}, ${avgResponseTime},
+                ${p95}, ${totalBytes}, ${topEndpointsJson})
+        ON DUPLICATE KEY UPDATE
+          total_calls = VALUES(total_calls),
+          error_calls = VALUES(error_calls),
+          avg_response_time = VALUES(avg_response_time),
+          p95_response_time = VALUES(p95_response_time),
+          total_bytes = VALUES(total_bytes),
+          top_endpoints = VALUES(top_endpoints)
+      `;
 
-      for (const r of endpointRows) {
-        await tx.apiLogEndpointDaily.upsert({
-          where: {
-            uq_dev_date_endpoint: {
-              developerId,
-              date: dayLabel,
-              endpoint: r.endpoint,
-              method: r.method,
-            },
-          },
-          create: {
-            developerId,
-            date: dayLabel,
-            endpoint: r.endpoint,
-            method: r.method,
-            calls: Number(r.calls),
-            errorCalls: Number(r.errors),
-            totalBytes: BigInt(Number(r.total_bytes || 0)),
-            avgResponseTime: Number(r.avg_rt || 0),
-            maxResponseTime: Number(r.max_rt || 0),
-          },
-          update: {
-            calls: Number(r.calls),
-            errorCalls: Number(r.errors),
-            totalBytes: BigInt(Number(r.total_bytes || 0)),
-            avgResponseTime: Number(r.avg_rt || 0),
-            maxResponseTime: Number(r.max_rt || 0),
-          },
-        });
-      }
+      if (endpointValues.length > 0) {
+        await tx.$executeRaw`
+          INSERT INTO api_log_endpoint_daily
+            (developer_id, date, endpoint, method, calls, error_calls,
+             total_bytes, avg_response_time, max_response_time)
+          VALUES ${Prisma.join(endpointValues)}
+          ON DUPLICATE KEY UPDATE
+            calls = VALUES(calls),
+            error_calls = VALUES(error_calls),
+            total_bytes = VALUES(total_bytes),
+            avg_response_time = VALUES(avg_response_time),
+            max_response_time = VALUES(max_response_time)
+        `;
 
-      // Drop endpoint rows that no longer appear in the recomputation (for
-      // example after a partial raw delete) so daily totals cannot drift.
-      // The unique key is (developerId, date, endpoint, method), so the keep
-      // set is the endpoint+method pair — matching on endpoint alone would
-      // leave e.g. a stale `/x GET` row behind while `/x POST` still exists.
-      if (endpointRows.length > 0) {
-        const keep = endpointRows.map((r) => ({
-          endpoint: r.endpoint,
-          method: r.method,
-        }));
-        await tx.apiLogEndpointDaily.deleteMany({
-          where: {
-            developerId,
-            date: dayLabel,
-            NOT: { OR: keep },
-          },
-        });
+        // Drop endpoint rows that no longer appear in the recomputation (for
+        // example after a partial raw delete) so daily totals cannot drift.
+        // The unique key is (developerId, date, endpoint, method), so the keep
+        // set is the endpoint+method pair — matching on endpoint alone would
+        // leave e.g. a stale `/x GET` row behind while `/x POST` still exists.
+        const keep = endpointRows.map((r) => Prisma.sql`(${r.endpoint}, ${r.method})`);
+        await tx.$executeRaw`
+          DELETE FROM api_log_endpoint_daily
+          WHERE developer_id = ${developerId}
+            AND date = ${dayLabel}
+            AND (endpoint, method) NOT IN (${Prisma.join(keep)})
+        `;
+      } else {
+        await tx.$executeRaw`
+          DELETE FROM api_log_endpoint_daily
+          WHERE developer_id = ${developerId} AND date = ${dayLabel}
+        `;
       }
     });
 
@@ -599,6 +586,52 @@ export class ApiLogRepositoryImpl
     return { count: result.count };
   }
 
+  /**
+   * Delete one developer's raw rows for exactly one day.
+   *
+   * This is the delete the retention pipeline uses: it is called only after the
+   * day's snapshot is known to exist, so no call is ever dropped before it has
+   * been aggregated. Deleting per day (rather than "everything before a cutoff")
+   * also keeps rows for days whose rollup failed.
+   */
+  async deleteRawForDay(developerId: string, date: string): Promise<{ count: number }> {
+    const start = startOfDay(date);
+    const end = startOfDay(addDays(date, 1));
+    const result = await this.model.deleteMany({
+      where: { developerId, createdAt: { gte: start, lt: end } },
+    });
+    return { count: result.count };
+  }
+
+  /** Distinct days that still hold raw rows for a developer, oldest first. */
+  async listRawDaysForDeveloper(developerId: string): Promise<string[]> {
+    const rows: any[] = await this.queryRaw`
+      SELECT DISTINCT DATE(created_at) AS d
+      FROM api_logs
+      WHERE developer_id = ${developerId}
+      ORDER BY d ASC
+    `;
+    return rows.map((r) =>
+      r.d instanceof Date ? r.d.toISOString().slice(0, 10) : String(r.d).slice(0, 10),
+    );
+  }
+
+  /**
+   * Distinct days that still hold raw rows, regardless of developer, oldest
+   * first. The rollup walks this instead of a fixed lookback window so rows
+   * older than the window cannot be stranded without a snapshot.
+   */
+  async listDaysWithRawLogs(): Promise<string[]> {
+    const rows: any[] = await this.queryRaw`
+      SELECT DISTINCT DATE(created_at) AS d
+      FROM api_logs
+      ORDER BY d ASC
+    `;
+    return rows.map((r) =>
+      r.d instanceof Date ? r.d.toISOString().slice(0, 10) : String(r.d).slice(0, 10),
+    );
+  }
+
   /** Whether any daily snapshot exists for the developer+day. */
   async hasDailySnapshot(developerId: string, date: string): Promise<boolean> {
     const row = await this.client.apiLogSnapshot.findUnique({
@@ -630,6 +663,28 @@ export class ApiLogRepositoryImpl
       FROM api_logs
       WHERE developer_id = ${developerId}
         AND created_at >= ${start} AND created_at < ${end}
+    `;
+    return Number(rows[0]?.cnt || 0);
+  }
+
+  /**
+   * Number of raw rows on a day that count as API calls (callback pushes
+   * excluded) — exactly what `rollupDay` aggregates.
+   *
+   * The retention delete needs this: `rollupDay` writes no snapshot when a day
+   * holds only callback rows, so "no snapshot" alone cannot distinguish
+   * "rollup failed" from "nothing to aggregate". Zero here means the day is
+   * callback-only and its rows are safe to delete.
+   */
+  async countApiCallRawForDeveloper(developerId: string, date: string): Promise<number> {
+    const start = startOfDay(date);
+    const end = startOfDay(addDays(date, 1));
+    const rows: any[] = await this.queryRaw`
+      SELECT COUNT(*) AS cnt
+      FROM api_logs
+      WHERE developer_id = ${developerId}
+        AND created_at >= ${start} AND created_at < ${end}
+        AND (api_name IS NULL OR api_name NOT LIKE ${CALLBACK_LIKE})
     `;
     return Number(rows[0]?.cnt || 0);
   }

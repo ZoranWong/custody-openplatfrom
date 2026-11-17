@@ -19,21 +19,11 @@ import {
 } from '../utils/api-log-dates';
 import { isRollupInstance, withAdvisoryLock } from '../utils/single-instance';
 import {
-  MAX_RAW_RETENTION_DAYS,
   RAW_RETENTION_DAYS,
   DAILY_RETENTION_MONTHS,
   MONTHLY_RETENTION_YEARS,
 } from '../config/api-log-retention';
 import { resolveRetentionForDevelopers } from './api-log-retention.service';
-
-/**
- * Whether a developer still holds raw rows on `day` that must be rolled up
- * before deletion. Covers today and every day inside the retention window; the
- * next run then rolls up the last missed day.
- */
-function needsRollup(day: string, today: string, retentionDays: number): boolean {
-  return day >= addDays(today, -retentionDays);
-}
 
 export interface ApiLogRollupOptions {
   now?: () => Date;
@@ -53,12 +43,21 @@ export function createApiLogRollupService(opts: ApiLogRollupOptions = {}) {
     const today = dayKey(now(), tz);
     let failed = false;
 
-    // 0) Resolve retention for everyone who can still hold raw rows: developers
-    //    seen inside the longest window, plus anyone with stored settings whose
-    //    retention may have been lowered below the remaining rows.
+    // 0) Resolve retention for everyone who can still hold raw rows. The set is
+    //    taken from the days that actually have rows, not a fixed lookback: a
+    //    developer whose oldest rows predate the window must still be in the
+    //    delete pass, otherwise those rows are rolled up but never removed.
+    //    Developers with stored settings are added too, so a lowered retention
+    //    takes effect even when their rows are all older than the window.
     const dueDevelopers = new Set<string>();
-    for (let i = 0; i <= MAX_RAW_RETENTION_DAYS; i++) {
-      const day = addDays(today, -i);
+    let rawDays: string[] = [];
+    try {
+      rawDays = await repo.listDaysWithRawLogs();
+    } catch (error) {
+      failed = true;
+      console.error(`[ApiLog] Failed to list raw days: ${messageOf(error)}`);
+    }
+    for (const day of rawDays) {
       try {
         const devs = await repo.listDevelopersWithRawLogs(day);
         devs.forEach((dev) => dueDevelopers.add(dev));
@@ -83,12 +82,16 @@ export function createApiLogRollupService(opts: ApiLogRollupOptions = {}) {
       retention = new Map();
     }
 
-    // 1) Recompute every day inside the longest window, for the developers that
-    //    still need it. A developer with a longer retention keeps older days
-    //    live, so a day already rolled up converges again after a retention bump.
+    // 1) Roll up every day that still holds raw rows, oldest first. Walking the
+    //    days the data actually occupies (instead of a fixed lookback window)
+    //    means a long outage or a long-stalled job catches up completely: no day
+    //    is left without a snapshot, and the delete step in (2) can therefore
+    //    remove every rolled-up day without ever dropping un-aggregated calls.
+    //    A day already rolled up converges again harmlessly (idempotent upsert).
+    //    `rawDays` was collected in step 0 and is reused rather than re-listed.
     const rollupFailed = new Set<string>();
-    for (let i = 1; i <= MAX_RAW_RETENTION_DAYS; i++) {
-      const day = addDays(today, -i);
+    for (const day of rawDays) {
+      if (day >= today) continue; // today is rolled up the next morning
       let devs: string[];
       try {
         devs = await repo.listDevelopersWithRawLogs(day);
@@ -98,7 +101,6 @@ export function createApiLogRollupService(opts: ApiLogRollupOptions = {}) {
         continue;
       }
       for (const dev of devs) {
-        if (!needsRollup(day, today, retention.get(dev)?.effectiveDays ?? 0)) continue;
         try {
           await repo.rollupDay(dev, day);
         } catch (error) {
@@ -109,39 +111,47 @@ export function createApiLogRollupService(opts: ApiLogRollupOptions = {}) {
       }
     }
 
-    // 2) Per developer: raw rows strictly before D-(retention-1) may be deleted
-    //    once every day left behind has a daily snapshot. The oldest deleted day
-    //    (and the 8 days before it) are checked: a missed or failed run leaves
-    //    no snapshot there and blocks deletion. Any failure in the pass above
-    //    (day listing, settings, another developer) blocks every delete.
+    // 2) Per developer: delete raw rows day by day, and only for days that
+    //    already have a daily snapshot. Deleting per day (instead of "everything
+    //    before a cutoff") means a day whose rollup failed keeps its raw rows
+    //    and is retried tomorrow, and no call is ever dropped before it has
+    //    been aggregated. Days still inside the retention window are kept as-is.
     for (const dev of dueDevelopers) {
       const effectiveDays = retention.get(dev)?.effectiveDays;
       if (effectiveDays === undefined || rollupFailed.has(dev) || failed) continue;
       const cutoff = addDays(today, -(effectiveDays - 1));
-      const checkStart = addDays(cutoff, -1);
-      const checkFloor = addDays(cutoff, -9);
-      let missing = false;
-      for (let day = checkStart; day >= checkFloor; day = addDays(day, -1)) {
+
+      let rawDays: string[];
+      try {
+        rawDays = await repo.listRawDaysForDeveloper(dev);
+      } catch (error) {
+        console.error(`[ApiLog] Failed to list raw days for ${dev}: ${messageOf(error)}`);
+        continue;
+      }
+
+      let deletedTotal = 0;
+      for (const day of rawDays) {
+        if (day >= cutoff) continue;
         try {
-          const rowCount = await repo.countRawForDeveloper(dev, day);
-          if (rowCount === 0) continue;
-          if (!(await repo.hasDailySnapshot(dev, day))) {
-            missing = true;
-            console.warn(`[ApiLog] Rollup missing for ${dev}/${day}; skipping raw deletion`);
+          const hasSnapshot = await repo.hasDailySnapshot(dev, day);
+          if (!hasSnapshot) {
+            // No snapshot is expected when the day holds only callback pushes
+            // (rollupDay skips them and writes nothing). Anything else means the
+            // rollup failed, so those rows must survive to be retried.
+            const apiCalls = await repo.countApiCallRawForDeveloper(dev, day);
+            if (apiCalls > 0) {
+              console.warn(`[ApiLog] No snapshot for ${dev}/${day}; keeping its raw rows`);
+              continue;
+            }
           }
+          const deleted = await repo.deleteRawForDay(dev, day);
+          deletedTotal += deleted.count;
         } catch (error) {
-          missing = true;
-          console.error(`[ApiLog] Snapshot check failed for ${dev}/${day}: ${messageOf(error)}`);
+          console.error(`[ApiLog] Raw deletion failed for ${dev}/${day}: ${messageOf(error)}`);
         }
       }
-      if (missing) continue;
-      try {
-        const deleted = await repo.deleteRawBeforeForDeveloper(dev, cutoff);
-        if (deleted.count > 0) {
-          console.log(`[ApiLog] Deleted ${deleted.count} raw rows for ${dev} older than ${cutoff}`);
-        }
-      } catch (error) {
-        console.error(`[ApiLog] Raw deletion failed for ${dev}: ${messageOf(error)}`);
+      if (deletedTotal > 0) {
+        console.log(`[ApiLog] Deleted ${deletedTotal} rolled-up raw rows for ${dev} (before ${cutoff})`);
       }
     }
 

@@ -96,27 +96,29 @@ describe('ApiLogRepositoryImpl rollups', () => {
     expect(sql).toContain('request_bytes');
     expect(sql).toContain('response_bytes');
 
-    expect(state.snapshotUpserts).toHaveLength(1);
-    const write = state.snapshotUpserts[0];
-    expect(write.where).toEqual({ uq_dev_date: { developerId: 'dev-1', date: DAY_LABEL } });
-    expect(write.create.totalCalls).toBe(10);
-    expect(write.create.errorCalls).toBe(2);
-    expect(write.create.avgResponseTime).toBe(120);
-    expect(write.create.p95ResponseTime).toBe(300);
-    expect(write.create.totalBytes).toBe(BigInt(500));
-    expect(write.create.topEndpoints).toEqual([{ endpoint: '/a', calls: 10, errorRate: 20 }]);
+    // One batched upsert per table instead of a round-trip per endpoint.
+    const snapshotSql = state.rawSql.find((s) => s.includes('INSERT INTO api_log_snapshots'));
+    expect(snapshotSql).toBeDefined();
+    expect(snapshotSql).toContain('ON DUPLICATE KEY UPDATE');
+    // No per-row Prisma upserts may remain inside the transaction.
+    expect(state.snapshotUpserts).toHaveLength(0);
+    expect(state.endpointUpserts).toHaveLength(0);
+  });
 
-    expect(state.endpointUpserts).toHaveLength(1);
-    expect(state.endpointUpserts[0].create).toMatchObject({
-      developerId: 'dev-1',
-      endpoint: '/a',
-      method: 'POST',
-      calls: 10,
-      errorCalls: 2,
-      totalBytes: BigInt(500),
-      avgResponseTime: 120,
-      maxResponseTime: 300,
-    });
+  it('rollupDay writes every endpoint in a single INSERT statement', async () => {
+    state.rawResults.push([{ calls: 30, errors: 3, total_bytes: 900, avg_rt: 100 }]);
+    state.rawResults.push([
+      { endpoint: '/a', method: 'GET', calls: 10, errors: 1, total_bytes: 300, avg_rt: 80, max_rt: 200 },
+      { endpoint: '/b', method: 'POST', calls: 20, errors: 2, total_bytes: 600, avg_rt: 110, max_rt: 400 },
+    ]);
+    state.rawResults.push([{ rt: 80 }, { rt: 110 }]);
+
+    await repo.rollupDay('dev-1', '2026-11-01');
+
+    const endpoointInserts = state.rawSql.filter((s) => s.includes('INSERT INTO api_log_endpoint_daily'));
+    expect(endpoointInserts).toHaveLength(1);
+    // The value list carries both endpoints inline, so 2 placeholders groups.
+    expect(endpoointInserts[0]).toContain('ON DUPLICATE KEY UPDATE');
   });
 
   it('rollupDay is a no-op when the day has no rows', async () => {
@@ -126,9 +128,8 @@ describe('ApiLogRepositoryImpl rollups', () => {
     const result = await repo.rollupDay('dev-1', '2026-11-01');
     expect(result).toEqual({ calls: 0, errors: 0 });
     // An already-rolled-up day keeps its snapshot: nothing is written or deleted.
-    expect(state.snapshotUpserts).toHaveLength(0);
-    expect(state.endpointUpserts).toHaveLength(0);
-    expect(state.endpointDeletes).toHaveLength(0);
+    expect(state.rawSql.some((s) => s.includes('INSERT INTO'))).toBe(false);
+    expect(state.rawSql.some((s) => s.includes('DELETE FROM api_log_endpoint_daily'))).toBe(false);
   });
 
   it('rollupDay deletes endpoint rows that are no longer present', async () => {
@@ -138,15 +139,12 @@ describe('ApiLogRepositoryImpl rollups', () => {
 
     await repo.rollupDay('dev-1', '2026-11-01');
 
-    expect(state.endpointDeletes).toHaveLength(1);
     // The unique key is (developerId, date, endpoint, method): the keep set is
     // the endpoint+method pair, so a stale `/a GET` is removed while `/a POST`
     // survives.
-    expect(state.endpointDeletes[0].where).toEqual({
-      developerId: 'dev-1',
-      date: DAY_LABEL,
-      NOT: { OR: [{ endpoint: '/a', method: 'GET' }] },
-    });
+    const deleteSql = state.rawSql.find((s) => s.includes('DELETE FROM api_log_endpoint_daily'));
+    expect(deleteSql).toBeDefined();
+    expect(deleteSql).toContain('(endpoint, method) NOT IN');
   });
 
   it('getDailySnapshotsBetween returns zeroed bytes for legacy rows', async () => {

@@ -264,12 +264,20 @@ export interface ApiLogRepository {
   deleteUnassignedRawBefore(day: string): Promise<{ count: number }>
   /** Delete raw rows of one developer older than `day` (YYYY-MM-DD, exclusive). */
   deleteRawBeforeForDeveloper(developerId: string, day: string): Promise<{ count: number }>
+  /** Delete raw rows of one developer for exactly one day (YYYY-MM-DD). */
+  deleteRawForDay(developerId: string, date: string): Promise<{ count: number }>
+  /** Distinct days holding raw rows for a developer, oldest first (YYYY-MM-DD). */
+  listRawDaysForDeveloper(developerId: string): Promise<string[]>
+  /** Distinct days holding raw rows for any developer, oldest first (YYYY-MM-DD). */
+  listDaysWithRawLogs(): Promise<string[]>
   /** Whether any daily snapshot exists for the developer+day. */
   hasDailySnapshot(developerId: string, date: string): Promise<boolean>
   /** List developer ids that have raw rows in the given day. */
   listDevelopersWithRawLogs(date: string): Promise<string[]>
   /** Number of raw rows one developer holds on the given day. */
   countRawForDeveloper(developerId: string, date: string): Promise<number>
+  /** Number of API-call raw rows (callback pushes excluded) one developer holds on the given day. */
+  countApiCallRawForDeveloper(developerId: string, date: string): Promise<number>
   /** List developer ids that still have daily snapshots in the given month (YYYY-MM). */
   listDevelopersWithDailySnapshots(month: string): Promise<string[]>
   /** Retain only the last N days of daily snapshots / endpoint rows; returns deleted counts. */

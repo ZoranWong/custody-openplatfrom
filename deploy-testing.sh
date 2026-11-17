@@ -61,7 +61,7 @@ deploy_api() {
   ssh "$DEPLOY_HOST" "cd $DEPLOY_PATH/api-service && npm install --production && npx prisma migrate deploy && npx prisma generate"
   # dist/ and .env were just replaced, but pm2 keeps running the old in-memory
   # process; --update-env re-reads .env on restart.
-  ssh "$DEPLOY_HOST" "cd $DEPLOY_PATH/api-service && pm2 restart openplatform-api-service --update-env"
+  ssh "$DEPLOY_HOST" "cd $DEPLOY_PATH/api-service && pm2 restart api-service --update-env"
   echo "API Service deployed."
 }
 
