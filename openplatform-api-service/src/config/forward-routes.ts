@@ -398,6 +398,18 @@ export const FORWARD_ROUTES: ForwardRouteConfig[] = [
     clientName: 'custodyService',
     paramMapping: { resourceKey: 'context' },
   },
+
+  // Query task detail (获取任务详情) — GET-shaped upstream, business travels as query
+  {
+    routeId: 'treasury-task-detail',
+    name: 'Task Detail',
+    inboundPath: '/api/thirdparty/task/detail',
+    route: '/api/third-party/detail/task/{resourceKey}',
+    method: 'GET',
+    clientName: 'custodyService',
+    paramMapping: { resourceKey: 'context' },
+    businessAsQuery: true,
+  },
 ];
 
 // Validate forward routes on module load

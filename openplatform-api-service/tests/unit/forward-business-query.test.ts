@@ -92,4 +92,17 @@ describe('forwardRequest businessAsQuery', () => {
     expect(sent.data).toBe(business)
     expect(sent.params).toEqual({})
   })
+
+  it('sends business filters as query params to the task-detail target', async () => {
+    const business = { businessId: 'B-1', taskType: 'issues' }
+
+    await forwardRequest(makeReq('/task/detail', business), makeRes())
+
+    expect(mockRequest).toHaveBeenCalledTimes(1)
+    const sent = mockRequest.mock.calls[0][0]
+    expect(sent.method).toBe('GET')
+    expect(sent.url).toBe(`/api/third-party/detail/task/${RESOURCE_KEY}`)
+    expect(sent.data).toBeUndefined()
+    expect(sent.params).toEqual(business)
+  })
 })
