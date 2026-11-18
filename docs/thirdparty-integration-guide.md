@@ -1,8 +1,8 @@
 # Cregis 开放平台 - 第三方开发者接入指南
 
-> **适用 SDK 版本：** Node SDK 1.5.0 / Java SDK 1.2.7 / Web SDK 1.0.5
+> **适用 SDK 版本：** Node SDK 1.5.1 / Java SDK 1.2.8 / Web SDK 1.0.5
 >
-> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.6`。文中「1.5.0 起 / 1.2.7 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
+> **发布状态：** 上述版本号对应本仓库源码。npm 上 Node SDK 最新为 `1.0.1`、Web SDK 最新为 `1.1.3`；Java 最新可用的 JitPack tag 为 `java-sdk-v1.2.6`。文中「1.5.1 起 / 1.2.8 起」描述的行为以本仓库源码为准，安装前请先确认目标版本是否已发布。
 >
 > **接口基数：** 网关对外 24 条转发接口 + 6 条本地接口，共 30 条
 
@@ -881,7 +881,7 @@ Custody 内部调用 `oauth/verify` 成功后，平台会向回调地址推送 `
 
 本章至第 12 章描述网关转发到 Custody 的业务接口。所有接口均为 `POST`，请求体为 `{ "basic": {...}, "business": {...} }`，使用 **Resource 签名**（`basic.authorizationId` 必填，见第 4 章）。路径中以 `{...}` 表示的参数（如 `unitId`、`taskId`）不参与签名，其值必须匹配 `^[a-zA-Z0-9_-]{1,64}$`，否则网关在转发前返回 `40001`。
 
-> 例外：11.2「查询任务列表」的上游是 GET 接口，网关会把 `business` 转换为上游 query 参数转发，但**开发者侧仍然是 POST + `{basic, business}`**，签名方式不变。
+> 例外：11.2「查询任务列表」与 11.3「获取任务详情」的上游是 GET 接口，网关会把 `business` 转换为上游 query 参数转发，但**开发者侧仍然是 POST + `{basic, business}`**，签名方式不变。
 
 转发行为统一为：网关把 `business` **原样**作为上游请求体发送给 Custody（不增删字段）。**仅当上游返回 HTTP 2xx 时原样返回；上游非 2xx 时网关丢弃上游响应体并返回 `{ code, message }`（上游 4xx 也会被记为 500），且 5xx/超时会被网关自动重试（`maxRetries` 名义为 3，但当前实现存在递归重试，实际调用次数可能远超 3 次，实测在持续 5xx 下会长时间反复请求）——写操作（创建地址、出金、归集、提交审批）存在**重复提交**风险，务必使用业务幂等键并确认上游去重。** 因此：
 
@@ -1685,6 +1685,7 @@ Node SDK `createUnitAddressByAccount` 自 1.4.0 起返回 `AccountAddressVO[]`�
 |------|------|------|------|
 | `treasuryUnitId` | number | 是 | 财务单元 ID |
 | `cusAccountId` | number | 是 | 账户 ID；规则按该账户更新 |
+| `businessId` | string | 否 | 三方业务 id；不传时由 custody 生成 |
 | `fundControls` | FundControl[] | 是 | 资金管理员规则，每项 `{ coinId, fundControlRules }` |
 | `note` | string | 否 | 备注 |
 
@@ -1696,6 +1697,7 @@ Node SDK `createUnitAddressByAccount` 自 1.4.0 起返回 `AccountAddressVO[]`�
   "business": {
     "treasuryUnitId": 80,
     "cusAccountId": 101,
+    "businessId": "BIZ-20261019-001",
     "fundControls": [
       { "coinId": "USDT", "fundControlRules": [{ "guardians": ["guardian-1", "guardian-2"], "threshold": "2", "perTransferLimit": "50000", "dailyTransferLimit": "500000" }] }
     ],
@@ -1773,6 +1775,7 @@ Node SDK `updateFundControl` 自 1.4.0 起返回 `WCCIPCmdAuditTask`；Java SDK 
 | `removeItems` | WhiteListCreateRequest[] | 否 | 移除白名单项，结构同上 |
 | `cusAccountId` | number | 否 | 指定账户 ID |
 | `allowListEnabled` | string | 否 | 是否启用白名单（字段为字符串，取值说明以后端为准（当前文档未能从代码确认）） |
+| `businessId` | string | 否 | 三方业务 id；不传时由 custody 生成 |
 | `lang` | string | 否 | 语言，如 `zh_CN` / `en_US` |
 | `note` | string | 否 | 备注 |
 
@@ -1785,6 +1788,7 @@ Node SDK `updateFundControl` 自 1.4.0 起返回 `WCCIPCmdAuditTask`；Java SDK 
     "treasuryUnitId": 80,
     "addItems": [{ "network": "TRC20", "address": "TXYZ...", "alias": "supplier-a" }],
     "removeItems": [{ "network": "TRC20", "address": "TABC..." }],
+    "businessId": "BIZ-20261019-002",
     "note": "update whitelist"
   }
 }
@@ -2192,6 +2196,61 @@ Node SDK `updateFundControl` 自 1.4.0 起返回 `WCCIPCmdAuditTask`；Java SDK 
 **响应字段**：`records` 为上游 `WCCIPCmdAuditTask` 数组（字段说明同 11.1 中创建类接口返回的审批任务，如 `taskId` / `state` / `signers` / `threshold` / `signContent` 等）；分页字段为 `total` / `current` / `size`，**不含 `pages`**，`orders` 为排序信息数组，可忽略。
 
 `data.records[].taskId` 可用于 11.1 提交审批。
+
+> 本接口是只读查询，网关对上游 5xx / 超时的自动重试是安全的。
+
+**常见业务码**：`400xxx`（参数）、`400103`（`resourceKey` 未开通）、`401xxx` / `403xxx`——由 custody 返回，网关透传。
+
+### 11.3 获取任务详情
+
+**POST** `/api/thirdparty/task/detail` · 鉴权：Resource 签名
+> 网关转发至 custody：`GET /api/third-party/detail/task/{resourceKey}`。与 11.2 相同，网关把 `business` 字段转换为上游 query 参数，`basic` 照常参与 Resource 签名。
+
+按业务标识 + 任务类型查询该业务下的全部审批任务详情。与 11.2 不同，响应是**数组**，没有分页包装。
+
+**请求参数（business）**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `businessId` | string | 是 | 业务标识（与 11.2 的 `businessId` 同义） |
+| `taskType` | string | 是 | 任务类型：资金 `orders` / 系统操作 `issues` |
+
+**请求示例**
+
+```json
+{
+  "basic": { "appId": "550e8400-e29b-41d4-a716-446655440000", "authorizationId": "123e4567-e89b-12d3-a456-426614174000", "timestamp": 1742947200, "nonce": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6", "signature": "c8a4718e976a5f632da56f02cb5b369b" },
+  "business": { "businessId": "BIZ-20261019-001", "taskType": "issues" }
+}
+```
+
+**响应示例**
+
+```json
+{
+  "code": 200,
+  "message": "SUCCESS",
+  "data": [
+    {
+      "id": 5002,
+      "taskId": "task-20261019-011",
+      "taskOperation": "FUND_FLOW",
+      "state": "AUDITING",
+      "businessId": "BIZ-20261019-001",
+      "taskType": "issues",
+      "threshold": 1,
+      "total": 1,
+      "signers": ["guardian-1"],
+      "createTime": "2026-10-19 10:20:00",
+      "updateTime": "2026-10-19 10:20:00"
+    }
+  ]
+}
+```
+
+**响应字段**：数组元素为上游 `WCCIPCmdAuditTask`（字段说明见 9.2 末尾的响应字段表）。
+
+SDK：Node `getTaskDetail(authorizationId, { businessId, taskType })` → `WCCIPCmdAuditTask[]`（1.5.1 起）；Java `TransactionService.getTaskDetail` / `getTaskDetailAsync`（`TaskDetailRequest` → `List<AuditTaskResponse>`，1.2.8 起）。
 
 > 本接口是只读查询，网关对上游 5xx / 超时的自动重试是安全的。
 
@@ -2930,6 +2989,7 @@ Node SDK `addUser` 自 1.4.0 起返回 `ConsoleUser`；Java SDK `UserService.add
 |------|------|------|------|
 | `guardians` | string[] | 否 | 新的护卫队成员（公钥）；不传则保持原成员 |
 | `threshold` | number | 否 | 新的操作门限，需满足 `0 < threshold <= 有效成员数`；不传则保持原门限 |
+| `businessId` | string | 否 | 三方业务 id；不传时由 custody 生成 |
 | `lang` | string | 否 | 签名语言，如 `zh_CN` / `en_US` |
 | `note` | string | 否 | 备注 |
 | `validUntilTime` | number | 否 | 签名有效期。上游类型为 int64、默认 `1440`，上游未注明单位（结合默认值推测为**分钟**），请与 custody 确认后使用 |
@@ -2948,6 +3008,7 @@ Node SDK `addUser` 自 1.4.0 起返回 `ConsoleUser`；Java SDK `UserService.add
   "business": {
     "guardians": ["0x04...owner-public-key", "0x04...staff-public-key"],
     "threshold": 2,
+    "businessId": "BIZ-20261019-003",
     "note": "raise threshold to 2"
   }
 }
@@ -4262,8 +4323,8 @@ interface ConsoleUser {
 | 接口 | 方法 / 路径 | 鉴权 | 参数 / 请求体 |
 |------|-------------|------|---------------|
 | 添加币种 | `POST /api/thirdparty/treasury/add-coins` | Resource | `treasuryUnitId`、`coinIds[]`、`accountFundControls[]?`、`note?`（9.1） |
-| 更新资金流规则 | `POST /api/thirdparty/treasury/fund-control-update` | Resource | `treasuryUnitId`、`cusAccountId`、`fundControls[]`、`note?`（9.2） |
-| 更新白名单 | `POST /api/thirdparty/treasury/whitelist-update` | Resource | `treasuryUnitId`、`cusAccountId`、`addItems[]?`、`removeItems[]?`、`allowListEnabled?`、`lang?`、`note?`（9.3） |
+| 更新资金流规则 | `POST /api/thirdparty/treasury/fund-control-update` | Resource | `treasuryUnitId`、`cusAccountId`、`businessId?`、`fundControls[]`、`note?`（9.2） |
+| 更新白名单 | `POST /api/thirdparty/treasury/whitelist-update` | Resource | `treasuryUnitId`、`cusAccountId`、`businessId?`、`addItems[]?`、`removeItems[]?`、`allowListEnabled?`、`lang?`、`note?`（9.3） |
 
 **出金 / 归集 / 审批**
 
@@ -4273,6 +4334,7 @@ interface ConsoleUser {
 | 发起归集 | `POST /api/thirdparty/treasury/pooling` | Resource | `unitId`、`fromAccountId`、`address`、`amount`、`coinId`、`network`、`lang?`、`note?`、`includes[]?`、`excludes[]?`（10.2） |
 | 提交审批 | `POST /api/thirdparty/treasury/submit-task/{taskId}` | Resource | 路径 `taskId`；`signatures?`、`confirmed`（11.1） |
 | 查询任务列表 | `POST /api/thirdparty/treasury/tasks` | Resource | `pageNum?`、`pageSize?`、`businessId?`、`taskType?`、`taskId?`、`state?`（11.2） |
+| 获取任务详情 | `POST /api/thirdparty/task/detail` | Resource | `businessId`、`taskType`（11.3） |
 
 **交易查询**（`business` 均为 `PaginationQuery`：`pageIndex?`、`pageSize?`、`sortFields?`、`queryList[]?`）
 
@@ -4291,7 +4353,7 @@ interface ConsoleUser {
 | 注册商户企业 | `POST /api/thirdparty/merchant/register` | Basic | `legalName`、`appId`、`owner`、`alias?`、`email?`、`dbaName?`、`jurisdiction?`、`registrationNumber?`、`dateOfIncorporation?`（13.1） |
 | 添加企业用户 | `POST /api/thirdparty/user/add` | Resource | `email`、`password`、`publicKey?`、`ecode?`、`role?`（13.2） |
 | 初始化 Board | `POST /api/thirdparty/board/init` | Resource | `guardians[]`、`threshold`、`lang?`、`note?`（13.3） |
-| 修改 Board | `POST /api/thirdparty/board/update` | Resource | `guardians[]`、`threshold`、`validUntilTime?`、`lang?`、`note?`（13.4） |
+| 修改 Board | `POST /api/thirdparty/board/update` | Resource | `guardians[]`、`threshold`、`businessId?`、`validUntilTime?`、`lang?`、`note?`（13.4） |
 
 ### 17.4 FAQ
 

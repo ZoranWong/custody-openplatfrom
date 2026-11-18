@@ -165,6 +165,34 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResultConsoleUser'
       security: []
+  /api/third-party/fundControl/update/{resourceAccessKey}:
+    post:
+      summary: 修改财务单元funFlow接口
+      deprecated: false
+      description: 修改财务单元funFlow接口
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FundControlUpdateRequest'
+              description: ''
+            examples: {}
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResultWCCIPCmdAuditTask'
+      security: []
   /api/third-party/create-custom/{resourceAccessKey}:
     post:
       summary: 创建一个自定义结构的unit
@@ -754,35 +782,6 @@ paths:
                   #/components/schemas/MessageResultPageProjectUnitLedgerFundRecord
                 description: 分页资金流水
       security: []
-  /api/third-party/fundControl/update/{resourceAccessKey}:
-    post:
-      summary: 修改财务单元funFlow接口
-      deprecated: false
-      description: ''
-      tags: []
-      parameters:
-        - name: resourceAccessKey
-          in: path
-          description: ''
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FundControlUpdateRequest'
-              description: ''
-            examples: {}
-      responses:
-        '200':
-          description: ''
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MessageResultWCCIPCmdAuditTask'
-          headers: {}
-      security: []
   /api/third-party/whiltlist/update/{resourceAccessKey}:
     post:
       summary: 白名单设置
@@ -914,6 +913,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResultPageWCCIPCmdAuditTask'
+          headers: {}
+      security: []
+  /api/third-party/detail/task/{resourceAccessKey}:
+    get:
+      summary: 获取任务详情
+      deprecated: false
+      description: 获取任务详情
+      tags: []
+      parameters:
+        - name: resourceAccessKey
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: string
+        - name: businessId
+          in: query
+          description: ''
+          required: true
+          example: 业务标识
+          schema:
+            type: string
+        - name: taskType
+          in: query
+          description: 任务类型,用于判断是资金(orders)还是系统操作(issues):orders/issues
+          required: true
+          example: issues
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResultListWCCIPCmdAuditTask'
           headers: {}
       security: []
 components:
@@ -1342,6 +1377,34 @@ components:
       required:
         - coinId
         - fundControlRules
+    UpdateBoardRequest:
+      type: object
+      properties:
+        threshold:
+          type: integer
+          description: 护卫队的操作门限
+        businessId:
+          type: string
+          description: 三方业务id
+          default: '##default'
+        guardians:
+          type: array
+          items:
+            type: string
+          description: 护卫队成员
+          default: '##default'
+        lang:
+          type: string
+          description: 签名的语言
+          default: '##default'
+        note:
+          type: string
+          description: ''
+        validUntilTime:
+          type: integer
+          description: ''
+          format: int64
+          default: 1440
     PageWCCIPCmdAuditTask:
       type: object
       properties:
@@ -1403,6 +1466,47 @@ components:
       required:
         - network
         - address
+    WhiteListUpdateRequest:
+      type: object
+      properties:
+        addItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/WhiteListCreateRequest'
+            description: com.cregis.custody.common.dto.WhiteListCreateRequest
+          description: 新增白名单项
+          default: '##default'
+        removeItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/WhiteListCreateRequest'
+            description: com.cregis.custody.common.dto.WhiteListCreateRequest
+          description: 移除白名单项
+          default: '##default'
+        treasuryUnitId:
+          type: integer
+          description: 财务单元ID
+          format: int64
+        cusAccountId:
+          type: integer
+          description: 账户id
+          format: int64
+        allowListEnabled:
+          type: string
+          description: 是否启用白名单
+          default: '##default'
+        businessId:
+          type: string
+          description: 三方业务id
+          default: '##default'
+        lang:
+          type: string
+          description: 语言
+          default: '##default'
+        note:
+          type: string
+          description: 备注
+          default: '##default'
     MessageResultPageWCCIPCmdAuditTask:
       type: object
       properties:
@@ -1515,6 +1619,34 @@ components:
         - coinIds
         - fundControls
         - customUnitDTOs
+    FundControlUpdateRequest:
+      type: object
+      properties:
+        cusAccountId:
+          type: integer
+          description: 账户id
+          format: int64
+        treasuryUnitId:
+          type: integer
+          description: 财务单元id
+          format: int64
+        businessId:
+          type: string
+          description: 三方业务id
+          default: '##default'
+        fundControls:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundControl'
+            description: com.spark.support.wccip.dto.FundControl
+          description: 资金管理员
+          default: '##default'
+        note:
+          type: string
+          description: 备注
+          default: '##default'
+      required:
+        - fundControls
     CreateProjectTreasuryUnitSmartRequest:
       type: object
       properties:
@@ -2174,33 +2306,6 @@ components:
             $ref: '#/components/schemas/WCCIPCmdAuditTask'
             description: com.cregis.custody.common.entity.task.WCCIPCmdAuditTask
           description: ''
-    UpdateBoardRequest:
-      type: object
-      properties:
-        threshold:
-          type: integer
-          description: 护卫队的操作门限
-        guardians:
-          type: array
-          items:
-            type: string
-          description: 护卫队成员
-          default: '##default'
-        lang:
-          type: string
-          description: 签名的语言
-          default: '##default'
-        note:
-          type: string
-          description: ''
-        validUntilTime:
-          type: integer
-          description: ''
-          format: int64
-          default: 1440
-      required:
-        - threshold
-        - guardians
     AccountFundControl:
       type: object
       properties:
@@ -3868,72 +3973,6 @@ components:
           type: string
           description: 创建时间
           default: '##default'
-    FundControlUpdateRequest:
-      type: object
-      properties:
-        cusAccountId:
-          type: integer
-          description: 账户id
-          format: int64
-        treasuryUnitId:
-          type: integer
-          description: 财务单元id
-          format: int64
-        fundControls:
-          type: array
-          items:
-            $ref: '#/components/schemas/FundControl'
-            description: com.spark.support.wccip.dto.FundControl
-          description: 资金管理员
-          default: '##default'
-        note:
-          type: string
-          description: 备注
-          default: '##default'
-      required:
-        - fundControls
-        - cusAccountId
-        - treasuryUnitId
-    WhiteListUpdateRequest:
-      type: object
-      properties:
-        addItems:
-          type: array
-          items:
-            $ref: '#/components/schemas/WhiteListCreateRequest'
-            description: com.cregis.custody.common.dto.WhiteListCreateRequest
-          description: 新增白名单项
-          default: '##default'
-        removeItems:
-          type: array
-          items:
-            $ref: '#/components/schemas/WhiteListCreateRequest'
-            description: com.cregis.custody.common.dto.WhiteListCreateRequest
-          description: 移除白名单项
-          default: '##default'
-        treasuryUnitId:
-          type: integer
-          description: 财务单元ID
-          format: int64
-        cusAccountId:
-          type: integer
-          description: 账户id
-          format: int64
-        allowListEnabled:
-          type: string
-          description: 是否启用白名单
-          default: '##default'
-        lang:
-          type: string
-          description: 语言
-          default: '##default'
-        note:
-          type: string
-          description: 备注
-          default: '##default'
-      required:
-        - treasuryUnitId
-        - cusAccountId
     TrustVaultCallbackDto:
       type: object
       properties:
