@@ -13,7 +13,7 @@ import {
   ProjectUnitAccountAddress, AccountAddressVO,
   PoolingRequest,
   CreatePayoutRequest, WCCIPCmdAuditTask,
-  SubmitTaskRequest, TaskListQuery, PaginationQuery, ProjectUnitActivity,
+  SubmitTaskRequest, TaskListQuery, TaskDetailQuery, PaginationQuery, ProjectUnitActivity,
   ProjectUnitTransferOutOrder, ProjectUnitTransferInOrder,
   ProjectUnitFundRecord, ProjectUnitLedgerFundRecord,
   MerchantRegisterRequest, MerchantRegisterResult,
@@ -431,6 +431,28 @@ export class CregisSDK {
     const { basic } = this.buildResourceRequest(authorizationId, business);
     return this.http.post<PaginatedResponse<WCCIPCmdAuditTask>>(
       '/api/thirdparty/treasury/tasks',
+      { basic, business },
+    );
+  }
+
+  /**
+   * Get task detail. POST /api/thirdparty/task/detail
+   *
+   * Gateway forwards to custody `GET /api/third-party/detail/task/{resourceKey}`
+   * and promotes `business` to query params. Unlike `listTasks`, this returns a
+   * plain array with no pagination envelope.
+   */
+  async getTaskDetail(
+    authorizationId: string,
+    query: TaskDetailQuery,
+  ): Promise<WCCIPCmdAuditTask[]> {
+    const business: Record<string, unknown> = {
+      businessId: query.businessId,
+      taskType: query.taskType,
+    };
+    const { basic } = this.buildResourceRequest(authorizationId, business);
+    return this.http.post<WCCIPCmdAuditTask[]>(
+      '/api/thirdparty/task/detail',
       { basic, business },
     );
   }

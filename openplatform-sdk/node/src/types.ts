@@ -457,6 +457,14 @@ export interface TaskListQuery {
   state?: AuditTaskStatus | string;
 }
 
+/** Query filters for task detail (获取任务详情). Both fields are required. */
+export interface TaskDetailQuery {
+  /** 业务标识（与任务列表的 businessId 同义） */
+  businessId: string;
+  /** 任务类型：资金 orders / 系统操作 issues */
+  taskType: 'orders' | 'issues' | string;
+}
+
 export type AuditTaskStatus =
   | 'AUDITING' | 'REJECTED' | 'AUDIT_REJECTED' | 'AUDIT_PASSED'
   | 'SIGNING' | 'SIGN_FAILED' | 'SIGN_SUCCEED' | 'FAILED' | 'WAITING'
@@ -824,6 +832,8 @@ export interface InitBoardRequest {
 export interface UpdateBoardRequest {
   guardians?: string[];
   threshold?: number;
+  /** 三方业务 id；不传由 custody 生成 */
+  businessId?: string;
   lang?: LangCode;
   note?: string;
   /**
@@ -845,6 +855,8 @@ export interface AddUnitCoinsRequest {
 export interface FundControlUpdateRequest {
   cusAccountId: number;
   treasuryUnitId: number;
+  /** 三方业务 id；不传由 custody 生成 */
+  businessId?: string;
   fundControls: FundControl[];
   note?: string;
 }
@@ -855,6 +867,8 @@ export interface WhitelistUpdateRequest {
   treasuryUnitId: number;
   cusAccountId: number;
   allowListEnabled?: string;
+  /** 三方业务 id；不传由 custody 生成 */
+  businessId?: string;
   lang?: LangCode;
   note?: string;
 }

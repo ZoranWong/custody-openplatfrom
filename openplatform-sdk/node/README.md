@@ -1,10 +1,10 @@
 # Cregis OpenPlatform Node.js SDK
 
-Cregis 托管开放平台官方 Node.js SDK（服务端），覆盖 **OAuth 授权、财务单元（Treasury Unit）、出金/归集、审批、商户与企业用户管理、交易记录查询、回调验签** 全部 26 个业务接口。
+Cregis 托管开放平台官方 Node.js SDK（服务端），覆盖 **OAuth 授权、财务单元（Treasury Unit）、出金/归集、审批、商户与企业用户管理、交易记录查询、回调验签** 全部 27 个业务接口。
 
-**当前版本：1.5.0**
+**当前版本：1.5.1**
 
-> 1.5.0 变更摘要见文末 [版本与变更](#版本与变更)。
+> 1.5.1 变更摘要见文末 [版本与变更](#版本与变更)。
 
 **技术特性**
 
@@ -285,6 +285,7 @@ sdk.initBoard(authorizationId: string, request: {
 sdk.updateBoard(authorizationId: string, request: {
   guardians?: string[];      // 成员公钥；不传则保持原成员
   threshold?: number;        // 操作门限
+  businessId?: string;       // 三方业务 id；不传由 custody 生成
   lang?: LangCode;
   note?: string;
   validUntilTime?: number;   // 签名有效期，单位分钟（custody 默认 1440）
@@ -538,6 +539,7 @@ sdk.updateFundControl(authorizationId, request: {
   treasuryUnitId: number;
   cusAccountId: number;    // 必填（1.4.0 起）
   fundControls: FundControl[];
+  businessId?: string;     // 三方业务 id；不传由 custody 生成（1.5.1 起）
   note?: string;
 }): Promise<WCCIPCmdAuditTask>   // 1.4.0 起：返回审批任务
 ```
@@ -562,6 +564,7 @@ sdk.updateWhitelist(authorizationId, request: {
   removeItems?: WhiteListCreateRequest[];
   cusAccountId?: number;
   allowListEnabled?: string;
+  businessId?: string;     // 三方业务 id；不传由 custody 生成（1.5.1 起）
   lang?: LangCode;
   note?: string;
 }): Promise<WCCIPCmdAuditTask>
@@ -703,6 +706,26 @@ sdk.listTasks(authorizationId, options?: {
 | 可能业务码 | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
 
 `data.records[].taskId` 可继续传给 `submitTask` 提交审批。
+
+#### `getTaskDetail(authorizationId, query)`
+
+```typescript
+sdk.getTaskDetail(authorizationId, query: {
+  businessId: string;      // 业务标识（必填）
+  taskType: 'orders' | 'issues' | string;  // 必填：资金 / 系统操作
+}): Promise<WCCIPCmdAuditTask[]>
+```
+
+转发至 `POST /api/thirdparty/task/detail`（上游 `GET /api/third-party/detail/task/{resourceAccessKey}`，网关把 `business` 转为 query 参数）。
+
+**返回**
+
+| 项 | 类型 / 取值 | 说明 |
+|----|------------|------|
+| `data` | `WCCIPCmdAuditTask[]` | 无分页包装（与 `listTasks` 的 `PaginatedResponse` 不同） |
+| 可能业务码 | `400103` THIRD_PARTY_RESOURCE_KEY_NOT_EXISTS | 业务码明细见 [错误处理](#错误处理) |
+
+按 `businessId` + `taskType` 查询某个业务下的全部审批任务详情。
 
 ---
 
@@ -1185,6 +1208,16 @@ SDK 会自行拼接 `/api/thirdparty/...` 路径，`baseUrl` 不要带尾斜杠�
 ---
 
 ## 版本与变更
+
+### 1.5.1
+
+**新增接口**
+
+- `getTaskDetail(authorizationId, query)` — 获取任务详情，转发至 `POST /api/thirdparty/task/detail`（上游 `GET /api/third-party/detail/task/{resourceAccessKey}`，`business` 转为 query 参数）。返回 `WCCIPCmdAuditTask[]`（无分页包装）；新增 `TaskDetailQuery` 类型（`businessId`、`taskType` 均必填）。
+
+**变更**
+
+- `UpdateBoardRequest`、`FundControlUpdateRequest`、`WhitelistUpdateRequest` 新增可选 `businessId`（三方业务 id）。不传时行为与 1.5.0 完全一致，签名的 `business` body 不变。
 
 ### 1.5.0
 

@@ -118,12 +118,28 @@ describe('CregisSDK treasury endpoints', () => {
     expect(url).toBe('/api/thirdparty/treasury/fund-control-update');
   });
 
+  it('updateFundControl passes businessId through in the signed business body', async () => {
+    const sdk = createSDK();
+    const spy = spyPost();
+    await sdk.updateFundControl(RAK, { treasuryUnitId: 1, cusAccountId: 2, fundControls: [], businessId: 'B-1' });
+    const [, body] = lastPost(spy as any);
+    expect((body.business as any).businessId).toBe('B-1');
+  });
+
   it('updateWhitelist posts to /treasury/whitelist-update', async () => {
     const sdk = createSDK();
     const spy = spyPost();
     await sdk.updateWhitelist(RAK, { treasuryUnitId: 1, addItems: [] } as any);
     const [url] = lastPost(spy as any);
     expect(url).toBe('/api/thirdparty/treasury/whitelist-update');
+  });
+
+  it('updateWhitelist passes businessId through in the signed business body', async () => {
+    const sdk = createSDK();
+    const spy = spyPost();
+    await sdk.updateWhitelist(RAK, { treasuryUnitId: 1, cusAccountId: 2, businessId: 'B-1' });
+    const [, body] = lastPost(spy as any);
+    expect((body.business as any).businessId).toBe('B-1');
   });
 });
 
@@ -161,6 +177,14 @@ describe('CregisSDK merchant/user/board endpoints', () => {
     expect(url).toBe('/api/thirdparty/board/update');
     expect(body.business).toEqual({ threshold: 2, validUntilTime: 1440 });
     expect((body.basic as any).authorizationId).toBe(RAK);
+  });
+
+  it('updateBoard passes businessId through in the signed business body', async () => {
+    const sdk = createSDK();
+    const spy = spyPost();
+    await sdk.updateBoard(RAK, { threshold: 2, businessId: 'B-1' });
+    const [, body] = lastPost(spy as any);
+    expect((body.business as any).businessId).toBe('B-1');
   });
 });
 
@@ -229,6 +253,16 @@ describe('CregisSDK payout/transaction/submit endpoints', () => {
     await sdk.listTasks(RAK);
     const [, body] = lastPost(spy as any);
     expect(body.business).toEqual({});
+  });
+
+  it('getTaskDetail posts businessId/taskType to /task/detail', async () => {
+    const sdk = createSDK();
+    const spy = spyPost();
+    await sdk.getTaskDetail(RAK, { businessId: 'B-1', taskType: 'issues' });
+    const [url, body] = lastPost(spy as any);
+    expect(url).toBe('/api/thirdparty/task/detail');
+    expect(body.business).toEqual({ businessId: 'B-1', taskType: 'issues' });
+    expect((body.basic as any).authorizationId).toBe(RAK);
   });
 
   it('listActivities posts to /activities', async () => {
