@@ -208,4 +208,63 @@ class ServiceFunctionalTest {
         assertTrue(body.contains("\"state\":\"AUDITING\""));
         assertTrue(body.contains("\"authorizationId\":\"" + RAK + "\""));
     }
+
+    @Test
+    @DisplayName("getTaskDetail hits /task/detail and parses a plain audit-task array")
+    void getTaskDetail() throws Exception {
+        enqueueSuccess("[{\"id\":1,\"taskId\":\"T-1\",\"state\":\"AUDITING\"}]");
+        TransactionService svc = new TransactionService(config, http);
+
+        List<AuditTaskResponse> result = svc.getTaskDetail(RAK, TaskDetailRequest.builder()
+                .businessId("B-1").taskType("issues").build());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("T-1", result.get(0).getTaskId());
+
+        RecordedRequest req = server.takeRequest();
+        assertEquals("POST", req.getMethod());
+        assertEquals("/api/thirdparty/task/detail", req.getPath());
+        String body = req.getBody().readUtf8();
+        assertTrue(body.contains("\"businessId\":\"B-1\""));
+        assertTrue(body.contains("\"taskType\":\"issues\""));
+    }
+
+    @Test
+    @DisplayName("updateBoard carries businessId in the signed business body")
+    void updateBoardWithBusinessId() throws Exception {
+        enqueueSuccess("{\"id\":1,\"taskId\":\"T-1\"}");
+        BoardService svc = new BoardService(config, http);
+
+        svc.updateBoard(RAK, UpdateBoardRequest.builder().threshold(2).businessId("B-1").build());
+
+        RecordedRequest req = server.takeRequest();
+        assertTrue(req.getBody().readUtf8().contains("\"businessId\":\"B-1\""));
+    }
+
+    @Test
+    @DisplayName("updateFundControl carries businessId in the signed business body")
+    void updateFundControlWithBusinessId() throws Exception {
+        enqueueSuccess("{\"id\":1,\"taskId\":\"T-1\"}");
+        FundControlService svc = new FundControlService(config, http);
+
+        svc.updateFundControl(RAK, FundControlUpdateRequest.builder()
+                .treasuryUnitId(1L).cusAccountId(2L).businessId("B-1").build());
+
+        RecordedRequest req = server.takeRequest();
+        assertTrue(req.getBody().readUtf8().contains("\"businessId\":\"B-1\""));
+    }
+
+    @Test
+    @DisplayName("updateWhitelist carries businessId in the signed business body")
+    void updateWhitelistWithBusinessId() throws Exception {
+        enqueueSuccess("{\"id\":1,\"taskId\":\"T-1\"}");
+        WhitelistService svc = new WhitelistService(config, http);
+
+        svc.updateWhitelist(RAK, WhitelistUpdateRequest.builder()
+                .treasuryUnitId(1L).cusAccountId(2L).businessId("B-1").build());
+
+        RecordedRequest req = server.takeRequest();
+        assertTrue(req.getBody().readUtf8().contains("\"businessId\":\"B-1\""));
+    }
 }

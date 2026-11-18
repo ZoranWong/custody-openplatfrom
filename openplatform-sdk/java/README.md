@@ -2,7 +2,7 @@
 
 Cregis 托管开放平台官方 Java SDK，覆盖 **OAuth 授权、财务单元、地址、币种/资金控制/白名单、出金/归集、审批、商户与企业用户、Board、交易记录、回调验签** 全部业务接口。所有接口均提供同步与异步（`CompletableFuture`）两种调用方式。
 
-**当前版本：1.2.7**
+**当前版本：1.2.8**
 
 ---
 
@@ -43,7 +43,7 @@ Cregis 托管开放平台官方 Java SDK，覆盖 **OAuth 授权、财务单元�
 <dependency>
     <groupId>com.cregis</groupId>
     <artifactId>cregis-sdk-core</artifactId>
-    <version>1.2.7</version>
+    <version>1.2.8</version>
 </dependency>
 ```
 
@@ -166,7 +166,7 @@ client.transaction().submitTask(authorizationId, task.getTaskId(),
 
 `InitBoardRequest`：`guardians: List<String>`、`threshold: Integer`。
 
-`UpdateBoardRequest`：可选 `guardians`、`threshold`、`lang`、`note`、`validUntilTime`（签名有效期，单位分钟，custody 默认 1440）。
+`UpdateBoardRequest`：可选 `guardians`、`threshold`、`businessId`（三方业务 id，1.2.8 新增）、`lang`、`note`、`validUntilTime`（签名有效期，单位分钟，custody 默认 1440）。
 
 ### 财务单元 Treasury
 
@@ -200,6 +200,8 @@ client.transaction().submitTask(authorizationId, task.getTaskId(),
 | `AuditTaskResponse updateFundControl(String, FundControlUpdateRequest)` | 更新资金控制，返回审批任务（1.2.6 起由 `void` 修正） | `AuditTaskResponse`：`taskId` / `taskOperation: FUND_FLOW` | `400006`、`400030`、`400103`、`400120` |
 | `AuditTaskResponse updateWhitelist(String, WhitelistUpdateRequest)` | 更新白名单，返回审批任务 | `AuditTaskResponse`：`taskId` / `taskOperation: SET_WHITE_LIST` | `400026`、`400027`、`400030`、`400103` |
 
+> `FundControlUpdateRequest`、`WhitelistUpdateRequest` 自 1.2.8 起新增可选 `businessId`（三方业务 id）；不传时由 custody 生成。
+
 ### 出金 / 归集 / 审批
 
 `client.payout()` / `client.transaction()`：
@@ -211,11 +213,13 @@ client.transaction().submitTask(authorizationId, task.getTaskId(),
 | `PageResponse<TransferInOrderResponse> listTransferInOrders(String, QueryRequest)` | 入金订单 | `PageResponse<TransferInOrderResponse>`：`orderState` / `cpAddress` / `amount` | `400103` |
 | `void submitTask(String, String taskId, SubmitTaskRequest)` | 提交审批 | `void`（成功时 `data` 为 `null`） | `400001`、`400013`、`400103` |
 | `PageResponse<AuditTaskResponse> listTasks(String, TaskListRequest)` | 查询任务列表（1.2.7 新增，另有 `listTasksAsync`） | `PageResponse<AuditTaskResponse>`：`records` / `total` / `current` / `size`（上游无 `pages`） | `400103` |
+| `List<AuditTaskResponse> getTaskDetail(String, TaskDetailRequest)` | 获取任务详情（1.2.8 新增，另有 `getTaskDetailAsync`） | `List<AuditTaskResponse>`：无分页包装 | `400103` |
 | `PayoutResponse pooling(String, PoolingRequest)` | 发起归集 | `PayoutResponse`：`orderId` / `orderState` / `taskId` | `300004`、`400006`、`400042`、`400083`、`400102`、`400103` |
 
 `CreatePayoutRequest` 必填 `payTo`、`fromAccountId`、`unitId`、`coinId`、`network`、`fromAddress`、`orderId`、`merchantType`（前 7 项为上游 `ThirdPayoutRequest` 的必填字段）。
 `SubmitTaskRequest`：`confirmed: boolean`，可选 `signatures: Map<String, List<String>>`。
 `TaskListRequest`：全部可选，`pageNum`（从 1 开始）、`pageSize`、`businessId`、`taskType`（`orders` / `issues`）、`taskId`、`state`。
+`TaskDetailRequest`：`businessId`、`taskType`（`orders` / `issues`）均必填。
 
 > 归集仅允许 platform 创建的 acquiring 账户作为来源，否则 custody 返回 `120042 ONLY_ACQUIRING_ACCOUNT_ALLOWED`。
 
@@ -352,6 +356,12 @@ try {
 CI 发布：GitHub Actions → **Release Java SDK** → 输入版本号（需先配置仓库 Secrets，见 `RELEASE.md`）。
 
 ## 版本与变更
+
+### 1.2.8
+
+- 新增 `TransactionService.getTaskDetail` / `getTaskDetailAsync`（`TaskDetailRequest` → `List<AuditTaskResponse>`），对应网关 `POST /api/thirdparty/task/detail`，上游为 `GET /api/third-party/detail/task/{resourceAccessKey}`（网关把 `business` 转为 query 参数）。
+- `UpdateBoardRequest`、`FundControlUpdateRequest`、`WhitelistUpdateRequest` 新增可选 `businessId`（三方业务 id）。不传时行为与 1.2.7 完全一致。
+- `SdkInfo.SDK_VERSION` 同步为 `1.2.8`。
 
 ### 1.2.7
 

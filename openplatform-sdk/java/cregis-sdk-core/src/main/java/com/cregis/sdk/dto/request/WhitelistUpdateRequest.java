@@ -23,6 +23,8 @@ public class WhitelistUpdateRequest {
     private Long cusAccountId;
     /** 是否启用白名单 */
     private String allowListEnabled;
+    /** 三方业务 id；不传由 custody 生成 */
+    private String businessId;
     /** 语言 */
     private String lang;
     /** 备注 */

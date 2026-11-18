@@ -5,6 +5,7 @@ import com.cregis.sdk.core.http.HttpClient;
 import com.cregis.sdk.core.sign.Signer;
 import com.cregis.sdk.dto.request.QueryRequest;
 import com.cregis.sdk.dto.request.SubmitTaskRequest;
+import com.cregis.sdk.dto.request.TaskDetailRequest;
 import com.cregis.sdk.dto.request.TaskListRequest;
 import com.cregis.sdk.dto.response.AuditTaskResponse;
 import com.cregis.sdk.dto.response.FundRecordResponse;
@@ -16,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -175,6 +177,41 @@ public class TransactionService {
         if (request.getTaskType() != null) business.put("taskType", request.getTaskType());
         if (request.getTaskId() != null) business.put("taskId", request.getTaskId());
         if (request.getState() != null) business.put("state", request.getState());
+        return business;
+    }
+
+    /**
+     * Query task detail (获取任务详情).
+     * POST /api/thirdparty/task/detail (gateway forwards to custody GET /api/third-party/detail/task/{resourceKey}
+     * and promotes business to query params)
+     */
+    public List<AuditTaskResponse> getTaskDetail(String authorizationId, TaskDetailRequest request) {
+        Map<String, Object> business = toTaskDetailBusinessMap(request);
+        Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
+                config.getAppId(), config.getAppSecret(), authorizationId, business);
+        String jsonBody = Signer.buildSignatureBody(basic, business);
+
+        String url = config.getBaseUrl() + "/api/thirdparty/task/detail";
+        log.debug("POST {}", url);
+
+        return httpClient.post(url, jsonBody, new TypeReference<List<AuditTaskResponse>>() {});
+    }
+
+    public CompletableFuture<List<AuditTaskResponse>> getTaskDetailAsync(String authorizationId, TaskDetailRequest request) {
+        Map<String, Object> business = toTaskDetailBusinessMap(request);
+        Map<String, Object> basic = Signer.buildBasicInfoWithAuthorization(
+                config.getAppId(), config.getAppSecret(), authorizationId, business);
+        String jsonBody = Signer.buildSignatureBody(basic, business);
+
+        String url = config.getBaseUrl() + "/api/thirdparty/task/detail";
+        return httpClient.postAsync(url, jsonBody, new TypeReference<List<AuditTaskResponse>>() {});
+    }
+
+    private Map<String, Object> toTaskDetailBusinessMap(TaskDetailRequest request) {
+        Map<String, Object> business = new LinkedHashMap<>();
+        if (request == null) return business;
+        if (request.getBusinessId() != null) business.put("businessId", request.getBusinessId());
+        if (request.getTaskType() != null) business.put("taskType", request.getTaskType());
         return business;
     }
 

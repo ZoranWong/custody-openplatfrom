@@ -16,6 +16,8 @@ public class UpdateBoardRequest {
     private List<String> guardians;
     /** 护卫队的操作门限；不传则保持原门限 */
     private Integer threshold;
+    /** 三方业务 id；不传由 custody 生成 */
+    private String businessId;
     /** 签名的语言 */
     private String lang;
     /** 备注 */

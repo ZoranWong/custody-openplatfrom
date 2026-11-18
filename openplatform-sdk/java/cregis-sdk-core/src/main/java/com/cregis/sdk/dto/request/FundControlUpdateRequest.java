@@ -17,6 +17,8 @@ public class FundControlUpdateRequest {
     private Long cusAccountId;
     /** 财务单元id */
     private Long treasuryUnitId;
+    /** 三方业务 id；不传由 custody 生成 */
+    private String businessId;
     /** 资金管理员规则 */
     private List<FundControl> fundControls;
     /** 备注 */
